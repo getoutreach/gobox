@@ -1,0 +1,6 @@
+name: gobox
+releaseType: semver
+releaseOptions:
+  allowMajorVersions: true
+reportingTeam: cia-dev-tooling
+library: true
