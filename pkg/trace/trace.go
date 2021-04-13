@@ -15,7 +15,7 @@
 //     }
 //
 //
-// See https://github.com/getoutreach/go-outreach/blob/master/cmd/example/main.go.
+// See https://github.com/getoutreach/gobox/blob/master/cmd/example/main.go.
 //
 //
 // Servers and incoming requests

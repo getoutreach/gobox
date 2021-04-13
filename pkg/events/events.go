@@ -13,31 +13,7 @@ import (
 	"time"
 )
 
-// User is how we log user info
-type User struct {
-	ID    string `log:"usr.id"`
-	Email string `log:"usr.email"`
-}
-
-// Generate all the marshalers for types here by running go generate
 //go:generate go run github.com/getoutreach/gobox/tools/logger
-
-// Org represents the details for an org.
-//
-// See ExampleEmbeddedOrgEvent for embedded Org within other events
-type Org struct {
-	Bento         string `log:"or.org.bento"`
-	DatabaseHost  string `log:"or.org.database_host"`
-	ShortName     string `log:"or.org.shortname"`
-	GUID          string `log:"or.org.guid"`
-	ReportingTeam string `log:"or.org.reporting_team"`
-}
-
-// ExampleEmbeddedOrgEvent is mostly an example for how to embed
-// events that are already fully namespaced (such as Org)
-type ExampleEmbeddedOrgEvent struct {
-	Org `log:"."` // the dot tells tools/logger to marshal org as is
-}
 
 // Durations holds the various times in seconds
 type Durations struct {

@@ -14,14 +14,6 @@ func (s *Durations) MarshalLog(addField func(key string, value interface{})) {
 	addField("timing.total_time", s.TotalSeconds)
 }
 
-func (s *ExampleEmbeddedOrgEvent) MarshalLog(addField func(key string, value interface{})) {
-	if s == nil {
-		return
-	}
-
-	s.Org.MarshalLog(addField)
-}
-
 func (s *HTTPRequest) MarshalLog(addField func(key string, value interface{})) {
 	if s == nil {
 		return
@@ -51,18 +43,6 @@ func (s *NetworkRequest) MarshalLog(addField func(key string, value interface{})
 	addField("network.destination.ip", s.DestAddr)
 }
 
-func (s *Org) MarshalLog(addField func(key string, value interface{})) {
-	if s == nil {
-		return
-	}
-
-	addField("or.org.bento", s.Bento)
-	addField("or.org.database_host", s.DatabaseHost)
-	addField("or.org.shortname", s.ShortName)
-	addField("or.org.guid", s.GUID)
-	addField("or.org.reporting_team", s.ReportingTeam)
-}
-
 func (s *Times) MarshalLog(addField func(key string, value interface{})) {
 	if s == nil {
 		return
@@ -71,13 +51,4 @@ func (s *Times) MarshalLog(addField func(key string, value interface{})) {
 	addField("timing.scheduled_at", s.Scheduled.UTC().Format(time.RFC3339Nano))
 	addField("timing.dequeued_at", s.Started.UTC().Format(time.RFC3339Nano))
 	addField("timing.finished_at", s.Finished.UTC().Format(time.RFC3339Nano))
-}
-
-func (s *User) MarshalLog(addField func(key string, value interface{})) {
-	if s == nil {
-		return
-	}
-
-	addField("usr.id", s.ID)
-	addField("usr.email", s.Email)
 }

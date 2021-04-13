@@ -9,7 +9,7 @@ import (
 
 // Version needs to be set at build time using -ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=something"
 // nolint:gochecknoglobals
-var Version = "Please see http://github.com/getoutreach/go-outreach/blob/master/docs/version.md"
+var Version = "Please see http://github.com/getoutreach/gobox/blob/master/docs/version.md"
 
 // nolint:gochecknoglobals
 var appName = "unknown"

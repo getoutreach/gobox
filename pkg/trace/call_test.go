@@ -34,7 +34,7 @@ func (m *Model) MarshalLog(addField func(k string, v interface{})) {
 
 func (suite) TestNestedCall(t *testing.T) {
 	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
+	app.SetName("gobox")
 
 	trlog := tracetest.NewTraceLog()
 	defer trlog.Close()
@@ -79,7 +79,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"sql.query":            "my query: some model id",
 			"model.id":             "some model id",
@@ -104,7 +104,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"timing.wait_time":     differs.FloatRange(0, 1),
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"error.kind":           "error",
 			"error.error":          "sql error",
@@ -128,7 +128,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"timing.wait_time":     differs.FloatRange(0, 1),
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -148,7 +148,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	expectedLogs := []log.F{
 		{
-			"app.name":    "go-outreach",
+			"app.name":    "gobox",
 			"app.version": string("testing"),
 			"@timestamp":  differs.RFC3339NanoTime(),
 			"level":       "DEBUG",
@@ -156,7 +156,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"model.id":    "some model id",
 		},
 		{
-			"app.name":    "go-outreach",
+			"app.name":    "gobox",
 			"app.version": string("testing"),
 			"@timestamp":  differs.RFC3339NanoTime(),
 			"level":       "DEBUG",
@@ -165,13 +165,13 @@ func (suite) TestNestedCall(t *testing.T) {
 			"sql.query":   "my query: some model id",
 		},
 		{
-			"app.name":            "go-outreach",
+			"app.name":            "gobox",
 			"app.version":         string("testing"),
 			"@timestamp":          differs.RFC3339NanoTime(),
 			"error.kind":          "error",
 			"error.error":         "sql error",
 			"error.message":       "sql error",
-			"error.stack":         differs.StackLike("go-outreach/v2/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
+			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "sql",
 			"model.id":            "some model id",
@@ -184,13 +184,13 @@ func (suite) TestNestedCall(t *testing.T) {
 			"timing.wait_time":    float64(0),
 		},
 		{
-			"app.name":            "go-outreach",
+			"app.name":            "gobox",
 			"app.version":         string("testing"),
 			"@timestamp":          differs.RFC3339NanoTime(),
 			"error.kind":          "error",
 			"error.error":         "sql error",
 			"error.message":       "sql error",
-			"error.stack":         differs.StackLike("go-outreach/v2/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
+			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "model",
 			"model.id":            "some model id",
@@ -212,7 +212,7 @@ func (suite) TestNestedCall(t *testing.T) {
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
 			"help":         "The latency of the call",
-			"label":        `[name:"app" value:"go-outreach"  name:"call" value:"model"  name:"status" value:"error" ]`,
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"model"  name:"status" value:"error" ]`,
 			"name":         "call_request_seconds",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",
@@ -221,7 +221,7 @@ func (suite) TestNestedCall(t *testing.T) {
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
 			"help":         "The latency of the call",
-			"label":        `[name:"app" value:"go-outreach"  name:"call" value:"sql"  name:"status" value:"error" ]`,
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"sql"  name:"status" value:"error" ]`,
 			"name":         "call_request_seconds",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",

@@ -23,7 +23,7 @@ type suite struct{}
 
 func (suite) TestNestedSpan(t *testing.T) {
 	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
+	app.SetName("gobox")
 
 	trlog := tracetest.NewTraceLog()
 	defer trlog.Close()
@@ -46,7 +46,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -60,7 +60,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"trace.trace_id":       traceID,
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -74,7 +74,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"trace.trace_id":       traceID,
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -96,7 +96,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 
 func (suite) TestTrace(t *testing.T) {
 	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
+	app.SetName("gobox")
 
 	trlog := tracetest.NewTraceLog()
 	defer trlog.Close()
@@ -124,7 +124,7 @@ func (suite) TestTrace(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"inner":                "inner",
@@ -137,7 +137,7 @@ func (suite) TestTrace(t *testing.T) {
 			"trace.trace_id":       differs.AnyString(),
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -159,7 +159,7 @@ func (suite) TestTrace(t *testing.T) {
 
 func (suite) TestID(t *testing.T) {
 	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
+	app.SetName("gobox")
 
 	trlog := tracetest.NewTraceLog()
 	defer trlog.Close()
@@ -180,7 +180,7 @@ func (suite) TestID(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),
@@ -193,7 +193,7 @@ func (suite) TestID(t *testing.T) {
 			"trace.trace_id":       traceID[len("hctrace_"):],
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
 			"meta.beeline_version": differs.AnyString(),

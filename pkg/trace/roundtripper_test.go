@@ -17,7 +17,7 @@ import (
 
 func (suite) TestRoundtripper(t *testing.T) {
 	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
+	app.SetName("gobox")
 
 	state := (suite{}).initRoundTripperState(t)
 	defer state.Close()
@@ -45,7 +45,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"app.name":                  "go-outreach",
+			"app.name":                  "gobox",
 			"app.version":               "testing",
 			"duration":                  differs.FloatRange(0, 10),
 			"duration_ms":               differs.FloatRange(0, 10),
@@ -76,7 +76,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 			"trace.parent_id":           middleID,
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 10),
 			"meta.beeline_version": differs.AnyString(),
@@ -90,7 +90,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 			"trace.trace_id":       traceID,
 		},
 		{
-			"app.name":             "go-outreach",
+			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 10),
 			"meta.beeline_version": differs.AnyString(),

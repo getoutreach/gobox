@@ -16,10 +16,13 @@ func (t *tracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name
 	if t.Honeycomb.Enabled {
 		// honeycomb uses X-Honeycomb-Trace header with some serialized state
 		beelineHeader := header.Get(propagation.TracePropagationHTTPHeader)
-		ctx2, t := trace.NewTrace(ctx, beelineHeader)
-		marshalLog(t.AddField, "", app.Info())
-		t.GetRootSpan().AddField("name", name)
-		ctx = ctx2
+		traceContext, err := propagation.UnmarshalHoneycombTraceContext(beelineHeader)
+		if err == nil {
+			ctx2, t := trace.NewTrace(ctx, traceContext)
+			marshalLog(t.AddField, "", app.Info())
+			t.GetRootSpan().AddField("name", name)
+			ctx = ctx2
+		}
 	}
 
 	return ctx

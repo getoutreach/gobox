@@ -63,5 +63,5 @@ set -ex
 # https://stackoverflow.com/questions/5720194/how-do-i-pass-on-script-arguments-that-contain-quotes-spaces
 # shellcheck disable=SC2086
 go test $BENCH_FLAGS $COVER_FLAGS \
-  -ldflags "-X github.com/getoutreach/go-outreach/v2/pkg/app.Version=testing" -tags="$TEST_TAGS" \
+  -ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=testing" -tags="$TEST_TAGS" \
   "$@" ./...
