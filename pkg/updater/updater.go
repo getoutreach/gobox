@@ -128,7 +128,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	}
 	token := cfg.SecretData(strings.TrimSpace(unsafeToken))
 
-	g := NewGithubUpdater(ctx, log, token, org, repoName)
+	g := NewGithubUpdater(ctx, token, org, repoName)
 	r, err := g.GetLatestVersion(ctx, version, includePrereleases)
 	if err != nil && err != ErrNoNewRelease {
 		log.WithError(err).Warn("failed to check for updates")

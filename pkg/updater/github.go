@@ -21,7 +21,6 @@ import (
 	"github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
@@ -50,8 +49,7 @@ type githubRelease struct {
 }
 
 // NewGithubUpdater creates a new updater powered by Github
-// TODO: Remove logrus param in next major release
-func NewGithubUpdater(ctx context.Context, _ logrus.FieldLogger, token cfg.SecretData, org, repo string) *Github {
+func NewGithubUpdater(ctx context.Context, token cfg.SecretData, org, repo string) *Github {
 	h := http.DefaultClient
 	if token != "" {
 		h = oauth2.NewClient(ctx, oauth2.StaticTokenSource(
@@ -63,7 +61,7 @@ func NewGithubUpdater(ctx context.Context, _ logrus.FieldLogger, token cfg.Secre
 }
 
 // NewGithubUpdaterWithClient creates a new updater with the provided Github Client
-func NewGithubUpdaterWithClient(ctx context.Context, _ logrus.FieldLogger, client *github.Client, org, repo string) *Github {
+func NewGithubUpdaterWithClient(ctx context.Context, client *github.Client, org, repo string) *Github {
 	return &Github{client, org, repo, false}
 }
 

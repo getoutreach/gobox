@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v34/github"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGithubRelease(t *testing.T) {
 	ctx := context.Background()
-	g := NewGithubUpdater(ctx, logrus.New(), "", "jaredallard", "localizer")
+	g := NewGithubUpdater(ctx, "", "jaredallard", "localizer")
 
 	assert.Nil(t, g.Check(ctx), "validating client work")
 
@@ -26,7 +25,7 @@ func TestGithubRelease(t *testing.T) {
 
 func TestGithub_SelectAsset(t *testing.T) {
 	ctx := context.Background()
-	g := NewGithubUpdater(ctx, logrus.New(), "", "jaredallard", "localizer")
+	g := NewGithubUpdater(ctx, "", "jaredallard", "localizer")
 
 	type args struct {
 		assets []*github.ReleaseAsset
