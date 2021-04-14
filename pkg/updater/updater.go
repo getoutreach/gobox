@@ -120,7 +120,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	if b, err2 := ioutil.ReadFile(tokenPath); err2 != nil {
 		unsafeToken, err2 = saveNewToken(log, tokenPath)
 		if err2 != nil {
-			log.WithError(err2).Warn("failed to persist token to disk, we wil ask for it again")
+			log.WithError(err2).Warn("failed to persist token to disk, we will ask for it again")
 		}
 	} else {
 		// we had no error, so process the token
