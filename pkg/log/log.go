@@ -90,9 +90,6 @@ func Write(s string) {
 // F is a map of fields used for logging:
 //     log.Info(ctx, "request started", log.F{"start_time": time.Now()})
 //
-// When logging orgs, use events.Org:
-//     ctx = log.WithOrg(ctx, events.Org{Org: "boo", GUID: "hoo"})
-//
 // When logging errors, use events.Err:
 //     log.Error(ctx, "some failure", events.Err(err))
 type F map[string]interface{}

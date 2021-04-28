@@ -8,7 +8,7 @@ GOOS                ?= $(shell go env GOOS)
 GOARCH              ?= $(shell go env GOARCH)
 PKG                 := $(GO) mod download -x
 APP_VERSION         := $(shell git describe --match 'v[0-9]*' --tags --always HEAD)
-LDFLAGS             := -w -s -X github.com/getoutreach/go-outreach/v2/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(shell cat ~/.outreach/gobox/honeycomb/apiKey)
+LDFLAGS             := -w -s -X github.com/getoutreach/gobox/pkg/app.Version=$(APP_VERSION) -X main.HoneycombTracingKey=$(shell cat ~/.outreach/gobox/honeycomb/apiKey)
 GOFLAGS             :=
 LOG                 := "$(CURDIR)/scripts/lib/logging.sh"
 GOPRIVATE           := github.com/getoutreach/*

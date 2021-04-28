@@ -60,7 +60,7 @@ func (t *tracer) startHoneycombTrace(ctx context.Context, name string) context.C
 		return ctx
 	}
 
-	ctx, tr := trace.NewTrace(ctx, "")
+	ctx, tr := trace.NewTrace(ctx, nil)
 	marshalLog(tr.AddField, "", app.Info())
 	tr.GetRootSpan().AddField("name", name)
 	return ctx

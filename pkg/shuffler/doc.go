@@ -16,7 +16,7 @@
 // An example:
 //
 //  import (
-//      "github.com/go-outreach/pkg/shuffler"
+//      "github.com/gobox/pkg/shuffler"
 //      "github.com/stretchr/testify/assert"
 //  )
 //

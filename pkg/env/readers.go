@@ -17,7 +17,7 @@ import (
 var testOverrides map[string]interface{} = make(map[string]interface{})
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
-func devReader(fallback cfg.Reader) cfg.Reader { //nolint: deadcode unused
+func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
 		if err != nil {
