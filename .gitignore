@@ -49,5 +49,8 @@ Pulumi.*.yaml
 # Ruby gRPC client
 *.gem
 
+# bootstrap libs
+.bootstrap
+
 ###Block(extras)
 ###EndBlock(extras)
