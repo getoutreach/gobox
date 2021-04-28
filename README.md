@@ -1,10 +1,11 @@
 # gobox
 
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://engdocs.outreach.cloud/github.com/getoutreach/gobox)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/gobox)
 [![CircleCI](https://circleci.com/gh/getoutreach/gobox.svg?style=shield&circle-token=<YOUR_STATUS_API_TOKEN:READ:https://circleci.com/docs/2.0/status-badges/>)](https://circleci.com/gh/getoutreach/gobox)
 [![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
 
 <!--- Block(description) -->
+`gobox` is a collection of libraries that are useful for implementing Go services, libraries, and more.
 <!--- EndBlock(description) -->
 
 ----
