@@ -34,7 +34,7 @@ jobs:
   test: # runs not using Workflows must have a build job as entry point
     docker: # run the steps with Docker
       # CircleCI Go images available at: https://hub.docker.com/r/cimg/go
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.15.2
+      - image: gcr.io/outreach-docker/bootstrap/testbed:1.16.2
         auth:
           username: _json_key
           password: $GCLOUD_SERVICE_ACCOUNT
@@ -100,9 +100,10 @@ jobs:
 
             - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
                 path: /tmp/test-results
+
   release-dryrun:
     docker:
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.15.2
+      - image: gcr.io/outreach-docker/bootstrap/testbed:1.16.2
         auth:
           username: _json_key
           password: $GCLOUD_SERVICE_ACCOUNT
@@ -120,6 +121,10 @@ jobs:
             - run:
                 name: Setup npm Authentication
                 command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+            - run:
+                name: Configuring Golang SSH
+                command: |-
+                  git config --global url."git@github.com:".insteadOf "https://github.com/"
             - restore_cache:
                 keys:
                   - v1-release-node-cache-{{ checksum "package.json" }}
@@ -168,7 +173,7 @@ jobs:
                   export CIRCLE_BRANCH=$OLD_CIRCLE_BRANCH
   release:
     docker:
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.15.2
+      - image: gcr.io/outreach-docker/bootstrap/testbed:1.16.2
         auth:
           username: _json_key
           password: $GCLOUD_SERVICE_ACCOUNT
@@ -186,6 +191,10 @@ jobs:
             - run:
                 name: Setup npm Authentication
                 command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+            - run:
+                name: Configuring Golang SSH
+                command: |-
+                  git config --global url."git@github.com:".insteadOf "https://github.com/"
             - restore_cache:
                 keys:
                   - v1-release-node-cache-{{ checksum "package.json" }}
@@ -205,7 +214,7 @@ jobs:
 
   trigger_documentation:
     docker:
-      - image: gcr.io/outreach-docker/bootstrap/testbed:1.15.2
+      - image: gcr.io/outreach-docker/bootstrap/testbed:1.16.2
         auth:
           username: _json_key
           password: $GCLOUD_SERVICE_ACCOUNT

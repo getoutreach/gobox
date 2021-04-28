@@ -6,14 +6,14 @@
   "go.alternateTools": {
     // This makes sure we use the correct version
     // of golangci-lint in our editors.
-    "golangci-lint": "${workspaceFolder}/scripts/golangci-lint.sh"
+    "golangci-lint": "${workspaceFolder}/.bootstrap/shell/golangci-lint.sh"
   },
   "go.buildTags": "or_dev",
   "go.testTags": "or_test,or_int,or_e2e",
   // This prevents 99% of issues with linters :)
   "editor.formatOnSave": true,
   "shellcheck.customArgs": ["-P", "SCRIPTDIR", "-x"],
-  "shellformat.path": "./scripts/shfmt.sh",
+  "shellformat.path": "./.bootstrap/shell/shfmt.sh",
   "[dockerfile]": {
     "editor.defaultFormatter": "ms-azuretools.vscode-docker"
   },
