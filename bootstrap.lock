@@ -3,5 +3,5 @@
 version: v6.0.1
 generated: 2021-04-28T21:30:40Z
 versions:
-  ### Deviation(devbase): Waiting on https://github.com/getoutreach/devbase/pull/5 to be merged.
-  devbase: jaredallard/feat/add-automatic-releases
+  ### Deviation(devbase): Waiting for a new release of bootstrap
+  devbase: v1.1.0
