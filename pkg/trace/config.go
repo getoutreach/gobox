@@ -6,7 +6,18 @@ import (
 
 // tracing config goes into trace.yaml
 type Config struct {
-	Honeycomb `yaml:"Honeycomb"`
+	Honeycomb  `yaml:"Honeycomb"`
+	GlobalTags `yaml:"GlobalTags,omitempty"`
+}
+
+type GlobalTags struct {
+	DevEmail string `yaml:"DevEmail,omitempty"`
+}
+
+func (g *GlobalTags) MarshalLog(addField func(key string, v interface{})) {
+	if g.DevEmail != "" {
+		addField("dev.email", g.DevEmail)
+	}
 }
 
 type Honeycomb struct {
