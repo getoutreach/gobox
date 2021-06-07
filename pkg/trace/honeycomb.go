@@ -39,7 +39,7 @@ func (t *tracer) startHoneycomb(ctx context.Context, serviceName string) error {
 		// honeycomb accepts sample rates as number of requests seen
 		// per request sampled
 		SamplerHook: forceSampler(uint(100 / t.Honeycomb.SamplePercent)),
-		PresendHook: testPresendHook,
+		PresendHook: t.presendHook,
 		Debug:       t.Honeycomb.Debug,
 		STDOUT:      t.Honeycomb.Stdout,
 	})
@@ -55,14 +55,26 @@ func (t *tracer) stopHoneycomb(ctx context.Context) {
 	beeline.Close()
 }
 
+func (t *tracer) presendHook(fields map[string]interface{}) {
+	setf := func(key string, value interface{}) {
+		fields[key] = value
+	}
+
+	// Set service-level tags on every single span we send.
+	marshalLog(setf, "", app.Info())
+	marshalLog(setf, "", &t.GlobalTags)
+
+	if testPresendHook != nil {
+		testPresendHook(fields)
+	}
+}
+
 func (t *tracer) startHoneycombTrace(ctx context.Context, name string, prop *propagation.PropagationContext) context.Context {
 	if !t.Honeycomb.Enabled {
 		return ctx
 	}
 
 	ctx, tr := trace.NewTrace(ctx, prop)
-	marshalLog(tr.AddField, "", app.Info())
-	marshalLog(tr.AddField, "", &t.GlobalTags)
 	tr.GetRootSpan().AddField("name", name)
 	return ctx
 }
