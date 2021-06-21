@@ -117,8 +117,9 @@ Now `Model` can be used in logs like so:
 ```golang
    var myModel m
    log.Debug(ctx, "doing xyz", myModel)
-   
 ```
+
+Better still is to [generate the MarshalLog function using struct tags](https://github.com/getoutreach/gobox/blob/main/tools/logger/generating.md)
 
 ## Prerequisites
 
