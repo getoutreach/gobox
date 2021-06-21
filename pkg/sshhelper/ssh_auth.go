@@ -4,6 +4,7 @@ package sshhelper
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,15 @@ import (
 // GetSSHAgent creates a new ssh-agent, originally it would return one only
 // if it was needed, but it's probably better to always use our own.
 func GetSSHAgent() agent.Agent {
-	return agent.NewKeyring()
+	a := agent.NewKeyring()
+	if addr, ok := os.LookupEnv("SSH_AUTH_SOCK"); ok {
+		agentConn, err := (&net.Dialer{}).Dial("unix", addr)
+		if err == nil {
+			a = agent.NewClient(agentConn)
+		}
+	}
+
+	return a
 }
 
 // GetPasswordInput retrieves input that doesn't echo back to the user as they type it
@@ -55,11 +64,45 @@ func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string,
 	return sshFile, AddKeyToAgent(sshFile, a, log)
 }
 
-// AddKeyToAgent adds a key to the internal ssh-key agent.
+func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubByts) //nolint:dogsled
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse public key")
+	}
+
+	keys, err := a.List()
+	if err != nil {
+		return false, errors.Wrap(err, "failed to list existing agent keys")
+	}
+	for _, k := range keys {
+		if ssh.FingerprintSHA256(pubKey) == ssh.FingerprintSHA256(k) {
+			// key already in agent
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// AddKeyToAgent adds a key to the internal ssh-key agent. If a public key can
+// be found at the same path as the private key, it will first check the agent
+// and return nil if the key is already present
 func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { // nolint:funlen
 	b, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read private key")
+	}
+	// If a public key exists use it to check if the key-to-add already
+	// exists in the agent. If we can't find a public key we'll go ahead
+	// and move along as if it's not in the agent.
+	pubByts, err := ioutil.ReadFile(keyPath + ".pub")
+	if err == nil {
+		exists, err2 := pubKeyInAgent(a, pubByts)
+		if err2 != nil {
+			return errors.Wrap(err2, "failed checking agent for existing key")
+		}
+		if exists {
+			return nil
+		}
 	}
 
 	pk, err := ssh.ParseRawPrivateKey(b)
