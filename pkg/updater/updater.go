@@ -2,12 +2,14 @@ package updater
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -54,7 +56,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	}
 
 	// Never update when device is not a terminal
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !forceCheck && !term.IsTerminal(int(os.Stdin.Fd())) {
 		return false
 	}
 
@@ -114,19 +116,22 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		}
 	}
 
-	// This token is not safe for usage, it will be logged if accidentally
-	// set to be logged. DO NOT USE. Use `token` instead.
-	var unsafeToken string
-	if b, err2 := ioutil.ReadFile(tokenPath); err2 != nil {
-		unsafeToken, err2 = saveNewToken(log, tokenPath)
-		if err2 != nil {
-			log.WithError(err2).Warn("failed to persist token to disk, we will ask for it again")
+	token, err := ghcliToken(ctx, log)
+	if err != nil {
+		// This token is not safe for usage, it will be logged if accidentally
+		// set to be logged. DO NOT USE. Use `token` instead.
+		var unsafeToken string
+		if b, err2 := ioutil.ReadFile(tokenPath); err2 != nil {
+			unsafeToken, err2 = saveNewToken(log, tokenPath)
+			if err2 != nil {
+				log.WithError(err2).Warn("failed to persist token to disk, we will ask for it again")
+			}
+		} else {
+			// we had no error, so process the token
+			unsafeToken = string(b)
 		}
-	} else {
-		// we had no error, so process the token
-		unsafeToken = string(b)
+		token = cfg.SecretData(strings.TrimSpace(unsafeToken))
 	}
-	token := cfg.SecretData(strings.TrimSpace(unsafeToken))
 
 	g := NewGithubUpdater(ctx, token, org, repoName)
 	r, err := g.GetLatestVersion(ctx, version, includePrereleases)
@@ -227,4 +232,25 @@ func saveNewToken(log logrus.FieldLogger, tokenPath string) (string, error) {
 	}
 
 	return token, nil
+}
+
+func ghcliToken(ctx context.Context, log logrus.FieldLogger) (cfg.SecretData, error) {
+	cmd := exec.CommandContext(ctx, "gh", "auth", "status", "--show-token")
+	log.Debug("exec: gh auth status --show-token")
+	o, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	expToken := regexp.MustCompile(`Token: (\S+)$`)
+	s := bufio.NewScanner(bytes.NewReader(o))
+	for s.Scan() {
+		if !expToken.Match(s.Bytes()) {
+			continue
+		}
+
+		return cfg.SecretData(expToken.FindSubmatch(s.Bytes())[1]), nil
+	}
+
+	return "", errors.New("no token in gh auth status --show-token output")
 }
