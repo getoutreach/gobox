@@ -219,24 +219,40 @@ func (suite) TestNestedCall(t *testing.T) {
 	if diff := cmp.Diff(expectedLogs, logs.Entries(), differs.Custom()); diff != "" {
 		t.Fatal("unexpected log entries", diff)
 	}
+}
+
+func TestReportLatencyMetrics(t *testing.T) {
+	defer app.SetName(app.Info().Name)
+	app.SetName("gobox")
+
+	ctx := context.Background()
+
+	httpCall := func(ctx context.Context) error {
+		ctx = trace.StartCall(ctx, trace.CallTypeHTTP)
+		defer trace.EndCall(ctx)
+
+		return trace.SetCallStatus(ctx, nil)
+	}
+
+	// wrapping the main logic in a function so that we can call
+	// defer per our accepted trace.StartTrace/trace.End pattern
+	func() {
+		ctx = trace.StartTrace(ctx, "trace-test")
+		defer trace.End(ctx)
+
+		if err := httpCall(ctx); err != nil {
+			t.Fatal("unexpected error", err)
+		}
+	}()
 
 	// TODO: convert this to a recorder pattern as well
 	metricsInfo := getMetricsInfo(t)
 	expectedMetrics := []map[string]interface{}{
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
-			"help":         "The latency of the call",
-			"label":        `[name:"app" value:"gobox"  name:"call" value:"model"  name:"kind" value:"internal"  name:"status" value:"error"  name:"statuscategory" value:"CategoryServerError"  name:"statuscode" value:"UnknownError" ]`,
-			"name":         "call_request_seconds",
-			"sample count": uint64(0x01),
-			"summary":      "<nil>",
-			"type":         "HISTOGRAM",
-		},
-		{
-			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
-			"help":         "The latency of the call",
-			"label":        `[name:"app" value:"gobox"  name:"call" value:"sql"  name:"kind" value:"internal"  name:"status" value:"error"  name:"statuscategory" value:"CategoryServerError"  name:"statuscode" value:"UnknownError" ]`,
-			"name":         "call_request_seconds",
+			"help":         "The latency of the HTTP request, in seconds",
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"http"  name:"kind" value:"internal" ]`,
+			"name":         "http_request_handled",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",
 			"type":         "HISTOGRAM",
@@ -255,11 +271,11 @@ func getMetricsInfo(t *testing.T) []map[string]interface{} {
 
 	result := []map[string]interface{}{}
 	for _, metricFamily := range got {
-		if metricFamily.GetName() == "call_request_seconds" {
+		if metricFamily.GetName() == "http_request_handled" {
 			for _, metric := range metricFamily.Metric {
 				found := false
 				for _, labelPair := range metric.GetLabel() {
-					if labelPair.GetName() == "status" {
+					if labelPair.GetName() == "app" && labelPair.GetValue() == "gobox" {
 						found = true
 					}
 				}

@@ -14,7 +14,7 @@ func Example() {
 	// sleep for 6ms to cross the lower most bucket of 5ms
 	time.Sleep(6 * time.Millisecond)
 	latency := float64(time.Since(start)) / float64(time.Second)
-	metrics.ReportLatency("example_app", "example_call", latency, nil)
+	metrics.ReportHTTPLatency("example_app", "example_call", latency)
 
 	got, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
@@ -23,11 +23,11 @@ func Example() {
 	}
 
 	for _, metricFamily := range got {
-		if metricFamily.GetName() == "call_request_seconds" {
+		if metricFamily.GetName() == "http_request_handled" {
 			for _, metric := range metricFamily.Metric {
 				found := false
 				for _, labelPair := range metric.GetLabel() {
-					if labelPair.GetName() == "status" && labelPair.GetValue() == "ok" {
+					if labelPair.GetName() == "app" && labelPair.GetValue() == "example_app" {
 						found = true
 					}
 				}
@@ -46,10 +46,10 @@ func Example() {
 	}
 
 	// Output:
-	// name call_request_seconds
-	// help The latency of the call
+	// name http_request_handled
+	// help The latency of the HTTP request, in seconds
 	// type HISTOGRAM
-	// label [name:"app" value:"example_app"  name:"call" value:"example_call"  name:"kind" value:"internal"  name:"status" value:"ok"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]
+	// label [name:"app" value:"example_app"  name:"call" value:"example_call"  name:"kind" value:"internal" ]
 	// summary <nil>
 	// sample count 1
 	// sample count [cumulative_count:0 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]

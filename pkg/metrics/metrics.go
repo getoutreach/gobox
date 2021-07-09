@@ -4,13 +4,8 @@
 package metrics
 
 import (
-	"strings"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
-	"github.com/getoutreach/gobox/pkg/orerr"
-	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
 type CallKind string
@@ -18,18 +13,6 @@ type CallKind string
 const (
 	CallKindInternal CallKind = "internal"
 	CallKindExternal CallKind = "external"
-)
-
-// nolint:gochecknoglobals
-var callLatency = promauto.NewHistogramVec(
-	prometheus.HistogramOpts{
-
-		Name: "call_request_seconds",
-		Help: "The latency of the call",
-		// use prometheus.DefBuckets which is
-		// []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
-	},
-	[]string{"app", "call", "status", "statuscode", "statuscategory", "kind"},
 )
 
 type ReportLatencyOptions struct {
@@ -53,25 +36,74 @@ func WithCallKind(ck CallKind) ReportLatencyOption {
 	}
 }
 
-// ReportLatency reports the latency metric for this request
-func ReportLatency(appName, callName string, latencySeconds float64, err error, options ...ReportLatencyOption) {
-	opt := &ReportLatencyOptions{Kind: CallKindInternal}
+// httpCallLatency registers the http_request_handled metric for reporting latency of
+// HTTP requests, in seconds.
+var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+	prometheus.HistogramOpts{
+		Name:    "http_request_handled",
+		Help:    "The latency of the HTTP request, in seconds",
+		Buckets: prometheus.DefBuckets,
+	},
+	[]string{"app", "call", "kind"}, // Labels
+)
+
+// ReportHTTPLatency reports the http_request_handled metric for a request.
+func ReportHTTPLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+	opt := &ReportLatencyOptions{
+		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
+	}
+
 	for _, f := range options {
 		f(opt)
 	}
 
-	statusCode := statuscodes.OK
-	if err != nil {
-		// If it's not a StatusCodeWrapper, it will come back with UnknownError, which is fine.
-		statusCode = orerr.ExtractErrorStatusCode(err)
+	httpCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
+}
+
+// grpcCallLatency registers the grpc_request_handled metric for reporting latency of
+// gRPC requests, in seconds.
+var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+	prometheus.HistogramOpts{
+		Name:    "grpc_request_handled",
+		Help:    "The latency of the gRPC request, in seconds",
+		Buckets: prometheus.DefBuckets,
+	},
+	[]string{"app", "call", "kind"}, // Labels
+)
+
+// ReportGRPCLatency reports the grpc_request_handled metric for a request.
+func ReportGRPCLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+	opt := &ReportLatencyOptions{
+		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
 	}
 
-	// Legacy status str for older services.  Should be able to deprecate this fairly soon after the
-	// new status code system rolls out.
-	statusStr := "ok"
-	if statusCode != statuscodes.OK {
-		statusStr = "error"
+	for _, f := range options {
+		f(opt)
 	}
 
-	callLatency.WithLabelValues(appName, callName, strings.ToLower(statusStr), statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
+	grpcCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
+}
+
+// outboundCallLatency registers the outbound_call_seconds metric for reporting latency
+// of outbound requests, in seconds.
+var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+	prometheus.HistogramOpts{
+		Name:    "outbound_call_seconds",
+		Help:    "The latency of the outbound request, in seconds",
+		Buckets: prometheus.DefBuckets,
+	},
+	[]string{"app", "call", "kind"}, // Labels
+)
+
+// ReportOutboundLatency reports the outbound_call_seconds metric for a request.
+func ReportOutboundLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+	opt := &ReportLatencyOptions{
+		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
+	outboundCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
 }
