@@ -225,6 +225,9 @@ func TestReportLatencyMetrics(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
+	logs := logtest.NewLogRecorder(t)
+	defer logs.Close()
+
 	ctx := context.Background()
 
 	httpCall := func(ctx context.Context) error {
@@ -251,7 +254,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
 			"help":         "The latency of the HTTP request, in seconds",
-			"label":        `[name:"app" value:"gobox"  name:"call" value:"http"  name:"kind" value:"internal" ]`,
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"http"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
 			"name":         "http_request_handled",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",

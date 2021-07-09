@@ -37,11 +37,21 @@ func (c callType) String() string {
 // reportLatency reports the latency for a call depending on the underlying
 // type stored in the receiver.
 func (c callType) reportLatency(info *callInfo) {
+	var err error
+	if info.ErrorInfo != nil {
+		err = info.ErrorInfo.RawError
+	}
+
+	if info.kind == metrics.CallKindExternal {
+		info.ReportOutboundLatency(err)
+		return
+	}
+
 	switch c { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
 	case CallTypeHTTP:
-		info.ReportHTTPLatency()
+		info.ReportHTTPLatency(err)
 	case CallTypeGRPC:
-		info.ReportGRPCLatency()
+		info.ReportGRPCLatency(err)
 	}
 }
 
@@ -87,20 +97,20 @@ func (c *callInfo) MarshalLog(addField func(key string, v interface{})) {
 
 // ReportHTTPLatency is a thin wrapper around metrics.ReportHTTPLatency to report latency metrics
 // for HTTP calls.
-func (c *callInfo) ReportHTTPLatency() {
-	metrics.ReportHTTPLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, metrics.WithCallKind(c.kind))
+func (c *callInfo) ReportHTTPLatency(err error) {
+	metrics.ReportHTTPLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // ReportGRPCLatency is a thin wrapper around metrics.ReportGRPCLatency to report latency metrics
 // for gRPC calls.
-func (c *callInfo) ReportGRPCLatency() {
-	metrics.ReportGRPCLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, metrics.WithCallKind(c.kind))
+func (c *callInfo) ReportGRPCLatency(err error) {
+	metrics.ReportGRPCLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // ReportOutboundLatency is a thin wrapper around metrics.ReportOutboundLatency to report latency
 // metrics for outbound calls.
-func (c *callInfo) ReportOutboundLatency() {
-	metrics.ReportOutboundLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, metrics.WithCallKind(c.kind))
+func (c *callInfo) ReportOutboundLatency(err error) {
+	metrics.ReportOutboundLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // StartCall is used to start an internal call. For external calls please
@@ -197,13 +207,7 @@ func EndCall(ctx context.Context) {
 	}
 
 	addDefaultTracerInfo(ctx, info)
-
-	if info.kind == metrics.CallKindExternal {
-		info.ReportOutboundLatency()
-	} else {
-		// Internal calls report latency in a more granular fashion.
-		info.name.reportLatency(info)
-	}
+	info.name.reportLatency(info)
 
 	traceInfo := log.F{
 		"honeycomb.trace_id": ID(ctx),
