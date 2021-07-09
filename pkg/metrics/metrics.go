@@ -4,6 +4,8 @@
 package metrics
 
 import (
+	"github.com/getoutreach/gobox/pkg/orerr"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -44,11 +46,11 @@ var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
 		Help:    "The latency of the HTTP request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "kind"}, // Labels
+	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportHTTPLatency reports the http_request_handled metric for a request.
-func ReportHTTPLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+func ReportHTTPLatency(appName, callName string, latencySeconds float64, err error, options ...ReportLatencyOption) {
 	opt := &ReportLatencyOptions{
 		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
 	}
@@ -57,7 +59,13 @@ func ReportHTTPLatency(appName, callName string, latencySeconds float64, options
 		f(opt)
 	}
 
-	httpCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
+	statusCode := statuscodes.OK
+	if err != nil {
+		// If it's not a StatusCodeWrapper, it will come back with UnknownError, which is fine.
+		statusCode = orerr.ExtractErrorStatusCode(err)
+	}
+
+	httpCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }
 
 // grpcCallLatency registers the grpc_request_handled metric for reporting latency of
@@ -68,11 +76,11 @@ var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
 		Help:    "The latency of the gRPC request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "kind"}, // Labels
+	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportGRPCLatency reports the grpc_request_handled metric for a request.
-func ReportGRPCLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+func ReportGRPCLatency(appName, callName string, latencySeconds float64, err error, options ...ReportLatencyOption) {
 	opt := &ReportLatencyOptions{
 		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
 	}
@@ -81,7 +89,13 @@ func ReportGRPCLatency(appName, callName string, latencySeconds float64, options
 		f(opt)
 	}
 
-	grpcCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
+	statusCode := statuscodes.OK
+	if err != nil {
+		// If it's not a StatusCodeWrapper, it will come back with UnknownError, which is fine.
+		statusCode = orerr.ExtractErrorStatusCode(err)
+	}
+
+	grpcCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }
 
 // outboundCallLatency registers the outbound_call_seconds metric for reporting latency
@@ -92,11 +106,11 @@ var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
 		Help:    "The latency of the outbound request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "kind"}, // Labels
+	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportOutboundLatency reports the outbound_call_seconds metric for a request.
-func ReportOutboundLatency(appName, callName string, latencySeconds float64, options ...ReportLatencyOption) {
+func ReportOutboundLatency(appName, callName string, latencySeconds float64, err error, options ...ReportLatencyOption) {
 	opt := &ReportLatencyOptions{
 		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
 	}
@@ -105,5 +119,11 @@ func ReportOutboundLatency(appName, callName string, latencySeconds float64, opt
 		f(opt)
 	}
 
-	outboundCallLatency.WithLabelValues(appName, callName, string(opt.Kind)).Observe(latencySeconds)
+	statusCode := statuscodes.OK
+	if err != nil {
+		// If it's not a StatusCodeWrapper, it will come back with UnknownError, which is fine.
+		statusCode = orerr.ExtractErrorStatusCode(err)
+	}
+
+	outboundCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }
