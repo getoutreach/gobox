@@ -46,7 +46,7 @@ func Example() {
 	}
 
 	// Output:
-	// name call_request_seconds
+	// name http_request_handled
 	// help The latency of the HTTP request, in seconds
 	// type HISTOGRAM
 	// label [name:"app" value:"example_app"  name:"call" value:"example_call"  name:"kind" value:"internal" ]
