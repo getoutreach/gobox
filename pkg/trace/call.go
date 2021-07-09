@@ -34,6 +34,17 @@ func (c callType) String() string {
 	return string(c)
 }
 
+// reportLatency reports the latency for a call depending on the underlying
+// type stored in the receiver.
+func (c callType) reportLatency(info *callInfo) {
+	switch c { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
+	case CallTypeHTTP:
+		info.ReportHTTPLatency()
+	case CallTypeGRPC:
+		info.ReportGRPCLatency()
+	}
+}
+
 // This constant block contains predefined CallType types.
 const (
 	// CallTypeHTTP is a constant that denotes the call type being an HTTP
@@ -190,12 +201,8 @@ func EndCall(ctx context.Context) {
 	if info.kind == metrics.CallKindExternal {
 		info.ReportOutboundLatency()
 	} else {
-		switch info.name { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
-		case CallTypeHTTP:
-			info.ReportHTTPLatency()
-		case CallTypeGRPC:
-			info.ReportGRPCLatency()
-		}
+		// Internal calls report latency in a more granular fashion.
+		info.name.reportLatency(info)
 	}
 
 	traceInfo := log.F{
