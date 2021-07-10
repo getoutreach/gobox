@@ -114,13 +114,10 @@ func (suite) TestLimitExceededError(t *testing.T) {
 
 func (suite) TestExtractErrorMetadata(t *testing.T) {
 	origErr := errors.New("something went wrong")
-	err := orerr.Meta(origErr, map[string]string{
-		"my-service-status-code": "xxx",
-	})
+	meta := map[string]string{"my-service-status-code": "xxx"}
 
-	assert.DeepEqual(t, orerr.ExtractErrorMetadata(err), map[string]string{
-		"my-service-status-code": "xxx",
-	})
+	err := orerr.Meta(origErr, meta)
+	assert.DeepEqual(t, orerr.ExtractErrorMetadata(err), meta)
 }
 
 func (suite) TestExtractMetadataErrorEmpty(t *testing.T) {
