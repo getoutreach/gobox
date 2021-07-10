@@ -148,3 +148,29 @@ func IsOneOf(err error, errs ...error) bool {
 
 	return false
 }
+
+// Meta adds grpc metadata to an error.
+func Meta(err error, meta map[string]string) error {
+	return &withMeta{error: err, meta: meta}
+}
+
+type withMeta struct {
+	error
+	meta map[string]string
+}
+
+// Unwrap returns the underlying error.
+// This method is required by errors.Unwrap.
+func (e *withMeta) Unwrap() error {
+	return e.error
+}
+
+// ExtractErrorMetadata returns any embedded grpc metadata in
+func ExtractErrorMetadata(err error) map[string]string {
+	var m *withMeta
+	if errors.As(err, &m) {
+		return m.meta
+	}
+
+	return map[string]string{}
+}
