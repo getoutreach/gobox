@@ -86,6 +86,15 @@ func WithRetry() ErrOption {
 	}
 }
 
+// WithMeta attaches the provided grpc metadata to the error.
+//
+// It is a functional option for use with New.
+func WithMeta(meta map[string]string) ErrOption {
+	return func(err error) error {
+		return Meta(err, meta)
+	}
+}
+
 // Info adds extra logging info to an error.
 func Info(err error, info ...log.Marshaler) error {
 	return withInfo{err, log.Many(info)}
