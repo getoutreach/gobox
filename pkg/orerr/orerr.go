@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
 // A SentinelError is a constant which ought to be compared using errors.Is.
@@ -92,6 +93,15 @@ func WithRetry() ErrOption {
 func WithMeta(meta map[string]string) ErrOption {
 	return func(err error) error {
 		return Meta(err, meta)
+	}
+}
+
+// WithStatus calls NewErrorStatus with the given code.
+//
+// It is a functional option for use with New.
+func WithStatus(code statuscodes.StatusCode) ErrOption {
+	return func(err error) error {
+		return NewErrorStatus(err, code)
 	}
 }
 
