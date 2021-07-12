@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getoutreach/gobox/internal/caller"
+	"github.com/getoutreach/gobox/pkg/caller"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/pkg/errors"
 )
