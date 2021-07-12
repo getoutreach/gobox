@@ -1,6 +1,6 @@
 package log
 
-import "github.com/getoutreach/gobox/internal/caller"
+import "github.com/getoutreach/gobox/pkg/caller"
 
 // Caller returns a log entry of the form F{"caller": "fileName:nn"}
 func Caller() Marshaler {
