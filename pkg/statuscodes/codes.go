@@ -49,3 +49,30 @@ func (re StatusCode) Category() StatusCategory {
 
 	return CategoryServerError
 }
+
+func FromString(s string) (StatusCode, bool) {
+	switch s {
+	case BadRequest.String():
+		return BadRequest, true
+	case Unauthorized.String():
+		return Unauthorized, true
+	case Forbidden.String():
+		return Forbidden, true
+	case NotFound.String():
+		return NotFound, true
+	case Conflict.String():
+		return Conflict, true
+	case RateLimited.String():
+		return RateLimited, true
+	case InternalServerError.String():
+		return InternalServerError, true
+	case NotImplemented.String():
+		return NotImplemented, true
+	case Unavailable.String():
+		return Unavailable, true
+	case UnknownError.String():
+		return UnknownError, true
+	default:
+		return UnknownError, false
+	}
+}
