@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
 // A SentinelError is a constant which ought to be compared using errors.Is.
@@ -86,6 +87,24 @@ func WithRetry() ErrOption {
 	}
 }
 
+// WithMeta attaches the provided grpc metadata to the error.
+//
+// It is a functional option for use with New.
+func WithMeta(meta map[string]string) ErrOption {
+	return func(err error) error {
+		return Meta(err, meta)
+	}
+}
+
+// WithStatus calls NewErrorStatus with the given code.
+//
+// It is a functional option for use with New.
+func WithStatus(code statuscodes.StatusCode) ErrOption {
+	return func(err error) error {
+		return NewErrorStatus(err, code)
+	}
+}
+
 // Info adds extra logging info to an error.
 func Info(err error, info ...log.Marshaler) error {
 	return withInfo{err, log.Many(info)}
@@ -147,4 +166,30 @@ func IsOneOf(err error, errs ...error) bool {
 	}
 
 	return false
+}
+
+// Meta adds grpc metadata to an error.
+func Meta(err error, meta map[string]string) error {
+	return &withMeta{error: err, meta: meta}
+}
+
+type withMeta struct {
+	error
+	meta map[string]string
+}
+
+// Unwrap returns the underlying error.
+// This method is required by errors.Unwrap.
+func (e *withMeta) Unwrap() error {
+	return e.error
+}
+
+// ExtractErrorMetadata returns any embedded grpc metadata in
+func ExtractErrorMetadata(err error) map[string]string {
+	var m *withMeta
+	if errors.As(err, &m) {
+		return m.meta
+	}
+
+	return map[string]string{}
 }

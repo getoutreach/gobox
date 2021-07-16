@@ -111,3 +111,16 @@ func (suite) TestLimitExceededError(t *testing.T) {
 	assert.Assert(t, errors.Is(limitErr, err))
 	assert.Equal(t, limitErr.Error(), "queue limit exceeded")
 }
+
+func (suite) TestExtractErrorMetadata(t *testing.T) {
+	origErr := errors.New("something went wrong")
+	meta := map[string]string{"my-service-status-code": "xxx"}
+
+	err := orerr.Meta(origErr, meta)
+	assert.DeepEqual(t, orerr.ExtractErrorMetadata(err), meta)
+}
+
+func (suite) TestExtractMetadataErrorEmpty(t *testing.T) {
+	err := errors.New("something went wrong")
+	assert.Equal(t, len(orerr.ExtractErrorMetadata(err)), 0)
+}
