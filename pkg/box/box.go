@@ -79,10 +79,14 @@ type Config struct {
 
 // Storage is a wrapper type used for storing the box configuration
 type Storage struct {
+	// Config is the box configuration, see Config
 	Config *Config `yaml:"config"`
 
+	// LastUpdated is the last time this file was checked for updates
 	LastUpdated time.Time `yaml:"lastUpdated"`
-	StorageURL  string    `yaml:"storageURL"`
+
+	// StorageURL is the location that this came from
+	StorageURL string `yaml:"storageURL"`
 }
 
 // NewConfig makes a full initialized Config
@@ -158,7 +162,7 @@ type SnapshotLockListItem struct {
 }
 
 // SnapshotLockList contains a channel (different releases of snapshots)
-// seperated list of snapshots
+// separated list of snapshots
 type SnapshotLockList struct {
 	// Snapshots is a channel separated list of snapshots for a given target
 	Snapshots map[SnapshotLockChannel][]*SnapshotLockListItem `yaml:"snapshots"`
