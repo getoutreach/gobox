@@ -1,12 +1,20 @@
+// Package box implements the definitions of a box configuration file
+// and tools to access it. This is used to configure the suite of tools
+// that outreach provides, aka "startup in a box"
 package box
 
 import "time"
 
+// SnapshotLockChannel is used to determine the quality of
+// a given snapshot
 type SnapshotLockChannel string
 
 const (
+	// SnapshotLockChannelStable is a stable channel
 	SnapshotLockChannelStable SnapshotLockChannel = "stable"
-	SnapshotLockChannelRC     SnapshotLockChannel = "rc"
+
+	// SnapshotLockChannelRC is a release candidate (less stable) channel
+	SnapshotLockChannelRC SnapshotLockChannel = "rc"
 )
 
 type DeveloperEnvironmentConfig struct {
@@ -26,6 +34,7 @@ type DeveloperEnvironmentConfig struct {
 	ImageRegistry string `yaml:"imageRegistry"`
 }
 
+// VaultConfig is the configuration for accessing Vault
 type VaultConfig struct {
 	// Enabled determines if we should setup vault or not
 	Enabled bool `yaml:"enabled"`
@@ -37,6 +46,8 @@ type VaultConfig struct {
 	Address string `yaml:"address"`
 }
 
+// SnapshotConfig stores configuration for generated and accessing
+// snapshots
 type SnapshotConfig struct {
 	// Endpoint is the S3 compatible endpoint to fetch a snapshot from
 	Endpoint string `yaml:"endpoint"`
@@ -57,6 +68,7 @@ type SnapshotConfig struct {
 	WriteAWSRole string `yaml:"writeAWSRole"`
 }
 
+// Config is the basis of a box configuration
 type Config struct {
 	// Org is the Github org for this box, e.g. getoutreach
 	Org string `yaml:"org"`
@@ -102,13 +114,15 @@ type SnapshotTarget struct {
 	ReadyAddress string `yaml:"readyAddress"`
 }
 
+// SnapshotGenerateConfig stores configuration for snapshots that should be generated
 type SnapshotGenerateConfig struct {
 	// Targets are all of the snapshots that can be generated. The key equates
 	// the name of the generated snapshot
 	Targets map[string]*SnapshotTarget `yaml:"targets"`
 }
 
-// SnapshotLockTarget is a generated snapshot and metadata on it
+// SnapshotLockTarget is a generated snapshot and metadata on it.
+// In general SnapshotLockListItem should be used instead.
 type SnapshotLockTarget struct {
 	// Digest is a MD5 base64 encoded digest of the archive
 	Digest string `yaml:"digest"`
@@ -125,6 +139,8 @@ type SnapshotLockTarget struct {
 	VeleroBackupName string `yaml:"veleroBackupName"`
 }
 
+// SnapshotLockListItem is a replacement for SnapshotLockTarget which is
+// used by SnapshotLockList to provide details about a snapshot
 type SnapshotLockListItem struct {
 	// Digest is a MD5 base64 encoded digest of the archive
 	Digest string `yaml:"digest"`
@@ -140,6 +156,9 @@ type SnapshotLockListItem struct {
 	// commands. It should not be used for uniqueness constraints.
 	VeleroBackupName string `yaml:"veleroBackupName"`
 }
+
+// SnapshotLockList contains a channel (different releases of snapshots)
+// seperated list of snapshots
 type SnapshotLockList struct {
 	// Snapshots is a channel separated list of snapshots for a given target
 	Snapshots map[SnapshotLockChannel][]*SnapshotLockListItem `yaml:"snapshots"`
@@ -147,9 +166,15 @@ type SnapshotLockList struct {
 
 // SnapshotLock is an manifest of all the available snapshots
 type SnapshotLock struct {
-	Version     int                            `yaml:"version"`
-	GeneratedAt time.Time                      `yaml:"generatedAt"`
-	Targets     map[string]*SnapshotLockTarget `yaml:"targets"`
+	// Version is the version of this configuration, used for breaking changes
+	Version int `yaml:"version"`
+	// GeneratedAt is when this lock was generated
+	GeneratedAt time.Time `yaml:"generatedAt"`
 
+	// Deprecated: Use TargetsV2 instead
+	// Targets is a single snapshot for each target
+	Targets map[string]*SnapshotLockTarget `yaml:"targets"`
+
+	// TargetsV2 is a target -> lock list for snapshots
 	TargetsV2 map[string]*SnapshotLockList `yaml:"targets_v2"`
 }
