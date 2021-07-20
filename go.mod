@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/blang/semver/v4 v4.0.0
+	github.com/go-git/go-billy/v5 v5.1.0
 	github.com/go-git/go-git/v5 v5.3.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-github/v34 v34.0.0
