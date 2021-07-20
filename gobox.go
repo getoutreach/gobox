@@ -1,4 +1,4 @@
 // Code managed by Bootstrap.
 //
 
-package gooutreach
+package gobox
