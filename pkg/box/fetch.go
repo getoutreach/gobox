@@ -53,7 +53,8 @@ func ApplyEnvOverrides(s *Config) {
 }
 
 // LoadBoxStorage reads a serialized, storage wrapped
-// box config from disk and returns it.
+// box config from disk and returns it. In general LoadBox
+// should be used over this function.
 func LoadBoxStorage() (*Storage, error) {
 	confPath, err := getBoxPath()
 	if err != nil {
@@ -153,6 +154,9 @@ func SaveBox(_ context.Context, s *Storage) error {
 	return ioutil.WriteFile(confPath, b, 0600)
 }
 
+// InitializeBox prompts the user for a box config location,
+// downloads it and then saves it to disk. In general EnsureBox
+// should be used over this function.
 func InitializeBox(ctx context.Context, defaults []string) error {
 	gitRepo := ""
 
