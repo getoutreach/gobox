@@ -3,6 +3,7 @@ package trace
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -11,27 +12,89 @@ import (
 	"github.com/getoutreach/gobox/pkg/metrics"
 )
 
-// callType is an alias type for string. The reason this type is explicitly
-// created as opposed to just using strings for call types is to force the
-// caller into thinking about their decision before blindly setting a call
-// type. This is important because of cardinality issues in relation to what
-// is set as the call type.
-//
-// This type implements the fmt.Stringer interface.
-type callType string
+// This constant block contains predefined callType base types.
+const (
+	// callTypeHTTP is a constant that denotes the call type being an HTTP
+	// request.
+	callTypeHTTP = "http"
 
-// CustomCallType returns a callType from a given string. Before using this
-// function please check the constant block that immediately follows this
-// function to see if a predefined call type already exists that your call
-// could fit into.
-func CustomCallType(in string) callType { //nolint:golint //Why: We want this type to be "annoying" to use to provoke thought as opposed to increasing cardinality.
-	return callType(in)
+	// callTypeGRPC is a constant that denotes the call type being a gRPC
+	// request.
+	callTypeGRPC = "grpc"
+
+	// callTypeSQL is a constant that denotes the call type being an SQL
+	// request.
+	callTypeSQL = "sql"
+
+	// callTypeRedis is a constant that denotes the call type being a redis
+	// request.
+	callTypeRedis = "redis"
+)
+
+// callType is a type that defines the name of a trace using a base and an
+// optional suffix.
+type callType struct {
+	// base is the main part of the call type we use to identify what type of
+	// tracing call this is. This is useful for doing things like triggering
+	// a prometheus metric push based off of a trace.
+	base string
+
+	// Suffix gets concatenated with the base via a period (.) to form the fully
+	// qualified trace name.
+	suffix string
 }
 
 // String returns the string representation of the receiver callType. This
 // function also implements the fmt.Stringer interface for callType.
 func (c callType) String() string {
-	return string(c)
+	if c.suffix != "" {
+		return strings.Join([]string{c.base, c.suffix}, ".")
+	}
+	return c.base
+}
+
+// NewGRPCCallType returns a callType used for gRPC tracing. The service parameter
+// here refers to the gRPC service name that the method lives under, not the name
+// of the service (repository, application, etc.) calling this trace.
+func NewGRPCCallType(service, method string) callType {
+	return callType{
+		base:   callTypeGRPC,
+		suffix: strings.Join([]string{service, method}, "."),
+	}
+}
+
+// NewHTTPCallType returns a callType used for HTTP tracing.
+func NewHTTPCallType(method, endpoint string) callType {
+	return callType{
+		base:   callTypeHTTP,
+		suffix: strings.Join([]string{method, endpoint}, "."),
+	}
+}
+
+// NewSQLCallType returns a callType used for SQL tracing. The operation parameter
+// is meant to be a one word operation, like select, update, insert, or delete.
+func NewSQLCallType(operation, table string) callType {
+	return callType{
+		base:   callTypeSQL,
+		suffix: strings.Join([]string{operation, table}, "."),
+	}
+}
+
+// NewRedisCallType returns a callType used for Redis tracing. The operation
+// parameter is meant to be either put or get in most all cases.
+func NewRedisCallType(operation, key string) callType {
+	return callType{
+		base:   callTypeRedis,
+		suffix: strings.Join([]string{operation, key}, "."),
+	}
+}
+
+// NewCustomCallType allows the caller to define a custom callType by specifying the
+// fully qualified name of the trace to result.
+func NewCustomCallType(fullyQualifiedName string) callType {
+	return callType{
+		base: fullyQualifiedName,
+	}
 }
 
 // reportLatency reports the latency for a call depending on the underlying
@@ -47,32 +110,13 @@ func (c callType) reportLatency(info *callInfo) {
 		return
 	}
 
-	switch c { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
-	case CallTypeHTTP:
+	switch c.base { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
+	case callTypeHTTP:
 		info.ReportHTTPLatency(err)
-	case CallTypeGRPC:
+	case callTypeGRPC:
 		info.ReportGRPCLatency(err)
 	}
 }
-
-// This constant block contains predefined CallType types.
-const (
-	// CallTypeHTTP is a constant that denotes the call type being an HTTP
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeHTTP callType = "http"
-
-	// CallTypeGRPC is a constant that denotes the call type being a gRPC
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeGRPC callType = "grpc"
-
-	// CallTypeSQL is a constant that denotes the call type being an SQL
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeSQL callType = "sql"
-
-	// CallTypeRedis is a constant that denotes the call type being a redis
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeRedis callType = "redis"
-)
 
 type callInfo struct {
 	name callType

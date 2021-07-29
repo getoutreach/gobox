@@ -3,6 +3,7 @@ package trace_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -45,7 +46,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	//  most functions should look like this
 	doSomeTableUpdate := func(ctx context.Context, rowID string, logs ...log.Marshaler) error {
-		ctx = trace.StartCall(ctx, "sql", SQLQuery("my query: "+rowID), log.Many(logs))
+		ctx = trace.StartCall(ctx, trace.NewSQLCallType("update", "test_table"), SQLQuery("my query: "+rowID), log.Many(logs))
 		defer trace.EndCall(ctx)
 
 		trace.AddInfo(ctx, log.F{"info_1_key": "info_1_val", "info_2_key": "info_2_val"})
@@ -57,7 +58,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	// *model* function calls doSomeTableUpdate
 	outer := func(ctx context.Context, m *Model) error {
-		ctx = trace.StartCall(ctx, "model", m)
+		ctx = trace.StartCall(ctx, trace.NewCustomCallType("model"), m)
 		defer trace.EndCall(ctx)
 
 		trace.AddInfo(ctx, log.F{"info_3_key": "info_3_val", "info_4_key": "info_4_val"})
@@ -231,7 +232,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	httpCall := func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, trace.CallTypeHTTP)
+		ctx = trace.StartCall(ctx, trace.NewHTTPCallType(http.MethodGet, "test"))
 		defer trace.EndCall(ctx)
 
 		return trace.SetCallStatus(ctx, nil)
@@ -304,6 +305,6 @@ func getMetricsInfo(t *testing.T) []map[string]interface{} {
 func (suite) TestEndCallDoesNotPanicWithNilError(t *testing.T) {
 	t.Skip("requires method to clear metrics between tests")
 
-	ctx := trace.StartCall(context.Background(), "")
+	ctx := trace.StartCall(context.Background(), trace.NewCustomCallType(""))
 	trace.EndCall(ctx)
 }
