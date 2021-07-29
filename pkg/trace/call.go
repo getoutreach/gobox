@@ -146,7 +146,7 @@ func SetCallTypeGRPC(ctx context.Context) context.Context {
 
 // SetTypeHTTP is meant to set the call type to HTTP on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
-func SetTypeHTTP(ctx context.Context) context.Context {
+func SetCallTypeHTTP(ctx context.Context) context.Context {
 	ctx.Value(infoKey).(*callInfo).callType = callTypeHTTP
 	return ctx
 }
