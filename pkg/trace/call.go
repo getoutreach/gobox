@@ -29,6 +29,10 @@ const (
 	// callTypeRedis is a constant that denotes the call type being a redis
 	// request.
 	callTypeRedis = "redis"
+
+	// callTypeGithub is a constant that denotes the call type being a request
+	// to the Github API.
+	callTypeGithub = "github"
 )
 
 // callType is a type that defines the name of a trace using a base and an
@@ -56,7 +60,7 @@ func (c callType) String() string {
 // NewGRPCCallType returns a callType used for gRPC tracing. The service parameter
 // here refers to the gRPC service name that the method lives under, not the name
 // of the service (repository, application, etc.) calling this trace.
-func NewGRPCCallType(service, method string) callType {
+func NewGRPCCallType(service, method string) callType { //nolint:golint // Why: We don't want people directly using callType.
 	return callType{
 		base:   callTypeGRPC,
 		suffix: strings.Join([]string{service, method}, "."),
@@ -64,7 +68,7 @@ func NewGRPCCallType(service, method string) callType {
 }
 
 // NewHTTPCallType returns a callType used for HTTP tracing.
-func NewHTTPCallType(method, endpoint string) callType {
+func NewHTTPCallType(method, endpoint string) callType { //nolint:golint // Why: We don't want people directly using callType.
 	return callType{
 		base:   callTypeHTTP,
 		suffix: strings.Join([]string{method, endpoint}, "."),
@@ -73,7 +77,7 @@ func NewHTTPCallType(method, endpoint string) callType {
 
 // NewSQLCallType returns a callType used for SQL tracing. The operation parameter
 // is meant to be a one word operation, like select, update, insert, or delete.
-func NewSQLCallType(operation, table string) callType {
+func NewSQLCallType(operation, table string) callType { //nolint:golint // Why: We don't want people directly using callType.
 	return callType{
 		base:   callTypeSQL,
 		suffix: strings.Join([]string{operation, table}, "."),
@@ -82,16 +86,24 @@ func NewSQLCallType(operation, table string) callType {
 
 // NewRedisCallType returns a callType used for Redis tracing. The operation
 // parameter is meant to be either put or get in most all cases.
-func NewRedisCallType(operation, key string) callType {
+func NewRedisCallType(operation, key string) callType { //nolint:golint // Why: We don't want people directly using callType.
 	return callType{
 		base:   callTypeRedis,
 		suffix: strings.Join([]string{operation, key}, "."),
 	}
 }
 
+// NewGithubCallType returns a callType used for Github tracing.
+func NewGithubCallType(action string) callType { //nolint:golint // Why: We don't want people directly using callType.
+	return callType{
+		base:   callTypeGithub,
+		suffix: action,
+	}
+}
+
 // NewCustomCallType allows the caller to define a custom callType by specifying the
 // fully qualified name of the trace to result.
-func NewCustomCallType(fullyQualifiedName string) callType {
+func NewCustomCallType(fullyQualifiedName string) callType { //nolint:golint // Why: We don't want people directly using callType.
 	return callType{
 		base: fullyQualifiedName,
 	}
