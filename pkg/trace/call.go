@@ -139,7 +139,7 @@ func StartExternalCall(ctx context.Context, cType string, args ...log.Marshaler)
 
 // SetTypeGRPC is meant to set the call type to GRPC on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
-func SetTypeGRPC(ctx context.Context) context.Context {
+func SetCallTypeGRPC(ctx context.Context) context.Context {
 	ctx.Value(infoKey).(*callInfo).callType = callTypeGRPC
 	return ctx
 }
