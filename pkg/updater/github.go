@@ -67,7 +67,7 @@ func NewGithubUpdaterWithClient(ctx context.Context, client *github.Client, org,
 
 // Check checks if the credentials / repo are valid.
 func (g *Github) Check(ctx context.Context) error {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("Check"))
+	ctx = trace.StartCall(ctx, "github.Check")
 	defer trace.EndCall(ctx)
 
 	_, _, err := g.gc.Repositories.Get(ctx, g.org, g.repo)
@@ -97,7 +97,7 @@ func (g *Github) Check(ctx context.Context) error {
 //  it are considered as candidates and checked to see if a newer release exists. Using the
 //  aforementioned pre-release logic pre-releases are included based on that.
 func (g *Github) GetLatestVersion(ctx context.Context, currentVersion string, includePrereleases bool) (*github.RepositoryRelease, error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("GetLatestVersion"), olog.F{"currentVersion": currentVersion, "prereleases": includePrereleases})
+	ctx = trace.StartCall(ctx, "github.GetLatestVersion", olog.F{"currentVersion": currentVersion, "prereleases": includePrereleases})
 	defer trace.EndCall(ctx)
 
 	// if we can't determine the version, fallback to empty (oldest) version
@@ -125,7 +125,7 @@ func (g *Github) GetLatestVersion(ctx context.Context, currentVersion string, in
 
 // GetRelease finds a release with a given version (tag)
 func (g *Github) GetRelease(ctx context.Context, version string) (*github.RepositoryRelease, error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("GetRelease"), olog.F{"version": version})
+	ctx = trace.StartCall(ctx, "github.GetRelease", olog.F{"version": version})
 	defer trace.EndCall(ctx)
 
 	rel, _, err := g.gc.Repositories.GetReleaseByTag(ctx, g.org, g.repo, version)
@@ -134,7 +134,7 @@ func (g *Github) GetRelease(ctx context.Context, version string) (*github.Reposi
 
 //nolint:funlen,gocyclo // Not sure how to split this out currently.
 func (g *Github) getAllReleases(ctx context.Context, currentVersion *semver.Version, includePrereleases bool) (curR, newR *github.RepositoryRelease, err error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("getAllReleases"))
+	ctx = trace.StartCall(ctx, "github.getAllReleases")
 	defer trace.EndCall(ctx)
 
 	releases := make([]*githubRelease, 0)
@@ -232,7 +232,7 @@ loop:
 // The cleanup function should be called even when an error occurs
 //nolint:funlen
 func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryRelease, assetName, execName string) (downloadedBinary string, cleanup func(), err error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("DownloadRelease"), olog.F{"version": *r.TagName})
+	ctx = trace.StartCall(ctx, "github.DownloadRelease", olog.F{"version": *r.TagName})
 	defer trace.EndCall(ctx)
 
 	// if we weren't given an executable name
@@ -278,7 +278,7 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 	}
 	defer f.Close()
 
-	traceCtx := trace.StartCall(ctx, trace.NewGithubCallType("DownloadRelease.Download"))
+	traceCtx := trace.StartCall(ctx, "github.DownloadRelease.Download")
 	if g.Silent {
 		_, err = io.Copy(f, resp.Body)
 	} else {
@@ -356,7 +356,7 @@ func (g *Github) ReplaceRunning(ctx context.Context, newBinary string) error {
 
 //nolint:funlen
 func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir, filename string) (string, error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("getFileFromArchive"))
+	ctx = trace.StartCall(ctx, "github.getFileFromArchive")
 	defer trace.EndCall(ctx)
 
 	gzr, err := gzip.NewReader(f)
@@ -417,7 +417,7 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 // - name_GOOS_GOARCH.tar.gz
 // - name_version_GOOS_GOARCH.tar.gz
 func (g *Github) SelectAsset(ctx context.Context, assets []*github.ReleaseAsset, name string) (string, *github.ReleaseAsset, error) {
-	ctx = trace.StartCall(ctx, trace.NewGithubCallType("SelectAsset"))
+	ctx = trace.StartCall(ctx, "github.SelectAsset")
 	defer trace.EndCall(ctx)
 
 	prefixes := make([]string, 0)

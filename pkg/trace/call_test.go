@@ -3,7 +3,6 @@ package trace_test
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -46,7 +45,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	//  most functions should look like this
 	doSomeTableUpdate := func(ctx context.Context, rowID string, logs ...log.Marshaler) error {
-		ctx = trace.StartCall(ctx, trace.NewSQLCallType("update", "test_table"), SQLQuery("my query: "+rowID), log.Many(logs))
+		ctx = trace.StartCall(ctx, "sql", SQLQuery("my query: "+rowID), log.Many(logs))
 		defer trace.EndCall(ctx)
 
 		trace.AddInfo(ctx, log.F{"info_1_key": "info_1_val", "info_2_key": "info_2_val"})
@@ -58,7 +57,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	// *model* function calls doSomeTableUpdate
 	outer := func(ctx context.Context, m *Model) error {
-		ctx = trace.StartCall(ctx, trace.NewCustomCallType("model"), m)
+		ctx = trace.StartCall(ctx, "model", m)
 		defer trace.EndCall(ctx)
 
 		trace.AddInfo(ctx, log.F{"info_3_key": "info_3_val", "info_4_key": "info_4_val"})
@@ -90,7 +89,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"meta.beeline_version": differs.AnyString(),
 			"meta.local_hostname":  differs.AnyString(),
 			"meta.span_type":       "leaf",
-			"name":                 "sql.update.test_table",
+			"name":                 "sql",
 			"service_name":         "log-testing",
 			"error.kind":           "error",
 			"error.error":          "sql error",
@@ -167,7 +166,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"app.version": string("testing"),
 			"@timestamp":  differs.RFC3339NanoTime(),
 			"level":       "DEBUG",
-			"message":     "calling: sql.update.test_table",
+			"message":     "calling: sql",
 			"model.id":    "some model id",
 			"sql.query":   "my query: some model id",
 		},
@@ -182,7 +181,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"error.message":       "sql error",
 			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
-			"message":             "sql.update.test_table",
+			"message":             "sql",
 			"model.id":            "some model id",
 			"sql.query":           "my query: some model id",
 			"info_1_key":          "info_1_val",
@@ -232,7 +231,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	httpCall := func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, trace.NewHTTPCallType(http.MethodGet, "test"))
+		ctx = trace.SetTypeHTTP(trace.StartCall(ctx, "test"))
 		defer trace.EndCall(ctx)
 
 		return trace.SetCallStatus(ctx, nil)
@@ -255,7 +254,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
 			"help":         "The latency of the HTTP request, in seconds",
-			"label":        `[name:"app" value:"gobox"  name:"call" value:"http.GET.test"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"test"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
 			"name":         "http_request_handled",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",
@@ -305,6 +304,6 @@ func getMetricsInfo(t *testing.T) []map[string]interface{} {
 func (suite) TestEndCallDoesNotPanicWithNilError(t *testing.T) {
 	t.Skip("requires method to clear metrics between tests")
 
-	ctx := trace.StartCall(context.Background(), trace.NewCustomCallType(""))
+	ctx := trace.StartCall(context.Background(), "")
 	trace.EndCall(ctx)
 }
