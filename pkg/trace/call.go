@@ -42,7 +42,6 @@ func (c *callInfo) reportLatency() {
 
 	if c.kind == metrics.CallKindExternal {
 		c.ReportOutboundLatency(err)
-		return
 	}
 
 	switch c.callType { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
