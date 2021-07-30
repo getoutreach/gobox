@@ -11,76 +11,46 @@ import (
 	"github.com/getoutreach/gobox/pkg/metrics"
 )
 
-// callType is an alias type for string. The reason this type is explicitly
-// created as opposed to just using strings for call types is to force the
-// caller into thinking about their decision before blindly setting a call
-// type. This is important because of cardinality issues in relation to what
-// is set as the call type.
-//
-// This type implements the fmt.Stringer interface.
-type callType string
-
-// CustomCallType returns a callType from a given string. Before using this
-// function please check the constant block that immediately follows this
-// function to see if a predefined call type already exists that your call
-// could fit into.
-func CustomCallType(in string) callType { //nolint:golint //Why: We want this type to be "annoying" to use to provoke thought as opposed to increasing cardinality.
-	return callType(in)
-}
-
-// String returns the string representation of the receiver callType. This
-// function also implements the fmt.Stringer interface for callType.
-func (c callType) String() string {
-	return string(c)
-}
-
-// reportLatency reports the latency for a call depending on the underlying
-// type stored in the receiver.
-func (c callType) reportLatency(info *callInfo) {
-	var err error
-	if info.ErrorInfo != nil {
-		err = info.ErrorInfo.RawError
-	}
-
-	if info.kind == metrics.CallKindExternal {
-		info.ReportOutboundLatency(err)
-		return
-	}
-
-	switch c { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
-	case CallTypeHTTP:
-		info.ReportHTTPLatency(err)
-	case CallTypeGRPC:
-		info.ReportGRPCLatency(err)
-	}
-}
-
-// This constant block contains predefined CallType types.
+// This constant block contains predefined callType base types.
 const (
-	// CallTypeHTTP is a constant that denotes the call type being an HTTP
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeHTTP callType = "http"
+	// callTypeHTTP is a constant that denotes the call type being an HTTP
+	// request.
+	callTypeHTTP = "http"
 
-	// CallTypeGRPC is a constant that denotes the call type being a gRPC
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeGRPC callType = "grpc"
-
-	// CallTypeSQL is a constant that denotes the call type being an SQL
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeSQL callType = "sql"
-
-	// CallTypeRedis is a constant that denotes the call type being a redis
-	// request. This constant is used in StartCall or StartExternalCall.
-	CallTypeRedis callType = "redis"
+	// callTypeGRPC is a constant that denotes the call type being a gRPC
+	// request.
+	callTypeGRPC = "grpc"
 )
 
 type callInfo struct {
-	name callType
-	kind metrics.CallKind
-	args []log.Marshaler
+	name     string
+	callType string
+	kind     metrics.CallKind
+	args     []log.Marshaler
 	events.Times
 	events.Durations
 	*events.ErrorInfo
+}
+
+// reportLatency reports the latency for a call depending on the call type
+// passed in *callInfo.
+func (c *callInfo) reportLatency() {
+	var err error
+	if c.ErrorInfo != nil {
+		err = c.ErrorInfo.RawError
+	}
+
+	if c.kind == metrics.CallKindExternal {
+		c.ReportOutboundLatency(err)
+		return
+	}
+
+	switch c.callType { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
+	case callTypeHTTP:
+		c.ReportHTTPLatency(err)
+	case callTypeGRPC:
+		c.ReportGRPCLatency(err)
+	}
 }
 
 // nolint:gochecknoglobals
@@ -98,19 +68,19 @@ func (c *callInfo) MarshalLog(addField func(key string, v interface{})) {
 // ReportHTTPLatency is a thin wrapper around metrics.ReportHTTPLatency to report latency metrics
 // for HTTP calls.
 func (c *callInfo) ReportHTTPLatency(err error) {
-	metrics.ReportHTTPLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
+	metrics.ReportHTTPLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // ReportGRPCLatency is a thin wrapper around metrics.ReportGRPCLatency to report latency metrics
 // for gRPC calls.
 func (c *callInfo) ReportGRPCLatency(err error) {
-	metrics.ReportGRPCLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
+	metrics.ReportGRPCLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // ReportOutboundLatency is a thin wrapper around metrics.ReportOutboundLatency to report latency
 // metrics for outbound calls.
 func (c *callInfo) ReportOutboundLatency(err error) {
-	metrics.ReportOutboundLatency(app.Info().Name, c.name.String(), c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
+	metrics.ReportOutboundLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
 }
 
 // StartCall is used to start an internal call. For external calls please
@@ -141,7 +111,7 @@ func (c *callInfo) ReportOutboundLatency(err error) {
 // not.  (Panics detected in EndCall are considered errors).
 //
 // StartCalls can be nested.
-func StartCall(ctx context.Context, cType callType, args ...log.Marshaler) context.Context {
+func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
 	info := &callInfo{
 		name: cType,
 		args: args,
@@ -150,9 +120,9 @@ func StartCall(ctx context.Context, cType callType, args ...log.Marshaler) conte
 			Started: time.Now(),
 		},
 	}
-	log.Debug(ctx, fmt.Sprintf("calling: %s", cType.String()), args...)
+	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
 
-	ctx = StartSpan(context.WithValue(ctx, infoKey, info), cType.String())
+	ctx = StartSpan(context.WithValue(ctx, infoKey, info), cType)
 	AddInfo(ctx, args...)
 
 	return ctx
@@ -160,10 +130,24 @@ func StartCall(ctx context.Context, cType callType, args ...log.Marshaler) conte
 
 // StartExternalCall calls StartCall() and designates that this call is an
 // external call (came to our service, not from it)
-func StartExternalCall(ctx context.Context, cType callType, args ...log.Marshaler) context.Context {
+func StartExternalCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
 	ctx = StartCall(ctx, cType, args...)
 	ctx.Value(infoKey).(*callInfo).kind = metrics.CallKindExternal
 
+	return ctx
+}
+
+// SetTypeGRPC is meant to set the call type to GRPC on a context that has
+// already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeGRPC(ctx context.Context) context.Context {
+	ctx.Value(infoKey).(*callInfo).callType = callTypeGRPC
+	return ctx
+}
+
+// SetTypeHTTP is meant to set the call type to HTTP on a context that has
+// already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeHTTP(ctx context.Context) context.Context {
+	ctx.Value(infoKey).(*callInfo).callType = callTypeHTTP
 	return ctx
 }
 
@@ -207,7 +191,7 @@ func EndCall(ctx context.Context) {
 	}
 
 	addDefaultTracerInfo(ctx, info)
-	info.name.reportLatency(info)
+	info.reportLatency()
 
 	traceInfo := log.F{
 		"honeycomb.trace_id": ID(ctx),
@@ -215,9 +199,9 @@ func EndCall(ctx context.Context) {
 	}
 
 	if info.ErrorInfo != nil {
-		log.Error(ctx, info.name.String(), info, traceInfo)
+		log.Error(ctx, info.name, info, traceInfo)
 	} else {
-		log.Info(ctx, info.name.String(), info, traceInfo)
+		log.Info(ctx, info.name, info, traceInfo)
 	}
 }
 
