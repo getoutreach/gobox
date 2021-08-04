@@ -11,9 +11,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/differs"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
+	"github.com/getoutreach/gobox/pkg/orerr"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"gotest.tools/v3/assert"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -218,6 +221,24 @@ func (suite) TestNestedCall(t *testing.T) {
 	}
 	if diff := cmp.Diff(expectedLogs, logs.Entries(), differs.Custom()); diff != "" {
 		t.Fatal("unexpected log entries", diff)
+	}
+
+	errmap := map[string]error{
+		"WARN":  orerr.NewErrorStatus(errors.New("invalid input data"), statuscodes.BadRequest),
+		"ERROR": orerr.NewErrorStatus(errors.New("cannot access DB"), statuscodes.InternalServerError),
+		"INFO":  orerr.NewErrorStatus(errors.New("success"), statuscodes.OK),
+	}
+
+	for level, err := range errmap {
+		logs := logtest.NewLogRecorder(t)
+		ctx = trace.StartCall(ctx, "start call")
+		trace.SetCallError(ctx, err)
+		trace.EndCall(ctx)
+		// now check logs to see that the right warning message exists
+		logs.Close()
+		lastEntry := logs.Entries()[len(logs.Entries())-1]
+		assert.Equal(t, lastEntry["level"], level)
+		assert.Equal(t, lastEntry["message"], "start call")
 	}
 }
 
