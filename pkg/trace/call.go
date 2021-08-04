@@ -9,6 +9,8 @@ import (
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/metrics"
+	"github.com/getoutreach/gobox/pkg/orerr"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
 // This constant block contains predefined callType base types.
@@ -198,7 +200,14 @@ func EndCall(ctx context.Context) {
 	}
 
 	if info.ErrorInfo != nil {
-		log.Error(ctx, info.name, info, traceInfo)
+		switch category := orerr.ExtractErrorStatusCategory(info.ErrorInfo.RawError); category {
+		case statuscodes.CategoryClientError:
+			log.Warn(ctx, info.name, info, traceInfo)
+		case statuscodes.CategoryServerError:
+			log.Error(ctx, info.name, info, traceInfo)
+		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
+			log.Info(ctx, info.name, info, traceInfo)
+		}
 	} else {
 		log.Info(ctx, info.name, info, traceInfo)
 	}
