@@ -131,15 +131,6 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 	return ctx
 }
 
-// StartExternalCall calls StartCall() and designates that this call is an
-// external call (came to our service, not from it)
-//
-// Deprecated: External calls should be started with SetCallType[GRPC|HTTP](StartCall(ctx)).
-func StartExternalCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	ctx = SetCallTypeHTTP(StartCall(ctx, cType, args...))
-	return ctx
-}
-
 // SetTypeGRPC is meant to set the call type to GRPC on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeGRPC(ctx context.Context) context.Context {
