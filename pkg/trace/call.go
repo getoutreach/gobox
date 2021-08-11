@@ -145,7 +145,7 @@ func SetCallTypeHTTP(ctx context.Context) context.Context {
 	return ctx
 }
 
-// SetTypeOutbound is meant to set the call type to Outbound on a context that
+// SetCallTypeOutbound is meant to set the call type to Outbound on a context that
 // has already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeOutbound(ctx context.Context) context.Context {
 	ctx.Value(infoKey).(*callInfo).callType = callTypeOutbound
