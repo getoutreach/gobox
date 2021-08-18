@@ -131,6 +131,7 @@ func info() *Data {
 //
 // Should only be called from tests and app initialization
 func SetName(name string) {
+	fmt.Println("setting name to", name)
 	appName = name
 	initInfoLocked()
 }
@@ -169,4 +170,8 @@ func (d *Data) MarshalLog(addField func(key string, v interface{})) {
 	if d.Namespace != "" {
 		addField("deployment.namespace", d.Namespace)
 	}
+}
+
+func init() {
+	fmt.Println("you are here")
 }
