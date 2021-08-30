@@ -200,6 +200,12 @@ func ForceTracing(ctx context.Context) context.Context {
 
 // ForceSampleRate will force a desired sample rate for the given trace and all children
 // of said trace. The sample rate in practice will be 1/<rate>.
+//
+// For example, if you invoked:
+//	ctx = trace.ForceSampleRate(ctx, 1000)
+//
+// The trace spawned from that and all of it's children would be sampled at a rate of
+// 1/1000, or 1/10 of a percent (.1%).
 func ForceSampleRate(ctx context.Context, rate uint) context.Context {
 	return sampleAt(ctx, rate)
 }
