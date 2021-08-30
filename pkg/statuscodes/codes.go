@@ -1,5 +1,7 @@
 package statuscodes
 
+import "fmt"
+
 type StatusCode int
 
 // 1. Keep OK not as zero so you know someone affirmatively picked it
@@ -48,4 +50,43 @@ func (re StatusCode) Category() StatusCategory {
 	}
 
 	return CategoryServerError
+}
+
+func (re *StatusCode) UnmarshalText(text []byte) error {
+	code, ok := FromString(string(text))
+	if !ok {
+		return fmt.Errorf("invalid StatusCode '%s'", string(text))
+	}
+
+	*re = code
+	return nil
+}
+
+func FromString(s string) (StatusCode, bool) {
+	switch s {
+	case OK.String():
+		return OK, true
+	case BadRequest.String():
+		return BadRequest, true
+	case Unauthorized.String():
+		return Unauthorized, true
+	case Forbidden.String():
+		return Forbidden, true
+	case NotFound.String():
+		return NotFound, true
+	case Conflict.String():
+		return Conflict, true
+	case RateLimited.String():
+		return RateLimited, true
+	case InternalServerError.String():
+		return InternalServerError, true
+	case NotImplemented.String():
+		return NotImplemented, true
+	case Unavailable.String():
+		return Unavailable, true
+	case UnknownError.String():
+		return UnknownError, true
+	default:
+		return UnknownError, false
+	}
 }
