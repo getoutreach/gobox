@@ -198,6 +198,12 @@ func ForceTracing(ctx context.Context) context.Context {
 	return forceTracing(ctx)
 }
 
+// ForceSampleRate will force a desired sample rate for the given trace and all children
+// of said trace. The sample rate in practice will be 1/<rate>.
+func ForceSampleRate(ctx context.Context, rate uint) context.Context {
+	return sampleAt(ctx, rate)
+}
+
 func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
 	defaultTracer.addInfo(ctx, args...)
 }
