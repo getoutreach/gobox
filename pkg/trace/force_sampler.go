@@ -48,8 +48,9 @@ func forceTracing(ctx context.Context) context.Context {
 	return ctx
 }
 
-// sampleAt sets the sample rate for a given trace explicitly. The rate given will be
-// parsed as 1/rate to actually determine the sample rate.
+// sampleAt sets the sample rate for a given trace explicitly.  
+// The rate specifies how many samples were looked at for each 
+// accepted sample.  That is, the actual sampling  = 1/rate.
 func sampleAt(ctx context.Context, rate uint) context.Context {
 	if t := trace.GetTraceFromContext(ctx); t != nil {
 		t.AddField(fieldSampleTrace, rate)
