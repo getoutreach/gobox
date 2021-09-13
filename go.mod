@@ -9,7 +9,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v34 v34.0.0
-	github.com/honeycombio/beeline-go v1.0.0
+	github.com/honeycombio/beeline-go v1.2.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/kevinburke/ssh_config v1.1.0
 	github.com/manifoldco/promptui v0.8.0
