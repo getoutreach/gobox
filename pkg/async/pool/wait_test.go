@@ -12,9 +12,7 @@ import (
 )
 
 func TestWithWait(t *testing.T) {
-	var (
-		counter int32 = 0
-	)
+	var counter int32
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
 	defer cancel()
 

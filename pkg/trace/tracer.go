@@ -23,10 +23,7 @@ func (t *tracer) initTracer(ctx context.Context, serviceName string) error {
 		return err
 	}
 
-	if err := t.startHoneycomb(ctx, serviceName); err != nil {
-		return err
-	}
-	return nil
+	return t.startHoneycomb(ctx, serviceName)
 }
 
 // Deprecated: Use closeTracer() instead.
