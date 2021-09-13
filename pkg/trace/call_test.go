@@ -11,9 +11,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/differs"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
+	"github.com/getoutreach/gobox/pkg/orerr"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"gotest.tools/v3/assert"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -219,6 +222,24 @@ func (suite) TestNestedCall(t *testing.T) {
 	if diff := cmp.Diff(expectedLogs, logs.Entries(), differs.Custom()); diff != "" {
 		t.Fatal("unexpected log entries", diff)
 	}
+
+	errmap := map[string]error{
+		"WARN":  orerr.NewErrorStatus(errors.New("invalid input data"), statuscodes.BadRequest),
+		"ERROR": orerr.NewErrorStatus(errors.New("cannot access DB"), statuscodes.InternalServerError),
+		"INFO":  orerr.NewErrorStatus(errors.New("success"), statuscodes.OK),
+	}
+
+	for level, err := range errmap {
+		logs := logtest.NewLogRecorder(t)
+		ctx = trace.StartCall(ctx, "start call")
+		trace.SetCallError(ctx, err)
+		trace.EndCall(ctx)
+		// now check logs to see that the right warning message exists
+		logs.Close()
+		lastEntry := logs.Entries()[len(logs.Entries())-1]
+		assert.Equal(t, lastEntry["level"], level)
+		assert.Equal(t, lastEntry["message"], "start call")
+	}
 }
 
 func TestReportLatencyMetrics(t *testing.T) {
@@ -231,7 +252,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	httpCall := func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, trace.CallTypeHTTP)
+		ctx = trace.SetCallTypeHTTP(trace.StartCall(ctx, "test"))
 		defer trace.EndCall(ctx)
 
 		return trace.SetCallStatus(ctx, nil)
@@ -254,7 +275,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 		{
 			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
 			"help":         "The latency of the HTTP request, in seconds",
-			"label":        `[name:"app" value:"gobox"  name:"call" value:"http"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
+			"label":        `[name:"app" value:"gobox"  name:"call" value:"test"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
 			"name":         "http_request_handled",
 			"sample count": uint64(0x01),
 			"summary":      "<nil>",
