@@ -161,7 +161,7 @@ func (p *Pool) run(ctx context.Context) {
 	defer p.wg.Done()
 	var (
 		prevSize, delta, size int
-		cancellations         cancellations = cancellations{}
+		cancellations         = cancellations{}
 	)
 	for {
 		if ctx.Err() != nil {

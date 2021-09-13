@@ -93,7 +93,7 @@ func NewErrorInfoFromPanic(r interface{}) *ErrorInfo {
 		return NewErrorInfo(err)
 	}
 
-	result := NewErrorInfo(errors.New(fmt.Sprintf("%v", r)))
+	result := NewErrorInfo(errors.Errorf("%v", r))
 	result.Kind = "panic"
 	return result
 }

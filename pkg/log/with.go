@@ -5,7 +5,7 @@ import "context"
 // With creates a logger that captures the marshaler arguments.
 //
 // All methods exposed by the logger automatically add the provided marshalers.
-func With(m ...Marshaler) logger { //nolint: golint
+func With(m ...Marshaler) logger { //nolint: revive // logger is intentionally hidden.
 	return logger{m}
 }
 

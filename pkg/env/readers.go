@@ -14,7 +14,7 @@ import (
 )
 
 // nolint:gochecknoglobals
-var testOverrides map[string]interface{} = make(map[string]interface{})
+var testOverrides = make(map[string]interface{})
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
 func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
