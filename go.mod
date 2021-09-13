@@ -7,7 +7,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-git/go-billy/v5 v5.1.0
 	github.com/go-git/go-git/v5 v5.3.0
-	github.com/google/go-cmp v0.5.5
+	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v34 v34.0.0
 	github.com/honeycombio/beeline-go v1.0.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
@@ -15,7 +15,7 @@ require (
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.10.0
+	github.com/prometheus/client_golang v1.11.0
 	github.com/schollz/progressbar/v3 v3.8.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
