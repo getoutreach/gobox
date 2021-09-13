@@ -22,6 +22,10 @@ const (
 	// callTypeGRPC is a constant that denotes the call type being a gRPC
 	// request.
 	callTypeGRPC = "grpc"
+
+	// callTypeOutbound is a constant that denotes the call type being an
+	// outbound request.
+	callTypeOutbound = "outbound"
 )
 
 type callInfo struct {
@@ -42,15 +46,13 @@ func (c *callInfo) reportLatency() {
 		err = c.ErrorInfo.RawError
 	}
 
-	if c.kind == metrics.CallKindExternal {
-		c.ReportOutboundLatency(err)
-	}
-
 	switch c.callType { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
 	case callTypeHTTP:
 		c.ReportHTTPLatency(err)
 	case callTypeGRPC:
 		c.ReportGRPCLatency(err)
+	case callTypeOutbound:
+		c.ReportOutboundLatency(err)
 	}
 }
 
@@ -129,15 +131,6 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 	return ctx
 }
 
-// StartExternalCall calls StartCall() and designates that this call is an
-// external call (came to our service, not from it)
-func StartExternalCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	ctx = StartCall(ctx, cType, args...)
-	ctx.Value(infoKey).(*callInfo).kind = metrics.CallKindExternal
-
-	return ctx
-}
-
 // SetTypeGRPC is meant to set the call type to GRPC on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeGRPC(ctx context.Context) context.Context {
@@ -149,6 +142,13 @@ func SetCallTypeGRPC(ctx context.Context) context.Context {
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeHTTP(ctx context.Context) context.Context {
 	ctx.Value(infoKey).(*callInfo).callType = callTypeHTTP
+	return ctx
+}
+
+// SetCallTypeOutbound is meant to set the call type to Outbound on a context that
+// has already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeOutbound(ctx context.Context) context.Context {
+	ctx.Value(infoKey).(*callInfo).callType = callTypeOutbound
 	return ctx
 }
 

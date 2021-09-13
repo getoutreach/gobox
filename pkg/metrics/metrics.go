@@ -112,7 +112,7 @@ var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
 // ReportOutboundLatency reports the outbound_call_seconds metric for a request.
 func ReportOutboundLatency(appName, callName string, latencySeconds float64, err error, options ...ReportLatencyOption) {
 	opt := &ReportLatencyOptions{
-		Kind: CallKindExternal,
+		Kind: CallKindInternal, // Default to Internal, can be overridden with passed in options.
 	}
 
 	for _, f := range options {
