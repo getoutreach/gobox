@@ -70,9 +70,13 @@ func info() *Data {
 	// well enough for now.
 	serviceID := fmt.Sprintf("%s@outreach.cloud", appName)
 
-	parts := strings.Split(namespace, "--")
-	if len(parts) == 2 {
-		bento = parts[1]
+	if ab := os.Getenv("AZURE_BENTO"); ab != "" {
+		bento = ab
+	} else {
+		parts := strings.Split(namespace, "--")
+		if len(parts) == 2 {
+			bento = parts[1]
+		}
 	}
 
 	environment := unknown
