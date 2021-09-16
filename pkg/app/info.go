@@ -70,13 +70,19 @@ func info() *Data {
 	// well enough for now.
 	serviceID := fmt.Sprintf("%s@outreach.cloud", appName)
 
+	parts := strings.Split(namespace, "--")
+	if len(parts) == 2 {
+		bento = parts[1]
+	}
+
+	// Bootstrpped service has this assumption about the naming of namespace where
+	// this service should be hosted, i.e it should be <service>--<bento>.
+	// However, this creates a problem for azure clusters where we don't have a
+	// bento concept. For azure, specify this environment variable will override
+	// the bento name such that an azure service, like transcription-frontdoor can
+	// talk to a bootstrapped service which is deployed in azure cluster.
 	if ab := os.Getenv("AZURE_BENTO"); ab != "" {
 		bento = ab
-	} else {
-		parts := strings.Split(namespace, "--")
-		if len(parts) == 2 {
-			bento = parts[1]
-		}
 	}
 
 	environment := unknown
