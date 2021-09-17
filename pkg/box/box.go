@@ -32,6 +32,23 @@ type DeveloperEnvironmentConfig struct {
 	// ImageRegistry is the registry to use for detecting your apps
 	// e.g. gcr.io/outreach-docker
 	ImageRegistry string `yaml:"imageRegistry"`
+
+	// RuntimeConfig stores configuration specific to different devenv
+	// runtimes.
+	RuntimeConfig *DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
+}
+
+// DeveloperEnvironmentRuntimeConfig stores configuration specific to
+// different runtimes.
+type DeveloperEnvironmentRuntimeConfig struct {
+	// Loft is configuration for the loft runtime in the devenv
+	Loft *LoftRuntimeConfig `yaml:"loft"`
+}
+
+// LoftRuntimeConfig is configuration for loft runtimes
+type LoftRuntimeConfig struct {
+	// URL is the URL of a loft instance.
+	URL string `yaml:"URL"`
 }
 
 // VaultConfig is the configuration for accessing Vault
