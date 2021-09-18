@@ -41,6 +41,9 @@ type DeveloperEnvironmentConfig struct {
 // DeveloperEnvironmentRuntimeConfig stores configuration specific to
 // different runtimes.
 type DeveloperEnvironmentRuntimeConfig struct {
+	// EnabledRuntimes dictates which runtimes are enabled, generally defaults to all.
+	EnabledRuntimes []string `yaml:"enabledRuntimes"`
+
 	// Loft is configuration for the loft runtime in the devenv
 	Loft *LoftRuntimeConfig `yaml:"loft"`
 }
