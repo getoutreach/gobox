@@ -7,9 +7,9 @@ type LoadBoxOptions struct {
 	// LoadBox call.
 	MinVersion *float32
 
-	// Deprecated: Configure before running an application instead.
 	// DefaultBoxSources is a list of URLs to present to the user
 	// as being the default locations of box configuration.
+	// Deprecated: Configure before running an application instead.
 	DefaultBoxSources []string
 
 	// log is the logger to use
