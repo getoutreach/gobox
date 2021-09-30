@@ -118,7 +118,6 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 			return s.Config, nil
 		}
 		reason = "Periodic refresh hit"
-
 	}
 
 	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
