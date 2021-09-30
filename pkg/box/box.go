@@ -15,6 +15,9 @@ const (
 
 	// SnapshotLockChannelRC is a release candidate (less stable) channel
 	SnapshotLockChannelRC SnapshotLockChannel = "rc"
+
+	// Version is the current version of the box spec.
+	Version float32 = 1
 )
 
 type DeveloperEnvironmentConfig struct {
@@ -90,6 +93,9 @@ type SnapshotConfig struct {
 
 // Config is the basis of a box configuration
 type Config struct {
+	// RefreshInterval is the interval to use when refreshing a box configuration
+	RefreshInterval time.Duration `yaml:"refreshInterval"`
+
 	// Org is the Github org for this box, e.g. getoutreach
 	Org string `yaml:"org"`
 
@@ -104,6 +110,9 @@ type Storage struct {
 
 	// LastUpdated is the last time this file was checked for updates
 	LastUpdated time.Time `yaml:"lastUpdated"`
+
+	// Version is the version of this box spec.
+	Version float32 `yaml:"version"`
 
 	// StorageURL is the location that this came from
 	StorageURL string `yaml:"storageURL"`
