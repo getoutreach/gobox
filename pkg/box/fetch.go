@@ -73,11 +73,27 @@ func LoadBoxStorage() (*Storage, error) {
 }
 
 // EnsureBox loads a box if it already exists, or prompts the user for the box
-// if not found. If it exists, remote is querired periodically for a new version
+// if not found. If it exists, remote is querired periodically for a new version.
+// Deprecated: Use EnsureBoxWithOptions instead.
 func EnsureBox(ctx context.Context, defaults []string, log logrus.FieldLogger) (*Config, error) {
+	return EnsureBoxWithOptions(ctx, WithDefaults(defaults), WithLogger(log))
+}
+
+// EnsureBoxWithOptions loads a box if it already exists or returns an error.
+// The box config is periodically refreshed based on the configured interval and
+// based on a min version requirement, if set.
+func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config, error) {
+	opts := &LoadBoxOptions{
+		log: logrus.New(),
+	}
+
+	for _, f := range optFns {
+		f(opts)
+	}
+
 	s, err := LoadBoxStorage()
 	if os.IsNotExist(err) {
-		err = InitializeBox(ctx, defaults)
+		err = InitializeBox(ctx, []string{})
 		if err != nil {
 			return nil, err
 		}
@@ -87,12 +103,24 @@ func EnsureBox(ctx context.Context, defaults []string, log logrus.FieldLogger) (
 		return nil, err
 	}
 
-	diff := time.Now().UTC().Sub(s.LastUpdated)
-	if diff < (30 * time.Minute) { // if last updated wasn't time interval, skip update
-		return s.Config, nil
+	var reason string
+
+	// Ensure that the min version is met if provided
+	if opts.MinVersion != nil {
+		if s.Version < *opts.MinVersion {
+			reason = "Minimum box spec version not met"
+		}
 	}
 
-	log.Info("Refreshing box configuration")
+	if reason == "" {
+		diff := time.Now().UTC().Sub(s.LastUpdated)
+		if diff < s.Config.RefreshInterval { // if last updated wasn't time interval, skip update
+			return s.Config, nil
+		}
+		reason = "Periodic refresh hit"
+	}
+
+	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
 	// past the time interval, refresh the config
 	c, err := DownloadBox(ctx, s.StorageURL)
 	if err != nil {
@@ -137,6 +165,7 @@ func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
 // and then saves it to the well-known config path on disk.
 func SaveBox(_ context.Context, s *Storage) error {
 	s.LastUpdated = time.Now().UTC()
+	s.Version = Version
 
 	b, err := yaml.Marshal(s)
 	if err != nil {
