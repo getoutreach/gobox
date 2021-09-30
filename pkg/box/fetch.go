@@ -72,9 +72,9 @@ func LoadBoxStorage() (*Storage, error) {
 	return s, yaml.NewDecoder(f).Decode(&s) //nolint:gocritic
 }
 
-// Deprecated: Use EnsureBoxWithOptions instead.
 // EnsureBox loads a box if it already exists, or prompts the user for the box
-// if not found. If it exists, remote is querired periodically for a new version
+// if not found. If it exists, remote is querired periodically for a new version.
+// Deprecated: Use EnsureBoxWithOptions instead.
 func EnsureBox(ctx context.Context, defaults []string, log logrus.FieldLogger) (*Config, error) {
 	return EnsureBoxWithOptions(ctx, WithDefaults(defaults), WithLogger(log))
 }
