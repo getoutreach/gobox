@@ -1,4 +1,5 @@
-//+build or_e2e
+//go:build or_e2e
+// +build or_e2e
 
 package env
 
