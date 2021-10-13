@@ -2,6 +2,7 @@
 package sshhelper
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -9,8 +10,8 @@ import (
 	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/getoutreach/gobox/pkg/sshconfig"
 	gogitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"github.com/kevinburke/ssh_config"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -47,12 +48,12 @@ func GetPasswordInput() (string, error) {
 // LoadDefaultKey loads the default for an alias/host and puts it into the keyring
 // if a default key is not found, the user is prompted to provide the path
 func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string, error) {
-	sshFile := ssh_config.Get(host, "IdentityFile")
-	if sshFile == "" {
-		return "", fmt.Errorf("failed to find an IdentityFile for host '%s' in ssh config", host)
+	sshFile, err := sshconfig.Get(context.TODO(), host, "IdentityFile")
+	if sshFile == "" || err != nil {
+		return "", fmt.Errorf("failed to find an IdentityFile for host '%s' in ssh config, error: %v", host, err)
 	}
 
-	sshFile, err := homedir.Expand(sshFile)
+	sshFile, err = homedir.Expand(sshFile)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to expand ~/ in ssh IdentityFile path for host '%s'", host)
 	}
