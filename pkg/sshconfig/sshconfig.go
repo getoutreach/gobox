@@ -15,7 +15,7 @@ import (
 // Get returns the value of a key in the ssh config for a given host.
 // An error is only returned when a key is not found. Note: a field will
 // usually have default values returned, e.g. IdentityFile.
-func Get(ctx context.Context, host string, field string) (string, error) {
+func Get(ctx context.Context, host, field string) (string, error) {
 	sshArgs := []string{}
 	if path := os.Getenv("SSH_CONFIG_PATH"); path != "" {
 		sshArgs = append(sshArgs, "-F", path)
