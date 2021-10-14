@@ -1,3 +1,4 @@
+//go:build !or_test && !or_dev && !or_e2e
 // +build !or_test,!or_dev,!or_e2e
 
 // env provides environment specific overrides

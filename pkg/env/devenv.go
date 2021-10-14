@@ -1,4 +1,5 @@
-//+build or_dev
+//go:build or_dev
+// +build or_dev
 
 package env
 
