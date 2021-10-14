@@ -4,3 +4,4 @@ reportingTeam: cia-dev-tooling
 library: true
 releaseOptions:
   allowMajorVersions: true
+oss: true
