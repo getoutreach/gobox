@@ -1,5 +1,5 @@
 APP := gobox
-OSS := false
+OSS := true
 _ := $(shell ./scripts/bootstrap-lib.sh) 
 
 include .bootstrap/root/Makefile
