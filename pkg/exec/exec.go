@@ -1,0 +1,24 @@
+// Package exec implements os/exec stdlib helpers
+package exec
+
+import (
+	"os/exec"
+	"path/filepath"
+)
+
+// ResolveExecutable find the absolute path to a given binary.
+// This is meant to be used with os.Args[0]
+func ResolveExecuable(path string) (string, error) {
+	if filepath.IsAbs(path) {
+		return filepath.Clean(path), nil
+	}
+
+	// if we're not a path, e.g. devenv then look it up
+	// in PATH
+	if dir, _ := filepath.Split(path); dir == "" {
+		return exec.LookPath(path)
+	}
+
+	// otherwise we should just return the absolute path (resolve it)
+	return filepath.Abs(path)
+}
