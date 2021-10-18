@@ -10,7 +10,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github/v34 v34.0.0
-	github.com/honeycombio/beeline-go v1.2.0
+	github.com/honeycombio/beeline-go v1.3.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/manifoldco/promptui v0.8.0
@@ -73,9 +73,6 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.2.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
-	go.opentelemetry.io/contrib/propagators v0.21.0 // indirect
-	go.opentelemetry.io/otel v1.0.0-RC1 // indirect
-	go.opentelemetry.io/otel/trace v1.0.0-RC1 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
