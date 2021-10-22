@@ -192,6 +192,18 @@ func ID(ctx context.Context) string {
 	return defaultTracer.id(ctx)
 }
 
+// spanID returns the root tracing spanID for use when it is needed to correlate the logs belonging to same flow.
+// The spanID returned will be the honeycomb trace spanID (if honeycomb is enabled) or an empty string if neither are enabled
+func spanID(ctx context.Context) string {
+	return defaultTracer.spanID(ctx)
+}
+
+// parentID returns the tracing parentID for use when it is needed to correlate the logs belonging to same flow.
+// The parentID returned will be the honeycomb trace parentID (if honeycomb is enabled) or an empty string if neither are enabled
+func parentID(ctx context.Context) string {
+	return defaultTracer.parentID(ctx)
+}
+
 // ForceTracing will enforce tracing for processing started with returned context
 // and all downstream services that will be invoken on the way.
 func ForceTracing(ctx context.Context) context.Context {

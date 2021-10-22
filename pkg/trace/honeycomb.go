@@ -7,7 +7,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
-	beeline "github.com/honeycombio/beeline-go"
+	"github.com/honeycombio/beeline-go"
 	"github.com/honeycombio/beeline-go/propagation"
 	"github.com/honeycombio/beeline-go/trace"
 )
@@ -130,4 +130,21 @@ func marshalLog(setf func(key string, v interface{}), key string, l log.Marshale
 			setf(innerKey, innerValue)
 		}
 	})
+}
+
+func (t *tracer) honeycombParentID(ctx context.Context) string {
+	if t := trace.GetSpanFromContext(ctx); t != nil {
+		if parentID := t.GetParentID(); parentID != "" {
+			return parentID
+		}
+		return t.GetSpanID()
+	}
+	return ""
+}
+
+func (t *tracer) honeycombSpanID(ctx context.Context) string {
+	if t := trace.GetSpanFromContext(ctx); t != nil {
+		return t.GetSpanID()
+	}
+	return ""
 }

@@ -109,7 +109,7 @@ func (c *callInfo) ReportOutboundLatency(err error) {
 // instance).
 //
 // The log includes a initial Debug entry and a final Error entry if
-// the call failed (but no Info entry if the call succeeded).  Success
+// the call failed (but no IDs entry if the call succeeded).  Success
 // or failure is determined by whether there was a SetCallStatus or
 // not.  (Panics detected in EndCall are considered errors).
 //
@@ -194,22 +194,17 @@ func EndCall(ctx context.Context) {
 	addDefaultTracerInfo(ctx, info)
 	info.reportLatency()
 
-	traceInfo := log.F{
-		"honeycomb.trace_id": ID(ctx),
-		"event_name":         "trace",
-	}
-
 	if info.ErrorInfo != nil {
 		switch category := orerr.ExtractErrorStatusCategory(info.ErrorInfo.RawError); category {
 		case statuscodes.CategoryClientError:
-			log.Warn(ctx, info.name, info, traceInfo)
+			log.Warn(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		case statuscodes.CategoryServerError:
-			log.Error(ctx, info.name, info, traceInfo)
+			log.Error(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-			log.Info(ctx, info.name, info, traceInfo)
+			log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		}
 	} else {
-		log.Info(ctx, info.name, info, traceInfo)
+		log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 	}
 }
 
@@ -222,4 +217,25 @@ func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
 		return true
 	}
 	return false
+}
+
+//IDs returns a log-compatible tracing scope (IDs) data built from the context suitable for logging.
+func IDs(ctx context.Context) log.Marshaler {
+	return traceInfo{ctx}
+}
+
+type traceInfo struct {
+	context.Context
+}
+
+func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
+	addField("honeycomb.trace_id", ID(c))
+	addField("honeycomb.parent_id", parentID(c))
+	addField("honeycomb.span_id", spanID(c))
+}
+
+type traceEventMarker struct{}
+
+func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
+	addField("event_name", "trace")
 }
