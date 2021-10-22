@@ -131,3 +131,20 @@ func marshalLog(setf func(key string, v interface{}), key string, l log.Marshale
 		}
 	})
 }
+
+func (t *tracer) honeycombParentID(ctx context.Context) string {
+	if t := trace.GetSpanFromContext(ctx); t != nil {
+		if parentID := t.GetParentID(); parentID != "" {
+			return parentID
+		}
+		return t.GetSpanID()
+	}
+	return ""
+}
+
+func (t *tracer) honeycombSpanID(ctx context.Context) string {
+	if t := trace.GetSpanFromContext(ctx); t != nil {
+		return t.GetSpanID()
+	}
+	return ""
+}

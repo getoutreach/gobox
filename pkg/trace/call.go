@@ -223,3 +223,24 @@ func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
 	}
 	return false
 }
+
+//Info returns a log-compatible tracing scope data built from the context.
+func Info(ctx context.Context) log.Marshaler {
+	return traceInfo{ctx}
+}
+
+type traceInfo struct {
+	context.Context
+}
+
+func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
+	addField("honeycomb.trace_id", ID(c))
+	addField("honeycomb.parent_id", parentID(c))
+	addField("honeycomb.span_id", spanID(c))
+}
+
+type traceEventMarker struct{}
+
+func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
+	addField("event_name", "trace")
+}

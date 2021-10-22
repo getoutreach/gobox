@@ -54,3 +54,11 @@ func (t *tracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 func (t *tracer) id(ctx context.Context) string {
 	return t.honeycombTraceID(ctx)
 }
+
+func (t *tracer) spanID(ctx context.Context) string {
+	return t.honeycombSpanID(ctx)
+}
+
+func (t *tracer) parentID(ctx context.Context) string {
+	return t.honeycombParentID(ctx)
+}
