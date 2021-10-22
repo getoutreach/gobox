@@ -2,6 +2,7 @@ package trace_test
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -210,4 +211,49 @@ func (suite) TestID(t *testing.T) {
 	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
 		t.Fatal("unexpected events", diff)
 	}
+}
+
+func (suite) TestNestingIDs(t *testing.T) {
+	defer app.SetName(app.Info().Name)
+	app.SetName("go-outreach")
+
+	trlog := tracetest.NewTraceLog()
+	defer trlog.Close()
+
+	ctx0 := context.Background()
+	ctx1 := trace.StartTrace(ctx0, "trace-test")
+	trace.AddInfo(ctx1, log.F{"trace": "outermost"})
+	info1 := log.F{}
+	trace.Info(ctx1).MarshalLog(info1.Set)
+	pID1, sID1 := info1["honeycomb.parent_id"], info1["honeycomb.span_id"]
+	assert.Equal(t, pID1, sID1)
+
+	ctx2 := trace.StartCall(ctx1, "call-test") // StartCall == StartSpan
+	defer func() {
+		prometheus.DefaultGatherer.Gather()
+	}()
+	trace.AddInfo(ctx2, log.F{"trace": "call"})
+	info2 := log.F{}
+	trace.Info(ctx2).MarshalLog(info2.Set)
+	pID2, sID2 := info2["honeycomb.parent_id"], info2["honeycomb.span_id"]
+	assert.Equal(t, pID2, sID1)
+
+	ctx3 := trace.StartSpan(ctx2, "ctx3")
+	trace.AddInfo(ctx3, log.F{"trace": "ctx3"})
+	info3 := log.F{}
+	trace.Info(ctx3).MarshalLog(info3.Set)
+	pID3, sID3 := info3["honeycomb.parent_id"], info3["honeycomb.span_id"]
+	assert.Equal(t, pID3, sID2)
+
+	ctx4 := trace.StartSpan(ctx3, "inner2x")
+	trace.AddInfo(ctx4, log.F{"trace": "inner2x"})
+	info4 := log.F{}
+	trace.Info(ctx4).MarshalLog(info4.Set)
+	pID4 := info4["honeycomb.parent_id"]
+	assert.Equal(t, pID4, sID3)
+
+	trace.End(ctx4)
+	trace.End(ctx3)
+	trace.EndCall(ctx2)
+	trace.End(ctx1)
 }

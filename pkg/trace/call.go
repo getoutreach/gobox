@@ -194,22 +194,17 @@ func EndCall(ctx context.Context) {
 	addDefaultTracerInfo(ctx, info)
 	info.reportLatency()
 
-	traceInfo := log.F{
-		"honeycomb.trace_id": ID(ctx),
-		"event_name":         "trace",
-	}
-
 	if info.ErrorInfo != nil {
 		switch category := orerr.ExtractErrorStatusCategory(info.ErrorInfo.RawError); category {
 		case statuscodes.CategoryClientError:
-			log.Warn(ctx, info.name, info, traceInfo)
+			log.Warn(ctx, info.name, info, Info(ctx), traceEventMarker{})
 		case statuscodes.CategoryServerError:
-			log.Error(ctx, info.name, info, traceInfo)
+			log.Error(ctx, info.name, info, Info(ctx), traceEventMarker{})
 		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-			log.Info(ctx, info.name, info, traceInfo)
+			log.Info(ctx, info.name, info, Info(ctx), traceEventMarker{})
 		}
 	} else {
-		log.Info(ctx, info.name, info, traceInfo)
+		log.Info(ctx, info.name, info, Info(ctx), traceEventMarker{})
 	}
 }
 
