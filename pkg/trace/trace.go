@@ -204,7 +204,6 @@ func parentID(ctx context.Context) string {
 	return defaultTracer.parentID(ctx)
 }
 
-
 // ForceTracing will enforce tracing for processing started with returned context
 // and all downstream services that will be invoken on the way.
 func ForceTracing(ctx context.Context) context.Context {
