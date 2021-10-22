@@ -2,7 +2,6 @@ package trace_test
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -13,6 +12,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
 	hctrace "github.com/honeycombio/beeline-go/trace"
+	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 )
 
