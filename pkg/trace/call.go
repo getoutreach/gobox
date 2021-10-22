@@ -109,7 +109,7 @@ func (c *callInfo) ReportOutboundLatency(err error) {
 // instance).
 //
 // The log includes a initial Debug entry and a final Error entry if
-// the call failed (but no Info entry if the call succeeded).  Success
+// the call failed (but no IDs entry if the call succeeded).  Success
 // or failure is determined by whether there was a SetCallStatus or
 // not.  (Panics detected in EndCall are considered errors).
 //
@@ -197,14 +197,14 @@ func EndCall(ctx context.Context) {
 	if info.ErrorInfo != nil {
 		switch category := orerr.ExtractErrorStatusCategory(info.ErrorInfo.RawError); category {
 		case statuscodes.CategoryClientError:
-			log.Warn(ctx, info.name, info, Info(ctx), traceEventMarker{})
+			log.Warn(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		case statuscodes.CategoryServerError:
-			log.Error(ctx, info.name, info, Info(ctx), traceEventMarker{})
+			log.Error(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-			log.Info(ctx, info.name, info, Info(ctx), traceEventMarker{})
+			log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 		}
 	} else {
-		log.Info(ctx, info.name, info, Info(ctx), traceEventMarker{})
+		log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
 	}
 }
 
@@ -219,8 +219,8 @@ func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
 	return false
 }
 
-//Info returns a log-compatible tracing scope data built from the context.
-func Info(ctx context.Context) log.Marshaler {
+//IDs returns a log-compatible tracing scope (IDs) data built from the context suitable for logging.
+func IDs(ctx context.Context) log.Marshaler {
 	return traceInfo{ctx}
 }
 

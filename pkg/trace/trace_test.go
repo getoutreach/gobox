@@ -224,7 +224,7 @@ func (suite) TestNestingIDs(t *testing.T) {
 	ctx1 := trace.StartTrace(ctx0, "trace-test")
 	trace.AddInfo(ctx1, log.F{"trace": "outermost"})
 	info1 := log.F{}
-	trace.Info(ctx1).MarshalLog(info1.Set)
+	trace.IDs(ctx1).MarshalLog(info1.Set)
 	pID1, sID1 := info1["honeycomb.parent_id"], info1["honeycomb.span_id"]
 	assert.Equal(t, pID1, sID1)
 
@@ -234,21 +234,21 @@ func (suite) TestNestingIDs(t *testing.T) {
 	}()
 	trace.AddInfo(ctx2, log.F{"trace": "call"})
 	info2 := log.F{}
-	trace.Info(ctx2).MarshalLog(info2.Set)
+	trace.IDs(ctx2).MarshalLog(info2.Set)
 	pID2, sID2 := info2["honeycomb.parent_id"], info2["honeycomb.span_id"]
 	assert.Equal(t, pID2, sID1)
 
 	ctx3 := trace.StartSpan(ctx2, "ctx3")
 	trace.AddInfo(ctx3, log.F{"trace": "ctx3"})
 	info3 := log.F{}
-	trace.Info(ctx3).MarshalLog(info3.Set)
+	trace.IDs(ctx3).MarshalLog(info3.Set)
 	pID3, sID3 := info3["honeycomb.parent_id"], info3["honeycomb.span_id"]
 	assert.Equal(t, pID3, sID2)
 
 	ctx4 := trace.StartSpan(ctx3, "inner2x")
 	trace.AddInfo(ctx4, log.F{"trace": "inner2x"})
 	info4 := log.F{}
-	trace.Info(ctx4).MarshalLog(info4.Set)
+	trace.IDs(ctx4).MarshalLog(info4.Set)
 	pID4 := info4["honeycomb.parent_id"]
 	assert.Equal(t, pID4, sID3)
 
