@@ -163,8 +163,10 @@ func StartTrace(ctx context.Context, name string) context.Context {
 // StartSpan starts a new span.
 //
 // Use trace.End to end this.
-func StartSpan(ctx context.Context, name string) context.Context {
-	return defaultTracer.startSpan(ctx, name)
+func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
+	newCtx := defaultTracer.startSpan(ctx, name)
+	addDefaultTracerInfo(ctx, args...)
+	return newCtx
 }
 
 // End ends a span (or a trace started via StartTrace or ContextFromHTTP).
@@ -220,6 +222,13 @@ func ForceTracing(ctx context.Context) context.Context {
 // 1/1000, or 1/10 of a percent (.1%).
 func ForceSampleRate(ctx context.Context, rate uint) context.Context {
 	return sampleAt(ctx, rate)
+}
+
+// AddSpanInfo updates the current span with the provided fields.
+//
+// It does nothing if there isn't a current span.
+func AddSpanInfo(ctx context.Context, args ...log.Marshaler) {
+	addDefaultTracerInfo(ctx, args...)
 }
 
 func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
