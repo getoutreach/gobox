@@ -32,11 +32,11 @@ func (suite) TestNestedSpan(t *testing.T) {
 	ctx := trace.StartTrace(context.Background(), "trace-test")
 	trace.AddInfo(ctx, log.F{"trace": "outermost"})
 
-	inner := trace.StartSpan(ctx, "inner")
+	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
 	inner2 := trace.StartSpan(inner, "inner2")
-	trace.AddInfo(inner2, log.F{"trace": "inner2"})
+	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
 
 	trace.End(inner2)
 	trace.End(inner)
@@ -64,6 +64,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"app.name":             "gobox",
 			"app.version":          "testing",
 			"duration_ms":          differs.FloatRange(0, 2),
+			"from":                 "inner_span",
 			"meta.beeline_version": differs.AnyString(),
 			"meta.local_hostname":  differs.AnyString(),
 			"meta.span_type":       "leaf",
@@ -118,7 +119,7 @@ func (suite) TestTrace(t *testing.T) {
 	if span == nil || span.GetParent() != nil {
 		t.Fatal("Did not create a root span")
 	}
-	trace.AddInfo(ctx2, log.F{"inner": "inner"})
+	trace.AddSpanInfo(ctx2, log.F{"inner": "inner"})
 	trace.End(ctx2)
 	trace.AddInfo(ctx, log.F{"outer": "outer"})
 	trace.End(ctx)

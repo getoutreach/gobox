@@ -165,7 +165,7 @@ func StartTrace(ctx context.Context, name string) context.Context {
 // Use trace.End to end this.
 func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
 	newCtx := defaultTracer.startSpan(ctx, name)
-	addDefaultTracerInfo(ctx, args...)
+	addDefaultTracerInfo(newCtx, args...)
 	return newCtx
 }
 
