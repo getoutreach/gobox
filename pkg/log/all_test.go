@@ -7,5 +7,5 @@ import (
 )
 
 func TestAll(t *testing.T) {
-	shuffler.Run(t, fatalSuite{}, withSuite{}, callerSuite{})
+	shuffler.Run(t, fatalSuite{}, withSuite{}, callerSuite{}, logContextSuite{})
 }
