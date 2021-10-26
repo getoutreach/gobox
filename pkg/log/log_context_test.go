@@ -23,7 +23,8 @@ func (logContextSuite) TestLogContext(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = log.NewLogContext(ctx)
-	log.AddInfo(ctx, log.F{"context.string": "test", "context.number": 5, "context.suite": logContextSuite{}})
+	log.SetAllowedLogContextFields("context.string", "context.number")
+	log.AddInfo(ctx, log.F{"context.string": "test", "context.number": 5, "foo": "not_allowed"})
 	log.Debug(ctx, "Debug message", log.F{"some": "thing"})
 	log.Info(ctx, "Info message", log.F{"some": "thing"})
 	log.Warn(ctx, "Warn message", log.F{"some": "thing"})
@@ -32,40 +33,36 @@ func (logContextSuite) TestLogContext(t *testing.T) {
 	expected := []log.F{
 		{
 			"@timestamp":     differs.RFC3339NanoTime(),
-			"app.version":    "testing",
+			"app.version":    differs.AnyString(),
 			"context.string": "test",
 			"context.number": float64(5),
-			"context.suite":  "logContextSuite",
 			"level":          "INFO",
 			"message":        "Info message",
 			"some":           "thing",
 		},
 		{
 			"@timestamp":     differs.RFC3339NanoTime(),
-			"app.version":    "testing",
+			"app.version":    differs.AnyString(),
 			"context.string": "test",
 			"context.number": float64(5),
-			"context.suite":  "logContextSuite",
 			"level":          "WARN",
 			"message":        "Warn message",
 			"some":           "thing",
 		},
 		{
 			"@timestamp":     differs.RFC3339NanoTime(),
-			"app.version":    "testing",
+			"app.version":    differs.AnyString(),
 			"context.string": "test",
 			"context.number": float64(5),
-			"context.suite":  "logContextSuite",
 			"level":          "DEBUG",
 			"message":        "Debug message",
 			"some":           "thing",
 		},
 		{
 			"@timestamp":     differs.RFC3339NanoTime(),
-			"app.version":    "testing",
+			"app.version":    differs.AnyString(),
 			"context.string": "test",
 			"context.number": float64(5),
-			"context.suite":  "logContextSuite",
 			"level":          "ERROR",
 			"message":        "Warn message",
 			"some":           "thing",
