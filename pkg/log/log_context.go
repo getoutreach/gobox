@@ -6,7 +6,7 @@ import (
 
 var allowList map[string]bool
 
-func SetAllowedLogContextFields(fields ...string) {
+func AllowContextFields(fields ...string) {
 	if allowList != nil {
 		panic("the log context fields allowed list can only be set once")
 	}
