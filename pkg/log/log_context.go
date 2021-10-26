@@ -2,19 +2,58 @@ package log
 
 import (
 	"context"
+	"strings"
 )
 
-var allowList map[string]bool
+var allowList map[string]interface{}
 
 func AllowContextFields(fields ...string) {
 	if allowList != nil {
 		panic("the log context fields allowed list can only be set once")
 	}
 
-	allowList = map[string]bool{}
+	allowList = map[string]interface{}{}
 	for _, v := range fields {
 		allowList[v] = true
+		parts := strings.Split(v, ".")
+		current := allowList
+		for _, part := range parts {
+			nested := map[string]interface{}{}
+			current[part] = nested
+			current = nested
+		}
 	}
+}
+
+func filterAllowList(info F, allow map[string]interface{}) F {
+	result := F{}
+	if allow == nil {
+		return info
+	}
+
+	for k, v := range info {
+		allow, ok := allowList[k]
+
+		if !ok {
+			continue
+		}
+
+		_, ok = allow.(bool)
+		if ok {
+			result[k] = v
+		}
+
+		childAllow, ok := allow.(map[string]interface{})
+		childF, fOk := v.(F)
+		if ok && fOk {
+			childValue := filterAllowList(childF, childAllow)
+			if len(childValue) > 0 {
+				result[k] = childValue
+			}
+		}
+	}
+
+	return result
 }
 
 // nolint:gochecknoglobals
@@ -37,17 +76,11 @@ func NewContext(ctx context.Context) context.Context {
 func AddInfo(ctx context.Context, args ...Marshaler) {
 	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
 		logInfo := infoKeyVal.(*F)
+		temp := F{}
 		many := Many(args)
-		set := logInfo.Set
-		if allowList != nil {
-			set = func(field string, value interface{}) {
-				_, ok := allowList[field]
-				if ok {
-					logInfo.Set(field, value)
-				}
-			}
-		}
-		many.MarshalLog(set)
+		many.MarshalLog(temp.Set)
+		temp = filterAllowList(temp, allowList)
+		temp.MarshalLog(logInfo.Set)
 	}
 }
 
