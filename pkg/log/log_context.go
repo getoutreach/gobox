@@ -28,7 +28,7 @@ func AllowContextFields(fields ...string) {
 func filterAllowList(info F, allow map[string]interface{}) F {
 	result := F{}
 	if allow == nil {
-		return info
+		panic("AllowContextFields must be set in order to use log.Context")
 	}
 
 	for k, v := range info {
