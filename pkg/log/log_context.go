@@ -69,7 +69,7 @@ func NewContext(ctx context.Context) context.Context {
 }
 
 // Add arguments to all logs. Return true if this is a log info context after args are added
-// MarshalLog is invokved immediately on all args to reduce risk of hard to debug issues
+// MarshalLog is invoked immediately on all args to reduce risk of hard to debug issues
 // and arbitrary code running during logging.
 //
 // If the current context is not the log info contex, AddInfo does nothing and return false.
