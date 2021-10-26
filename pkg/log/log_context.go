@@ -2,55 +2,35 @@ package log
 
 import (
 	"context"
-	"strings"
 )
 
-var allowList map[string]interface{}
+var allowList map[string]bool
 
 func AllowContextFields(fields ...string) {
 	if allowList != nil {
 		panic("the log context fields allowed list can only be set once")
 	}
 
-	allowList = map[string]interface{}{}
+	allowList = map[string]bool{}
 	for _, v := range fields {
 		allowList[v] = true
-		parts := strings.Split(v, ".")
-		current := allowList
-		for _, part := range parts {
-			nested := map[string]interface{}{}
-			current[part] = nested
-			current = nested
-		}
 	}
 }
 
-func filterAllowList(info F, allow map[string]interface{}) F {
+func filterAllowList(info F) F {
 	result := F{}
-	if allow == nil {
+	if allowList == nil {
 		panic("AllowContextFields must be set in order to use log.Context")
 	}
 
 	for k, v := range info {
-		allow, ok := allowList[k]
+		_, ok := allowList[k]
 
 		if !ok {
 			continue
 		}
 
-		_, ok = allow.(bool)
-		if ok {
-			result[k] = v
-		}
-
-		childAllow, ok := allow.(map[string]interface{})
-		childF, fOk := v.(F)
-		if ok && fOk {
-			childValue := filterAllowList(childF, childAllow)
-			if len(childValue) > 0 {
-				result[k] = childValue
-			}
-		}
+		result[k] = v
 	}
 
 	return result
@@ -79,7 +59,7 @@ func AddInfo(ctx context.Context, args ...Marshaler) {
 		temp := F{}
 		many := Many(args)
 		many.MarshalLog(temp.Set)
-		temp = filterAllowList(temp, allowList)
+		temp = filterAllowList(temp)
 		temp.MarshalLog(logInfo.Set)
 	}
 }
