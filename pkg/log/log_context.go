@@ -21,7 +21,7 @@ func AllowContextFields(fields ...string) {
 var infoKey = &F{}
 
 // Creates a new Value context to store fields that should be attached to all logs
-func NewLogContext(ctx context.Context) context.Context {
+func NewContext(ctx context.Context) context.Context {
 	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
 		return ctx
 	}
