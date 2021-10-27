@@ -37,7 +37,7 @@ func filterAllowList(info F) F {
 }
 
 // nolint:gochecknoglobals
-var infoKey = &F{}
+var infoKey = "54be8dc9-91ac-4f77-b90a-70e1ffd74566" //random guid
 
 // Creates a new Value context to store fields that should be attached to all logs
 func NewContext(ctx context.Context) context.Context {
@@ -45,7 +45,12 @@ func NewContext(ctx context.Context) context.Context {
 		return ctx
 	}
 
-	return context.WithValue(ctx, infoKey, &F{})
+	// we use a guid string to avoid versioning issues, should not have collisions
+	return context.WithValue(ctx, infoKey, &F{}) //nolint:revive, staticcheck
+}
+
+type fieldsSet interface {
+	Set(field string, value interface{})
 }
 
 // Add arguments to all logs. Return true if this is a log info context after args are added
@@ -55,7 +60,7 @@ func NewContext(ctx context.Context) context.Context {
 // If the current context is not the log info contex, AddInfo does nothing and return false.
 func AddInfo(ctx context.Context, args ...Marshaler) {
 	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
-		logInfo := infoKeyVal.(*F)
+		logInfo := infoKeyVal.(fieldsSet)
 		temp := F{}
 		many := Many(args)
 		many.MarshalLog(temp.Set)
@@ -66,7 +71,7 @@ func AddInfo(ctx context.Context, args ...Marshaler) {
 
 func getLogInfo(ctx context.Context) Marshaler {
 	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
-		logInfo := infoKeyVal.(*F)
+		logInfo := infoKeyVal.(Marshaler)
 		return logInfo
 	}
 
