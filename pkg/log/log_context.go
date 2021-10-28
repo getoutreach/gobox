@@ -40,33 +40,28 @@ func filterAllowList(info F) F {
 var infoKey = "54be8dc9-91ac-4f77-b90a-70e1ffd74566" //random guid
 
 // Creates a new Value context to store fields that should be attached to all logs
-func NewContext(ctx context.Context) context.Context {
-	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
-		return ctx
+// MarshalLog is invoked immediately on all args to reduce risk of hard to debug issues
+// and arbitrary code running during logging.
+func NewContext(ctx context.Context, args ...Marshaler) context.Context {
+	returnCtx := ctx
+	infoKeyVal := ctx.Value(infoKey)
+	if infoKeyVal == nil {
+		infoKeyVal = &F{}
+		// we use a guid string to avoid versioning issues, should not have collisions
+		returnCtx = context.WithValue(ctx, infoKey, infoKeyVal) //nolint:revive, staticcheck
 	}
 
-	// we use a guid string to avoid versioning issues, should not have collisions
-	return context.WithValue(ctx, infoKey, &F{}) //nolint:revive, staticcheck
+	logInfo := infoKeyVal.(fieldsSet)
+	temp := F{}
+	many := Many(args)
+	many.MarshalLog(temp.Set)
+	temp = filterAllowList(temp)
+	temp.MarshalLog(logInfo.Set)
+	return returnCtx
 }
 
 type fieldsSet interface {
 	Set(field string, value interface{})
-}
-
-// Add arguments to all logs. Return true if this is a log info context after args are added
-// MarshalLog is invoked immediately on all args to reduce risk of hard to debug issues
-// and arbitrary code running during logging.
-//
-// If the current context is not the log info contex, AddInfo does nothing and return false.
-func AddInfo(ctx context.Context, args ...Marshaler) {
-	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
-		logInfo := infoKeyVal.(fieldsSet)
-		temp := F{}
-		many := Many(args)
-		many.MarshalLog(temp.Set)
-		temp = filterAllowList(temp)
-		temp.MarshalLog(logInfo.Set)
-	}
 }
 
 func getLogInfo(ctx context.Context) Marshaler {
