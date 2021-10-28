@@ -251,10 +251,14 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 		return "", func() {}, err
 	}
 
-	//nolint:gosec // We're ok with a variable URL.
-	resp, err := http.Get(url)
+	req, err := g.gc.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", func() {}, errors.Wrapf(err, "failed to create HTTP request to '%s'", url)
+	}
+
+	resp, err := g.gc.BareDo(ctx, req)
+	if err != nil {
+		return "", func() {}, errors.Wrapf(err, "failed to send HTTP request to '%s'", url)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -366,6 +370,10 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 
 	tarReader := tar.NewReader(gzr)
 	for {
+		if errC := ctx.Err(); errC != nil {
+			return "", errC
+		}
+
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break

@@ -2,7 +2,9 @@ package updater
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/google/go-github/v34/github"
@@ -45,14 +47,14 @@ func TestGithub_SelectAsset(t *testing.T) {
 				name: "localizer",
 				assets: []*github.ReleaseAsset{
 					{
-						ID:   github.Int64(28295890),
-						Name: github.String("localizer_1.0.0_linux_amd64.tar.gz"),
+						ID:   github.Int64(28295887),
+						Name: github.String(fmt.Sprintf("localizer_1.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)),
 					},
 				},
 			},
 			want: &github.ReleaseAsset{
-				ID:   github.Int64(28295890),
-				Name: github.String("localizer_1.0.0_linux_amd64.tar.gz"),
+				ID:   github.Int64(28295887),
+				Name: github.String(fmt.Sprintf("localizer_1.0.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)),
 			},
 		},
 	}
