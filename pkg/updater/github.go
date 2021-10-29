@@ -28,6 +28,7 @@ import (
 var (
 	ErrNoNewRelease = errors.New("no new release")
 	ErrNoAsset      = errors.New("no asset found")
+	ErrMissingFile  = errors.New("file missing in archive")
 
 	AssetSeperators = []string{"_", "-"}
 	AssetExtensions = []string{".tar.gz", ""}
@@ -369,53 +370,58 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 	}
 
 	tarReader := tar.NewReader(gzr)
-	for {
-		if errC := ctx.Err(); errC != nil {
-			return "", errC
-		}
 
-		header, err := tarReader.Next()
+	srcFile, srcSize, err := findTarFile(ctx, tarReader, filename)
+	if err != nil {
+		return "", err
+	}
+
+	file := filepath.Join(storageDir, filename)
+	targetFile, err := os.Create(file)
+	if err != nil {
+		return "", err
+	}
+	defer targetFile.Close()
+
+	if g.Silent {
+		//nolint:gosec
+		_, err = io.Copy(targetFile, srcFile)
+	} else {
+		bar := progressbar.DefaultBytes(
+			srcSize,
+			// extra space here to match the downloading update length
+			"extracting update ",
+		)
+		_, err = io.Copy(io.MultiWriter(targetFile, bar), srcFile) //nolint:gosec // wtaf?
+	}
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+
+	return file, nil
+}
+
+// finds specified file in provided tar archive and returns io.Reader and its size for extraction progress
+func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.Reader, int64, error) {
+	for ctx.Err() != nil {
+		header, err := archive.Next()
+
 		if err == io.EOF {
-			break
+			return nil, 0, ErrMissingFile
 		} else if err != nil {
-			return "", err
+			return nil, 0, err
 		}
 
-		switch header.Typeflag {
-		case tar.TypeDir:
-			continue
-		case tar.TypeReg:
-			if header.Name != filename {
-				continue
-			}
-
-			file := filepath.Join(storageDir, filename)
-			f, err := os.Create(file)
-			if err != nil {
-				return "", err
-			}
-			defer f.Close()
-
-			if g.Silent {
-				//nolint:gosec
-				_, err = io.Copy(f, tarReader)
-			} else {
-				bar := progressbar.DefaultBytes(
-					header.Size,
-					// extra space here to match the downloading update length
-					"extracting update ",
-				)
-				_, err = io.Copy(io.MultiWriter(f, bar), tarReader) //nolint:gosec // wtaf?
-			}
-			if err != nil && err != io.EOF {
-				return "", err
-			}
-
-			return file, nil
+		if header.Typeflag == tar.TypeReg && header.Name == filename {
+			return archive, header.Size, nil
 		}
 	}
 
-	return "", fmt.Errorf("failed to find file '%s' in downloaded archive", filename)
+	if ctx.Err() != nil {
+		return nil, 0, ctx.Err()
+	}
+
+	return nil, 0, ErrMissingFile
 }
 
 // SelectAsset finds an asset on a Github Release.
