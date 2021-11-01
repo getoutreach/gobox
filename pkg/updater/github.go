@@ -403,7 +403,7 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 
 // finds specified file in provided tar archive and returns io.Reader and its size for extraction progress
 func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.Reader, int64, error) {
-	for ctx.Err() != nil {
+	for ctx.Err() == nil {
 		header, err := archive.Next()
 
 		if err == io.EOF {
