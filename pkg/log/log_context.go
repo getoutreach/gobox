@@ -44,25 +44,17 @@ const currentLogContextKey logContextKeyType = iota
 // MarshalLog is invoked immediately on all args to reduce risk of hard to debug issues
 // and arbitrary code running during logging.
 func NewContext(ctx context.Context, args ...Marshaler) context.Context {
-	returnCtx := ctx
+	temp := F{}
 	infoKeyVal := ctx.Value(currentLogContextKey)
-	if infoKeyVal == nil {
-		infoKeyVal = &F{}
-		// we use a guid string to avoid versioning issues, should not have collisions
-		returnCtx = context.WithValue(ctx, currentLogContextKey, infoKeyVal) //nolint:revive, staticcheck
+	if infoKeyVal != nil {
+		logInfo := infoKeyVal.(Marshaler)
+		logInfo.MarshalLog(temp.Set)
 	}
 
-	logInfo := infoKeyVal.(fieldsSet)
-	temp := F{}
 	many := Many(args)
 	many.MarshalLog(temp.Set)
 	temp = filterAllowList(temp)
-	temp.MarshalLog(logInfo.Set)
-	return returnCtx
-}
-
-type fieldsSet interface {
-	Set(field string, value interface{})
+	return context.WithValue(ctx, currentLogContextKey, temp) //nolint:revive, staticcheck
 }
 
 func getLogInfo(ctx context.Context) Marshaler {

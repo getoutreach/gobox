@@ -118,7 +118,7 @@ func (logContextSuite) TestNestedLogContext(t *testing.T) {
 			"foo": "not_allowed",
 		})
 
-	ctx = log.NewContext(ctx,
+	nestedCtx := log.NewContext(ctx,
 		log.F{"or.org": &orgInfo{
 			"bab20e22-834c-466c-a1df-90873b8b22a6",
 			"short",
@@ -126,6 +126,10 @@ func (logContextSuite) TestNestedLogContext(t *testing.T) {
 		},
 		})
 
+	log.Debug(nestedCtx, "Debug message", log.F{"some": "thing"})
+	log.Info(nestedCtx, "Info message", log.F{"some": "thing"})
+	log.Warn(nestedCtx, "Warn message", log.F{"some": "thing"})
+	log.Error(nestedCtx, "Warn message", log.F{"some": "thing"})
 	log.Debug(ctx, "Debug message", log.F{"some": "thing"})
 	log.Info(ctx, "Info message", log.F{"some": "thing"})
 	log.Warn(ctx, "Warn message", log.F{"some": "thing"})
@@ -175,6 +179,42 @@ func (logContextSuite) TestNestedLogContext(t *testing.T) {
 			"or.org.guid":      "bab20e22-834c-466c-a1df-90873b8b22a6",
 			"or.org.shortname": "short",
 			"some":             "thing",
+		},
+		{
+			"@timestamp":     differs.RFC3339NanoTime(),
+			"app.version":    differs.AnyString(),
+			"context.string": "test",
+			"context.number": float64(5),
+			"level":          "INFO",
+			"message":        "Info message",
+			"some":           "thing",
+		},
+		{
+			"@timestamp":     differs.RFC3339NanoTime(),
+			"app.version":    differs.AnyString(),
+			"context.string": "test",
+			"context.number": float64(5),
+			"level":          "WARN",
+			"message":        "Warn message",
+			"some":           "thing",
+		},
+		{
+			"@timestamp":     differs.RFC3339NanoTime(),
+			"app.version":    differs.AnyString(),
+			"context.string": "test",
+			"context.number": float64(5),
+			"level":          "DEBUG",
+			"message":        "Debug message",
+			"some":           "thing",
+		},
+		{
+			"@timestamp":     differs.RFC3339NanoTime(),
+			"app.version":    differs.AnyString(),
+			"context.string": "test",
+			"context.number": float64(5),
+			"level":          "ERROR",
+			"message":        "Warn message",
+			"some":           "thing",
 		},
 	}
 
