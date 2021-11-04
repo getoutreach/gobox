@@ -35,7 +35,7 @@ const (
 
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
-func overrideConfigLoaders(honeycombApiKey string, dataset string) {
+func overrideConfigLoaders(honeycombApiKey, dataset string) {
 	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
 	fallbackSecretLookup = secrets.SetDevLookup(func(ctx context.Context, key string) ([]byte, error) {
 		if key == "APIKey" {
@@ -130,6 +130,7 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup 
 
 // HookInUrfaveCLI sets up an app.Before that automatically traces command runs
 // and automatically updates itself.
+//nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, log logrus.FieldLogger, honeycombApiKey, dataset string) {
 	app.SetName(a.Name)
 	overrideConfigLoaders(honeycombApiKey, dataset)
@@ -190,7 +191,9 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 }
 
 // urfaveBefore is a cli.BeforeFunc that implements tracing and automatic updating
-func urfaveBefore(a *cli.App, logger logrus.FieldLogger, exit func(), cleanup *func(), exitCode *int) func(c *cli.Context) error {
+//nolint:funlen // Why: Not worth splitting out yet. May want to do so w/ more CLI support.
+func urfaveBefore(a *cli.App, logger logrus.FieldLogger, exit func(), cleanup *func(),
+	exitCode *int) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		cargs := c.Args().Slice()
 		command := ""
