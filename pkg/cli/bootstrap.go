@@ -90,6 +90,7 @@ func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		<-c
+		signal.Reset()
 		cancel()
 	}()
 }
@@ -137,7 +138,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	urfaveRegisterShutdownHandler(cancel)
 
-	setupTracer(ctx, a.Name)
+	ctx = setupTracer(ctx, a.Name)
 
 	exitCode, exit, cleanup := setupExitHandler(ctx)
 	defer exit()
