@@ -33,7 +33,7 @@ const UpdateExitCode = 5
 
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
-func overrideConfigLoaders(honeycombAPIKey, dataset string, debug bool) {
+func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
 	fallbackSecretLookup = secrets.SetDevLookup(func(ctx context.Context, key string) ([]byte, error) {
 		if key == "APIKey" {
@@ -53,7 +53,7 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, debug bool) {
 					APIKey: cfg.Secret{
 						Path: "APIKey",
 					},
-					Debug:         debug,
+					Debug:         tracingDebug,
 					Dataset:       dataset,
 					SamplePercent: 100,
 				},
