@@ -33,7 +33,7 @@ const UpdateExitCode = 5
 
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
-func overrideConfigLoaders(honeycombAPIKey, dataset string) {
+func overrideConfigLoaders(honeycombAPIKey, dataset string, debug bool) {
 	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
 	fallbackSecretLookup = secrets.SetDevLookup(func(ctx context.Context, key string) ([]byte, error) {
 		if key == "APIKey" {
@@ -42,8 +42,6 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string) {
 
 		return fallbackSecretLookup(ctx, key)
 	})
-
-	log.SetOutput(io.Discard)
 
 	fallbackConfigReader := cfg.DefaultReader()
 	cfg.SetDefaultReader(func(fileName string) ([]byte, error) {
@@ -55,6 +53,7 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string) {
 					APIKey: cfg.Secret{
 						Path: "APIKey",
 					},
+					Debug:         debug,
 					Dataset:       dataset,
 					SamplePercent: 100,
 				},
@@ -96,6 +95,7 @@ func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 // setupTracer sets up a root trace for the CLI and initializes the tracer
 func setupTracer(ctx context.Context, name string) context.Context {
 	if err := trace.InitTracer(ctx, name); err != nil {
+		fmt.Println(err)
 		return ctx
 	}
 	return trace.StartTrace(ctx, name)
@@ -130,10 +130,15 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup 
 // HookInUrfaveCLI sets up an app.Before that automatically traces command runs
 // and automatically updates itself.
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
-func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, logger logrus.FieldLogger, honeycombApiKey, dataset string) {
+func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, logger logrus.FieldLogger, honeycombAPIKey, dataset string) {
 	app.SetName(a.Name)
 
-	overrideConfigLoaders(honeycombApiKey, dataset)
+	// Ensure that we don't use the standard outreach logger
+	log.SetOutput(io.Discard)
+
+	// IDEA: Can we ever hook up --debug to this?
+	overrideConfigLoaders(honeycombAPIKey, dataset, false)
+
 	urfaveRegisterShutdownHandler(cancel)
 	ctx = setupTracer(ctx, a.Name)
 
@@ -155,6 +160,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 				return err
 			}
 		}
+
 		return urfaveBefore(a, logger, exit, cleanup, exitCode)(c)
 	}
 
