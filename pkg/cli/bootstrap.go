@@ -28,18 +28,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	// UpdateExitCode is the exit code returned when an update ocurred
-	UpdateExitCode = 5
-)
+// UpdateExitCode is the exit code returned when an update ocurred
+const UpdateExitCode = 5
 
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
-func overrideConfigLoaders(honeycombApiKey, dataset string) {
+func overrideConfigLoaders(honeycombAPIKey, dataset string) {
 	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
 	fallbackSecretLookup = secrets.SetDevLookup(func(ctx context.Context, key string) ([]byte, error) {
 		if key == "APIKey" {
-			return []byte(honeycombApiKey), nil
+			return []byte(honeycombAPIKey), nil
 		}
 
 		return fallbackSecretLookup(ctx, key)
@@ -132,12 +130,11 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup 
 // HookInUrfaveCLI sets up an app.Before that automatically traces command runs
 // and automatically updates itself.
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
-func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, log logrus.FieldLogger, honeycombApiKey, dataset string) {
+func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, logger logrus.FieldLogger, honeycombApiKey, dataset string) {
 	app.SetName(a.Name)
+
 	overrideConfigLoaders(honeycombApiKey, dataset)
-
 	urfaveRegisterShutdownHandler(cancel)
-
 	ctx = setupTracer(ctx, a.Name)
 
 	exitCode, exit, cleanup := setupExitHandler(ctx)
@@ -151,14 +148,14 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	ctx = trace.StartCall(ctx, "main")
 	defer trace.EndCall(ctx)
 
-	oldBefore := (*a).Before
+	oldBefore := (*a).Before //nolint:gocritic // Why: we're saving the previous value
 	a.Before = func(c *cli.Context) error {
 		if oldBefore != nil {
 			if err := oldBefore(c); err != nil {
 				return err
 			}
 		}
-		return urfaveBefore(a, log, exit, cleanup, exitCode)(c)
+		return urfaveBefore(a, logger, exit, cleanup, exitCode)(c)
 	}
 
 	// append the standard flags
@@ -182,7 +179,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	}...)
 
 	if err := a.RunContext(ctx, os.Args); err != nil {
-		log.Errorf("failed to run: %v", err)
+		logger.Errorf("failed to run: %v", err)
 		//nolint:errcheck // Why: We're attaching the error to the trace.
 		trace.SetCallStatus(ctx, err)
 		(*exitCode) = 1
