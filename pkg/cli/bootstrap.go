@@ -131,6 +131,7 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup 
 // and automatically updates itself.
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, logger logrus.FieldLogger, honeycombAPIKey, dataset string) {
+	env.ApplyOverrides()
 	app.SetName(a.Name)
 
 	// Ensure that we don't use the standard outreach logger
