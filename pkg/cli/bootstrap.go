@@ -18,6 +18,7 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/secrets"
