@@ -130,6 +130,14 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 // load retrieves the cache from disk, if it exists, otherwise
 // it is returned uninitialized
 func (c *cacheStore) load() {
+	// lock the underlying datastore structure while we're decoding
+	// the file into it and because we initialized it at the top
+	c.cloudsMu.Lock()
+	defer c.cloudsMu.Unlock()
+
+	// ensure that we always have a cache datastructure configured
+	c.Clouds = make(map[CloudName]map[Name]cacheEntry)
+
 	cacheFilePath, err := c.getCacheFilePath()
 	if err != nil {
 		return
@@ -143,17 +151,7 @@ func (c *cacheStore) load() {
 		return
 	}
 
-	// lock the underlying datastore structure while we're decoding
-	// the file into it
-	c.cloudsMu.Lock()
-	defer c.cloudsMu.Unlock()
-
 	_ = json.NewDecoder(f).Decode(&c) //nolint:errcheck // Why: function signature/acceptable
-
-	if c.Clouds == nil {
-		// ensure that we always have a cache datastructure configured
-		c.Clouds = make(map[CloudName]map[Name]cacheEntry)
-	}
 }
 
 // save saves the cache to disk
