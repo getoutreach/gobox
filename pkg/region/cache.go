@@ -144,6 +144,7 @@ func (c *cacheStore) load() {
 	if err != nil {
 		return
 	}
+	defer f.Close()
 
 	_ = json.NewDecoder(f).Decode(&c) //nolint:errcheck // Why: function signature/acceptable
 }
@@ -162,6 +163,7 @@ func (c *cacheStore) save() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cache file")
 	}
+	defer f.Close()
 
 	return json.NewEncoder(f).Encode(c)
 }
