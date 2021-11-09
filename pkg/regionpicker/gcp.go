@@ -11,7 +11,7 @@ type GCP struct{}
 // IDEA: One day we could probably get this from GCP. That is authenticated though.
 func (*GCP) Regions() []region {
 	return []region{
-		{name: "us", multi: true, endpoint: "https://us-docker.pkg.dev"},
-		{name: "eu", multi: true, endpoint: "https://us-docker.pkg.dev"},
+		{name: "us", endpoint: "https://us-docker.pkg.dev"},
+		{name: "eu", endpoint: "https://us-docker.pkg.dev"},
 	}
 }

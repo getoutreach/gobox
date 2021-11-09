@@ -16,11 +16,11 @@ var clouds = map[CloudName]Cloud{
 // getPing hits an endpoint and returns the ping time
 func getPing(url string) (time.Duration, error) {
 	startTime := time.Now().UTC()
-	_, err := http.Head(url)
+	resp, err := http.Head(url) //nolint:gosec // Why: not really variable
 	if err != nil {
-
 		return 0, err
 	}
+	resp.Body.Close()
 	endTime := time.Now().UTC()
 
 	return endTime.Sub(startTime), nil

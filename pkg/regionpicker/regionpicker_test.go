@@ -44,7 +44,7 @@ func TestFindBest(t *testing.T) {
 	}
 
 	// should return error when invalid sort
-	regionName, err = FindBest(CloudGCP, []RegionName{"kjaefhjfhjkfbac"}, nil)
+	_, err = FindBest(CloudGCP, []RegionName{"kjaefhjfhjkfbac"}, nil)
 	if err == nil {
 		t.Errorf("didn't get an error trying to find non-existent best region: Best(): %v", err)
 		return

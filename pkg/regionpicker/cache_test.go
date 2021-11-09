@@ -38,7 +38,7 @@ func TestFindCachedBest(t *testing.T) {
 
 	oldLastUpdated := cacheFile.Clouds[CloudGCP].LastUpdatedAt
 
-	regionName, err = FindCachedBest(CloudGCP, nil, logrus.New())
+	_, err = FindCachedBest(CloudGCP, nil, logrus.New())
 	if err != nil {
 		t.Errorf("got an error trying to find best cached region: FindCachedBest(): %v", err)
 		return
