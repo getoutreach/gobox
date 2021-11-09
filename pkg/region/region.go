@@ -36,15 +36,15 @@ func (r *region) Duration(ctx context.Context) (time.Duration, error) {
 		return dur, nil
 	}
 
-	startTime := time.Now().UTC()
+	startTime := time.Now()
 	resp, err := http.Head(r.Endpoint) //nolint:gosec // Why: not really variable
+	// we don't care about HTTP status here, we're just determining network latency
 	if err != nil {
 		return 0, err
 	}
 	resp.Body.Close()
-	endTime := time.Now().UTC()
+	dur = time.Since(startTime)
 
-	dur = endTime.Sub(startTime)
 	cache.Set(r.Cloud, r.Name, dur) //nolint:errcheck // Why: don't need to handle errors
 
 	return dur, nil
