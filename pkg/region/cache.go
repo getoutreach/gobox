@@ -30,8 +30,8 @@ type cacheEntry struct {
 	// Duration is how long it took to talk to this region at LastUpdatedAt
 	Duration time.Duration `json:"duration"`
 
-	// LastUpdatedAt is the last time this file was updated. UTC.
-	LastUpdatedAt time.Time `json:"last_updated_at"`
+	// ExpiresAt is when this cache entry expires. UTC.
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type cacheStore struct {
@@ -58,11 +58,19 @@ func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
 }
 
 // ensureKey ensures that a key can be properly accessed in the underlying cache
-func (c *cacheStore) ensureKey(cloud CloudName, _ Name) {
+func (c *cacheStore) ensureKey(cloud CloudName, r Name) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if _, ok := c.Clouds[cloud]; !ok {
-		c.mu.Lock()
 		c.Clouds[cloud] = make(map[Name]cacheEntry)
-		c.mu.Unlock()
+	}
+
+	if v, ok := c.Clouds[cloud][r]; ok {
+		if time.Now().UTC().After(v.ExpiresAt) {
+			// expire the key
+			delete(c.Clouds[cloud], r)
+		}
 	}
 }
 
@@ -74,8 +82,9 @@ func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
 
 	c.ensureKey(cloud, r)
 	c.Clouds[cloud][r] = cacheEntry{
-		Duration:      dur,
-		LastUpdatedAt: time.Now().UTC(),
+		Duration: dur,
+		// Expire in 8 hours
+		ExpiresAt: time.Now().UTC().Add(time.Hour * 8),
 	}
 	return c.save()
 }
