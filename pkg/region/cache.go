@@ -39,8 +39,7 @@ type cacheStore struct {
 	// cloud -> region -> cacheEntry
 	Clouds map[CloudName]map[Name]cacheEntry `json:"clouds"`
 
-	cloudsMu sync.RWMutex
-	fileMu   sync.Mutex
+	mu sync.RWMutex
 
 	once sync.Once
 }
@@ -48,8 +47,8 @@ type cacheStore struct {
 // expireKeyIfRequired expires a key if it's ready to be expired
 func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) {
 	if time.Now().UTC().After(v.ExpiresAt) {
-		c.cloudsMu.Lock()
-		defer c.cloudsMu.Unlock()
+		c.mu.Lock()
+		defer c.mu.Unlock()
 
 		delete(c.Clouds[cloud], r)
 	}
@@ -57,8 +56,8 @@ func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry)
 
 // get returns a cache entry for a given cloud/region pairing
 func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
-	c.cloudsMu.RLock()
-	defer c.cloudsMu.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
 	if _, ok := c.Clouds[cloud]; ok {
 		return nil, false
@@ -89,8 +88,8 @@ func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
 }
 
 func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
-	c.cloudsMu.Lock()
-	defer c.cloudsMu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if _, ok := c.Clouds[cloud]; !ok {
 		c.Clouds[cloud] = make(map[Name]cacheEntry)
@@ -130,10 +129,8 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 // load retrieves the cache from disk, if it exists, otherwise
 // it is returned uninitialized
 func (c *cacheStore) load() {
-	// lock the underlying datastore structure while we're decoding
-	// the file into it and because we initialized it at the top
-	c.cloudsMu.Lock()
-	defer c.cloudsMu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	// ensure that we always have a cache datastructure configured
 	c.Clouds = make(map[CloudName]map[Name]cacheEntry)
@@ -142,9 +139,6 @@ func (c *cacheStore) load() {
 	if err != nil {
 		return
 	}
-
-	c.fileMu.Lock()
-	defer c.fileMu.Unlock()
 
 	f, err := os.Open(cacheFilePath)
 	if err != nil {
@@ -156,22 +150,18 @@ func (c *cacheStore) load() {
 
 // save saves the cache to disk
 func (c *cacheStore) save() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	cacheFilePath, err := c.getCacheFilePath()
 	if err != nil {
 		return errors.Wrap(err, "failed to get cache file path")
 	}
 
-	c.fileMu.Lock()
-	defer c.fileMu.Unlock()
-
 	f, err := os.Create(cacheFilePath)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cache file")
 	}
-
-	// lock the underlying datastore structure while we're encoding it
-	c.cloudsMu.Lock()
-	defer c.cloudsMu.Unlock()
 
 	return json.NewEncoder(f).Encode(c)
 }
