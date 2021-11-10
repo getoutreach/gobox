@@ -59,10 +59,6 @@ func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	if _, ok := c.Clouds[cloud]; ok {
-		return nil, false
-	}
-
 	v, ok := c.Clouds[cloud][r]
 	if !ok {
 		return nil, ok
