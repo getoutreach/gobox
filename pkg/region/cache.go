@@ -45,13 +45,18 @@ type cacheStore struct {
 }
 
 // expireKeyIfRequired expires a key if it's ready to be expired
-func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) {
+func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) bool {
 	if time.Now().UTC().After(v.ExpiresAt) {
 		c.mu.Lock()
-		defer c.mu.Unlock()
-
 		delete(c.Clouds[cloud], r)
+		c.mu.Unlock()
+
+		// save the expiration to disk
+		c.save() //nolint:errcheck // Why: best effort
+		return true
 	}
+
+	return false
 }
 
 // get returns a cache entry for a given cloud/region pairing
@@ -78,7 +83,10 @@ func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
 		return time.Duration(0), false
 	}
 
-	c.expireKeyIfRequired(cloud, r, v) // expire the key if required to do so
+	// expire the key if required to do so
+	if c.expireKeyIfRequired(cloud, r, v) {
+		return time.Duration(0), false
+	}
 
 	return v.Duration, ok
 }
@@ -118,6 +126,10 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 	if !filepath.IsAbs(storageDir) {
 		storageDir = filepath.Join(homeDir, storageDir)
 	}
+
+	// ensure that the directory exists
+	//nolint:errcheck // Why: best effort
+	os.MkdirAll(storageDir, 0755)
 
 	return filepath.Join(storageDir, RegionCacheFile), nil
 }

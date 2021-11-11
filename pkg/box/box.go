@@ -3,7 +3,9 @@
 // that outreach provides, aka "startup in a box"
 package box
 
-import "time"
+import (
+	"time"
+)
 
 // SnapshotLockChannel is used to determine the quality of
 // a given snapshot
@@ -17,15 +19,15 @@ const (
 	SnapshotLockChannelRC SnapshotLockChannel = "rc"
 
 	// Version is the current version of the box spec.
-	Version float32 = 1
+	Version float32 = 2
 )
 
 type DeveloperEnvironmentConfig struct {
 	// SnapshotConfig is the snapshot configuration for the devenv
-	SnapshotConfig *SnapshotConfig `yaml:"snapshots"`
+	SnapshotConfig SnapshotConfig `yaml:"snapshots"`
 
 	// VaultConfig denotes how to talk to Vault
-	VaultConfig *VaultConfig `yaml:"vault"`
+	VaultConfig VaultConfig `yaml:"vault"`
 
 	// ImagePullSecret is a path to credentials used to pull images with
 	// currently the only supported value is a vault key path with
@@ -38,7 +40,7 @@ type DeveloperEnvironmentConfig struct {
 
 	// RuntimeConfig stores configuration specific to different devenv
 	// runtimes.
-	RuntimeConfig *DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
+	RuntimeConfig DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
 }
 
 // DeveloperEnvironmentRuntimeConfig stores configuration specific to
@@ -47,14 +49,12 @@ type DeveloperEnvironmentRuntimeConfig struct {
 	// EnabledRuntimes dictates which runtimes are enabled, generally defaults to all.
 	EnabledRuntimes []string `yaml:"enabledRuntimes"`
 
-	// Loft is configuration for the loft runtime in the devenv
-	Loft *LoftRuntimeConfig `yaml:"loft"`
-}
+	// DevelopmentRegistries are image registries that should be used for
+	// development docker images. These are only ever used for remote devenvs.
+	DevelopmentRegistries DevelopmentRegistries `yaml:"developmentRegistries"`
 
-// LoftRuntimeConfig is configuration for loft runtimes
-type LoftRuntimeConfig struct {
-	// URL is the URL of a loft instance.
-	URL string `yaml:"URL"`
+	// Loft is configuration for the loft runtime in the devenv
+	Loft LoftRuntimeConfig `yaml:"loft"`
 }
 
 // VaultConfig is the configuration for accessing Vault
@@ -100,7 +100,7 @@ type Config struct {
 	Org string `yaml:"org"`
 
 	// DeveloperEnvironmentConfig is the configuration for the developer environment for this box
-	DeveloperEnvironmentConfig *DeveloperEnvironmentConfig `yaml:"devenv"`
+	DeveloperEnvironmentConfig DeveloperEnvironmentConfig `yaml:"devenv"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
@@ -120,11 +120,7 @@ type Storage struct {
 
 // NewConfig makes a full initialized Config
 func NewConfig() *Config {
-	return &Config{
-		DeveloperEnvironmentConfig: &DeveloperEnvironmentConfig{
-			SnapshotConfig: &SnapshotConfig{},
-		},
-	}
+	return &Config{}
 }
 
 // SnapshotTarget is the defn for a generated snapshot
