@@ -148,6 +148,11 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
 
+// FromHeadersAsync fetches trace info from a headers map and kicks off an async trace.
+func FromHeadersAsync(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	return StartSpanAsync(defaultTracer.fromHeaders(ctx, hdrs, name), name)
+}
+
 // ToHeaders writes the current trace context into a headers map
 func ToHeaders(ctx context.Context) map[string][]string {
 	return defaultTracer.toHeaders(ctx)
@@ -165,6 +170,17 @@ func StartTrace(ctx context.Context, name string) context.Context {
 // Use trace.End to end this.
 func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
 	newCtx := defaultTracer.startSpan(ctx, name)
+	addDefaultTracerInfo(newCtx, args...)
+	return newCtx
+}
+
+// StartSpanAsync starts a new async span.
+//
+// An async span does not have to complete before the parent span completes.
+//
+// Use trace.End to end this.
+func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) context.Context {
+	newCtx := defaultTracer.startSpanAsync(ctx, name)
 	addDefaultTracerInfo(newCtx, args...)
 	return newCtx
 }
