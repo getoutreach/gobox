@@ -12,3 +12,15 @@ type CloudName string
 type Cloud interface {
 	Regions(ctx context.Context) Regions
 }
+
+// supportedClouds is a CloudName -> Cloud mapping
+// of all known/supported clouds
+var supportedClouds = map[CloudName]Cloud{
+	CloudGCP:    &GCP{},
+	CloudCustom: &CustomCloud{},
+}
+
+// CloudFromCloudName returns a cloud from a provided cloud name
+func CloudFromCloudName(cloud CloudName) Cloud {
+	return supportedClouds[cloud]
+}

@@ -119,6 +119,10 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 		storageDir = filepath.Join(homeDir, storageDir)
 	}
 
+	// ensure that the directory exists
+	//nolint:errcheck // Why: best effort
+	os.MkdirAll(storageDir, 0755)
+
 	return filepath.Join(storageDir, RegionCacheFile), nil
 }
 
