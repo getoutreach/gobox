@@ -52,7 +52,7 @@ func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry)
 		c.mu.Unlock()
 
 		// save the expiration to disk
-		c.save()
+		c.save() //nolint:errcheck // Why: best effort
 		return true
 	}
 
