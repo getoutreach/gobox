@@ -194,11 +194,11 @@ func TestShouldApply(t *testing.T) {
 			Expected: true,
 		},
 		{
-			Name: "on same failure hash, fail count less than 2",
+			Name: "on same failure hash, fail count within limits",
 			Target: resources.ResourceStatus{
 				LastApplyErrorHash: "abc",
 				LastApplyErrorTime: past,
-				ApplyFailCount:     1,
+				ApplyFailCount:     2,
 			},
 			Hash:     "abc",
 			Expected: true,
@@ -209,7 +209,7 @@ func TestShouldApply(t *testing.T) {
 			Target: resources.ResourceStatus{
 				LastApplyErrorHash: "abc",
 				LastApplyErrorTime: past,
-				ApplyFailCount:     2,
+				ApplyFailCount:     3,
 			},
 			Hash:     "abc",
 			Expected: false,
@@ -219,6 +219,7 @@ func TestShouldApply(t *testing.T) {
 	log := logrus.New()
 
 	for _, tt := range tests {
-		tt.Target.ShouldApply(tt.Hash, log)
+		shouldApply := tt.Target.ShouldApply(tt.Hash, log)
+		assert.Equal(t, shouldApply, tt.Expected, tt.Name)
 	}
 }
