@@ -43,6 +43,10 @@ func (t *tracer) startSpan(ctx context.Context, name string) context.Context {
 	return t.startHoneycombSpan(ctx, name)
 }
 
+func (t *tracer) startSpanAsync(ctx context.Context, name string) context.Context {
+	return t.startHoneycombSpanAsync(ctx, name)
+}
+
 func (t *tracer) end(ctx context.Context) {
 	t.endHoneycombSpan(ctx)
 }

@@ -35,12 +35,18 @@ func (suite) TestNestedSpan(t *testing.T) {
 	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
+	innerAsync := trace.StartSpanAsync(inner, "innerAsync")
+	trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
+
 	inner2 := trace.StartSpan(inner, "inner2")
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
 
 	trace.End(inner2)
 	trace.End(inner)
 	trace.End(ctx)
+
+	// async trace ends out of band!
+	trace.End(innerAsync)
 
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
@@ -67,7 +73,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"from":                 "inner_span",
 			"meta.beeline_version": differs.AnyString(),
 			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "leaf",
+			"meta.span_type":       "mid",
 			"name":                 "inner",
 			"service_name":         "log-testing",
 			"trace":                "inner",
@@ -86,6 +92,20 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"service_name":         "log-testing",
 			"trace":                "outermost",
 			"trace.span_id":        rootID,
+			"trace.trace_id":       traceID,
+		},
+		{
+			"app.name":             "gobox",
+			"app.version":          "testing",
+			"duration_ms":          differs.FloatRange(0, 2),
+			"meta.beeline_version": differs.AnyString(),
+			"meta.local_hostname":  differs.AnyString(),
+			"meta.span_type":       "async",
+			"name":                 "innerAsync",
+			"service_name":         "log-testing",
+			"trace":                "innerAsync",
+			"trace.parent_id":      middleID,
+			"trace.span_id":        differs.AnyString(),
 			"trace.trace_id":       traceID,
 		},
 	}

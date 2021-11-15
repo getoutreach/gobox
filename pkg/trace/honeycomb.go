@@ -94,6 +94,14 @@ func (t *tracer) startHoneycombSpan(ctx context.Context, name string) context.Co
 	return ctx
 }
 
+func (t *tracer) startHoneycombSpanAsync(ctx context.Context, name string) context.Context {
+	if span := trace.GetSpanFromContext(ctx); span != nil {
+		ctx, span = span.CreateAsyncChild(ctx)
+		span.AddField("name", name)
+	}
+	return ctx
+}
+
 func (t *tracer) endHoneycombSpan(ctx context.Context) {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		span.Send()
