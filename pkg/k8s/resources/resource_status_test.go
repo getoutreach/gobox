@@ -29,38 +29,38 @@ func TestUpdate(t *testing.T) {
 			Hash:   "abc",
 			Err:    nil,
 			Expected: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: afterNow,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: afterNow,
 			},
 		},
 		{
 			Name: "success over succes",
 			Target: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
 			},
 			Hash: "abc",
 			Err:  nil,
 			Expected: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: afterNow,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: afterNow,
 			},
 		},
 		{
 			Name: "success over failure",
 			Target: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
-				LastApplyError:       "oops",
-				LastApplyErrorHash:   "errhash",
-				LastApplyErrorTime:   past,
-				ApplyFailCount:       4,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
+				LastReconcileError:       "oops",
+				LastReconcileErrorHash:   "errhash",
+				LastReconcileErrorTime:   past,
+				ReconcileFailCount:       4,
 			},
 			Hash: "def",
 			Err:  nil,
 			Expected: resources.ResourceStatus{
-				LastApplySuccessHash: "def",
-				LastApplySuccessTime: afterNow,
+				LastReconcileSuccessHash: "def",
+				LastReconcileSuccessTime: afterNow,
 				// success should reset error state
 			},
 		},
@@ -70,87 +70,87 @@ func TestUpdate(t *testing.T) {
 			Hash:   "hhh",
 			Err:    anyErr,
 			Expected: resources.ResourceStatus{
-				LastApplyError:     anyErr.Error(),
-				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: afterNow,
-				ApplyFailCount:     1,
+				LastReconcileError:     anyErr.Error(),
+				LastReconcileErrorHash: "hhh",
+				LastReconcileErrorTime: afterNow,
+				ReconcileFailCount:     1,
 			},
 		},
 		{
 			Name: "failure over same failure hash",
 			Target: resources.ResourceStatus{
-				LastApplyError:     "can be a diff err",
-				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: past,
-				ApplyFailCount:     4,
+				LastReconcileError:     "can be a diff err",
+				LastReconcileErrorHash: "hhh",
+				LastReconcileErrorTime: past,
+				ReconcileFailCount:     4,
 			},
 			Hash: "hhh",
 			Err:  anyErr,
 			Expected: resources.ResourceStatus{
-				LastApplyError:     anyErr.Error(),
-				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: afterNow,
+				LastReconcileError:     anyErr.Error(),
+				LastReconcileErrorHash: "hhh",
+				LastReconcileErrorTime: afterNow,
 				// should increase fail count if hash did not change
-				ApplyFailCount: 5,
+				ReconcileFailCount: 5,
 			},
 		},
 		{
 			Name: "failure over diff failure hash",
 			Target: resources.ResourceStatus{
-				LastApplyError:     "can be a diff err",
-				LastApplyErrorHash: "other",
-				LastApplyErrorTime: past,
-				ApplyFailCount:     4,
+				LastReconcileError:     "can be a diff err",
+				LastReconcileErrorHash: "other",
+				LastReconcileErrorTime: past,
+				ReconcileFailCount:     4,
 			},
 			Hash: "hhh",
 			Err:  anyErr,
 			Expected: resources.ResourceStatus{
-				LastApplyError:     anyErr.Error(),
-				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: afterNow,
+				LastReconcileError:     anyErr.Error(),
+				LastReconcileErrorHash: "hhh",
+				LastReconcileErrorTime: afterNow,
 				// should restart fail count if hash changes
-				ApplyFailCount: 1,
+				ReconcileFailCount: 1,
 			},
 		},
 		{
 			Name: "failure over success",
 			Target: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
 			},
 			Hash: "hhh",
 			Err:  anyErr,
 			Expected: resources.ResourceStatus{
-				// failed apply MUST preserve pass success time/hash for observers to know that this resource's past version might
+				// failed reconcile MUST preserve pass success time/hash for observers to know that this resource's past version might
 				// still be fully operational and shall be tried (while new updates fail)
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
-				LastApplyError:       anyErr.Error(),
-				LastApplyErrorHash:   "hhh",
-				LastApplyErrorTime:   afterNow,
-				ApplyFailCount:       1,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
+				LastReconcileError:       anyErr.Error(),
+				LastReconcileErrorHash:   "hhh",
+				LastReconcileErrorTime:   afterNow,
+				ReconcileFailCount:       1,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		tt.Target.Update(tt.Hash, tt.Err)
-		assert.Equal(t, tt.Expected.ApplyFailCount, tt.Target.ApplyFailCount, tt.Name)
-		assert.Equal(t, tt.Expected.LastApplyError, tt.Target.LastApplyError, tt.Name)
-		assert.Equal(t, tt.Expected.LastApplyErrorHash, tt.Target.LastApplyErrorHash, tt.Name)
-		assert.Equal(t, tt.Expected.LastApplySuccessHash, tt.Target.LastApplySuccessHash, tt.Name)
+		assert.Equal(t, tt.Expected.ReconcileFailCount, tt.Target.ReconcileFailCount, tt.Name)
+		assert.Equal(t, tt.Expected.LastReconcileError, tt.Target.LastReconcileError, tt.Name)
+		assert.Equal(t, tt.Expected.LastReconcileErrorHash, tt.Target.LastReconcileErrorHash, tt.Name)
+		assert.Equal(t, tt.Expected.LastReconcileSuccessHash, tt.Target.LastReconcileSuccessHash, tt.Name)
 
-		if tt.Expected.LastApplyErrorTime == afterNow {
+		if tt.Expected.LastReconcileErrorTime == afterNow {
 			// should be in range [afterNow, Now()]
-			assertInRange(t, tt.Target.LastApplyErrorTime.Time, afterNow.Time, time.Now(), tt.Name)
+			assertInRange(t, tt.Target.LastReconcileErrorTime.Time, afterNow.Time, time.Now(), tt.Name)
 		} else {
-			assert.Equal(t, tt.Target.LastApplyErrorTime, tt.Expected.LastApplyErrorTime, tt.Name)
+			assert.Equal(t, tt.Target.LastReconcileErrorTime, tt.Expected.LastReconcileErrorTime, tt.Name)
 		}
-		if tt.Expected.LastApplySuccessTime == afterNow {
+		if tt.Expected.LastReconcileSuccessTime == afterNow {
 			// should be in range [afterNow, Now()]
-			assertInRange(t, tt.Target.LastApplySuccessTime.Time, afterNow.Time, time.Now(), tt.Name)
+			assertInRange(t, tt.Target.LastReconcileSuccessTime.Time, afterNow.Time, time.Now(), tt.Name)
 		} else {
-			assert.Equal(t, tt.Target.LastApplySuccessTime, tt.Expected.LastApplySuccessTime, tt.Name)
+			assert.Equal(t, tt.Target.LastReconcileSuccessTime, tt.Expected.LastReconcileSuccessTime, tt.Name)
 		}
 	}
 }
@@ -160,7 +160,7 @@ func assertInRange(t *testing.T, target, from, to time.Time, name string) {
 	assert.Check(t, !from.After(target) && !to.Before(target), name)
 }
 
-func TestShouldApply(t *testing.T) {
+func TestShouldReconcile(t *testing.T) {
 	past := metav1.Time{Time: time.Now().Add(-5 * time.Minute)}
 
 	tests := []struct {
@@ -178,8 +178,8 @@ func TestShouldApply(t *testing.T) {
 		{
 			Name: "on same success hash",
 			Target: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
 			},
 			Hash:     "abc",
 			Expected: false,
@@ -187,8 +187,8 @@ func TestShouldApply(t *testing.T) {
 		{
 			Name: "on diff success hash",
 			Target: resources.ResourceStatus{
-				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: past,
+				LastReconcileSuccessHash: "abc",
+				LastReconcileSuccessTime: past,
 			},
 			Hash:     "def",
 			Expected: true,
@@ -196,9 +196,9 @@ func TestShouldApply(t *testing.T) {
 		{
 			Name: "on same failure hash, fail count within limits",
 			Target: resources.ResourceStatus{
-				LastApplyErrorHash: "abc",
-				LastApplyErrorTime: past,
-				ApplyFailCount:     2,
+				LastReconcileErrorHash: "abc",
+				LastReconcileErrorTime: past,
+				ReconcileFailCount:     2,
 			},
 			Hash:     "abc",
 			Expected: true,
@@ -207,9 +207,9 @@ func TestShouldApply(t *testing.T) {
 			// TODO(nissimn)[QSS-QSS-818]: allow two retries for now, need retry with expo backoff + config for the backoff
 			Name: "on same failure hash, fail count exceeded",
 			Target: resources.ResourceStatus{
-				LastApplyErrorHash: "abc",
-				LastApplyErrorTime: past,
-				ApplyFailCount:     3,
+				LastReconcileErrorHash: "abc",
+				LastReconcileErrorTime: past,
+				ReconcileFailCount:     3,
 			},
 			Hash:     "abc",
 			Expected: false,
@@ -219,7 +219,7 @@ func TestShouldApply(t *testing.T) {
 	log := logrus.New()
 
 	for _, tt := range tests {
-		shouldApply := tt.Target.ShouldApply(tt.Hash, log)
-		assert.Equal(t, shouldApply, tt.Expected, tt.Name)
+		shouldReconcile := tt.Target.ShouldReconcile(tt.Hash, log)
+		assert.Equal(t, shouldReconcile, tt.Expected, tt.Name)
 	}
 }

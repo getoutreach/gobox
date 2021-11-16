@@ -8,45 +8,45 @@ import (
 // ResourceStatus holds fields shared across all CR status sub-resources.
 //+kubebuilder:object:generate=true
 type ResourceStatus struct {
-	// LastApplySuccessHash holds the spec hash of the last successfull application of this CR by the operator.
+	// LastReconcileSuccessHash holds the spec hash of the last successfull application of this CR by the operator.
 	// If empty, operator never applied this CR successfully. This field is NOT reset on failures.
-	LastApplySuccessHash string `json:"lastApplySuccessHash"`
+	LastReconcileSuccessHash string `json:"lastReconcileSuccessHash"`
 
-	// LastApplySuccessTime holds the time of the last successfull application of this CR by the operator.
+	// LastReconcileSuccessTime holds the time of the last successfull application of this CR by the operator.
 	// If empty, operator never applied this CR successfully. This field is NOT reset on failures.
-	LastApplySuccessTime metav1.Time `json:"lastApplySuccessTime"`
+	LastReconcileSuccessTime metav1.Time `json:"lastReconcileSuccessTime"`
 
-	// LastApplyError holds the final error message reported by the operator upon failed application of this CR.
-	// This field is reset if operator succeeds to apply the CR.
-	LastApplyError string `json:"lastApplyError"`
+	// LastReconcileError holds the final error message reported by the operator upon failed application of this CR.
+	// This field is reset if operator succeeds to reconcile the CR.
+	LastReconcileError string `json:"lastReconcileError"`
 
-	// LastApplyErrorHash holds the spec hash of the last failed application of this CR.
-	// This field is reset if operator succeeds to apply the CR.
-	LastApplyErrorHash string `json:"lastApplyErrorHash"`
+	// LastReconcileErrorHash holds the spec hash of the last failed application of this CR.
+	// This field is reset if operator succeeds to reconcile the CR.
+	LastReconcileErrorHash string `json:"lastReconcileErrorHash"`
 
-	// LastApplyErrorTime holds the time of the last failed application of this CR.
-	// This field is reset to Epoch if operator succeeds to apply this CR.
-	LastApplyErrorTime metav1.Time `json:"lastApplyErrorTime"`
+	// LastReconcileErrorTime holds the time of the last failed application of this CR.
+	// This field is reset to Epoch if operator succeeds to reconcile this CR.
+	LastReconcileErrorTime metav1.Time `json:"lastReconcileErrorTime"`
 
-	// ApplyFailCount holds number of tries current CR spec application failed (so far).
+	// ReconcileFailCount holds number of tries current CR spec application failed (so far).
 	// This counter is reset when CR spec changes or when application succeeds.
-	ApplyFailCount int `json:"applyFailCount"`
+	ReconcileFailCount int `json:"reconcileFailCount"`
 }
 
-func (rs *ResourceStatus) ShouldApply(hash string, log logrus.FieldLogger) bool {
-	if hash == rs.LastApplySuccessHash {
+func (rs *ResourceStatus) ShouldReconcile(hash string, log logrus.FieldLogger) bool {
+	if hash == rs.LastReconcileSuccessHash {
 		// this CR is already applied, this is an echo Reconcile from the status change
 		return false
 	}
 
-	if hash == rs.LastApplyErrorHash {
+	if hash == rs.LastReconcileErrorHash {
 		// TODO(nissimn)[QSS-QSS-818]: allow two retries for now, need retry with expo backoff + config for the backoff
-		if rs.ApplyFailCount > 2 {
-			log.Error("ApplyFailCount is %d and it is exceeded its limit", rs.ApplyFailCount)
+		if rs.ReconcileFailCount > 2 {
+			log.Error("ReconcileFailCount is %d and it is exceeded its limit", rs.ReconcileFailCount)
 			return false
 		}
 
-		log.Infof("ApplyFailCount is %d, retrying", rs.ApplyFailCount)
+		log.Infof("ReconcileFailCount is %d, retrying", rs.ReconcileFailCount)
 		return true
 	}
 
@@ -57,25 +57,25 @@ func (rs *ResourceStatus) ShouldApply(hash string, log logrus.FieldLogger) bool 
 // Update refreshes the resource status fields based on the success of failure of the reconcile operation.
 func (rs *ResourceStatus) Update(hash string, err error) {
 	if err != nil {
-		if hash == rs.LastApplyErrorHash {
-			rs.ApplyFailCount++
+		if hash == rs.LastReconcileErrorHash {
+			rs.ReconcileFailCount++
 		} else {
-			rs.ApplyFailCount = 1
+			rs.ReconcileFailCount = 1
 		}
-		// TODO(nissimn)[QSS-QSS-818]: set ctrl.Result.RequeueAfter with time increasing using the ApplyFailCount so far (upcoming PR).
+		// TODO(nissimn)[QSS-QSS-818]: set ctrl.Result.RequeueAfter with time increasing using the ReconcileFailCount so far (upcoming PR).
 		// Need to check how retry works if Status triggers CR change and also the ctrl asks to RequeueAfter on current version.
 
-		rs.LastApplyError = err.Error()
-		rs.LastApplyErrorHash = hash
-		rs.LastApplyErrorTime = metav1.Now()
-		// leaving LastApplySuccess* fields as is for other components to know when past version of this CR was applied successfully
+		rs.LastReconcileError = err.Error()
+		rs.LastReconcileErrorHash = hash
+		rs.LastReconcileErrorTime = metav1.Now()
+		// leaving LastReconcileSuccess* fields as is for other components to know when past version of this CR was applied successfully
 	} else {
-		rs.LastApplySuccessHash = hash
-		rs.LastApplySuccessTime = metav1.Now()
+		rs.LastReconcileSuccessHash = hash
+		rs.LastReconcileSuccessTime = metav1.Now()
 
-		rs.ApplyFailCount = 0
-		rs.LastApplyError = ""
-		rs.LastApplyErrorHash = ""
-		rs.LastApplyErrorTime = metav1.Time{} // epoch is marshaled as null
+		rs.ReconcileFailCount = 0
+		rs.LastReconcileError = ""
+		rs.LastReconcileErrorHash = ""
+		rs.LastReconcileErrorTime = metav1.Time{} // epoch is marshaled as null
 	}
 }
