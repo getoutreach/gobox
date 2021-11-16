@@ -30,37 +30,37 @@ func TestUpdate(t *testing.T) {
 			Err:    nil,
 			Expected: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &afterNow,
+				LastApplySuccessTime: afterNow,
 			},
 		},
 		{
 			Name: "success over succes",
 			Target: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 			},
 			Hash: "abc",
 			Err:  nil,
 			Expected: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &afterNow,
+				LastApplySuccessTime: afterNow,
 			},
 		},
 		{
 			Name: "success over failure",
 			Target: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 				LastApplyError:       "oops",
 				LastApplyErrorHash:   "errhash",
-				LastApplyErrorTime:   &past,
+				LastApplyErrorTime:   past,
 				ApplyFailCount:       4,
 			},
 			Hash: "def",
 			Err:  nil,
 			Expected: resources.ResourceStatus{
 				LastApplySuccessHash: "def",
-				LastApplySuccessTime: &afterNow,
+				LastApplySuccessTime: afterNow,
 				// success should reset error state
 			},
 		},
@@ -72,7 +72,7 @@ func TestUpdate(t *testing.T) {
 			Expected: resources.ResourceStatus{
 				LastApplyError:     anyErr.Error(),
 				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: &afterNow,
+				LastApplyErrorTime: afterNow,
 				ApplyFailCount:     1,
 			},
 		},
@@ -81,7 +81,7 @@ func TestUpdate(t *testing.T) {
 			Target: resources.ResourceStatus{
 				LastApplyError:     "can be a diff err",
 				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: &past,
+				LastApplyErrorTime: past,
 				ApplyFailCount:     4,
 			},
 			Hash: "hhh",
@@ -89,7 +89,7 @@ func TestUpdate(t *testing.T) {
 			Expected: resources.ResourceStatus{
 				LastApplyError:     anyErr.Error(),
 				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: &afterNow,
+				LastApplyErrorTime: afterNow,
 				// should increase fail count if hash did not change
 				ApplyFailCount: 5,
 			},
@@ -99,7 +99,7 @@ func TestUpdate(t *testing.T) {
 			Target: resources.ResourceStatus{
 				LastApplyError:     "can be a diff err",
 				LastApplyErrorHash: "other",
-				LastApplyErrorTime: &past,
+				LastApplyErrorTime: past,
 				ApplyFailCount:     4,
 			},
 			Hash: "hhh",
@@ -107,7 +107,7 @@ func TestUpdate(t *testing.T) {
 			Expected: resources.ResourceStatus{
 				LastApplyError:     anyErr.Error(),
 				LastApplyErrorHash: "hhh",
-				LastApplyErrorTime: &afterNow,
+				LastApplyErrorTime: afterNow,
 				// should restart fail count if hash changes
 				ApplyFailCount: 1,
 			},
@@ -116,7 +116,7 @@ func TestUpdate(t *testing.T) {
 			Name: "failure over success",
 			Target: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 			},
 			Hash: "hhh",
 			Err:  anyErr,
@@ -124,10 +124,10 @@ func TestUpdate(t *testing.T) {
 				// failed apply MUST preserve pass success time/hash for observers to know that this resource's past version might
 				// still be fully operational and shall be tried (while new updates fail)
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 				LastApplyError:       anyErr.Error(),
 				LastApplyErrorHash:   "hhh",
-				LastApplyErrorTime:   &afterNow,
+				LastApplyErrorTime:   afterNow,
 				ApplyFailCount:       1,
 			},
 		},
@@ -140,13 +140,13 @@ func TestUpdate(t *testing.T) {
 		assert.Equal(t, tt.Expected.LastApplyErrorHash, tt.Target.LastApplyErrorHash, tt.Name)
 		assert.Equal(t, tt.Expected.LastApplySuccessHash, tt.Target.LastApplySuccessHash, tt.Name)
 
-		if tt.Expected.LastApplyErrorTime == &afterNow {
+		if tt.Expected.LastApplyErrorTime == afterNow {
 			// should be in range [afterNow, Now()]
 			assertInRange(t, tt.Target.LastApplyErrorTime.Time, afterNow.Time, time.Now(), tt.Name)
 		} else {
 			assert.Equal(t, tt.Target.LastApplyErrorTime, tt.Expected.LastApplyErrorTime, tt.Name)
 		}
-		if tt.Expected.LastApplySuccessTime == &afterNow {
+		if tt.Expected.LastApplySuccessTime == afterNow {
 			// should be in range [afterNow, Now()]
 			assertInRange(t, tt.Target.LastApplySuccessTime.Time, afterNow.Time, time.Now(), tt.Name)
 		} else {
@@ -179,7 +179,7 @@ func TestShouldApply(t *testing.T) {
 			Name: "on same success hash",
 			Target: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 			},
 			Hash:     "abc",
 			Expected: false,
@@ -188,7 +188,7 @@ func TestShouldApply(t *testing.T) {
 			Name: "on diff success hash",
 			Target: resources.ResourceStatus{
 				LastApplySuccessHash: "abc",
-				LastApplySuccessTime: &past,
+				LastApplySuccessTime: past,
 			},
 			Hash:     "def",
 			Expected: true,
@@ -197,7 +197,7 @@ func TestShouldApply(t *testing.T) {
 			Name: "on same failure hash, fail count within limits",
 			Target: resources.ResourceStatus{
 				LastApplyErrorHash: "abc",
-				LastApplyErrorTime: &past,
+				LastApplyErrorTime: past,
 				ApplyFailCount:     2,
 			},
 			Hash:     "abc",
@@ -208,7 +208,7 @@ func TestShouldApply(t *testing.T) {
 			Name: "on same failure hash, fail count exceeded",
 			Target: resources.ResourceStatus{
 				LastApplyErrorHash: "abc",
-				LastApplyErrorTime: &past,
+				LastApplyErrorTime: past,
 				ApplyFailCount:     3,
 			},
 			Hash:     "abc",

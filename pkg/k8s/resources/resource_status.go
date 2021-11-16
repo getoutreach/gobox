@@ -1,9 +1,16 @@
 package resources
 
 import (
+	"encoding/json"
+
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// epoch is used as an 'absence of value' indicator for timestamps below.
+// Storing for nil or golang 'zero' time do not work well as dateTime and cause weird invalid format errors.
+// This value is for internal package and store use only, epoch value is translated back to Time{} upon unmarshalling.
+var epoch metav1.Time = metav1.Unix(0, 0)
 
 // ResourceStatus holds fields shared across all CR status sub-resources.
 //+kubebuilder:object:generate=true
@@ -14,7 +21,7 @@ type ResourceStatus struct {
 
 	// LastApplySuccessTime holds the time of the last successfull application of this CR by the operator.
 	// If empty, operator never applied this CR successfully. This field is NOT reset on failures.
-	LastApplySuccessTime *metav1.Time `json:"lastApplySuccessTime,omitempty"`
+	LastApplySuccessTime metav1.Time `json:"lastApplySuccessTime"`
 
 	// LastApplyError holds the final error message reported by the operator upon failed application of this CR.
 	// This field is reset if operator succeeds to apply the CR.
@@ -25,12 +32,42 @@ type ResourceStatus struct {
 	LastApplyErrorHash string `json:"lastApplyErrorHash"`
 
 	// LastApplyErrorTime holds the time of the last failed application of this CR.
-	// This field is reset to Epoch if operator succeeds to apply this CR.
-	LastApplyErrorTime *metav1.Time `json:"lastApplyErrorTime,omitempty"`
+	// This field is reset to Epoch in storage (swapped with zero time in Go) if operator succeeds to apply this CR.
+	LastApplyErrorTime metav1.Time `json:"lastApplyErrorTime"`
 
 	// ApplyFailCount holds number of tries current CR spec application failed (so far).
 	// This counter is reset when CR spec changes or when application succeeds.
 	ApplyFailCount int `json:"applyFailCount"`
+}
+
+type resourceStatus ResourceStatus
+
+// MarshalJSON implements a json.Marshaler
+func (rs *ResourceStatus) MarshalJSON() ([]byte, error) {
+	cp := resourceStatus(*rs)
+	if cp.LastApplyErrorTime.IsZero() {
+		cp.LastApplyErrorTime = epoch
+	}
+	if cp.LastApplySuccessTime.IsZero() {
+		cp.LastApplySuccessTime = epoch
+	}
+	return json.Marshal(cp)
+}
+
+func (rs *ResourceStatus) UnmarshalJSON(data []byte) error {
+	var cp resourceStatus
+	if err := json.Unmarshal(data, &cp); err != nil {
+		return err
+	}
+
+	if cp.LastApplyErrorTime == epoch {
+		cp.LastApplyErrorTime = metav1.Time{}
+	}
+	if cp.LastApplySuccessTime == epoch {
+		cp.LastApplySuccessTime = metav1.Time{}
+	}
+
+	return nil
 }
 
 func (rs *ResourceStatus) ShouldApply(hash string, log logrus.FieldLogger) bool {
@@ -68,15 +105,16 @@ func (rs *ResourceStatus) Update(hash string, err error) {
 
 		rs.LastApplyError = err.Error()
 		rs.LastApplyErrorHash = hash
-		rs.LastApplyErrorTime = &now
+		rs.LastApplyErrorTime = now
 		// leaving LastApplySuccess* fields as is for other components to know when past version of this CR was applied successfully
 	} else {
 		rs.LastApplySuccessHash = hash
-		rs.LastApplySuccessTime = &now
+		rs.LastApplySuccessTime = now
 
 		rs.ApplyFailCount = 0
 		rs.LastApplyError = ""
 		rs.LastApplyErrorHash = ""
-		rs.LastApplyErrorTime = nil
+		// note: we replcae golang 'zero' time with epoch time before sending it to k8s (and vice versa upon recv)
+		rs.LastApplyErrorTime = metav1.Time{}
 	}
 }
