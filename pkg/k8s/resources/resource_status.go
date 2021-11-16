@@ -14,7 +14,7 @@ type ResourceStatus struct {
 
 	// LastApplySuccessTime holds the time of the last successfull application of this CR by the operator.
 	// If empty, operator never applied this CR successfully. This field is NOT reset on failures.
-	LastApplySuccessTime metav1.Time `json:"lastApplySuccessTime"`
+	LastApplySuccessTime *metav1.Time `json:"lastApplySuccessTime,omitempty"`
 
 	// LastApplyError holds the final error message reported by the operator upon failed application of this CR.
 	// This field is reset if operator succeeds to apply the CR.
@@ -26,7 +26,7 @@ type ResourceStatus struct {
 
 	// LastApplyErrorTime holds the time of the last failed application of this CR.
 	// This field is reset to Epoch if operator succeeds to apply this CR.
-	LastApplyErrorTime metav1.Time `json:"lastApplyErrorTime"`
+	LastApplyErrorTime *metav1.Time `json:"lastApplyErrorTime,omitempty"`
 
 	// ApplyFailCount holds number of tries current CR spec application failed (so far).
 	// This counter is reset when CR spec changes or when application succeeds.
@@ -56,6 +56,7 @@ func (rs *ResourceStatus) ShouldApply(hash string, log logrus.FieldLogger) bool 
 
 // Update refreshes the resource status fields based on the success of failure of the reconcile operation.
 func (rs *ResourceStatus) Update(hash string, err error) {
+	now := metav1.Now()
 	if err != nil {
 		if hash == rs.LastApplyErrorHash {
 			rs.ApplyFailCount++
@@ -67,15 +68,15 @@ func (rs *ResourceStatus) Update(hash string, err error) {
 
 		rs.LastApplyError = err.Error()
 		rs.LastApplyErrorHash = hash
-		rs.LastApplyErrorTime = metav1.Now()
+		rs.LastApplyErrorTime = &now
 		// leaving LastApplySuccess* fields as is for other components to know when past version of this CR was applied successfully
 	} else {
 		rs.LastApplySuccessHash = hash
-		rs.LastApplySuccessTime = metav1.Now()
+		rs.LastApplySuccessTime = &now
 
 		rs.ApplyFailCount = 0
 		rs.LastApplyError = ""
 		rs.LastApplyErrorHash = ""
-		rs.LastApplyErrorTime = metav1.Time{} // epoch is marshaled as null
+		rs.LastApplyErrorTime = nil
 	}
 }
