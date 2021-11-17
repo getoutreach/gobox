@@ -42,7 +42,7 @@ func (rs *ResourceStatus) ShouldReconcile(hash string, log logrus.FieldLogger) b
 	if hash == rs.LastReconcileErrorHash {
 		// TODO(nissimn)[QSS-QSS-818]: allow two retries for now, need retry with expo backoff + config for the backoff
 		if rs.ReconcileFailCount > 2 {
-			log.Error("ReconcileFailCount is %d and it is exceeded its limit", rs.ReconcileFailCount)
+			log.Errorf("ReconcileFailCount is %d and it is exceeded its limit", rs.ReconcileFailCount)
 			return false
 		}
 
