@@ -98,7 +98,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.4
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kubectl v0.22.4
 	sigs.k8s.io/controller-runtime v0.10.3
