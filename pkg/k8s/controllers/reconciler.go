@@ -13,20 +13,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// MaxRequeueInterval is used when either CRD has issues (or spec defined wrong) or
-	// if there is some permission issue to read CRD or update its status or when we reached the max time to retry
-	// on same CR.
-	// In this case we want controllers to keep trying, but very slow (likely waiting for the fix to be pushed).
-	MaxRequeueInterval = 60 * time.Minute
-)
-
 // requeueIntervals are the intervals with which we will requeue failed CRs
-// MaxRequeueInterval should be used after len of this list is exhausted
+// last value (also available as maxRequeueInterval) is used after we tried all
 var requeueIntervals = []time.Duration{
+	1 * time.Minute,
 	2 * time.Minute,
 	5 * time.Minute,
 	20 * time.Minute,
+	60 * time.Minute,
+}
+
+// MinRequeueInterval is the min duration between tries on same CR. This is exposed for testing.
+func MinRequeueInterval() time.Duration {
+	return requeueIntervals[0]
+}
+
+// MaxRequeueInterval is used when either the CRD or CR have issues or if there are permission
+// issues to read CR or update its status. It is also used as a max retry interval, after too many retries.
+// In this case we want controllers to keep trying, but very slow (waiting for the fix to be pushed).
+func MaxRequeueInterval() time.Duration {
+	return requeueIntervals[len(requeueIntervals)-1]
 }
 
 // Handler provides the actual per-CRD implementation of the reconciler.
@@ -37,10 +43,11 @@ type Handler interface {
 	Reconcile(
 		ctx context.Context,
 		log logrus.FieldLogger,
-		in resources.Resource) *ReconcileResult
+		in resources.Resource) ReconcileResult
 	// EndReconcile is called when reconciliation finishes. It is always called, even if reconcile fails before calling
 	// the Handler's Reconcile method.
-	EndReconcile(ctx context.Context, log logrus.FieldLogger, rr *ReconcileResult)
+	// This method is for logging and metrics, ReconcileResult is intentionally passed by value so there is no point modifying it.
+	EndReconcile(ctx context.Context, log logrus.FieldLogger, rr ReconcileResult)
 }
 
 // Reconciler is a controller for CRD resources.
@@ -59,7 +66,7 @@ type Reconciler struct {
 
 // reconcileResult holds the outcome of the reconciler
 type ReconcileResult struct {
-	// Skipped indicates that reconciler has decided to skip this CRD
+	// Skipped indicates that reconciler has decided to skip this CR.
 	Skipped bool
 	// ReconcileErr is set when reconciliation fails, or when status changes fail.
 	ReconcileErr error
@@ -93,12 +100,19 @@ func (r *Reconciler) Version() string {
 	return r.version
 }
 
-// endReconcile is invoked when Reconciler finishes. This method is for logging and metrics.
+// Client returns the client to access k8s API.
+func (r *Reconciler) Client() client.Client {
+	return r.client
+}
+
+// endReconcile is invoked when Reconciler finishes.
+// This method is for logging and metrics and should NOT modify the ReconcileResult.
 func (r *Reconciler) endReconcile(
 	ctx context.Context, //nolint:unparam // Why: ctx might be ignored
 	log logrus.FieldLogger,
-	rr *ReconcileResult,
+	rr ReconcileResult,
 ) {
+	// pass rr by value - EndReconcile should not tamper with the result
 	r.handler.EndReconcile(ctx, log, rr)
 
 	if rr.ReconcileErr != nil {
@@ -122,8 +136,11 @@ func (r *Reconciler) endReconcile(
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.log.WithField("resourceName", req.NamespacedName).WithField("kind", r.Kind())
 	rr := r.doReconcile(ctx, log, req)
-	// invoking endReconcile via the defer mechanism caused many bugs due to shadowing
-	r.endReconcile(ctx, log, rr)
+
+	// defer as func to avoid 'capturing' rr - we want to provide latest values to the endReconcile
+	defer func() {
+		r.endReconcile(ctx, log, *rr)
+	}()
 
 	if rr.ReconcileErr != nil {
 		if rr.PropagateErr {
@@ -156,53 +173,53 @@ func (r *Reconciler) doReconcile(
 	log logrus.FieldLogger,
 	req ctrl.Request,
 ) *ReconcileResult {
-	rr := &ReconcileResult{}
+	rr := ReconcileResult{}
 	in := r.handler.CreateResource()
-	if getErr := r.client.Get(ctx, req.NamespacedName, in); getErr != nil {
+	if getErr := r.Client().Get(ctx, req.NamespacedName, in); getErr != nil {
 		log.WithError(getErr).Errorf("unable to get %s CR", r.Kind())
-		// this can be controller permission issue, so retrying immediately won't help
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
+		// this is likely a controller permission issue
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
 		rr.ReconcileErr = getErr
-		return rr
+		return &rr
 	}
 
 	// Status changes trigger Reconcile events, ignore those if spec did not change.
 	var hash string
 	hash, rr.ReconcileErr = in.GetSpec().Hash()
 	if rr.ReconcileErr != nil {
-		log.WithError(rr.ReconcileErr).Error("failed to calculate hash, no retries allowed until new code is deployed")
+		log.WithError(rr.ReconcileErr).Error("failed to calculate hash")
 		// this is very likely a permanent error, no need to retry too frequently
-		// still, when new deployment happens, we want the new deployment to retry this CRD
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
-		return rr
+		// still, if new deployment happens, we want the new deployment to retry this CR
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
+		return &rr
 	}
 
 	rr.Skipped = !in.GetStatus().ShouldReconcile(hash, log)
 	if rr.Skipped {
 		// accurate skip reason is logged by ShouldReconcile
-		return rr
+		return &rr
 	}
 
 	rr = r.handler.Reconcile(ctx, log, in)
 	if rr.Skipped {
 		// do not take any action here if impl asked to skip status+hash updates (maybe CR is meant for a diff bento)
 		// endReconcile is still called - logging done inside
-		return rr
+		return &rr
 	}
 
-	updateErr := r.updateStatus(ctx, log, in, rr)
+	updateErr := r.updateStatus(ctx, log, in, &rr)
 	if updateErr != nil {
-		// If we fail to update status of the CRD, this is very likely a permission issue.
+		// If we fail to update status of the CR, this is very likely a permission issue.
 		// Override handler's decision in this case and proceed with slow retry.
 		rr.ReconcileErr = updateErr
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
 	}
 
 	// logging done inside endReconcile
-	return rr
+	return &rr
 }
 
-// updateStatus is called to update CRD status based on reconcileErr
+// updateStatus is called to update CR status based on reconcileErr
 func (r *Reconciler) updateStatus(
 	ctx context.Context,
 	log logrus.FieldLogger,
@@ -222,7 +239,7 @@ func (r *Reconciler) updateStatus(
 	// capture reconcile fail count so far on this hash
 	rr.failCount = in.GetStatus().ReconcileFailCount
 
-	err = r.client.Status().Update(ctx, in)
+	err = r.Client().Status().Update(ctx, in)
 	if err != nil {
 		log.WithError(err).Errorf("unable to update status for PostgresqlDevenvDatabase CR: %+v", in.GetStatus())
 	}
@@ -248,12 +265,12 @@ func getRequeueDuration(failCount int) time.Duration {
 	// it will always be 1 if reported.
 	if failCount == 0 {
 		// if we did not set the failCount, updateStatus failed, likely due to permission issues
-		return MaxRequeueInterval
+		return MaxRequeueInterval()
 	}
 
-	if len(requeueIntervals) <= failCount {
+	if failCount <= len(requeueIntervals) {
 		return requeueIntervals[failCount-1]
 	}
 
-	return MaxRequeueInterval
+	return MaxRequeueInterval()
 }
