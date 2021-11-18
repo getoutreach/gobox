@@ -1,6 +1,6 @@
 // Copyright 2021 Outreach Corporation. All Rights Reserved.
 
-// Description: This file defines a kubernetes controller for v1/PostgresqlDevenvDatabase.
+// Description: This file defines a common Reconciler implementation for kubernetes controllers that use ResourceStatus.
 package controllers
 
 import (
@@ -229,7 +229,7 @@ func (r *Reconciler) updateStatus(
 	// The spec is very unlikely to be changed by the controller, yet recalculate the hash just in case.
 	hash, err := in.GetSpec().Hash()
 	if err != nil {
-		log.WithError(err).Error("failed to calculate hash for the PostgresqlDevenvDatabaseSpec")
+		log.WithError(err).Errorf("failed to calculate hash for the %s", r.Kind())
 		// logging done inside endReconcile
 		return err
 	}
@@ -241,20 +241,20 @@ func (r *Reconciler) updateStatus(
 
 	err = r.Client().Status().Update(ctx, in)
 	if err != nil {
-		log.WithError(err).Errorf("unable to update status for PostgresqlDevenvDatabase CR: %+v", in.GetStatus())
+		log.WithError(err).Errorf("unable to update status for %s CR: %+v", r.Kind(), in.GetStatus())
 	}
 
 	return err
 }
 
-// Setup registers the PostgresqlDevenvDatabaseReconciler as a controller to process PostgresqlDevenvDatabase resources.
+// Setup registers this Reconciler instance as a controller to process target resources.
 func (r *Reconciler) Setup(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		Named(r.Kind()).
 		For(r.handler.CreateResource()).
 		Complete(r)
 	if err != nil {
-		r.log.WithError(err).Error("failed to setup PostgresqlDevenvDatabaseReconciler as a controller for PostgresqlDevenvDatabase resource with k8s manager")
+		r.log.WithError(err).Errorf("failed to setup Reconciler as a controller for %s resource with k8s manager", r.Kind())
 	}
 	return err
 }
