@@ -29,6 +29,7 @@ var requeueIntervals = []time.Duration{
 	20 * time.Minute,
 }
 
+// Handler provides the actual per-CRD implementation of the reconciler.
 type Handler interface {
 	// CreateResource is called to create an empty CRD resource object.
 	CreateResource() resources.Resource
@@ -40,21 +41,20 @@ type Handler interface {
 	// EndReconcile is called when reconciliation finishes. It is always called, even if reconcile fails before calling
 	// the Handler's Reconcile method.
 	EndReconcile(ctx context.Context, log logrus.FieldLogger, rr *ReconcileResult)
-	// Close is called when reconciler's controller shuts down
-	Close(ctx context.Context)
 }
 
 // Reconciler is a controller for CRD resources.
 type Reconciler struct {
-	client.Client
-	// Kind is the CRD kind served by this reconciler
-	Kind string
-	// Version is the version of CRD served by this controller
-	Version string
-	// Log preconfigured with reconciler fields.
-	Log logrus.FieldLogger
+	// client accesses k8s api
+	client client.Client
+	// kind is the CRD kind served by this reconciler
+	kind string
+	// version is the version of CRD served by this controller
+	version string
+	// log preconfigured with reconciler fields.
+	log logrus.FieldLogger
 	// Handler is the reconciler's implementaion.
-	Handler Handler
+	handler Handler
 }
 
 // reconcileResult holds the outcome of the reconciler
@@ -72,13 +72,34 @@ type ReconcileResult struct {
 	failCount int
 }
 
+// NewReconciler creates a new reconciler instance.
+func NewReconciler(cl client.Client, kind, version string, log logrus.FieldLogger, handler Handler) *Reconciler {
+	return &Reconciler{
+		client:  cl,
+		kind:    kind,
+		version: version,
+		log:     log,
+		handler: handler,
+	}
+}
+
+// Kind returns the CRD's kind
+func (r *Reconciler) Kind() string {
+	return r.kind
+}
+
+// Version returns the CRD's version served by this reconciler
+func (r *Reconciler) Version() string {
+	return r.version
+}
+
 // endReconcile is invoked when Reconciler finishes. This method is for logging and metrics.
 func (r *Reconciler) endReconcile(
 	ctx context.Context, //nolint:unparam // Why: ctx might be ignored
 	log logrus.FieldLogger,
 	rr *ReconcileResult,
 ) {
-	r.Handler.EndReconcile(ctx, log, rr)
+	r.handler.EndReconcile(ctx, log, rr)
 
 	if rr.ReconcileErr != nil {
 		// make sure error messages are never lost
@@ -99,7 +120,7 @@ func (r *Reconciler) endReconcile(
 
 // Reconcile is invoked when controller receives resource spec.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithField("resourceName", req.NamespacedName).WithField("kind", r.Kind)
+	log := r.log.WithField("resourceName", req.NamespacedName).WithField("kind", r.Kind())
 	rr := r.doReconcile(ctx, log, req)
 	// invoking endReconcile via the defer mechanism caused many bugs due to shadowing
 	r.endReconcile(ctx, log, rr)
@@ -136,9 +157,9 @@ func (r *Reconciler) doReconcile(
 	req ctrl.Request,
 ) *ReconcileResult {
 	rr := &ReconcileResult{}
-	in := r.Handler.CreateResource()
-	if getErr := r.Get(ctx, req.NamespacedName, in); getErr != nil {
-		log.WithError(getErr).Errorf("unable to get %s CR", r.Kind)
+	in := r.handler.CreateResource()
+	if getErr := r.client.Get(ctx, req.NamespacedName, in); getErr != nil {
+		log.WithError(getErr).Errorf("unable to get %s CR", r.Kind())
 		// this can be controller permission issue, so retrying immediately won't help
 		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
 		rr.ReconcileErr = getErr
@@ -162,7 +183,7 @@ func (r *Reconciler) doReconcile(
 		return rr
 	}
 
-	rr = r.Handler.Reconcile(ctx, log, in)
+	rr = r.handler.Reconcile(ctx, log, in)
 	if rr.Skipped {
 		// do not take any action here if impl asked to skip status+hash updates (maybe CR is meant for a diff bento)
 		// endReconcile is still called - logging done inside
@@ -201,7 +222,7 @@ func (r *Reconciler) updateStatus(
 	// capture reconcile fail count so far on this hash
 	rr.failCount = in.GetStatus().ReconcileFailCount
 
-	err = r.Status().Update(ctx, in)
+	err = r.client.Status().Update(ctx, in)
 	if err != nil {
 		log.WithError(err).Errorf("unable to update status for PostgresqlDevenvDatabase CR: %+v", in.GetStatus())
 	}
@@ -212,19 +233,13 @@ func (r *Reconciler) updateStatus(
 // Setup registers the PostgresqlDevenvDatabaseReconciler as a controller to process PostgresqlDevenvDatabase resources.
 func (r *Reconciler) Setup(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
-		Named(r.Kind).
-		For(r.Handler.CreateResource()).
+		Named(r.Kind()).
+		For(r.handler.CreateResource()).
 		Complete(r)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to setup PostgresqlDevenvDatabaseReconciler as a controller for PostgresqlDevenvDatabase resource with k8s manager")
+		r.log.WithError(err).Error("failed to setup PostgresqlDevenvDatabaseReconciler as a controller for PostgresqlDevenvDatabase resource with k8s manager")
 	}
 	return err
-}
-
-// Close cleans up the controller upon exit
-func (r *Reconciler) Close(ctx context.Context) error {
-	r.Handler.Close(ctx)
-	return nil
 }
 
 // getRequeueDuration returns the requeue interval to retry, based on number of times this CR failed so far.
