@@ -161,7 +161,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// Reconcile reported an error and did not ask for a requeue.
 		// This is OK, we will requeue with incrementing intervals.
-		rr.ControllerRes.RequeueAfter = getRequeueDuration(rr.failCount)
+		rr.ControllerRes.RequeueAfter = requeueDuration(rr.failCount)
 	}
 
 	return rr.ControllerRes, nil
@@ -259,8 +259,8 @@ func (r *Reconciler) Setup(mgr ctrl.Manager) error {
 	return err
 }
 
-// getRequeueDuration returns the requeue interval to retry, based on number of times this CR failed so far.
-func getRequeueDuration(failCount int) time.Duration {
+// requeueDuration returns the requeue interval to retry, based on number of times this CR failed so far.
+func requeueDuration(failCount int) time.Duration {
 	// updateStatus sets failCount after updating the CR's status
 	// it will always be 1 if reported.
 	if failCount == 0 {
