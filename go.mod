@@ -50,7 +50,7 @@ require (
 	github.com/facebookgo/limitgroup v0.0.0-20150612190941-6abd8d71ec01 // indirect
 	github.com/facebookgo/muster v0.0.0-20150708232844-fd3d7953fd52 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/godbus/dbus/v5 v5.0.3 // indirect
+	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/honeycombio/libhoney-go v1.15.4 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -99,5 +99,24 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
+	sigs.k8s.io/controller-runtime v0.10.3
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
+)
+
+require (
+	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/googleapis/gnostic v0.5.5 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
+	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
+	k8s.io/api v0.22.2 // indirect
+	k8s.io/apiextensions-apiserver v0.22.2 // indirect
+	k8s.io/client-go v0.22.2 // indirect
+	k8s.io/component-base v0.22.2 // indirect
+	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a // indirect
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )

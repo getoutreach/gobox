@@ -194,25 +194,16 @@ func TestShouldReconcile(t *testing.T) {
 			Expected: true,
 		},
 		{
-			Name: "on same failure hash, fail count within limits",
+			Name: "on same failure hash",
 			Target: resources.ResourceStatus{
 				LastReconcileErrorHash: "abc",
 				LastReconcileErrorTime: past,
-				ReconcileFailCount:     2,
+				// ShouldReconcile does not apply limit on failures, we retry indefinitely with
+				// increasing requeue intervals.
+				ReconcileFailCount: 125,
 			},
 			Hash:     "abc",
 			Expected: true,
-		},
-		{
-			// TODO(nissimn)[QSS-QSS-818]: allow two retries for now, need retry with expo backoff + config for the backoff
-			Name: "on same failure hash, fail count exceeded",
-			Target: resources.ResourceStatus{
-				LastReconcileErrorHash: "abc",
-				LastReconcileErrorTime: past,
-				ReconcileFailCount:     3,
-			},
-			Hash:     "abc",
-			Expected: false,
 		},
 	}
 
