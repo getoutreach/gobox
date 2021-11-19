@@ -48,15 +48,15 @@ type Handler interface {
 		in resources.Resource) ReconcileResult
 
 	// EndReconcile is called when reconciliation finishes. It is always called, even if reconcile fails before calling
-	// the Handler's Reconcile method.
+	// the Handler's Reconcile method and also if resource is Not Found (with NotFound flag = true).
 	// This method is for logging and metrics, ReconcileResult is intentionally passed by value so there is no point modifying it.
 	EndReconcile(ctx context.Context, log logrus.FieldLogger, rr ReconcileResult)
 
-	// Deleted callback is called when resource is detected as Not Found. Be careful handling deleted database objects as they
+	// NotFound callback is called when resource is detected as Not Found. Be careful handling deleted database objects as they
 	// can lead to accidental and total data loss!
-	// Note: Deleted callback does not have to set Deleted flag on the result (although no harm doing so because
-	// the infra will set it on ReconcileResult right after invoking the Deleted callback anyway).
-	Deleted(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) ReconcileResult
+	// Note: NotFound callback does not have to set NotFound flag on the result (although no harm doing so because
+	// the infra will set it on ReconcileResult right after invoking the NotFound callback anyway).
+	NotFound(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) ReconcileResult
 }
 
 // Reconciler is a controller for CRD resources.
@@ -84,10 +84,10 @@ type ReconcileResult struct {
 	PropagateErr bool
 	// ControllerRes is the result to be returned back to the controller's infra.
 	ControllerRes ctrl.Result
-	// Deleted indicates that CR has been deleted (this might be the last reconcile call on this CR).
-	// If CR is deleted, Handler.Deleted callback is invoked instead.
+	// NotFound indicates that CR has been deleted (this might be the last reconcile call on this CR).
+	// If true, Handler.NotFound callback is invoked instead of the regular Reconcile.
 	// Handler does not have to (and should not) set it - it is set by the infra before calling EndReconcile.
-	Deleted bool
+	NotFound bool
 	// failCount is for internal use, holding number of times CR with the same hash has failed so far
 	failCount int
 }
@@ -137,8 +137,8 @@ func (r *Reconciler) endReconcile(
 		return
 	}
 
-	if rr.Deleted {
-		log.Info("Reconciler has finished processing the deleted resource")
+	if rr.NotFound {
+		log.Info("Reconciler has finished processing previously deleted resource.")
 		return
 	}
 
@@ -166,8 +166,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return rr.ControllerRes, rr.ReconcileErr
 		}
 
-		// Note: if CR is Deleted and Handler returns an error, we want to retry cause Handler probably tried to do
-		// something (send email, or cleanup or whatever action it takes on Deleted CR) - and failed.
+		// Note: if CR has been deleted and Handler.NotFound returns an error, we want to retry cause Handler probably
+		// tried to do something (send email, or cleanup or whatever action it takes on Deleted CR) - and failed.
 		// If handler is a no-op on Delete, than no error and we won't retry.
 
 		if rr.Skipped {
@@ -200,8 +200,8 @@ func (r *Reconciler) doReconcile(
 	if getErr := r.Client().Get(ctx, req.NamespacedName, in); getErr != nil {
 		log.WithError(getErr).Errorf("unable to get %s CR", r.Kind())
 		if client.IgnoreNotFound(getErr) == nil {
-			// If CR has been deleted, we invoke Handler.Deleted callback instead of the regular Reconcile one.
-			return r.deleted(ctx, log, req.NamespacedName)
+			// If CR has been deleted, we invoke Handler.NotFound callback instead of the regular Reconcile one.
+			return r.notFound(ctx, log, req.NamespacedName)
 		}
 
 		// this is likely a controller permission issue
@@ -274,8 +274,8 @@ func (r *Reconciler) updateStatus(
 	return err
 }
 
-// deleted handles the case resource is not found (e.g. deleted) in k8s
-func (r *Reconciler) deleted(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) *ReconcileResult {
+// notFound handles the case resource is not found (e.g. deleted) in k8s
+func (r *Reconciler) notFound(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) *ReconcileResult {
 	// If the CR is deleted in k8s, we have several choices:
 	// * Completely cleanup all resources - this can be dangerous since it can lead to huge data loss on accidental CR deletion
 	// * Keep retrying every hour hoping CR is recreated. This is also not the best choice cause maybe we realy want the CR
@@ -284,9 +284,9 @@ func (r *Reconciler) deleted(ctx context.Context, log logrus.FieldLogger, resour
 	// * Log only and do nothing (do not return error so no furher processing will be done on the CR). This is prob the best choice
 	//   for now.
 	r.log.Errorf("Resource %s is Not Found!", resourceName)
-	rr := r.handler.Deleted(ctx, log, resourceName)
+	rr := r.handler.NotFound(ctx, log, resourceName)
 	// status update not possible on this CR, ensure flag is set to skip it and let EndReconcile get full result
-	rr.Deleted = true
+	rr.NotFound = true
 	return &rr
 }
 

@@ -37,9 +37,9 @@ type TestHandler struct {
 
 func (h *TestHandler) CreateResource() resources.Resource {
 	if h.UseNilResource {
+		// to simulate Get failures
 		return nil
 	}
-	// to simulate Get failures
 	return &mocks.TestResource{}
 }
 
@@ -52,7 +52,7 @@ func (h *TestHandler) Reconcile(
 	return h.FakeResult
 }
 
-func (h *TestHandler) Deleted(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) controllers.ReconcileResult {
+func (h *TestHandler) NotFound(ctx context.Context, log logrus.FieldLogger, resourceName types.NamespacedName) controllers.ReconcileResult {
 	return h.FakeResult
 }
 
@@ -124,12 +124,12 @@ func TestReconciler_MissingResource(t *testing.T) {
 	// we do not return err to controller, instead we log it and requeue
 	assert.NilError(t, err)
 
-	// We handle deleted (not existing) CRs by invoking the Handler.Deleted callback and do not retry unless Handler reports an error.
+	// We handle non-existing CRs by invoking the Handler.NotFound callback and do not retry unless Handler reports an error.
 	assert.NilError(t, err)
 	assert.NilError(t, err)
 	assert.Equal(t, res, ctrl.Result{})
-	// make sure we went thru Deleted case
-	assert.Check(t, handler.EndResult.Deleted)
+	// make sure we went thru NotFound case
+	assert.Check(t, handler.EndResult.NotFound)
 }
 
 func TestReconciler_GetError(t *testing.T) {
@@ -143,7 +143,7 @@ func TestReconciler_GetError(t *testing.T) {
 	// Since we do not ())yet) differentiate between local to network errors (other than Not Found), for the Reconciler
 	// it would be like client.Get has failed.
 	handler.UseNilResource = true
-	// on Get errors which are not "Not Found" we shall not trigger Reconcile nor Deleted callbacks, this err should not be used.
+	// on Get errors which are not "Not Found" we shall not trigger Reconcile nor NotFound callbacks, this err should not be used.
 	handler.FakeResult.ReconcileErr = fmt.Errorf("should not be used")
 
 	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
@@ -156,8 +156,8 @@ func TestReconciler_GetError(t *testing.T) {
 	assert.NilError(t, err)
 	assert.ErrorContains(t, handler.EndResult.ReconcileErr, "expected pointer")
 	assert.Equal(t, res.RequeueAfter, controllers.MaxRequeueInterval())
-	// make sure Deleted and Skipped stay false
-	assert.Check(t, !handler.EndResult.Deleted && !handler.EndResult.Skipped)
+	// make sure NotFound and Skipped stay false
+	assert.Check(t, !handler.EndResult.NotFound && !handler.EndResult.Skipped)
 }
 
 func TestReconciler_SuccessCase(t *testing.T) {
