@@ -118,7 +118,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"error.message":        "sql error",
 			"error.stack":          differs.AnyString(),
 			"model.id":             "some model id",
-			"duration_ms":          differs.FloatRange(0, 2),
+			"duration_ms":          differs.FloatRange(0, 4),
 			"meta.beeline_version": differs.AnyString(),
 			"meta.local_hostname":  differs.AnyString(),
 			"meta.span_type":       "leaf",
@@ -139,7 +139,7 @@ func (suite) TestNestedCall(t *testing.T) {
 		{
 			"app.name":             "gobox",
 			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
+			"duration_ms":          differs.FloatRange(0, 4),
 			"meta.beeline_version": differs.AnyString(),
 			"meta.local_hostname":  differs.AnyString(),
 			"meta.span_type":       "root",
