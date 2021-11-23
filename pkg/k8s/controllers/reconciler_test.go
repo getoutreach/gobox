@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gotest.tools/v3/assert"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubectl/pkg/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,21 +83,28 @@ func newRequest(name string) reconcile.Request {
 	}
 }
 
-func assertStatus(t *testing.T, cl client.Client, name string, expected *resources.ResourceStatus) {
+func setStatus(t *testing.T, cl client.Client, nn types.NamespacedName, status *resources.ResourceStatus) {
+	ctx := context.Background()
+	// mock client does not support status only update yet, so force read full resource to get its meta
+	cr := &mocks.TestResource{}
+	err := cl.Get(ctx, nn, cr)
+	assert.NilError(t, err)
+	cr.Status = *status
+	err = cl.Status().Update(ctx, cr)
+	assert.NilError(t, err)
+}
+
+func assertStatus(t *testing.T, cl client.Client, nn types.NamespacedName, expected *resources.ResourceStatus) *resources.ResourceStatus {
 	var cr mocks.TestResource
-	err := cl.Get(
-		context.Background(),
-		types.NamespacedName{
-			Namespace: mocks.TestNamespace,
-			Name:      name,
-		},
-		&cr)
+	err := cl.Get(context.Background(), nn, &cr)
 
 	assert.NilError(t, err)
 
 	assert.Equal(t, cr.Status.LastReconcileSuccessHash, expected.LastReconcileSuccessHash, "LastReconcileSuccessHash does not match")
 	assert.Equal(t, cr.Status.LastReconcileErrorHash, expected.LastReconcileErrorHash, "LastReconcileErrorHash does not match")
 	assert.Equal(t, cr.Status.ReconcileFailCount, expected.ReconcileFailCount, "ReconcileFailCount does not match")
+
+	return &cr.Status
 }
 
 func TestReconciler_Sanity(t *testing.T) {
@@ -168,16 +176,16 @@ func TestReconciler_SuccessCase(t *testing.T) {
 	ctx := context.Background()
 
 	// create CR 'obj1' and reconcile it again
-	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
+	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj")))
 
-	req := newRequest("obj1")
+	req := newRequest("obj")
 	res, err := reconciler.Reconcile(ctx, req)
 	assert.NilError(t, err)
 	assert.NilError(t, handler.EndResult.ReconcileErr)
 	// we should not requeue on success
 	assert.DeepEqual(t, res, ctrl.Result{})
 
-	assertStatus(t, cl, "obj1", &resources.ResourceStatus{
+	assertStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
 		LastReconcileSuccessHash: mocks.InitialHash,
 		LastReconcileErrorHash:   "",
 	})
@@ -195,6 +203,8 @@ func TestReconciler_ReconcileError(t *testing.T) {
 
 	// force handler to fail reconcile
 	handler.FakeResult.ReconcileErr = errors.New("oops")
+	// ... and requeue immediately (so that we won't need to wait minutes in tests)
+	handler.FakeResult.ControllerRes.Requeue = true
 
 	req := newRequest("obj1")
 
@@ -203,9 +213,53 @@ func TestReconciler_ReconcileError(t *testing.T) {
 		res, err := reconciler.Reconcile(ctx, req)
 		// this error is not propagated, thus no controller err here
 		assert.NilError(t, err)
+		// we requeue immediately, so there should not be any delays
 		assert.ErrorContains(t, handler.EndResult.ReconcileErr, "oops")
 
-		assertStatus(t, cl, "obj1", &resources.ResourceStatus{
+		assertStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
+			LastReconcileSuccessHash: "",
+			LastReconcileErrorHash:   mocks.InitialHash,
+			ReconcileFailCount:       try,
+		})
+
+		assert.DeepEqual(t, res, ctrl.Result{Requeue: true})
+	}
+}
+
+func TestReconciler_ReconcileErrorSchedulesRetry(t *testing.T) {
+	log := logrus.New()
+	handler := &TestHandler{}
+	cl := createFakeClient(t)
+	reconciler := controllers.NewReconciler(cl, mocks.TestKind, mocks.TestVer, log, handler)
+	ctx := context.Background()
+
+	// create CR 'obj1' and reconcile it again
+	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
+
+	// force handler to fail reconcile
+	handler.FakeResult.ReconcileErr = errors.New("oops")
+
+	req := newRequest("obj1")
+
+	lastTry := 10
+	for try := 1; try <= lastTry; try++ {
+		if try > 1 {
+			// override fake status to simulate immediate try
+			setStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
+				LastReconcileErrorHash: mocks.InitialHash,
+				LastReconcileError:     "oops",
+				ReconcileFailCount:     try - 1,
+				// force immediate retry
+				NextReconcileTime: metav1.Now(),
+			})
+		}
+		res, err := reconciler.Reconcile(ctx, req)
+		// this error is not propagated, thus no controller err here
+		assert.NilError(t, err)
+		// we requeue immediately, so there should not be any delays
+		assert.ErrorContains(t, handler.EndResult.ReconcileErr, "oops")
+
+		assertStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
 			LastReconcileSuccessHash: "",
 			LastReconcileErrorHash:   mocks.InitialHash,
 			ReconcileFailCount:       try,
@@ -229,6 +283,40 @@ func TestReconciler_ReconcileError(t *testing.T) {
 	}
 }
 
+func TestReconciler_ReconcileErrorPermanent(t *testing.T) {
+	log := logrus.New()
+	handler := &TestHandler{}
+	cl := createFakeClient(t)
+	reconciler := controllers.NewReconciler(cl, mocks.TestKind, mocks.TestVer, log, handler)
+	ctx := context.Background()
+
+	// create CR 'obj1' and reconcile it again
+	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
+
+	// force handler to fail reconcile
+	handler.FakeResult.ReconcileErr = errors.New("oops")
+	handler.FakeResult.Skipped = true
+
+	req := newRequest("obj1")
+	res, err := reconciler.Reconcile(ctx, req)
+	// this error is not propagated, thus no controller err here
+	assert.NilError(t, err)
+	// we requeue immediately, so there should not be any delays
+	assert.ErrorContains(t, handler.EndResult.ReconcileErr, "oops")
+
+	status := assertStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
+		LastReconcileSuccessHash: "",
+		LastReconcileErrorHash:   mocks.InitialHash,
+		ReconcileFailCount:       1,
+	})
+
+	// no reconcile should be scheduled
+	assert.Equal(t, status.NextReconcileTime, metav1.Time{})
+
+	// no requeue (although controller will still retry this one due to status update)
+	assert.DeepEqual(t, res, ctrl.Result{})
+}
+
 func TestReconciler_ReconcileErrorPropagated(t *testing.T) {
 	log := logrus.New()
 	handler := &TestHandler{}
@@ -250,8 +338,9 @@ func TestReconciler_ReconcileErrorPropagated(t *testing.T) {
 	assert.ErrorContains(t, err, "oops")
 	assert.ErrorContains(t, handler.EndResult.ReconcileErr, "oops")
 
-	// if error is propagated, we do not requeue - controller infra to do so
-	assert.DeepEqual(t, res, ctrl.Result{})
+	// even if error is propagated, we set the requeue to set NextReconcileTime
+	// controller always reconciles on err and ignores the ctrl.Result anyway.
+	assert.DeepEqual(t, res, ctrl.Result{Requeue: true})
 }
 
 func TestReconciler_ReconcileSkipped(t *testing.T) {
@@ -275,7 +364,7 @@ func TestReconciler_ReconcileSkipped(t *testing.T) {
 	assert.NilError(t, handler.EndResult.ReconcileErr)
 	assert.DeepEqual(t, res, ctrl.Result{})
 
-	assertStatus(t, cl, "obj1", &resources.ResourceStatus{
+	assertStatus(t, cl, req.NamespacedName, &resources.ResourceStatus{
 		// success/failure hashes must stay empty since this CR is skipped
 	})
 }

@@ -162,18 +162,20 @@ func assertInRange(t *testing.T, target, from, to time.Time, name string) {
 
 func TestShouldReconcile(t *testing.T) {
 	past := metav1.Time{Time: time.Now().Add(-5 * time.Minute)}
+	requeueTime := 10 * time.Minute
+	afterNow := metav1.NewTime(time.Now().Add(requeueTime))
 
 	tests := []struct {
 		Name     string
 		Target   resources.ResourceStatus
 		Hash     string
-		Expected bool
+		Expected resources.ShouldReconcileResult
 	}{
 		{
 			Name:     "on empty",
 			Target:   resources.ResourceStatus{},
 			Hash:     "abc",
-			Expected: true,
+			Expected: resources.ShouldReconcileResult{Reconcile: true},
 		},
 		{
 			Name: "on same success hash",
@@ -182,7 +184,7 @@ func TestShouldReconcile(t *testing.T) {
 				LastReconcileSuccessTime: past,
 			},
 			Hash:     "abc",
-			Expected: false,
+			Expected: resources.ShouldReconcileResult{},
 		},
 		{
 			Name: "on diff success hash",
@@ -191,19 +193,43 @@ func TestShouldReconcile(t *testing.T) {
 				LastReconcileSuccessTime: past,
 			},
 			Hash:     "def",
-			Expected: true,
+			Expected: resources.ShouldReconcileResult{Reconcile: true},
 		},
 		{
-			Name: "on same failure hash",
+			Name: "on same failure hash, no schedule",
 			Target: resources.ResourceStatus{
 				LastReconcileErrorHash: "abc",
 				LastReconcileErrorTime: past,
-				// ShouldReconcile does not apply limit on failures, we retry indefinitely with
-				// increasing requeue intervals.
+				// ShouldReconcile uses NextReconcileTime only to decide if retry is needed, fail count should not matter
 				ReconcileFailCount: 125,
 			},
 			Hash:     "abc",
-			Expected: true,
+			Expected: resources.ShouldReconcileResult{},
+		},
+		{
+			Name: "on same failure hash, with schedule due long ago",
+			Target: resources.ResourceStatus{
+				LastReconcileErrorHash: "abc",
+				LastReconcileErrorTime: past,
+				ReconcileFailCount:     1,
+				NextReconcileTime:      past,
+			},
+			Hash: "abc",
+			// reconcile now if schedule past due
+			Expected: resources.ShouldReconcileResult{Reconcile: true},
+		},
+		{
+			Name: "on same failure hash, with schedule + 10m",
+			Target: resources.ResourceStatus{
+				LastReconcileErrorHash: "abc",
+				LastReconcileErrorTime: past,
+				// ShouldReconcile uses NextReconcileTime only to decide if retry is needed, fail count should not matter
+				ReconcileFailCount: 1,
+				NextReconcileTime:  afterNow,
+			},
+			Hash: "abc",
+			// delay if schedule still in future
+			Expected: resources.ShouldReconcileResult{Requeue: requeueTime},
 		},
 	}
 
@@ -211,6 +237,13 @@ func TestShouldReconcile(t *testing.T) {
 
 	for _, tt := range tests {
 		shouldReconcile := tt.Target.ShouldReconcile(tt.Hash, log)
-		assert.Equal(t, shouldReconcile, tt.Expected, tt.Name)
+		assert.Equal(t, shouldReconcile.Reconcile, tt.Expected.Reconcile, tt.Name+": Reconcile")
+		if tt.Expected.Requeue == requeueTime {
+			// time can pass since Now() was captured, resulted requeue time can be same or slightly less than 10m
+			// yet, we do not expect test to be stale for more than 5m, so checking the range of [5m, 10m]
+			assert.Check(t, shouldReconcile.Requeue >= requeueTime/2 && shouldReconcile.Requeue <= requeueTime, tt.Name+": RequeueRange")
+		} else {
+			assert.Equal(t, shouldReconcile.Requeue, tt.Expected.Requeue, tt.Name+": Requeue")
+		}
 	}
 }
