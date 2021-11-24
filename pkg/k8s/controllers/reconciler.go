@@ -171,7 +171,7 @@ func (r *Reconciler) doReconcile(
 		}
 
 		// this is likely a controller permission issue
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
 		rr.ReconcileErr = getErr
 		return &rr
 	}
@@ -182,7 +182,7 @@ func (r *Reconciler) doReconcile(
 		log.WithError(rr.ReconcileErr).Error("failed to calculate hash")
 		// this is very likely a permanent error, no need to retry too frequently
 		// still, if new deployment happens, we want the new deployment to retry this CR
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
 		return &rr
 	}
 
@@ -212,7 +212,7 @@ func (r *Reconciler) doReconcile(
 		// If we fail to update status of the CR, this is very likely a permission issue.
 		// Override handler's decision in this case and proceed with slow retry.
 		rr.ReconcileErr = updateErr
-		rr.ControllerRes.RequeueAfter = MaxRequeueInterval()
+		rr.ControllerRes.RequeueAfter = MaxRequeueInterval
 	}
 
 	// logging done inside endReconcile

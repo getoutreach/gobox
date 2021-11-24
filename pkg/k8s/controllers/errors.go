@@ -10,21 +10,26 @@ func (we wrappedError) Error() string {
 	return we.Original.Error()
 }
 
-// PermanentError wraps an existing error to make it permanent (e.g. no more retries allowed).
+// PermanentError wraps an existing error to make it permanent (e.g. no more retries allowed), use
+// Permanent method to create it.
 type PermanentError struct {
 	wrappedError
 }
 
+// Permanent wraps an existing error to make it permanent (e.g. no more retries allowed).
 func Permanent(err error) error {
 	return PermanentError{wrappedError: wrappedError{Original: err}}
 }
 
 // PropagateError wraps an existing error to mark it as propagatable to controller. If Reconciler's handler
 // returns wraps the error with this struct, Reconciler unwraps it and return it to the controller infra.
+// Use Propagate method to create it.
 type PropagateError struct {
 	wrappedError
 }
 
+// PropagateError wraps an existing error to mark it as propagatable to controller. See
+// PropagateError for more details.
 func Propagate(err error) error {
 	return PropagateError{wrappedError: wrappedError{Original: err}}
 }

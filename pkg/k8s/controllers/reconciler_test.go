@@ -163,7 +163,7 @@ func TestReconciler_GetError(t *testing.T) {
 	// we do not return err to controller, instead we log it and requeue
 	assert.NilError(t, err)
 	assert.ErrorContains(t, handler.EndResult.ReconcileErr, "expected pointer")
-	assert.Equal(t, res.RequeueAfter, controllers.MaxRequeueInterval())
+	assert.Equal(t, res.RequeueAfter, controllers.MaxRequeueInterval)
 	// make sure NotFound and Skipped stay false
 	assert.Check(t, !handler.EndResult.NotFound && !handler.EndResult.SkipStatusUpdate)
 }
@@ -269,15 +269,15 @@ func TestReconciler_ReconcileErrorSchedulesRetry(t *testing.T) {
 		switch {
 		case try == 1:
 			// on first try we should get the min
-			assert.DeepEqual(t, res, ctrl.Result{RequeueAfter: controllers.MinRequeueInterval()})
+			assert.DeepEqual(t, res, ctrl.Result{RequeueAfter: controllers.MinRequeueInterval})
 		case try == lastTry:
 			// on last try we should get the max (assuming maxTry is large enough)
-			assert.DeepEqual(t, res, ctrl.Result{RequeueAfter: controllers.MaxRequeueInterval()})
+			assert.DeepEqual(t, res, ctrl.Result{RequeueAfter: controllers.MaxRequeueInterval})
 		default:
 			// in between, we can get any between min to max
 			assert.Check(t,
-				res.RequeueAfter > controllers.MinRequeueInterval() &&
-					res.RequeueAfter <= controllers.MaxRequeueInterval(),
+				res.RequeueAfter > controllers.MinRequeueInterval &&
+					res.RequeueAfter <= controllers.MaxRequeueInterval,
 				fmt.Sprintf("received unexpected res %v", res))
 		}
 	}
