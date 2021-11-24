@@ -165,7 +165,7 @@ func TestReconciler_GetError(t *testing.T) {
 	assert.ErrorContains(t, handler.EndResult.ReconcileErr, "expected pointer")
 	assert.Equal(t, res.RequeueAfter, controllers.MaxRequeueInterval())
 	// make sure NotFound and Skipped stay false
-	assert.Check(t, !handler.EndResult.NotFound && !handler.EndResult.Skipped)
+	assert.Check(t, !handler.EndResult.NotFound && !handler.EndResult.SkipStatusUpdate)
 }
 
 func TestReconciler_SuccessCase(t *testing.T) {
@@ -293,9 +293,8 @@ func TestReconciler_ReconcileErrorPermanent(t *testing.T) {
 	// create CR 'obj1' and reconcile it again
 	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
 
-	// force handler to fail reconcile
-	handler.FakeResult.ReconcileErr = errors.New("oops")
-	handler.FakeResult.Skipped = true
+	// force handler to fail reconcile permanently
+	handler.FakeResult.ReconcileErr = controllers.Permanent(errors.New("oops"))
 
 	req := newRequest("obj1")
 	res, err := reconciler.Reconcile(ctx, req)
@@ -328,8 +327,7 @@ func TestReconciler_ReconcileErrorPropagated(t *testing.T) {
 	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
 
 	// force handler to fail reconcile
-	handler.FakeResult.ReconcileErr = errors.New("oops")
-	handler.FakeResult.PropagateErr = true
+	handler.FakeResult.ReconcileErr = controllers.Propagate(errors.New("oops"))
 
 	req := newRequest("obj1")
 
@@ -343,7 +341,7 @@ func TestReconciler_ReconcileErrorPropagated(t *testing.T) {
 	assert.DeepEqual(t, res, ctrl.Result{Requeue: true})
 }
 
-func TestReconciler_ReconcileSkipped(t *testing.T) {
+func TestReconciler_ReconcileSkipStatusUpdate(t *testing.T) {
 	log := logrus.New()
 	handler := &TestHandler{}
 	cl := createFakeClient(t)
@@ -353,8 +351,8 @@ func TestReconciler_ReconcileSkipped(t *testing.T) {
 	// create CR 'obj1' and reconcile it again
 	assert.NilError(t, cl.Create(ctx, mocks.NewTestResource("obj1")))
 
-	// force handler to fail reconcile
-	handler.FakeResult.Skipped = true
+	// force handler to skip status update for reconcile
+	handler.FakeResult.SkipStatusUpdate = true
 
 	req := newRequest("obj1")
 

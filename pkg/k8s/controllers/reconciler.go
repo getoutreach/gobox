@@ -50,18 +50,20 @@ type Reconciler struct {
 	handler Handler
 }
 
-// reconcileResult holds the outcome of the reconciler
+// ReconcileResult holds the outcome of the reconciler.
 type ReconcileResult struct {
-	// ReconcileErr is set when reconciliation fails, or when status changes fail.
+	// ReconcileErr is set when reconciliation fails, or when CR CRUD fails.
+	// Wrap errors with PermanentError to indicate that no retries should be made by the Reconciler.
+	// Wrap them with PropagateError to make sure this error is also reported back to the controller runtime (this is rare).
+	// Do not use PermanentError with ControllerRes+Requeue - or else controller will retry unconditionally.
 	ReconcileErr error
-	// Skipped with no ReconcileErr indicates that reconciler has decided to skip this CR.
-	// Skipped with ReconcileErr indicates that reconciler has decided to permanently fail and skip further
-	// retries for this CR, until its spec changes again. This is rare...
-	Skipped bool
-	// PropagateErr is set when reconciler error needs to be reported as a failure to the controller and retry immedaitely
-	// (rather than in intervals). Do not set PropagateErr for permanent errors.
-	PropagateErr bool
-	// ControllerRes is the result to be returned back to the controller's infra.
+	// SkipStatusUpdate is a way for the Reconciler to ensure status is not touched after reconcile finishes .
+	// Note: if status is not updated and Reconciler returns an error wrapped with PropagateError, or if Reconciler returns
+	// ControllerRes with requeue request, then next processing will be performed on the same Status object - and it can
+	// potentially lead to endless retry loop. Thus, avoid setting this flag with an error.
+	SkipStatusUpdate bool
+	// ControllerRes is the result to be returned back to the controller's infra, allowing the Handler to schedule requeue unconditionally.
+	// Even if the handler does not set it, Reconciler might still provide Requeue settings to schedule retry.
 	ControllerRes ctrl.Result
 	// NotFound indicates that CR has been deleted (this might be the last reconcile call on this CR).
 	// If true, Handler.NotFound callback is invoked instead of the regular Reconcile.
@@ -105,11 +107,24 @@ func (r *Reconciler) endReconcile(
 	// pass rr by value - EndReconcile should not tamper with the result
 	r.handler.EndReconcile(ctx, log, rr)
 
+	if rr.SkipStatusUpdate {
+		log.Info("Reconciler skipped status update during this event.")
+		// keep going to report errors, if any
+	}
+
 	if rr.ReconcileErr != nil {
 		// make sure error messages are never lost
 		log.WithError(rr.ReconcileErr).Error("Reconciler failed to apply the CR")
-		if rr.PropagateErr {
-			log.Error("The error will be propageted to the controller")
+		switch wrapped := rr.ReconcileErr.(type) {
+		case PropagateError:
+			log.Error("The error will be propageted to the controller.")
+			rr.ReconcileErr = wrapped.Original
+		case PermanentError:
+			if rr.ControllerRes.Requeue || rr.ControllerRes.RequeueAfter > 0 {
+				log.Error("This error is permanent, yet controller have scheduled a retry (this is unsupported).")
+			} else {
+				log.Error("This error is permanent, no further retries will be scheduled")
+			}
 		}
 		return
 	}
@@ -119,12 +134,9 @@ func (r *Reconciler) endReconcile(
 		return
 	}
 
-	if rr.Skipped {
-		log.Info("Reconciler skipped this event")
-		return
+	if !rr.SkipStatusUpdate {
+		log.Info("Reconciler has applied the CR successfully")
 	}
-
-	log.Info("Reconciler has applied the CR successfully")
 }
 
 // Reconcile is invoked when controller receives resource spec.
@@ -134,9 +146,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	r.endReconcile(ctx, log, *rr)
 
-	if rr.ReconcileErr != nil && rr.PropagateErr {
+	propagateErr, ok := rr.ReconcileErr.(PropagateError)
+	if ok {
 		// Controlelr infra will retry immediately and we already enforced Requeue.
-		return rr.ControllerRes, rr.ReconcileErr
+		return rr.ControllerRes, propagateErr.Original
 	}
 
 	return rr.ControllerRes, nil
@@ -178,16 +191,16 @@ func (r *Reconciler) doReconcile(
 	res := in.GetStatus().ShouldReconcile(hash, log)
 	if !res.Reconcile {
 		// accurate skip reason is logged by ShouldReconcile
-		rr.Skipped = true
+		rr.SkipStatusUpdate = true
 		// We do not update status in this case (doing so triggers another reconcile event).
 		// Instead, if ShouldReconcile asked for requeue (to continue processing at scheduled time), we report it
-		// bacl to the controller to requeue it.
+		// back to the controller to requeue it.
 		rr.ControllerRes.RequeueAfter = res.Requeue // can be 0 (no requeue)
 		return &rr
 	}
 
 	rr = r.handler.Reconcile(ctx, log, in)
-	if rr.ReconcileErr == nil && rr.Skipped {
+	if rr.SkipStatusUpdate {
 		// do not take any action here if impl asked to skip status+hash updates (maybe CR is meant for a diff bento)
 		// endReconcile is still called - logging done inside
 		return &rr
@@ -249,26 +262,27 @@ func (r *Reconciler) processResult(rr *ReconcileResult, failCount int) {
 
 	// error case
 
-	if rr.PropagateErr {
+	if _, isPropagate := rr.ReconcileErr.(PropagateError); isPropagate {
 		// Controlelr infra will retry immediately. In order for this retry to be unblocked, set the
 		// Requeue flag internally to ensure Status sets NextReconcileTime to now(). If we do not do so,
 		// next reconcile will start and do nothing due to ShouldReconcile rejecting it.
 		if !rr.ControllerRes.Requeue && rr.ControllerRes.RequeueAfter == 0 {
 			// Note: there is no point in propagating err back if requeue is not needed, so forcing it.
-			// If controller just wants to complain about permanent err and not requeue, do NOT set PropagateErr.
+			// If controller just wants to report permanent err and not requeue, use Permanent() instead.
 			rr.ControllerRes.Requeue = true
 		}
+		return
+	}
+
+	if _, isPermanent := rr.ReconcileErr.(PermanentError); isPermanent {
+		// Controller reported doom state, report error in status and do not schedule requeue.
+		// Logging done in endReconcile
 		return
 	}
 
 	// Note: if CR has been deleted and Handler.NotFound returns an error, we want to retry cause Handler probably
 	// tried to do something (send email, or cleanup or whatever action it takes on Deleted CR) - and failed.
 	// If handler is a no-op on Delete, than no error and we won't retry.
-
-	if rr.Skipped {
-		// no further action needed. Even if failed - honor Reconcile decision and do not override requeue (if not set)
-		return
-	}
 
 	// if we do not report error to the controller, we need to requeue for this CR
 	if rr.ControllerRes.Requeue || rr.ControllerRes.RequeueAfter > 0 {
