@@ -252,12 +252,15 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 		return "", func() {}, err
 	}
 
-	req, err := g.gc.NewRequest(http.MethodGet, url, nil)
+	// The url returned from SelectAsset has auth in it.
+	// That endpoint doesn't allow double auth, and so we don't send the bearer token.
+	// Instead, we use the default http client with no auth on every request.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", func() {}, errors.Wrapf(err, "failed to create HTTP request to '%s'", url)
 	}
 
-	resp, err := g.gc.BareDo(ctx, req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", func() {}, errors.Wrapf(err, "failed to send HTTP request to '%s'", url)
 	}
