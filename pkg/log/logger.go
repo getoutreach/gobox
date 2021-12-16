@@ -2,15 +2,15 @@ package log
 
 import "context"
 
-// Logger struct encapsulates logging impl in one place. Its ptr can be passed aroudn to libraries that need to perform
-// logging, instead of using the static log.Info/Other methods, to ensure the libraries include the fields from
-// the calling component into the lib + add their own fields on top.
-// Use New method below to create it.
+// Logger struct encapsulates logging impl that can be passed around to libraries that need to perform
+// logging, instead of using the static log.Info/Other methods, to ensure the libraries report the fields from
+// the calling component with their log lines, in addition to their own.
+// Use the log.New method to create an instance of the Logger.
 type Logger struct {
 	m []Marshaler
 }
 
-// New creates a new Logger with fields. The Logger field can be passed around to libraries that perform logging
+// New creates a new Logger with fields. The Logger can be passed around to libraries that perform logging
 // on behalf of the parent/caller, making sure their logs incorporate caller's fields.
 //
 // Implementation note: returning a pointer of the Logger here to enable future expansion of the Logger.
@@ -45,7 +45,7 @@ func (l *Logger) Fatal(ctx context.Context, message string, m ...Marshaler) {
 }
 
 // With creates a child Logger implementation with extra fields.
-// Imprtant: it captures the marshallers of the current logger (instead of keeping parent ref).
+// Important: it clones the marshallers of the current logger (instead of keeping parent ref).
 func (l *Logger) With(m ...Marshaler) *Logger {
 	// ensure new slice of marshallers (append does not guarantee that)
 	mClone := make([]Marshaler, len(m)+len(l.m))
