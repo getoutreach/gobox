@@ -5,15 +5,15 @@ import "context"
 // With creates a logger that captures the marshaler arguments.
 //
 // All methods exposed by the logger automatically add the provided marshalers.
-// Prefer using log.Logger{m} over this method! Unfortuantely we cannot change the signature of With
-// to return the new Logger because it will be a breaking change.
+// Prefer using log.New(m) method over this method. Unfortuantely we cannot change
+// the signature of With to return the new Logger because it is a breaking change.
 func With(m ...Marshaler) logger { //nolint: revive // logger is intentionally hidden.
 	return logger{m}
 }
 
 // logger is intentionally not exported as this prevents logger from
-// being tacked on to structs or passed as args to functions.  That
-// pattern is not encouraged.
+// being tacked on to structs or passed as args to functions.
+// Use log.New and log.Logger instead.
 type logger struct {
 	m []Marshaler
 }

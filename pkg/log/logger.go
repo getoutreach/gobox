@@ -19,7 +19,7 @@ func New(m ...Marshaler) *Logger {
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
-// within 2min of this event
+// within 2min of this event.
 func (l *Logger) Debug(ctx context.Context, message string, m ...Marshaler) {
 	Debug(ctx, message, append(m, l.m...)...)
 }
@@ -34,7 +34,7 @@ func (l *Logger) Warn(ctx context.Context, message string, m ...Marshaler) {
 	Warn(ctx, message, append(m, l.m...)...)
 }
 
-// Error emits a log at ERROR level.  Error logs must be investigated
+// Error emits a log at ERROR level. Error logs must be investigated.
 func (l *Logger) Error(ctx context.Context, message string, m ...Marshaler) {
 	Error(ctx, message, append(m, l.m...)...)
 }
@@ -44,7 +44,8 @@ func (l *Logger) Fatal(ctx context.Context, message string, m ...Marshaler) {
 	Fatal(ctx, message, append(m, l.m...)...)
 }
 
-// With creates a child Logger implementation with extra fields. Imprtant: it captures the curret
+// With creates a child Logger implementation with extra fields.
+// Imprtant: it captures the marshallers of the current logger (instead of keeping parent ref).
 func (l *Logger) With(m ...Marshaler) *Logger {
 	// ensure new slice of marshallers (append does not guarantee that)
 	mClone := make([]Marshaler, len(m)+len(l.m))
