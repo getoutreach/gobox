@@ -5,6 +5,8 @@ import "context"
 // With creates a logger that captures the marshaler arguments.
 //
 // All methods exposed by the logger automatically add the provided marshalers.
+// Prefer using log.Logger{m} over this method! Unfortuantely we cannot change the signature of With
+// to return the new Logger because it will be a breaking change.
 func With(m ...Marshaler) logger { //nolint: revive // logger is intentionally hidden.
 	return logger{m}
 }
