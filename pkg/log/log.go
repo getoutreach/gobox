@@ -129,19 +129,19 @@ func (f F) MarshalLog(addField func(field string, value interface{})) {
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
-	dbgEntries.Append(format(message, "DEBUG", time.Now(), app.Info(), m))
+	dbgEntries.Append(format(message, "DEBUG", time.Now(), app.Info(), m, fromContext(ctx)))
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
-	s := format(message, "INFO", time.Now(), app.Info(), m)
+	s := format(message, "INFO", time.Now(), app.Info(), m, fromContext(ctx))
 
 	Write(s)
 }
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
-	s := format(message, "WARN", time.Now(), app.Info(), m)
+	s := format(message, "WARN", time.Now(), app.Info(), m, fromContext(ctx))
 
 	Write(s)
 }
@@ -149,7 +149,7 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
-	s := format(message, "ERROR", time.Now(), app.Info(), m)
+	s := format(message, "ERROR", time.Now(), app.Info(), m, fromContext(ctx))
 
 	Write(s)
 }
@@ -157,17 +157,21 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
-	s := format(message, "FATAL", time.Now(), app.Info(), m)
+	s := format(message, "FATAL", time.Now(), app.Info(), m, fromContext(ctx))
 
 	Write(s)
 
 	os.Exit(1)
 }
 
-func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
+func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many, fromCtx Marshaler) string {
 	entry := F{"message": msg, "level": level, "@timestamp": ts.Format(time.RFC3339Nano)}
 
 	appInfo.MarshalLog(entry.Set)
+
+	if fromCtx != nil {
+		fromCtx.MarshalLog(entry.Set)
+	}
 	mm.MarshalLog(entry.Set)
 
 	if entry["level"] == "FATAL" {
