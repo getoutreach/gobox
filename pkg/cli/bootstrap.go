@@ -35,7 +35,6 @@ const UpdateExitCode = 5
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
 func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
-
 	// override the secret loader so that we can read specific keys from variables
 	// otherwise fallback to the original secret loader, if it was set.
 	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
