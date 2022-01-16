@@ -1,7 +1,22 @@
 name: gobox
-releaseType: semver
 reportingTeam: cia-dev-tooling
-library: true
-releaseOptions:
-  allowMajorVersions: true
+description: ""
 oss: true
+slack: ""
+library: true
+releaseType: semver
+releaseOptions:
+  allowPrereleases: false
+  allowMajorVersions: true
+deployTo:
+  environments: []
+arguments:
+  dependencies:
+    optional: []
+    required: []
+  description: ""
+  reportingTeam: cia-dev-tooling
+  type: []
+modules:
+  - url: https://github.com/getoutreach/stencil-base
+    version: ""
