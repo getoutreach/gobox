@@ -27,7 +27,7 @@ require (
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 	golang.org/x/tools v0.1.8
 	gopkg.in/yaml.v2 v2.4.0
-	gotest.tools/v3 v3.0.3
+	gotest.tools/v3 v3.1.0
 )
 
 require (
