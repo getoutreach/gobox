@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
 )
@@ -54,9 +55,7 @@ var (
 // fields using this function. The field value can itself be another
 // Marshaler instance, in which case the field names are concatenated
 // with dot to indicate nesting.
-type Marshaler interface {
-	MarshalLog(addField func(field string, value interface{}))
-}
+type Marshaler = logf.Marshaler
 
 type syncWriter struct {
 	sync.Mutex
@@ -92,39 +91,7 @@ func Write(s string) {
 //
 // When logging errors, use events.Err:
 //     log.Error(ctx, "some failure", events.Err(err))
-type F map[string]interface{}
-
-// Set writes the field value into F. If the value implements
-// interface { MarshalRoot() log.Marshaler } then it marshals it
-// from the root level. If the value is a
-// log.Marshaler, it recursively marshals that value into F.
-func (f F) Set(field string, value interface{}) {
-	if rm, ok := value.(interface{ MarshalRoot() Marshaler }); ok {
-		marshalRoot := rm.MarshalRoot()
-		if marshalRoot != nil {
-			marshalRoot.MarshalLog(f.Set)
-		}
-	}
-
-	if m, ok := value.(Marshaler); ok {
-		m.MarshalLog(func(inner string, val interface{}) {
-			f.Set(field+"."+inner, val)
-		})
-	} else if value != nil {
-		if f["level"] == "FATAL" && strings.HasPrefix(field, "error.") {
-			// if this is a FATAL, make room for the root call stack
-			field = "error.cause." + field[6:]
-		}
-		f[field] = value
-	}
-}
-
-// MarshalLog implements the Marshaler interface for F
-func (f F) MarshalLog(addField func(field string, value interface{})) {
-	for k, v := range f {
-		addField(k, v)
-	}
-}
+type F = logf.F
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
@@ -61,8 +62,8 @@ func (t *tracer) presendHook(fields map[string]interface{}) {
 	}
 
 	// Set service-level tags on every single span we send.
-	marshalLog(setf, "", app.Info())
-	marshalLog(setf, "", &t.GlobalTags)
+	logf.Marshal("", app.Info(), setf)
+	logf.Marshal("", &t.GlobalTags, setf)
 
 	if testPresendHook != nil {
 		testPresendHook(fields)
@@ -114,30 +115,9 @@ func (t *tracer) endHoneycombSpan(ctx context.Context) {
 func (t *tracer) addHoneycombFields(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		for _, f := range args {
-			marshalLog(span.AddField, "", f)
+			logf.Marshal("", f, span.AddField)
 		}
 	}
-}
-
-func marshalLog(setf func(key string, v interface{}), key string, l log.Marshaler) {
-	if l == nil {
-		return
-	}
-	l.MarshalLog(func(innerKey string, innerValue interface{}) {
-		if innerValue == nil {
-			return
-		}
-
-		if key != "" {
-			innerKey = key + "." + innerKey
-		}
-		if mm, ok := innerValue.(log.Marshaler); ok {
-			// recurse with the keys combined
-			marshalLog(setf, innerKey, mm)
-		} else {
-			setf(innerKey, innerValue)
-		}
-	})
 }
 
 func (t *tracer) honeycombParentID(ctx context.Context) string {
