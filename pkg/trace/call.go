@@ -11,7 +11,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
-// nolint:nochecknoglobals Why: we use this as a singleton.
+// nolint:nochecknoglobals // Why: we use this as a singleton.
 var callTracker = &call.Tracker{}
 
 // StartCall is used to start an internal call. For external calls please
