@@ -3,88 +3,16 @@ package trace
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/getoutreach/gobox/pkg/app"
-	"github.com/getoutreach/gobox/pkg/events"
+	"github.com/getoutreach/gobox/internal/call"
+
 	"github.com/getoutreach/gobox/pkg/log"
-	"github.com/getoutreach/gobox/pkg/metrics"
 	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
-// This constant block contains predefined callType base types.
-const (
-	// callTypeHTTP is a constant that denotes the call type being an HTTP
-	// request.
-	callTypeHTTP = "http"
-
-	// callTypeGRPC is a constant that denotes the call type being a gRPC
-	// request.
-	callTypeGRPC = "grpc"
-
-	// callTypeOutbound is a constant that denotes the call type being an
-	// outbound request.
-	callTypeOutbound = "outbound"
-)
-
-type callInfo struct {
-	name     string
-	callType string
-	kind     metrics.CallKind
-	args     []log.Marshaler
-	events.Times
-	events.Durations
-	*events.ErrorInfo
-}
-
-// reportLatency reports the latency for a call depending on the call type
-// passed in *callInfo.
-func (c *callInfo) reportLatency() {
-	var err error
-	if c.ErrorInfo != nil {
-		err = c.ErrorInfo.RawError
-	}
-
-	switch c.callType { //nolint:exhaustive //Why: we only report latency metrics in this case on HTTP/gRPC call types.
-	case callTypeHTTP:
-		c.ReportHTTPLatency(err)
-	case callTypeGRPC:
-		c.ReportGRPCLatency(err)
-	case callTypeOutbound:
-		c.ReportOutboundLatency(err)
-	}
-}
-
-// nolint:gochecknoglobals
-var infoKey = &callInfo{}
-
-func (c *callInfo) MarshalLog(addField func(key string, v interface{})) {
-	c.Times.MarshalLog(addField)
-	c.Durations.MarshalLog(addField)
-	log.Many(c.args).MarshalLog(addField)
-	if c.ErrorInfo != nil {
-		c.ErrorInfo.MarshalLog(addField)
-	}
-}
-
-// ReportHTTPLatency is a thin wrapper around metrics.ReportHTTPLatency to report latency metrics
-// for HTTP calls.
-func (c *callInfo) ReportHTTPLatency(err error) {
-	metrics.ReportHTTPLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
-}
-
-// ReportGRPCLatency is a thin wrapper around metrics.ReportGRPCLatency to report latency metrics
-// for gRPC calls.
-func (c *callInfo) ReportGRPCLatency(err error) {
-	metrics.ReportGRPCLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
-}
-
-// ReportOutboundLatency is a thin wrapper around metrics.ReportOutboundLatency to report latency
-// metrics for outbound calls.
-func (c *callInfo) ReportOutboundLatency(err error) {
-	metrics.ReportOutboundLatency(app.Info().Name, c.name, c.ServiceSeconds, err, metrics.WithCallKind(c.kind))
-}
+// nolint:nochecknoglobals
+var callTracker = &call.Tracker{}
 
 // StartCall is used to start an internal call. For external calls please
 // use StartExternalCall.
@@ -115,17 +43,9 @@ func (c *callInfo) ReportOutboundLatency(err error) {
 //
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	info := &callInfo{
-		name: cType,
-		args: args,
-		kind: metrics.CallKindInternal,
-		Times: events.Times{
-			Started: time.Now(),
-		},
-	}
 	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
 
-	ctx = StartSpan(context.WithValue(ctx, infoKey, info), cType)
+	ctx = StartSpan(callTracker.StartCall(ctx, cType, args), cType)
 	AddInfo(ctx, args...)
 
 	return ctx
@@ -134,21 +54,21 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 // SetTypeGRPC is meant to set the call type to GRPC on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeGRPC(ctx context.Context) context.Context {
-	ctx.Value(infoKey).(*callInfo).callType = callTypeGRPC
+	callTracker.Info(ctx).Type = call.TypeGRPC
 	return ctx
 }
 
 // SetTypeHTTP is meant to set the call type to HTTP on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeHTTP(ctx context.Context) context.Context {
-	ctx.Value(infoKey).(*callInfo).callType = callTypeHTTP
+	callTracker.Info(ctx).Type = call.TypeHTTP
 	return ctx
 }
 
 // SetCallTypeOutbound is meant to set the call type to Outbound on a context that
 // has already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeOutbound(ctx context.Context) context.Context {
-	ctx.Value(infoKey).(*callInfo).callType = callTypeOutbound
+	callTracker.Info(ctx).Type = call.TypeOutbound
 	return ctx
 }
 
@@ -157,8 +77,7 @@ func SetCallTypeOutbound(ctx context.Context) context.Context {
 // When the error is nil, no-op from this function
 func SetCallStatus(ctx context.Context, err error) error {
 	if err != nil {
-		info := ctx.Value(infoKey).(*callInfo)
-		info.ErrorInfo = events.NewErrorInfo(err)
+		callTracker.Info(ctx).SetStatus(ctx, err)
 	}
 	return err
 }
@@ -180,40 +99,32 @@ func SetCallError(ctx context.Context, err error) error {
 func EndCall(ctx context.Context) {
 	defer End(ctx)
 
-	info := ctx.Value(infoKey).(*callInfo)
-	info.Finished = time.Now()
-	info.Durations = *info.Times.Durations()
+	defer func(info *call.Info) {
+		addDefaultTracerInfo(ctx, info)
+		info.ReportLatency(ctx)
 
-	r := recover()
-	if r != nil {
-		info.ErrorInfo = events.NewErrorInfoFromPanic(r)
-		// rethrow at the end of the function
-		defer panic(r)
-	}
-
-	addDefaultTracerInfo(ctx, info)
-	info.reportLatency()
-
-	if info.ErrorInfo != nil {
-		switch category := orerr.ExtractErrorStatusCategory(info.ErrorInfo.RawError); category {
-		case statuscodes.CategoryClientError:
-			log.Warn(ctx, info.name, info, IDs(ctx), traceEventMarker{})
-		case statuscodes.CategoryServerError:
-			log.Error(ctx, info.name, info, IDs(ctx), traceEventMarker{})
-		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-			log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
+		if info.ErrInfo != nil {
+			switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
+			case statuscodes.CategoryClientError:
+				log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			case statuscodes.CategoryServerError:
+				log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
+				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			}
+		} else {
+			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 		}
-	} else {
-		log.Info(ctx, info.name, info, IDs(ctx), traceEventMarker{})
-	}
+	}(callTracker.Info(ctx))
+
+	callTracker.EndCall(ctx)
 }
 
 // addArgsToCallInfo appends the log marshalers passed in as arguments
 // to the callInfo struct
 func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
-	if infoKeyVal := ctx.Value(infoKey); infoKeyVal != nil {
-		callInfo := infoKeyVal.(*callInfo)
-		callInfo.args = append(callInfo.args, args...)
+	if callInfo := callTracker.Info(ctx); callInfo != nil {
+		callInfo.AddArgs(ctx, args...)
 		return true
 	}
 	return false
