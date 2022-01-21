@@ -1,3 +1,7 @@
+// Copyright 2021 Outreach Corporation. All Rights Reserved.
+
+// Description: This file contains the call tracker implementation used by trace.
+
 // The call package helps support tracking latency and other metrics for calls.
 package call
 
@@ -41,6 +45,7 @@ type Info struct {
 	ErrInfo *events.ErrorInfo
 }
 
+// Start initializes info with the start time and some name.
 func (info *Info) Start(ctx context.Context, name string) {
 	info.Name = name
 	if info.Kind == "" {
@@ -49,11 +54,14 @@ func (info *Info) Start(ctx context.Context, name string) {
 	info.Times.Started = time.Now()
 }
 
+// End records the finished time and updates durations.
 func (info *Info) End(ctx context.Context) {
 	info.Times.Finished = time.Now()
 	info.Durations = *info.Times.Durations()
 }
 
+// ReportLatency reports the call latency via the metrics package based on the
+// call Kind.  If the Kind is not one of HTTP, GRPC or Outbound, it does nothing.
 func (info *Info) ReportLatency(ctx context.Context) {
 	var err error
 	if info.ErrInfo != nil {
@@ -73,14 +81,17 @@ func (info *Info) ReportLatency(ctx context.Context) {
 	}
 }
 
+// AddArgs appends the provided logf.Marshalers to the Args slice.
 func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
 	info.Args = append(info.Args, args...)
 }
 
+// SetStatus updates the ErrInfo field based on the error.
 func (info *Info) SetStatus(ctx context.Context, err error) {
 	info.ErrInfo = events.NewErrorInfo(err)
 }
 
+// MarshalLog addes log.Marshaler support, logging most of the fields.
 func (info *Info) MarshalLog(addField func(key string, value interface{})) {
 	info.Times.MarshalLog(addField)
 	info.Durations.MarshalLog(addField)
@@ -92,6 +103,8 @@ func (info *Info) MarshalLog(addField func(key string, value interface{})) {
 type Tracker struct {
 }
 
+// StartCall creates a new call Info object and returns a new context
+// where tracker.Info(ctx) will return the newly setup call Info object.
 func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marshaler) context.Context {
 	var info Info
 	info.Start(ctx, name)
@@ -99,6 +112,7 @@ func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marsha
 	return context.WithValue(ctx, t, &info)
 }
 
+// Info returns the call Info object stashed in the context.
 func (t *Tracker) Info(ctx context.Context) *Info {
 	if v := ctx.Value(t); v != nil {
 		return v.(*Info)
@@ -106,6 +120,11 @@ func (t *Tracker) Info(ctx context.Context) *Info {
 	return nil
 }
 
+// EndCall is meant to be called in a defer abc.EndCall(ctx) pattern.
+// It checks if there is a panic.  If so, it uses that to update the current
+// call Info object.
+// It calls info.End(ctx) before returning.
+// It rethrows any panic.
 func (t *Tracker) EndCall(ctx context.Context) {
 	info := t.Info(ctx)
 	if r := recover(); r != nil {

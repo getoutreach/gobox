@@ -1,3 +1,7 @@
+// Copyright 2021 Outreach Corporation. All Rights Reserved.
+
+// Description: This file contains the helper utilities for marshaling log fields.
+
 // package logf has the log.F implementation
 package logf
 
