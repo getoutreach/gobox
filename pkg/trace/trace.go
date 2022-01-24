@@ -98,18 +98,21 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/getoutreach/gobox/internal/call"
+	"github.com/getoutreach/gobox/internal/tracelog"
+	"github.com/getoutreach/gobox/internal/tracer"
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
-// nolint:gochecknoglobals
-var defaultTracer = &tracer{}
+// nolint:gochecknoglobals // Why: we need this for the module level access.
+var defaultTracer = tracelog.Tracer
 
 // Deprecated: Use InitTracer() instead.
 // StartTracing starts the tracing infrastructure.
 //
 // This should be called at the start of the application.
 func StartTracing(serviceName string) error {
-	return defaultTracer.startTracing(serviceName)
+	return defaultTracer.Init(context.Background(), serviceName)
 }
 
 // InitTracer starts all tracing infrastructure.
@@ -117,7 +120,7 @@ func StartTracing(serviceName string) error {
 // This needs to be called before sending any traces
 // otherwise they will not be published.
 func InitTracer(ctx context.Context, serviceName string) error {
-	return defaultTracer.initTracer(ctx, serviceName)
+	return defaultTracer.Init(ctx, serviceName)
 }
 
 // Deprecated: Use CloseTracer() instead.
@@ -125,7 +128,7 @@ func InitTracer(ctx context.Context, serviceName string) error {
 //
 // This should be called at the exit of the application.
 func EndTracing() {
-	defaultTracer.endTracing()
+	defaultTracer.Close(context.Background())
 }
 
 // CloseTracer stops all tracing and sends any queued traces.
@@ -133,45 +136,124 @@ func EndTracing() {
 // This should be called when an application is exiting, or
 // when you want to terminate the tracer.
 func CloseTracer(ctx context.Context) {
-	defaultTracer.closeTracer(ctx)
+	defaultTracer.Close(ctx)
 }
 
 // ContextFromHTTP starts a new trace from an incoming http request.
 //
 // Use trace.End to end this.
 func ContextFromHTTP(r *http.Request, name string) context.Context {
-	return FromHeaders(r.Context(), r.Header, name)
+	return defaultTracer.StartTrace(r.Context(), name, r.Header)
 }
 
 // FromHeaders fetches trace info from a headers map
 func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
-	return defaultTracer.fromHeaders(ctx, hdrs, name)
+	return defaultTracer.StartTrace(ctx, name, hdrs)
 }
 
 // FromHeadersAsync fetches trace info from a headers map and kicks off an async trace.
 func FromHeadersAsync(ctx context.Context, hdrs map[string][]string, name string) context.Context {
-	return StartSpanAsync(defaultTracer.fromHeaders(ctx, hdrs, name), name)
+	return StartSpanAsync(FromHeaders(ctx, hdrs, name), name)
 }
 
 // ToHeaders writes the current trace context into a headers map
 func ToHeaders(ctx context.Context) map[string][]string {
-	return defaultTracer.toHeaders(ctx)
+	return defaultTracer.Headers(ctx)
 }
 
 // StartTrace starts a new root span/trace.
 //
 // Use trace.End to end this.
 func StartTrace(ctx context.Context, name string) context.Context {
-	return defaultTracer.startTrace(ctx, name)
+	return defaultTracer.StartTrace(ctx, name, nil)
+}
+
+// StartCall is used to start an internal call. For external calls please
+// use StartExternalCall.
+//
+// This takes care of standard logging, metrics and tracing for "calls"
+//
+// Typical usage:
+//
+//     ctx = trace.StartCall(ctx, "sql", SQLEvent{Query: ...})
+//     defer trace.EndCall(ctx)
+//
+//     return trace.SetCallStatus(ctx, sqlCall(...));
+//
+// The callType should be broad category (such as "sql", "redis" etc) as
+// as these are used for metrics and cardinality issues come into play.
+// Do note that commonly used call types are exported as constants in this
+// package and should be used whenever possible. The most common call types
+// are http (trace.CallTypeHTTP) and grpc (trace.CallTypeGRPC).
+//
+// Use the extra args to add stuff to traces and logs and these can
+// have more information as needed (including actual queries for
+// instance).
+//
+// The log includes a initial Debug entry and a final Error entry if
+// the call failed (but no IDs entry if the call succeeded).  Success
+// or failure is determined by whether there was a SetCallStatus or
+// not.  (Panics detected in EndCall are considered errors).
+//
+// StartCalls can be nested.
+func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
+	return defaultTracer.StartSpan(ctx, cType, log.Many(args), tracer.SpanCall)
+}
+
+// EndCall calculates the duration of the call, writes to metrics,
+// standard logs and closes the trace span.
+//
+// This call should always be right after the StartCall in a defer
+// pattern.  See StartCall for the right pattern of usage.
+//
+// EndCall, when called within a defer, catches any panics and
+// rethrows them.  Any panics are converted to errors and cause error
+// logging to happen (as do any SetCallStatus calls)
+func EndCall(ctx context.Context) {
+	defaultTracer.EndSpan(ctx, tracer.SpanCall)
+}
+
+// SetTypeGRPC is meant to set the call type to GRPC on a context that has
+// already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeGRPC(ctx context.Context) context.Context {
+	defaultTracer.Info(ctx).Call.Type = call.TypeGRPC
+	return ctx
+}
+
+// SetTypeHTTP is meant to set the call type to HTTP on a context that has
+// already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeHTTP(ctx context.Context) context.Context {
+	defaultTracer.Info(ctx).Call.Type = call.TypeHTTP
+	return ctx
+}
+
+// SetCallTypeOutbound is meant to set the call type to Outbound on a context that
+// has already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallTypeOutbound(ctx context.Context) context.Context {
+	defaultTracer.Info(ctx).Call.Type = call.TypeOutbound
+	return ctx
+}
+
+// SetCallStatus can be optionally called to set status of the call.
+// When the error occurs on the current call, the error will be traced.
+// When the error is nil, no-op from this function
+func SetCallStatus(ctx context.Context, err error) error {
+	if err != nil {
+		defaultTracer.SetSpanStatus(ctx, tracer.SpanCall, err)
+	}
+	return err
+}
+
+// SetCallError is deprecated and will directly call into SetCallStatus for backward compatibility
+func SetCallError(ctx context.Context, err error) error {
+	return SetCallStatus(ctx, err)
 }
 
 // StartSpan starts a new span.
 //
 // Use trace.End to end this.
 func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
-	newCtx := defaultTracer.startSpan(ctx, name)
-	addDefaultTracerInfo(newCtx, args...)
-	return newCtx
+	return defaultTracer.StartSpan(ctx, name, log.Many(args), tracer.SpanSync)
 }
 
 // StartSpanAsync starts a new async span.
@@ -180,14 +262,18 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 //
 // Use trace.End to end this.
 func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) context.Context {
-	newCtx := defaultTracer.startSpanAsync(ctx, name)
-	addDefaultTracerInfo(newCtx, args...)
-	return newCtx
+	return defaultTracer.StartSpan(ctx, name, log.Many(args), tracer.SpanAsync)
 }
 
 // End ends a span (or a trace started via StartTrace or ContextFromHTTP).
 func End(ctx context.Context) {
-	defaultTracer.end(ctx)
+	info := defaultTracer.Info(ctx)
+
+	if info.ParentID == info.SpanID {
+		defaultTracer.EndTrace(ctx)
+	} else {
+		defaultTracer.EndSpan(ctx, tracer.SpanSync)
+	}
 }
 
 // AddInfo updates the current span with the provided fields.
@@ -198,34 +284,32 @@ func End(ctx context.Context) {
 //
 // It does nothing if there isn't a current span.
 func AddInfo(ctx context.Context, args ...log.Marshaler) {
-	if callExists := addArgsToCallInfo(ctx, args...); !callExists {
-		addDefaultTracerInfo(ctx, args...)
+	spanType := tracer.SpanSync
+	if info := defaultTracer.Info(ctx); info.Call != nil {
+		spanType = tracer.SpanCall
 	}
+	defaultTracer.AddSpanInfo(ctx, spanType, log.Many(args))
 }
 
 // ID returns an ID for use with external services to propagate
 // tracing context.  The ID returned will be the honeycomb trace ID
 // (if honeycomb is enabled) or an empty string if neither are enabled.
 func ID(ctx context.Context) string {
-	return defaultTracer.id(ctx)
+	return defaultTracer.Info(ctx).TraceID
 }
 
-// spanID returns the root tracing spanID for use when it is needed to correlate the logs belonging to same flow.
-// The spanID returned will be the honeycomb trace spanID (if honeycomb is enabled) or an empty string if neither are enabled
-func spanID(ctx context.Context) string {
-	return defaultTracer.spanID(ctx)
-}
-
-// parentID returns the tracing parentID for use when it is needed to correlate the logs belonging to same flow.
-// The parentID returned will be the honeycomb trace parentID (if honeycomb is enabled) or an empty string if neither are enabled
-func parentID(ctx context.Context) string {
-	return defaultTracer.parentID(ctx)
+// IDs returns a log-compatible tracing scope (IDs) data built
+// from the context suitable for logging.
+func IDs(ctx context.Context) log.Marshaler {
+	info := *(defaultTracer.Info(ctx))
+	info.Call = nil
+	return &info
 }
 
 // ForceTracing will enforce tracing for processing started with returned context
 // and all downstream services that will be invoken on the way.
 func ForceTracing(ctx context.Context) context.Context {
-	return forceTracing(ctx)
+	return defaultTracer.ForceTrace(ctx)
 }
 
 // ForceSampleRate will force a desired sample rate for the given trace and all children
@@ -237,16 +321,17 @@ func ForceTracing(ctx context.Context) context.Context {
 // The trace spawned from that and all of it's children would be sampled at a rate of
 // 1/1000, or 1/10 of a percent (.1%).
 func ForceSampleRate(ctx context.Context, rate uint) context.Context {
-	return sampleAt(ctx, rate)
+	return defaultTracer.SetCurrentSampleRate(ctx, rate)
 }
 
 // AddSpanInfo updates the current span with the provided fields.
 //
 // It does nothing if there isn't a current span.
 func AddSpanInfo(ctx context.Context, args ...log.Marshaler) {
-	addDefaultTracerInfo(ctx, args...)
+	defaultTracer.AddSpanInfo(ctx, tracer.SpanSync, log.Many(args))
 }
 
-func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
-	defaultTracer.addInfo(ctx, args...)
+// SetTestPresendHook sets the honeycomb presend hook for testing
+func SetTestPresendHook(hook func(map[string]interface{})) {
+	defaultTracer.SetPresendHook(hook)
 }

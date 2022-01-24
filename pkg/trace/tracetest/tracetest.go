@@ -27,7 +27,6 @@ func NewTraceLog() *TraceLog {
 }
 func NewTraceLogWithOptions(options Options) *TraceLog {
 	tl := &TraceLog{}
-	trace.SetTestPresendHook(tl.hcPresendHook)
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 	restoreConfig := env.FakeTestConfig("trace.yaml", map[string]interface{}{
@@ -41,6 +40,8 @@ func NewTraceLogWithOptions(options Options) *TraceLog {
 
 	ctx := context.Background()
 	_ = trace.InitTracer(ctx, "log-testing") // nolint: errcheck
+
+	trace.SetTestPresendHook(tl.hcPresendHook)
 
 	tl.cleanupHc = func() {
 		trace.CloseTracer(ctx)
