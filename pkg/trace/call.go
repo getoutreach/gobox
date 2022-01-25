@@ -3,6 +3,7 @@ package trace
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/getoutreach/gobox/internal/call"
 
@@ -69,6 +70,13 @@ func SetCallTypeHTTP(ctx context.Context) context.Context {
 // has already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeOutbound(ctx context.Context) context.Context {
 	callTracker.Info(ctx).Type = call.TypeOutbound
+	return ctx
+}
+
+// SetCallScheduled is meant to set the call scheduled at time on a context that
+// has already been initialized for tracing via StartCall or StartExternalCall.
+func SetCallScheduled(ctx context.Context, scheduled time.Time) context.Context {
+	callTracker.Info(ctx).Times.Scheduled = scheduled
 	return ctx
 }
 
