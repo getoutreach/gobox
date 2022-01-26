@@ -197,7 +197,7 @@ func StartTrace(ctx context.Context, name string) context.Context {
 //
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	return defaultTracer.StartSpan(ctx, cType, log.Many(args), tracer.SpanCall)
+	return defaultTracer.StartSpan(ctx, cType, tracer.SpanCall, log.Many(args))
 }
 
 // EndCall calculates the duration of the call, writes to metrics,
@@ -253,7 +253,7 @@ func SetCallError(ctx context.Context, err error) error {
 //
 // Use trace.End to end this.
 func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
-	return defaultTracer.StartSpan(ctx, name, log.Many(args), tracer.SpanSync)
+	return defaultTracer.StartSpan(ctx, name, tracer.SpanSync, log.Many(args))
 }
 
 // StartSpanAsync starts a new async span.
@@ -262,7 +262,7 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 //
 // Use trace.End to end this.
 func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) context.Context {
-	return defaultTracer.StartSpan(ctx, name, log.Many(args), tracer.SpanAsync)
+	return defaultTracer.StartSpan(ctx, name, tracer.SpanAsync, log.Many(args))
 }
 
 // End ends a span (or a trace started via StartTrace or ContextFromHTTP).

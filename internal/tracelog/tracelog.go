@@ -34,7 +34,7 @@ func (base) StartTrace(ctx context.Context, name string, headers map[string][]st
 	return ctx
 }
 
-func (base) StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType tracer.SpanType) context.Context {
+func (base) StartSpan(ctx context.Context, name string, spanType tracer.SpanType, args logf.Marshaler) context.Context {
 	return ctx
 }
 
@@ -57,7 +57,7 @@ func (c *callLogger) Init(ctx context.Context, t *tracer.Tracer, name string) er
 	return nil
 }
 
-func (c *callLogger) StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType tracer.SpanType) context.Context {
+func (c *callLogger) StartSpan(ctx context.Context, name string, spanType tracer.SpanType, args logf.Marshaler) context.Context {
 	if c.Tracer == nil || !spanType.IsCall() {
 		return ctx
 	}

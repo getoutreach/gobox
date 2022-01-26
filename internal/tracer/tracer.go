@@ -66,16 +66,6 @@ func (s SpanType) IsCall() bool {
 	return s > SpanAsync
 }
 
-// IsInboundCall returns true if the span type is an inbound call.
-func (s SpanType) InCallInbound() bool {
-	return s == SpanInHTTP || s == SpanInGRPC
-}
-
-// IsOutboundCall returns true if the span type is an outbound call.
-func (s SpanType) IsCallOutbound() bool {
-	return s == SpanOut
-}
-
 // Info holds information about the current context.
 type Info struct {
 	// SpanID is the current span ID

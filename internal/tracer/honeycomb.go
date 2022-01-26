@@ -6,7 +6,7 @@ package tracer
 
 import (
 	"context"
-	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -77,6 +77,11 @@ func (h *honeycomb) Init(ctx context.Context, t *Tracer, serviceName string) err
 		return errors.Wrap(err, "unable to fetch api key")
 	}
 
+	var sampleRate uint = math.MaxUint32
+	if config.Honeycomb.SamplePercent > 0 {
+		sampleRate = uint(100 / config.Honeycomb.SamplePercent)
+	}
+
 	beeline.Init(beeline.Config{
 		APIHost:     config.Honeycomb.APIHost,
 		WriteKey:    strings.TrimSpace(string(key)),
@@ -84,7 +89,7 @@ func (h *honeycomb) Init(ctx context.Context, t *Tracer, serviceName string) err
 		ServiceName: serviceName,
 		// honeycomb accepts sample rates as number of requests seen
 		// per request sampled
-		SamplerHook: h.samplerHook(uint(100 / config.Honeycomb.SamplePercent)),
+		SamplerHook: h.samplerHook(sampleRate),
 		PresendHook: h.presendHook,
 		Debug:       config.Honeycomb.Debug,
 		STDOUT:      config.Honeycomb.Stdout,
@@ -209,13 +214,11 @@ func (h *honeycomb) AddTraceInfo(ctx context.Context, info logf.Marshaler) {
 
 // StartSpan starts a new span and sets it up in a derived context
 // which is returned.
-func (h *honeycomb) StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType SpanType) context.Context {
+func (h *honeycomb) StartSpan(ctx context.Context, name string, spanType SpanType, args logf.Marshaler) context.Context {
 	span := trace.GetSpanFromContext(ctx)
 	if span == nil {
 		return ctx
 	}
-
-	fmt.Fprintln(os.Stderr, "Creating new span from", span.GetSpanID(), name)
 
 	// TODO: For incoming calls, we can reuse the root span here.
 	// To do that, we need to update all callsites to specify the
@@ -225,8 +228,6 @@ func (h *honeycomb) StartSpan(ctx context.Context, name string, args logf.Marsha
 	} else {
 		ctx, span = span.CreateChild(ctx)
 	}
-
-	fmt.Fprintln(os.Stderr, "Created new span", span.GetSpanID())
 
 	span.AddField("name", name)
 	logf.Marshal("", args, span.AddField)
@@ -242,12 +243,10 @@ func (h *honeycomb) EndSpan(ctx context.Context, spanType SpanType) {
 
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		logf.Marshal("", info, span.AddField)
-		fmt.Fprintln(os.Stderr, "Sending SpanID", span.GetSpanID())
 		span.Send()
 
 		// TODO: remove the following behavior and move it to EndTrace.
 		if span.GetParent() == nil {
-			fmt.Fprintln(os.Stderr, "Sending trace")
 			trace.GetTraceFromContext(ctx).Send()
 		}
 	}
@@ -280,11 +279,5 @@ func (h *honeycomb) CurrentHeaders(ctx context.Context, headers map[string][]str
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		value := []string{span.SerializeHeaders()}
 		headers[propagation.TracePropagationHTTPHeader] = value
-
-		// We do not actively propagate the force tracing header and
-		// the sample rate headers.
-		// TODO: propagate those as honeycomb documentation claims they do
-		// not implement head-based sampling.
-		// See: https://docs.honeycomb.io/getting-data-in/tracing/sampling/
 	}
 }

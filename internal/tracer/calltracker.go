@@ -37,7 +37,7 @@ func (c *callTracker) EndTrace(ctx context.Context) {}
 
 func (c *callTracker) AddTraceInfo(ctx context.Context, info logf.Marshaler) {}
 
-func (c *callTracker) StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType SpanType) context.Context {
+func (c *callTracker) StartSpan(ctx context.Context, name string, spanType SpanType, args logf.Marshaler) context.Context {
 	if !spanType.IsCall() {
 		return ctx
 	}

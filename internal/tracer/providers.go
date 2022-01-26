@@ -21,7 +21,7 @@ type provider interface {
 	EndTrace(ctx context.Context)
 	AddTraceInfo(ctx context.Context, info logf.Marshaler)
 
-	StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType SpanType) context.Context
+	StartSpan(ctx context.Context, name string, spanType SpanType, args logf.Marshaler) context.Context
 	EndSpan(ctx context.Context, spanType SpanType)
 	AddSpanInfo(ctx context.Context, spanType SpanType, info logf.Marshaler)
 	SetSpanStatus(ctx context.Context, spanType SpanType, err error)
@@ -69,9 +69,9 @@ func (px providers) AddTraceInfo(ctx context.Context, info logf.Marshaler) {
 	}
 }
 
-func (px providers) StartSpan(ctx context.Context, name string, args logf.Marshaler, spanType SpanType) context.Context {
+func (px providers) StartSpan(ctx context.Context, name string, spanType SpanType, args logf.Marshaler) context.Context {
 	for _, p := range px {
-		ctx = p.StartSpan(ctx, name, args, spanType)
+		ctx = p.StartSpan(ctx, name, spanType, args)
 	}
 	return ctx
 }
