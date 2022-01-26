@@ -23,7 +23,7 @@ func (suite) TestForceTracingByHeader(t *testing.T) {
 
 	headers := http.Header{}
 
-	headers.Set(trace.HeaderForceTracing, "true")
+	headers.Set("X-Force-Trace", "true")
 
 	ctx := trace.FromHeaders(context.Background(), headers, "trace-test")
 

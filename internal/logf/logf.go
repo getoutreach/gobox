@@ -28,7 +28,7 @@ func Marshal(prefix string, v interface{}, setField func(key string, value inter
 				Marshal(prefix+"."+inner, val, setField)
 			}
 		})
-	} else {
+	} else if prefix != "" {
 		setField(prefix, v)
 	}
 }

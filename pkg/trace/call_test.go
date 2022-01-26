@@ -265,6 +265,10 @@ func TestReportLatencyMetrics(t *testing.T) {
 	// wrapping the main logic in a function so that we can call
 	// defer per our accepted trace.StartTrace/trace.End pattern
 	func() {
+		err := trace.InitTracer(ctx, "trace-test")
+		assert.NilError(t, err)
+		defer trace.CloseTracer(ctx)
+
 		ctx = trace.StartTrace(ctx, "trace-test")
 		defer trace.End(ctx)
 
