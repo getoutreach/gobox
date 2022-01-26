@@ -89,7 +89,7 @@ func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
 // ApplyOpts applies CallOption functions to the call Info object.
 func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
 	for _, a := range args {
-		if opt, ok := a.(CallOption); ok {
+		if opt, ok := a.(Option); ok {
 			opt(info)
 		}
 	}
