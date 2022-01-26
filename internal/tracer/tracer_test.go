@@ -14,6 +14,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/differs"
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/log/logtest"
 	"github.com/getoutreach/gobox/pkg/secrets/secretstest"
 )
 
@@ -152,6 +153,9 @@ func TestTracer_core(t *testing.T) {
 // It validates that all call types correctly expose the call
 // information in honeycomb
 func TestTracer_calls(t *testing.T) {
+	logs := logtest.NewLogRecorder(t)
+	defer logs.Close()
+
 	callSpans := map[tracer.SpanType]string{
 		tracer.SpanInHTTP: "http",
 		tracer.SpanInGRPC: "grpc",
