@@ -256,7 +256,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	httpCall := func(ctx context.Context) error {
-		ctx = trace.SetCallTypeHTTP(trace.StartCall(ctx, "test"))
+		ctx = trace.StartCall(ctx, "test", trace.AsHTTPCall())
 		defer trace.EndCall(ctx)
 
 		return trace.SetCallStatus(ctx, nil)
