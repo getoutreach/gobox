@@ -86,6 +86,15 @@ func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
 	info.Args = append(info.Args, args...)
 }
 
+// ApplyOpts applies CallOption functions to the call Info object.
+func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
+	for _, a := range args {
+		if opt, ok := a.(CallOption); ok {
+			opt(info)
+		}
+	}
+}
+
 // SetStatus updates the ErrInfo field based on the error.
 func (info *Info) SetStatus(ctx context.Context, err error) {
 	info.ErrInfo = events.NewErrorInfo(err)
@@ -109,6 +118,7 @@ func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marsha
 	var info Info
 	info.Start(ctx, name)
 	info.AddArgs(ctx, args...)
+	info.ApplyOpts(ctx, args...)
 	return context.WithValue(ctx, t, &info)
 }
 
