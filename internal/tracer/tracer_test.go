@@ -76,10 +76,10 @@ func TestTracer_core(t *testing.T) {
 			assert.Equal(t, traceID, tx.Info(async).TraceID)
 			asyncHeaders := tx.Headers(async)
 
-			tx.AddSpanInfo(inner, tracer.SpanSync, log.F{"inner span": "override"})
+			tx.AddSpanInfo(inner, tracer.SpanSync, logf.F{"inner span": "override"})
 			tx.EndSpan(inner, tracer.SpanSync)
 
-			tx.AddSpanInfo(outer, tracer.SpanSync, log.F{"outer span": "override"})
+			tx.AddSpanInfo(outer, tracer.SpanSync, logf.F{"outer span": "override"})
 			tx.EndSpan(outer, tracer.SpanSync)
 
 			tx.AddTraceInfo(root, logf.F{"root span": "foo"})
@@ -155,6 +155,7 @@ func TestTracer_core(t *testing.T) {
 func TestTracer_calls(t *testing.T) {
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
+	defer log.Purge(context.Background())
 
 	callSpans := map[tracer.SpanType]string{
 		tracer.SpanInHTTP: "http",
@@ -181,7 +182,7 @@ func TestTracer_calls(t *testing.T) {
 			assert.Equal(t, rootSpanID, tx.Info(call).ParentID)
 			assert.Equal(t, traceID, tx.Info(call).TraceID)
 
-			tx.AddSpanInfo(call, spanType, log.F{"extra info": "foo"})
+			tx.AddSpanInfo(call, spanType, logf.F{"extra info": "foo"})
 			tx.EndSpan(call, spanType)
 			tx.EndTrace(root)
 
