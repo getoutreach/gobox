@@ -11,12 +11,11 @@ import (
 )
 
 func TestWithOptions(t *testing.T) {
-	ctx := context.Background()
 	scheduledAt := time.Now()
 
 	var callInfo *call.Info
 	trace.StartCall(
-		ctx,
+		context.Background(),
 		"test",
 		trace.WithScheduledTime(scheduledAt),
 		trace.AsGRPCCall(),
@@ -27,4 +26,18 @@ func TestWithOptions(t *testing.T) {
 
 	assert.Equal(t, scheduledAt, callInfo.Times.Scheduled)
 	assert.Equal(t, call.TypeGRPC, callInfo.Type)
+}
+
+func TestAsOutboundCall(t *testing.T) {
+	var callInfo *call.Info
+	trace.StartCall(
+		context.Background(),
+		"test",
+		trace.AsOutboundCall(),
+		call.Option(func(c *call.Info) {
+			callInfo = c
+		}),
+	)
+
+	assert.Equal(t, call.TypeOutbound, callInfo.Type)
 }
