@@ -15,7 +15,7 @@ func TestWithOptions(t *testing.T) {
 	scheduledAt := time.Now()
 
 	var callInfo *call.Info
-	ctx = trace.StartCall(
+	trace.StartCall(
 		ctx,
 		"test",
 		trace.WithScheduledTime(scheduledAt),
