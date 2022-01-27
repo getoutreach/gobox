@@ -51,6 +51,7 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 	return ctx
 }
 
+// Deprecated: use AsGrpcCall call.Option instead
 // SetTypeGRPC is meant to set the call type to GRPC on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeGRPC(ctx context.Context) context.Context {
@@ -58,6 +59,7 @@ func SetCallTypeGRPC(ctx context.Context) context.Context {
 	return ctx
 }
 
+// Deprecated: use AsHttpCall call.Option instead
 // SetTypeHTTP is meant to set the call type to HTTP on a context that has
 // already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeHTTP(ctx context.Context) context.Context {
@@ -65,6 +67,7 @@ func SetCallTypeHTTP(ctx context.Context) context.Context {
 	return ctx
 }
 
+// Deprecated: use AsOutboundCall call.Option instead
 // SetCallTypeOutbound is meant to set the call type to Outbound on a context that
 // has already been initialized for tracing via StartCall or StartExternalCall.
 func SetCallTypeOutbound(ctx context.Context) context.Context {
