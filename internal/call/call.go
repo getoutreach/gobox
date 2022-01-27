@@ -86,7 +86,10 @@ func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
 	info.Args = append(info.Args, args...)
 }
 
-// ApplyOpts applies CallOption functions to the call Info object.
+// ApplyOpts applies call Option functions to the call Info object.
+// even if args are logf.Marshalers, but there might be some call.Options
+// this is done intentionally to preserve compatibility of StartCall API
+// and extend it with new functionality
 func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
 	for _, a := range args {
 		if opt, ok := a.(Option); ok {
