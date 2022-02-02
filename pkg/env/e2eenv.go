@@ -10,6 +10,6 @@ func ApplyOverrides() {
 	cfg.SetDefaultReader(testReader(devReader(old), testOverrides))
 }
 
-func init() { //nolint: gochecknonits
+func init() { //nolint:gochecknoinits // Why: On purpose.
 	ApplyOverrides()
 }

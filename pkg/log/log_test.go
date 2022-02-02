@@ -64,6 +64,7 @@ func Example_with_nested_custom_event() {
 
 	printEntries(logs.Entries())
 
+	//nolint:lll // Why: Output
 	// Output:
 	//{"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","error.cause":" error","error.data.myevent_field":"boo","level":"INFO","message":"example","rootfield":"value"}
 }

@@ -55,5 +55,12 @@ Pulumi.*.yaml
 # CircleCI cache version
 /cache-version.txt
 
+# DevSpace files
+/.devspace
+/deployments/gobox.yaml
+
+# Documentation output
+/apidocs
+
 ###Block(extras)
 ###EndBlock(extras)

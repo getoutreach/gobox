@@ -31,9 +31,10 @@ func (fatalSuite) TestFatal(t *testing.T) {
 		"error.kind":    "fatal",
 		"error.error":   "fatal occurred",
 		"error.message": "fatal occurred",
-		"error.stack":   differs.StackLike("goroutine\nruntime/debug.Stack\ndebug/stack.go\nlog.generateFatalFields\nlog/log.go\nlog.format\nlog/log.go\nlog.Error\nlog/log.go\nlog_test.fatalSuite.TestFatal"),
-		"level":         "FATAL",
-		"message":       "example",
+		//nolint:lll // Why: Output comparision
+		"error.stack": differs.StackLike("goroutine\nruntime/debug.Stack\ndebug/stack.go\nlog.generateFatalFields\nlog/log.go\nlog.format\nlog/log.go\nlog.Error\nlog/log.go\nlog_test.fatalSuite.TestFatal"),
+		"level":       "FATAL",
+		"message":     "example",
 	}}
 
 	if diff := cmp.Diff(want, got, differs.Custom()); diff != "" {
@@ -54,11 +55,12 @@ func (fatalSuite) TestFatalWithError(t *testing.T) {
 
 	got := logs.Entries()
 	want := []log.F{{
-		"@timestamp":          differs.RFC3339NanoTime(),
-		"app.version":         differs.AnyString(),
-		"error.kind":          "fatal",
-		"error.error":         "fatal occurred: my error",
-		"error.message":       "fatal occurred",
+		"@timestamp":    differs.RFC3339NanoTime(),
+		"app.version":   differs.AnyString(),
+		"error.kind":    "fatal",
+		"error.error":   "fatal occurred: my error",
+		"error.message": "fatal occurred",
+		//nolint:lll // Why: Output comparision
 		"error.stack":         differs.StackLike("goroutine\nruntime/debug.Stack\ndebug/stack.go\nlog.generateFatalFields\nlog/log.go\nlog.format\nlog/log.go\nlog.Error\nlog/log.go\nlog_test.fatalSuite.TestFatal"),
 		"error.cause.error":   "my error",
 		"error.cause.kind":    "error",

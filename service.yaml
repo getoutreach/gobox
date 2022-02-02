@@ -1,7 +1,22 @@
 name: gobox
-releaseType: semver
-reportingTeam: cia-dev-tooling
-library: true
-releaseOptions:
-  allowMajorVersions: true
+reportingTeam: fnd-dtss
+description: Open source general go functions
 oss: true
+slack: dev-tooling-notifications
+library: true
+releaseType: semver
+releaseOptions:
+  allowPrereleases: false
+  allowMajorVersions: true
+deployTo:
+  environments: []
+arguments:
+  dependencies:
+    optional: []
+    required: []
+  description: Open source general go functions
+  reportingTeam: fnd-dtss
+  type: []
+modules:
+  - url: https://github.com/getoutreach/stencil-base
+    version: ""
