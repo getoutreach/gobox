@@ -65,7 +65,8 @@ func ReportHTTPLatency(appName, callName string, latencySeconds float64, err err
 		statusCode = orerr.ExtractErrorStatusCode(err)
 	}
 
-	httpCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
+	httpCallLatency.WithLabelValues(appName, callName, statusCode.String(),
+		statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }
 
 // grpcCallLatency registers the grpc_request_handled metric for reporting latency of
@@ -95,7 +96,8 @@ func ReportGRPCLatency(appName, callName string, latencySeconds float64, err err
 		statusCode = orerr.ExtractErrorStatusCode(err)
 	}
 
-	grpcCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
+	grpcCallLatency.WithLabelValues(appName, callName, statusCode.String(),
+		statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }
 
 // outboundCallLatency registers the outbound_call_seconds metric for reporting latency
@@ -125,5 +127,6 @@ func ReportOutboundLatency(appName, callName string, latencySeconds float64, err
 		statusCode = orerr.ExtractErrorStatusCode(err)
 	}
 
-	outboundCallLatency.WithLabelValues(appName, callName, statusCode.String(), statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
+	outboundCallLatency.WithLabelValues(appName, callName, statusCode.String(),
+		statusCode.Category().String(), string(opt.Kind)).Observe(latencySeconds)
 }

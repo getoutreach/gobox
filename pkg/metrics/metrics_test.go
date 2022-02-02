@@ -45,6 +45,7 @@ func Example() {
 		}
 	}
 
+	//nolint:lll // Why: Output comparision
 	// Output:
 	// name http_request_handled
 	// help The latency of the HTTP request, in seconds

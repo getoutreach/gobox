@@ -134,7 +134,8 @@ func (g *Github) GetRelease(ctx context.Context, version string) (*github.Reposi
 }
 
 //nolint:funlen,gocyclo // Not sure how to split this out currently.
-func (g *Github) getAllReleases(ctx context.Context, currentVersion *semver.Version, includePrereleases bool) (curR, newR *github.RepositoryRelease, err error) {
+func (g *Github) getAllReleases(ctx context.Context, currentVersion *semver.Version,
+	includePrereleases bool) (curR, newR *github.RepositoryRelease, err error) {
 	ctx = trace.StartCall(ctx, "github.getAllReleases")
 	defer trace.EndCall(ctx)
 
@@ -232,7 +233,8 @@ loop:
 //
 // The cleanup function should be called even when an error occurs
 //nolint:funlen
-func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryRelease, assetName, execName string) (downloadedBinary string, cleanup func(), err error) {
+func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryRelease,
+	assetName, execName string) (downloadedBinary string, cleanup func(), err error) {
 	ctx = trace.StartCall(ctx, "github.DownloadRelease", olog.F{"version": *r.TagName})
 	defer trace.EndCall(ctx)
 

@@ -86,10 +86,12 @@ func (suite) TestGracefullyStops(t *testing.T) {
 	defer s.Pool.Close()
 
 	// When pool was running there were pool goroutines
-	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers), float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
+	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
+		float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
 	s.Pool.Close()
 	// After close all workers goroutines are dead
-	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart), float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
+	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart),
+		float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
 }
 
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel

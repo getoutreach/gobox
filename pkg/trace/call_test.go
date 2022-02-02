@@ -184,6 +184,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"error.kind":          "error",
 			"error.error":         "sql error",
 			"error.message":       "sql error",
+			//nolint:lll // Why: Output comparision
 			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "sql",
@@ -209,6 +210,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"error.kind":          "error",
 			"error.error":         "sql error",
 			"error.message":       "sql error",
+			//nolint:lll // Why: Output comparision
 			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:54 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "model",
@@ -277,8 +279,10 @@ func TestReportLatencyMetrics(t *testing.T) {
 	metricsInfo := getMetricsInfo(t)
 	expectedMetrics := []map[string]interface{}{
 		{
-			"bucket":       "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
-			"help":         "The latency of the HTTP request, in seconds",
+			//nolint:lll // Why: Output comparision
+			"bucket": "[cumulative_count:1 upper_bound:0.005  cumulative_count:1 upper_bound:0.01  cumulative_count:1 upper_bound:0.025  cumulative_count:1 upper_bound:0.05  cumulative_count:1 upper_bound:0.1  cumulative_count:1 upper_bound:0.25  cumulative_count:1 upper_bound:0.5  cumulative_count:1 upper_bound:1  cumulative_count:1 upper_bound:2.5  cumulative_count:1 upper_bound:5  cumulative_count:1 upper_bound:10 ]",
+			"help":   "The latency of the HTTP request, in seconds",
+			//nolint:lll // Why: Output comparision
 			"label":        `[name:"app" value:"gobox"  name:"call" value:"test"  name:"kind" value:"internal"  name:"statuscategory" value:"CategoryOK"  name:"statuscode" value:"OK" ]`,
 			"name":         "http_request_handled",
 			"sample count": uint64(0x01),
