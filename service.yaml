@@ -1,8 +1,8 @@
 name: gobox
-reportingTeam: cia-dev-tooling
-description: ""
+reportingTeam: fnd-dtss
+description: Open source general go functions
 oss: true
-slack: ""
+slack: dev-tooling-notifications
 library: true
 releaseType: semver
 releaseOptions:
@@ -14,8 +14,8 @@ arguments:
   dependencies:
     optional: []
     required: []
-  description: ""
-  reportingTeam: cia-dev-tooling
+  description: Open source general go functions
+  reportingTeam: fnd-dtss
   type: []
 modules:
   - url: https://github.com/getoutreach/stencil-base
