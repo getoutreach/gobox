@@ -10,7 +10,14 @@ import (
 )
 
 func setupEnv(t *testing.T) (tempDir string, cleanup func()) {
-	origValue := os.Getenv("HOME")
+	envVars := []string{"HOME", "GITHUB_TOKEN", "OUTREACH_GITHUB_TOKEN"}
+	origValues := make(map[string]string)
+	for _, k := range envVars {
+		v := os.Getenv(k)
+		t.Logf("Cleared env var %s", k)
+		os.Setenv(k, "") // set to empty
+		origValues[k] = v
+	}
 
 	var err error
 	tempDir, err = os.MkdirTemp("", "gobox-github-auth-*")
@@ -18,9 +25,13 @@ func setupEnv(t *testing.T) (tempDir string, cleanup func()) {
 
 	cleanup = func() {
 		assert.NilError(t, os.RemoveAll(tempDir), "expected test cleanup to succeed")
-		os.Setenv("HOME", origValue)
+		for k, v := range origValues {
+			t.Logf("Resetting env var %s=%v", k, v)
+			os.Setenv(k, v)
+		}
 	}
 
+	// set HOME to the temp dir, undone by cleanup()
 	os.Setenv("HOME", tempDir)
 	return
 }
@@ -29,7 +40,7 @@ func Test_GetToken_outreachDirToken(t *testing.T) {
 	home, cleanup := setupEnv(t)
 	defer cleanup()
 
-	dummyValue := "i wannan be the very best"
+	dummyValue := "i wanna be the very best"
 
 	oToken := filepath.Join(home, ".outreach", "github.token")
 	assert.NilError(t, os.MkdirAll(filepath.Dir(oToken), 0755),
