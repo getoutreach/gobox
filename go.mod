@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/blang/semver/v4 v4.0.0
+	github.com/getoutreach/null v4.0.0+incompatible
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.2
@@ -45,7 +46,6 @@ require (
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/facebookgo/limitgroup v0.0.0-20150612190941-6abd8d71ec01 // indirect
 	github.com/facebookgo/muster v0.0.0-20150708232844-fd3d7953fd52 // indirect
-	github.com/getoutreach/null v4.0.0+incompatible // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
