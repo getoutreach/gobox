@@ -1,4 +1,4 @@
-// logtest provides the ability to test logs
+// Package logtest provides the ability to test logs
 //
 // Usage:
 //
@@ -62,7 +62,7 @@ func (l *LogRecorder) Entries() []log.F {
 	return l.entries[:len(l.entries):len(l.entries)]
 }
 
-// MarshalToMap uses the given arguments `MarshalLog` function to serialize it
+// Map uses the given arguments `MarshalLog` function to serialize it
 // into a map, which it returns.
 //
 // The serialization is similar to the one performed by logs.  Any nesting is
