@@ -12,7 +12,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/getoutreach/gobox/x/tracelog"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 type RowID string
