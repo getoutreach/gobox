@@ -43,6 +43,9 @@ type Info struct {
 	events.Durations
 
 	ErrInfo *events.ErrorInfo
+
+	// Parent tracks the parent info.
+	Parent *Info
 }
 
 // Start initializes info with the start time and some name.
@@ -118,7 +121,7 @@ type Tracker struct {
 // StartCall creates a new call Info object and returns a new context
 // where tracker.Info(ctx) will return the newly setup call Info object.
 func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marshaler) context.Context {
-	var info Info
+	info := Info{Parent: t.Info(ctx)}
 	info.Start(ctx, name)
 	info.AddArgs(ctx, args...)
 	info.ApplyOpts(ctx, args...)
