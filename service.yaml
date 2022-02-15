@@ -1,9 +1,10 @@
 name: gobox
 reportingTeam: fnd-dtss
-description: Open source general go functions
+description: A collection of libraries that are useful for implementing Go services, libraries, and more.
 oss: true
 slack: dev-tooling-notifications
 library: true
+circleAPIKey: ""
 releaseType: semver
 releaseOptions:
   allowPrereleases: false
@@ -11,12 +12,27 @@ releaseOptions:
 deployTo:
   environments: []
 arguments:
+  circleAPIKey: ""
   dependencies:
     optional: []
     required: []
-  description: Open source general go functions
+  description: A collection of libraries that are useful for implementing Go services, libraries, and more.
+  opslevel:
+    confluenceSpaceKey: ""
+    designDocumentLink: ""
+  oss: true
   reportingTeam: fnd-dtss
-  type: []
+  type:
+    - library
 modules:
   - url: https://github.com/getoutreach/stencil-base
     version: ""
+opsLevel:
+  serviceTier: 0
+  lifecycle: ""
+  confluenceSpaceKey: ""
+  pagerDutyLink: ""
+  datadogDashboards:
+    mainLink: ""
+    custom: []
+  designDocumentLink: ""
