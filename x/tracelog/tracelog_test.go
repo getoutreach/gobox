@@ -40,7 +40,11 @@ func TestNestedCall(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog()
+	provider := tracelog.New(tracelog.WithAllInheritedArgs())
+	trlog := tracetest.NewTraceLogWithOptions(tracetest.Options{
+		SamplePercent: 100.0,
+		Opts:          []trace.Option{trace.WithProvider(provider)},
+	})
 	defer trlog.Close()
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
@@ -77,7 +81,6 @@ func TestNestedCall(t *testing.T) {
 		ctx = trace.StartTrace(ctx, "trace-test")
 		defer trace.End(ctx)
 
-		trace.AddProvider(tracelog.New(tracelog.WithAllInheritedArgs()))
 		if err := outer(ctx, &Model{ID: "some model id", TableName: "some table"}); err == nil {
 			t.Fatal("unexpected success", err)
 		}
@@ -133,16 +136,7 @@ func TestNestedCall(t *testing.T) {
 		},
 	}
 
-	actualLogs := []log.F{}
-	for _, entry := range logs.Entries() {
-		if entry["level"] == "DEBUG" || entry["event_name"] == "trace" {
-			// these were not generated via tracelog.  Ignore these
-			continue
-		}
-		actualLogs = append(actualLogs, entry)
-	}
-
-	assert.Equal(t, len(expectedLogs), len(actualLogs))
+	actualLogs := logs.Entries()
 
 	// add common fields
 	for _, entry := range expectedLogs {

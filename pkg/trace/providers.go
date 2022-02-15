@@ -32,37 +32,40 @@ func (px manyProviders) End(ctx context.Context, info *call.Info) {
 	}
 }
 
-var providers = manyProviders{&defaultCallProvider{}}
+var providers = manyProviders{}
 
-// AddProvider is an experimental interface to add a provider.
-//
-// Note that the provider interface is private as this is still experimental.
-// Use x/tracelog.New for an experimental trace log provider.
-func AddProvider(p provider) {
-	providers = append(providers, p)
+// WithProvider adds a provider to the list of providers.
+func WithProvider(p provider) Option {
+	return func(s *settings) error {
+		s.providers = append(s.providers, p)
+		return nil
+	}
 }
 
-type defaultCallProvider struct{}
+type defaultCallLogger struct{}
 
-func (d *defaultCallProvider) Start(ctx context.Context, info *call.Info) context.Context {
+func (defaultCallLogger) Start(ctx context.Context, info *call.Info) context.Context {
 	log.Debug(ctx, fmt.Sprintf("calling: %s", info.Name), info.Args...)
 	return ctx
 }
 
-func (d *defaultCallProvider) End(ctx context.Context, info *call.Info) {
-	addDefaultTracerInfo(ctx, info)
-	info.ReportLatency(ctx)
-
+func (defaultCallLogger) End(ctx context.Context, info *call.Info) {
 	if info.ErrInfo != nil {
 		switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
 		case statuscodes.CategoryClientError:
-			log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			log.Warn(ctx, info.Name, info, info.IDs, traceEventMarker{})
 		case statuscodes.CategoryServerError:
-			log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			log.Error(ctx, info.Name, info, info.IDs, traceEventMarker{})
 		case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			log.Info(ctx, info.Name, info, info.IDs, traceEventMarker{})
 		}
 	} else {
-		log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+		log.Info(ctx, info.Name, info, info.IDs, traceEventMarker{})
 	}
+}
+
+type traceEventMarker struct{}
+
+func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
+	addField("event_name", "trace")
 }

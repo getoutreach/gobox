@@ -16,6 +16,7 @@ type TraceLog struct {
 
 type Options struct {
 	SamplePercent float32
+	Opts          []trace.Option
 }
 
 func NewTraceLog() *TraceLog {
@@ -40,7 +41,7 @@ func NewTraceLogWithOptions(options Options) *TraceLog {
 	})
 
 	ctx := context.Background()
-	_ = trace.InitTracer(ctx, "log-testing") // nolint: errcheck
+	_ = trace.InitTracer(ctx, "log-testing", options.Opts...) // nolint: errcheck
 
 	tl.cleanupHc = func() {
 		trace.CloseTracer(ctx)

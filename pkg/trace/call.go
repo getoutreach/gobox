@@ -42,8 +42,9 @@ var callTracker = &call.Tracker{}
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
 	ctx = StartSpan(callTracker.StartCall(ctx, cType, args), cType)
 	AddInfo(ctx, args...)
-
-	return providers.Start(ctx, callTracker.Info(ctx))
+	info := callTracker.Info(ctx)
+	info.IDs = IDs(ctx)
+	return providers.Start(ctx, info)
 }
 
 // Deprecated: use AsGrpcCall call.Option instead
@@ -96,7 +97,9 @@ func SetCallError(ctx context.Context, err error) error {
 // logging to happen (as do any SetCallStatus calls)
 func EndCall(ctx context.Context) {
 	defer End(ctx)
-	defer providers.End(ctx, callTracker.Info(ctx))
+	info := callTracker.Info(ctx)
+	defer AddSpanInfo(ctx, info)
+	defer providers.End(ctx, info)
 	callTracker.EndCall(ctx)
 }
 
@@ -123,10 +126,4 @@ func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
 	addField("honeycomb.trace_id", ID(c))
 	addField("honeycomb.parent_id", parentID(c))
 	addField("honeycomb.span_id", spanID(c))
-}
-
-type traceEventMarker struct{}
-
-func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
-	addField("event_name", "trace")
 }

@@ -99,7 +99,14 @@ import (
 	"net/http"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/metrics"
 )
+
+type Option func(s *settings) error
+
+type settings struct {
+	providers manyProviders
+}
 
 // nolint:gochecknoglobals
 var defaultTracer = &tracer{}
@@ -116,7 +123,17 @@ func StartTracing(serviceName string) error {
 //
 // This needs to be called before sending any traces
 // otherwise they will not be published.
-func InitTracer(ctx context.Context, serviceName string) error {
+func InitTracer(ctx context.Context, serviceName string, opts ...Option) error {
+	var s settings
+	for _, opt := range opts {
+		if err := opt(&s); err != nil {
+			return err
+		}
+	}
+	if len(s.providers) == 0 {
+		s.providers = append(s.providers, &defaultCallLogger{}, &metrics.TraceProvider{})
+	}
+	providers = s.providers
 	return defaultTracer.initTracer(ctx, serviceName)
 }
 

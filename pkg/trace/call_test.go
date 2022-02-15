@@ -257,6 +257,9 @@ func TestReportLatencyMetrics(t *testing.T) {
 
 	ctx := context.Background()
 
+	assert.NilError(t, trace.InitTracer(ctx, "gobox"))
+	defer trace.EndTracing()
+
 	httpCall := func(ctx context.Context) error {
 		ctx = trace.StartCall(ctx, "test", trace.AsHTTPCall())
 		defer trace.EndCall(ctx)
