@@ -16,7 +16,7 @@ arguments:
   dependencies:
     optional: []
     required: []
-  description: Open source general go functions
+  description: A collection of libraries that are useful for implementing Go services, libraries, and more.
   opslevel:
     confluenceSpaceKey: ""
     designDocumentLink: ""
