@@ -18,7 +18,6 @@ type OrgInfo struct {
 To specify the field name to log these as, we first need to annotate
 this:
 
-
 ```golang
 
 type OrgInfo struct
@@ -33,7 +32,6 @@ attributes](https://app.datadoghq.com/logs/pipelines/standard-attributes)),
 we can use
 [logger](https://github.com/getoutreach/gobox/tree/master/tools/logger)
 to generate the `MarshalLog` method:
-
 
 ```bash
 
@@ -61,11 +59,7 @@ Once the following line is added to **one go file** in a directory,
 all structs which have `log:"..."` annotations will automatically have
 their corresponding marshalers generated when `go generate` is run.
 
-
     //go:generate go run github.com/getoutreach/gobox/tools/logger -output marshalers.go
-
 
 Note that `go generate` can be run from the root of the project via
 `go generate ./...`.
-
-

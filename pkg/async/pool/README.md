@@ -1,32 +1,31 @@
 Goroutine worker pool structure
 
-Universal structure for controlling the right level of concurrency. Excessive spawning of goroutines might lead to resource exhaustion or slowing down due to heavy context switching. 
+Universal structure for controlling the right level of concurrency. Excessive spawning of goroutines might lead to resource exhaustion or slowing down due to heavy context switching.
 
 You might think that Go routines are relatively cheap, but they are not for free. So choosing the right level of concurrency might help to improve overall performance and throughput of the system. See the benchmarks.
 
-Something you might not realize when migrating from ruby. For example, every Http request in GO operates in goroutine already. There is no default limit on how many of these can be spawned (Possibly limit of opened descriptors, ports, etc). Under the DDOS or heavy request rate system will linearly slow down due to context switching. Ruby server in opposite usually runs with a fixed number of threads. If not a thread is available in the specified interval you are getting a timeout. 
+Something you might not realize when migrating from ruby. For example, every Http request in GO operates in goroutine already. There is no default limit on how many of these can be spawned (Possibly limit of opened descriptors, ports, etc). Under the DDOS or heavy request rate system will linearly slow down due to context switching. Ruby server in opposite usually runs with a fixed number of threads. If not a thread is available in the specified interval you are getting a timeout.
 
 Also, the pool prevents the application from being killed by OOM killer due to higher memory consumption
 
-The library was developed for MailroomAPI and used to limit the number of concurrent calls to S3. When there was unbounded processing using just goroutines application got often killed by OOM killer under heavy load. 
+The library was developed for MailroomAPI and used to limit the number of concurrent calls to S3. When there was unbounded processing using just goroutines application got often killed by OOM killer under heavy load.
 
 https://github.com/getoutreach/mailroomapi/blob/master/internal/mailroomapi/storage/concurrent_message_reader.go
 
-I have bumped into that issue already in the past. Here is a nice article to read. 
+I have bumped into that issue already in the past. Here is a nice article to read.
 https://medium.com/smsjunk/handling-1-million-requests-per-minute-with-golang-f70ac505fcaa
 
 # Benchmarks
 
- Goal here is to process 10000 "cpu heavy" operations. 
+Goal here is to process 10000 "cpu heavy" operations.
 
-Benchmark | Description
--|-
-BenchmarkPureGo | Spawning goroutine for each task and waiting for all of them to finish.
-BenchmarkPool5-1000| Putting them into pool and processing just N items at once.
-
+| Benchmark           | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- |
+| BenchmarkPureGo     | Spawning goroutine for each task and waiting for all of them to finish. |
+| BenchmarkPool5-1000 | Putting them into pool and processing just N items at once.             |
 
 ```
-go test -benchmem -cpu 1,2,6 -run=^$ github.com/getoutreach/gobox/pkg/async/pool -v -bench '^Benchmark' 
+go test -benchmem -cpu 1,2,6 -run=^$ github.com/getoutreach/gobox/pkg/async/pool -v -bench '^Benchmark'
 goos: linux
 goarch: amd64
 pkg: github.com/getoutreach/gobox/pkg/async/pool
@@ -47,10 +46,11 @@ ok  	github.com/getoutreach/gobox/pkg/async/pool	28.360s
 
 # Insides
 
-- Currently structure utilize standard go channels that are more universal. 
+- Currently structure utilize standard go channels that are more universal.
 - "Pool of workers" allow you to timeout without item being enqueued in opposite to pure "worker pool".
 
 ## Example
+
 ```go
 package main
 
