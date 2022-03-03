@@ -8,8 +8,8 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.2
-	github.com/google/go-cmp v0.5.6
-	github.com/google/go-github/v34 v34.0.0
+	github.com/google/go-cmp v0.5.7
+	github.com/google/go-github/v43 v43.0.0
 	github.com/honeycombio/beeline-go v1.4.1
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/manifoldco/promptui v0.9.0
@@ -48,7 +48,7 @@ require (
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/honeycombio/libhoney-go v1.15.8 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
