@@ -1,5 +1,5 @@
-
 # gobox
+
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/gobox)
 [![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
 
@@ -12,7 +12,9 @@ Please read the [CONTRIBUTING.md](CONTRIBUTING.md) document for guidelines on de
 ## High-level Overview
 
 <!--- Block(overview) -->
+
 Please see individual packages in the generated documentation for overviews on each.
+
 ## Go idioms
 
 ### Standard idioms
@@ -24,11 +26,11 @@ comments](https://github.com/golang/go/wiki/CodeReviewComments),
 
 ### Log errors with events.NewErrorInfo
 
-When logging errors, use `log.Debug(ctx, "some debug event", events.NewErrorInfo(err))` instead of using `log.F{"error": err}`.  [NewErrorInfo](https://github.com/getoutreach/gobox/blob/master/docs/events.md) logs errors using outreach naming conventions and also takes care of logging stack traces.
+When logging errors, use `log.Debug(ctx, "some debug event", events.NewErrorInfo(err))` instead of using `log.F{"error": err}`. [NewErrorInfo](https://github.com/getoutreach/gobox/blob/master/docs/events.md) logs errors using outreach naming conventions and also takes care of logging stack traces.
 
 ### Do not use context.WithValue
 
-Context is often abused for thread local state.  There are very few legitimate uses for this ([tracing](https://github.com/getoutreach/gobox/blob/master/docs/trace.md) is one of those).
+Context is often abused for thread local state. There are very few legitimate uses for this ([tracing](https://github.com/getoutreach/gobox/blob/master/docs/trace.md) is one of those).
 
 ### Do not use fmt.PrintXXX or the standard log package
 
@@ -44,8 +46,8 @@ Do not use the following pattern:
 ```
 
 The first arg of `log.XXX` calls should be a literal string so we can
-quickly find out where a log message comes from.  The rest of the args
-can hold any structured data we want.  The
+quickly find out where a log message comes from. The rest of the args
+can hold any structured data we want. The
 [events](https://github.com/getoutreach/gobox/blob/master/docs/events.md)
 package exposes a few common logging structures.
 
@@ -69,6 +71,7 @@ const (
   Acetaminophen = Paracetamol
 )
 ```
+
 running `go generate ./...` from the root of the repo will create the
 file pill_string.go, in package painkiller, containing a definition of
 `func (Pill) String() string` which can be used to get the string
