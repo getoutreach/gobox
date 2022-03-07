@@ -53,7 +53,6 @@ package tester
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime"
@@ -300,7 +299,7 @@ func (t *tester) Skipped() bool {
 func (t *tester) TempDir() string {
 	// see https://golang.org/src/testing/testing.go?s=28272:28314#L905
 	pattern := strings.NewReplacer("/", "_", "\\", "_", ":", "_").Replace(t.Name())
-	dir, err := ioutil.TempDir("", pattern)
+	dir, err := os.MkdirTemp("", pattern)
 	if err != nil {
 		t.Fatalf("TempDir: %v", err)
 	}

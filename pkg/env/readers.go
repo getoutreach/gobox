@@ -5,7 +5,7 @@ package env
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/user"
 	"path/filepath"
 
@@ -35,7 +35,7 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
 		errors := make([]error, 0)
 		for _, p := range lookupPaths {
 			var err error
-			b, err = ioutil.ReadFile(p)
+			b, err = os.ReadFile(p)
 			if err != nil {
 				errors = append(errors, err)
 				continue

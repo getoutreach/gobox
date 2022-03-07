@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -101,7 +100,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 
 	if !forceCheck {
 		// check the last time we updated
-		if b, err2 := ioutil.ReadFile(updateCheckPath); err2 == nil {
+		if b, err2 := os.ReadFile(updateCheckPath); err2 == nil {
 			var last *LastUpdateCheck
 			err2 = yaml.Unmarshal(b, &last)
 			if err2 == nil {
@@ -121,7 +120,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		// This token is not safe for usage, it will be logged if accidentally
 		// set to be logged. DO NOT USE. Use `token` instead.
 		var unsafeToken string
-		if b, err2 := ioutil.ReadFile(tokenPath); err2 != nil {
+		if b, err2 := os.ReadFile(tokenPath); err2 != nil {
 			unsafeToken, err2 = saveNewToken(log, tokenPath)
 			if err2 != nil {
 				log.WithError(err2).Warn("failed to persist token to disk, we will ask for it again")
@@ -147,7 +146,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 
 	// write that we checked for updates
 	if b, err2 := yaml.Marshal(&last); err2 == nil {
-		err2 = ioutil.WriteFile(updateCheckPath, b, 0600)
+		err2 = os.WriteFile(updateCheckPath, b, 0600)
 		if err2 != nil {
 			log.WithError(err2).Warn("failed to write update metadata")
 		}
@@ -226,7 +225,7 @@ func saveNewToken(log logrus.FieldLogger, tokenPath string) (string, error) {
 		return "", errors.Wrapf(err, "failed to create token dir '%v'", tokenPath)
 	}
 
-	err = ioutil.WriteFile(tokenPath, []byte(token), 0600)
+	err = os.WriteFile(tokenPath, []byte(token), 0600)
 	if err != nil {
 		log.WithError(err).Warn("failed to save github access token into keyring")
 	}

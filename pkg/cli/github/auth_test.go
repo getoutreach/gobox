@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/getoutreach/gobox/pkg/github"
+	"github.com/getoutreach/gobox/pkg/cli/github"
 	"gotest.tools/v3/assert"
 )
 

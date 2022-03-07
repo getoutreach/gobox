@@ -70,7 +70,7 @@
 package cfg
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -86,7 +86,7 @@ var defaultReader = Reader(func(fileName string) ([]byte, error) {
 		name = "C:" + filepath.FromSlash(name)
 	}
 
-	return ioutil.ReadFile(name)
+	return os.ReadFile(name)
 })
 
 // Reader reads the config from the provided file

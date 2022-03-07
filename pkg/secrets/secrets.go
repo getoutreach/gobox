@@ -11,7 +11,7 @@ package secrets
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -48,7 +48,7 @@ func SetDevLookup(lookup func(context.Context, string) ([]byte, error)) func(con
 // Use MustConfig if a config is required, particularly on app init.
 func Config(ctx context.Context, filePath string) (string, error) {
 	readFilePath := TryMapWindowsKeys(filePath)
-	result, err := ioutil.ReadFile(readFilePath)
+	result, err := os.ReadFile(readFilePath)
 	if err != nil && devLookup != nil {
 		result, err = devLookup(ctx, filePath)
 	}

@@ -3,7 +3,6 @@ package tester_test
 import (
 	"github.com/getoutreach/gobox/pkg/tester"
 
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -178,7 +177,7 @@ func testTempDir(t tester.T) {
 	if !fi.IsDir() {
 		t.Errorf("dir %q is not a dir", dir)
 	}
-	fis, err := ioutil.ReadDir(dir)
+	fis, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

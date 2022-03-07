@@ -2,7 +2,7 @@ package box
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -143,7 +143,7 @@ func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
 	a := sshhelper.GetSSHAgent()
 
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
-	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: ioutil.Discard})
+	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load Github SSH key into in-memory keyring")
 	}
@@ -188,7 +188,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 		return err
 	}
 
-	return ioutil.WriteFile(confPath, b, 0600)
+	return os.WriteFile(confPath, b, 0600)
 }
 
 // InitializeBox prompts the user for a box config location,
