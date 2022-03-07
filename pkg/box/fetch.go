@@ -46,11 +46,17 @@ func LoadBox() (*Config, error) {
 }
 
 // ApplyEnvOverrides overrides a box configuration based on env vars.
-// This should really only be used for things that need to be overridden
-// on runtime, e.g. CI
 func ApplyEnvOverrides(s *Config) {
 	if vaultAddr := os.Getenv("VAULT_ADDR"); vaultAddr != "" {
 		s.DeveloperEnvironmentConfig.VaultConfig.Address = vaultAddr
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		s.AWS.DefaultProfile = profile
+	}
+
+	if role := os.Getenv("AWS_ROLE"); role != "" {
+		s.AWS.DefaultRole = role
 	}
 }
 

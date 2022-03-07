@@ -22,6 +22,17 @@ const (
 	Version float32 = 2
 )
 
+// AWSConfig configures AWS access for tools that support it
+type AWSConfig struct {
+	// DefaultRole is the default role to assume when communicating
+	// with AWS.
+	DefaultRole string `yaml:"defaultRole"`
+
+	// DefaultProfile is the default profile to use when communcating
+	// with AWS.
+	DefaultProfile string `yaml:"defaultProfile"`
+}
+
 type DeveloperEnvironmentConfig struct {
 	// SnapshotConfig is the snapshot configuration for the devenv
 	SnapshotConfig SnapshotConfig `yaml:"snapshots"`
@@ -101,6 +112,9 @@ type Config struct {
 
 	// DeveloperEnvironmentConfig is the configuration for the developer environment for this box
 	DeveloperEnvironmentConfig DeveloperEnvironmentConfig `yaml:"devenv"`
+
+	// AWS is the configuration for communicating with AWS.
+	AWS AWSConfig `yaml:"aws"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
@@ -201,6 +215,7 @@ type SnapshotLockList struct {
 type SnapshotLock struct {
 	// Version is the version of this configuration, used for breaking changes
 	Version int `yaml:"version"`
+
 	// GeneratedAt is when this lock was generated
 	GeneratedAt time.Time `yaml:"generatedAt"`
 
