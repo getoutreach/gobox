@@ -317,9 +317,9 @@ func getMetricsInfo(t *testing.T) []map[string]interface{} {
 				info := map[string]interface{}{
 					"name":         metricFamily.GetName(),
 					"help":         metricFamily.GetHelp(),
-					"type":         fmt.Sprint(metricFamily.GetType()),
+					"type":         metricFamily.GetType().String(),
 					"label":        fmt.Sprint(metric.GetLabel()),
-					"summary":      fmt.Sprint(metric.GetSummary()),
+					"summary":      metric.GetSummary().String(),
 					"sample count": metric.GetHistogram().GetSampleCount(),
 					"bucket":       fmt.Sprint(metric.GetHistogram().GetBucket()),
 				}

@@ -31,6 +31,7 @@ package async
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -66,7 +67,7 @@ func (t *Tasks) Run(ctx context.Context, r Runner) {
 		defer t.WaitGroup.Done()
 		ctx2 := trace.StartTrace(ctx, t.Name)
 		defer trace.End(ctx2)
-		if err := r.Run(ctx2); err != nil && err != ctx2.Err() {
+		if err := r.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error(ctx2, t.Name, events.NewErrorInfo(err))
 		}
 	}()
@@ -78,7 +79,7 @@ func (t *Tasks) Loop(ctx context.Context, r Runner) {
 	run := func(ctx context.Context) bool {
 		ctx2 := trace.StartTrace(ctx, t.Name)
 		defer trace.End(ctx2)
-		if err := r.Run(ctx2); err != nil && err != ctx2.Err() {
+		if err := r.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error(ctx2, t.Name, events.NewErrorInfo(err))
 			return true
 		}

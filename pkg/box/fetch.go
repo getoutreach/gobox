@@ -183,12 +183,12 @@ func SaveBox(_ context.Context, s *Storage) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(confPath), 0755)
+	err = os.MkdirAll(filepath.Dir(confPath), 0o755)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(confPath, b, 0600)
+	return os.WriteFile(confPath, b, 0o600)
 }
 
 // InitializeBox prompts the user for a box config location,

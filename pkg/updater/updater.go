@@ -92,7 +92,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	updateCheckPath := filepath.Join(homedir, ".outreach", ".updater", org, repoName+".yaml")
 	tokenPath := filepath.Join(homedir, ".outreach", "github.token")
 
-	err = os.MkdirAll(filepath.Dir(updateCheckPath), 0755)
+	err = os.MkdirAll(filepath.Dir(updateCheckPath), 0o755)
 	if err != nil {
 		log.WithError(err).Error("failed to create update metadata storage directory")
 		return false
@@ -134,7 +134,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 
 	g := NewGithubUpdater(ctx, token, org, repoName)
 	r, err := g.GetLatestVersion(ctx, version, includePrereleases)
-	if err != nil && err != ErrNoNewRelease {
+	if err != nil && !errors.Is(err, ErrNoNewRelease) {
 		log.WithError(err).Warn("failed to check for updates")
 		return false
 	}
@@ -146,7 +146,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 
 	// write that we checked for updates
 	if b, err2 := yaml.Marshal(&last); err2 == nil {
-		err2 = os.WriteFile(updateCheckPath, b, 0600)
+		err2 = os.WriteFile(updateCheckPath, b, 0o600)
 		if err2 != nil {
 			log.WithError(err2).Warn("failed to write update metadata")
 		}
@@ -155,7 +155,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	}
 
 	// return here so that we were able to write that we found no new updates
-	if err == ErrNoNewRelease {
+	if errors.Is(err, ErrNoNewRelease) {
 		return false
 	}
 
@@ -220,12 +220,12 @@ func saveNewToken(log logrus.FieldLogger, tokenPath string) (string, error) {
 		return "", errors.Wrap(err, "failed to get user input")
 	}
 
-	err = os.MkdirAll(filepath.Dir(tokenPath), 0755)
+	err = os.MkdirAll(filepath.Dir(tokenPath), 0o755)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create token dir '%v'", tokenPath)
 	}
 
-	err = os.WriteFile(tokenPath, []byte(token), 0600)
+	err = os.WriteFile(tokenPath, []byte(token), 0o600)
 	if err != nil {
 		log.WithError(err).Warn("failed to save github access token into keyring")
 	}

@@ -257,7 +257,7 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 	// The url returned from SelectAsset has auth in it.
 	// That endpoint doesn't allow double auth, and so we don't send the bearer token.
 	// Instead, we use the default http client with no auth on every request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", func() {}, errors.Wrapf(err, "failed to create HTTP request to '%s'", url)
 	}
@@ -272,7 +272,7 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 	}
 
 	tmpDir := filepath.Join(os.TempDir(), "updater", strings.ReplaceAll(time.Now().Format(time.RFC3339Nano), ":", "_"))
-	err = os.MkdirAll(tmpDir, 0755)
+	err = os.MkdirAll(tmpDir, 0o755)
 	if err != nil {
 		return "", func() {}, errors.Wrap(err, "failed to make temp directory")
 	}
@@ -298,7 +298,7 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 		)
 		_, err = io.Copy(io.MultiWriter(f, bar), resp.Body)
 	}
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", cleanupFn, err
 	}
 	trace.EndCall(traceCtx)
@@ -319,7 +319,7 @@ func (g *Github) processArchive(ctx context.Context, file, tmpDir, execName stri
 		defer f.Close()
 
 		storageDir := filepath.Join(tmpDir, strings.TrimSuffix(asset.GetName(), ".tar.gz"))
-		err = os.MkdirAll(storageDir, 0755)
+		err = os.MkdirAll(storageDir, 0o755)
 		if err != nil {
 			return "", err
 		}
@@ -399,7 +399,7 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 		)
 		_, err = io.Copy(io.MultiWriter(targetFile, bar), srcFile) //nolint:gosec // wtaf?
 	}
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 
@@ -411,7 +411,7 @@ func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.
 	for ctx.Err() == nil {
 		header, err := archive.Next()
 
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil, 0, ErrMissingFile
 		} else if err != nil {
 			return nil, 0, err

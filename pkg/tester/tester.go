@@ -291,7 +291,7 @@ func (t *tester) Failed() bool {
 // Skipped implementse testing.TB.Skipped.
 func (t *tester) Skipped() bool {
 	t.mu.Lock()
-	defer t.mu.Unlock() //nolint: unnecessaryDefer
+	defer t.mu.Unlock()
 	return t.skipped
 }
 
@@ -341,6 +341,8 @@ func (t *tester) complete() {
 	defer close(t.completed)
 	for _, cleanup := range cleanups {
 		cleanup := cleanup
+
+		//nolint:gocritic // Why: Will refactor
 		defer cleanup()
 	}
 }

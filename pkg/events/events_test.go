@@ -15,7 +15,7 @@ import (
 type eventsSuite struct{}
 
 func (eventsSuite) TestHTTPRequest(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://localhost/myendpoint", nil)
+	req, err := http.NewRequest("GET", "http://localhost/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected err", err)
 	}

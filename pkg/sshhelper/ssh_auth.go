@@ -49,16 +49,16 @@ func GetPasswordInput() (string, error) {
 func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string, error) {
 	sshFile, err := sshconfig.Get(context.TODO(), host, "IdentityFile")
 	if sshFile == "" || err != nil {
-		return "", fmt.Errorf("failed to find an IdentityFile for host '%s' in ssh config, error: %v", host, err)
+		return "", errors.Wrapf(err, "failed to find an IdentityFile for host %q in ssh config", host)
 	}
 
 	sshFile, err = homedir.Expand(sshFile)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to expand ~/ in ssh IdentityFile path for host '%s'", host)
+		return "", errors.Wrapf(err, "failed to expand ~/ in ssh IdentityFile path for host %q", host)
 	}
 
 	if !filepath.IsAbs(sshFile) {
-		return "", fmt.Errorf("returned IdentityFile is not an absolute path for host '%s'", host)
+		return "", fmt.Errorf("returned IdentityFile is not an absolute path for host %q", host)
 	}
 
 	return sshFile, AddKeyToAgent(sshFile, a, log)

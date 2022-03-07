@@ -16,7 +16,7 @@ func TestJSONDecoder(t *testing.T) {
 	err := json.NewDecoder(strings.NewReader("          foo")).Decode(&v)
 
 	// Confirm that the error has a error.json payload.
-	m, ok := err.(log.Marshaler)
+	m, ok := err.(log.Marshaler) //nolint:errorlint // Why: test
 	assert.Assert(t, ok && m != nil)
 	fields := log.F{}
 	m.MarshalLog(fields.Set)

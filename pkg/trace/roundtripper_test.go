@@ -27,7 +27,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
-	req, err := http.NewRequest("GET", state.Server.URL+"/myendpoint", nil)
+	req, err := http.NewRequest("GET", state.Server.URL+"/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}

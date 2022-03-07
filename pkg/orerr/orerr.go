@@ -145,7 +145,8 @@ func (r *retryable) Error() string {
 
 // MarshalLog proxies the MarshalLog call to the underlying error if it is a log.Marshaler.
 func (r *retryable) MarshalLog(addField func(field string, value interface{})) {
-	if m, ok := r.err.(log.Marshaler); ok {
+	var m log.Marshaler
+	if errors.As(r.err, &m) {
 		m.MarshalLog(addField)
 	}
 }
