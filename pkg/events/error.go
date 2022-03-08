@@ -131,7 +131,7 @@ func NewErrorInfo(err error) *ErrorInfo {
 	if err == nil {
 		return nil
 	}
-	custom, _ := err.(log.Marshaler)
+	custom, _ := err.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
 	info := ErrorInfo{
 		RawError: err,
 		Kind:     "error",
@@ -156,7 +156,7 @@ func nestInfo(err error) *nestedErrorInfo {
 	if err == nil {
 		return nil
 	}
-	custom, _ := err.(log.Marshaler)
+	custom, _ := err.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
 	info := nestedErrorInfo{
 		RawError: err,
 		Kind:     "cause",
@@ -192,7 +192,7 @@ func errStack(err error) []string {
 		StackTrace() errors.StackTrace
 	}
 
-	t, ok := err.(tracer)
+	t, ok := err.(tracer) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
 	if !ok {
 		return nil
 	}

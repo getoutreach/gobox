@@ -4,7 +4,6 @@ package sshhelper
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -50,16 +49,16 @@ func GetPasswordInput() (string, error) {
 func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string, error) {
 	sshFile, err := sshconfig.Get(context.TODO(), host, "IdentityFile")
 	if sshFile == "" || err != nil {
-		return "", fmt.Errorf("failed to find an IdentityFile for host '%s' in ssh config, error: %v", host, err)
+		return "", errors.Wrapf(err, "failed to find an IdentityFile for host %q in ssh config", host)
 	}
 
 	sshFile, err = homedir.Expand(sshFile)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to expand ~/ in ssh IdentityFile path for host '%s'", host)
+		return "", errors.Wrapf(err, "failed to expand ~/ in ssh IdentityFile path for host %q", host)
 	}
 
 	if !filepath.IsAbs(sshFile) {
-		return "", fmt.Errorf("returned IdentityFile is not an absolute path for host '%s'", host)
+		return "", fmt.Errorf("returned IdentityFile is not an absolute path for host %q", host)
 	}
 
 	return sshFile, AddKeyToAgent(sshFile, a, log)
@@ -88,14 +87,14 @@ func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
 // be found at the same path as the private key, it will first check the agent
 // and return nil if the key is already present
 func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { // nolint:funlen
-	b, err := ioutil.ReadFile(keyPath)
+	b, err := os.ReadFile(keyPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read private key")
 	}
 	// If a public key exists use it to check if the key-to-add already
 	// exists in the agent. If we can't find a public key we'll go ahead
 	// and move along as if it's not in the agent.
-	pubByts, err := ioutil.ReadFile(keyPath + ".pub")
+	pubByts, err := os.ReadFile(keyPath + ".pub")
 	if err == nil {
 		exists, err2 := pubKeyInAgent(a, pubByts)
 		if err2 != nil {

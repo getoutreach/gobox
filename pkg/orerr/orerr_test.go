@@ -20,6 +20,7 @@ func ExampleNew() {
 	err := orerr.New(origErr, orerr.WithInfo(info), orerr.WithRetry())
 
 	formatted := log.F{}
+	//nolint:errorlint // Why: test
 	err.(log.Marshaler).MarshalLog(formatted.Set)
 	fmt.Println("Err", err, orerr.IsRetryable(err), formatted)
 
@@ -80,6 +81,7 @@ func (suite) TestWithInfo(t *testing.T) {
 	assert.Equal(t, origErr, errors.Unwrap(err))
 
 	actual := log.F{}
+	//nolint:errorlint // Why: test
 	err.(log.Marshaler).MarshalLog(actual.Set)
 	expected := log.F{"hello": "goodbye", "foo": "bar"}
 	assert.DeepEqual(t, expected, actual)

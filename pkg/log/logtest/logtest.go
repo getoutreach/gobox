@@ -31,7 +31,7 @@ func NewLogRecorder(t *testing.T) *LogRecorder {
 }
 
 // LogRecorder holds the state
-type LogRecorder struct {
+type LogRecorder struct { //nolint:gocritic // Why: Will refactor in the future
 	*testing.T
 	oldOutput io.Writer
 	entries   []log.F

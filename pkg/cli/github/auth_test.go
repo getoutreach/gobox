@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/getoutreach/gobox/pkg/github"
+	"github.com/getoutreach/gobox/pkg/cli/github"
 	"gotest.tools/v3/assert"
 )
 
@@ -43,9 +43,9 @@ func Test_GetToken_outreachDirToken(t *testing.T) {
 	dummyValue := "i wanna be the very best"
 
 	oToken := filepath.Join(home, ".outreach", "github.token")
-	assert.NilError(t, os.MkdirAll(filepath.Dir(oToken), 0755),
+	assert.NilError(t, os.MkdirAll(filepath.Dir(oToken), 0o755),
 		"expected mkdir setup to succeed")
-	assert.NilError(t, os.WriteFile(oToken, []byte(dummyValue), 0755),
+	assert.NilError(t, os.WriteFile(oToken, []byte(dummyValue), 0o755),
 		"expected writing token setup to succeed")
 
 	token, err := github.GetToken()
@@ -63,9 +63,9 @@ func Test_GetToken_ghCLIToken(t *testing.T) {
 	fakeYAML := "github.com:\n  user: jaredallard\n  oauth_token: " + dummyValue
 
 	oToken := filepath.Join(home, ".config", "gh", "hosts.yml")
-	assert.NilError(t, os.MkdirAll(filepath.Dir(oToken), 0755),
+	assert.NilError(t, os.MkdirAll(filepath.Dir(oToken), 0o755),
 		"expected mkdir setup to succeed")
-	assert.NilError(t, os.WriteFile(oToken, []byte(fakeYAML), 0755),
+	assert.NilError(t, os.WriteFile(oToken, []byte(fakeYAML), 0o755),
 		"expected writing token setup to succeed")
 
 	token, err := github.GetToken()

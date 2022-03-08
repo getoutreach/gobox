@@ -17,7 +17,7 @@ func New() *Entries {
 }
 
 // Entries holds a limited size buffer of formatted debug entries
-type Entries struct {
+type Entries struct { //nolint:gocritic // Why: Will refactor in the future
 	sync.Mutex
 	items []item
 }

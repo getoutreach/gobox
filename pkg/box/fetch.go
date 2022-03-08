@@ -2,7 +2,7 @@ package box
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -46,11 +46,17 @@ func LoadBox() (*Config, error) {
 }
 
 // ApplyEnvOverrides overrides a box configuration based on env vars.
-// This should really only be used for things that need to be overridden
-// on runtime, e.g. CI
 func ApplyEnvOverrides(s *Config) {
 	if vaultAddr := os.Getenv("VAULT_ADDR"); vaultAddr != "" {
 		s.DeveloperEnvironmentConfig.VaultConfig.Address = vaultAddr
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		s.AWS.DefaultProfile = profile
+	}
+
+	if role := os.Getenv("AWS_ROLE"); role != "" {
+		s.AWS.DefaultRole = role
 	}
 }
 
@@ -137,7 +143,7 @@ func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
 	a := sshhelper.GetSSHAgent()
 
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
-	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: ioutil.Discard})
+	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load Github SSH key into in-memory keyring")
 	}
@@ -177,12 +183,12 @@ func SaveBox(_ context.Context, s *Storage) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(confPath), 0755)
+	err = os.MkdirAll(filepath.Dir(confPath), 0o755)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(confPath, b, 0600)
+	return os.WriteFile(confPath, b, 0o600)
 }
 
 // InitializeBox prompts the user for a box config location,

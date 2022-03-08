@@ -54,7 +54,7 @@ type Funcs []*func()
 func (f *Funcs) Run() {
 	for _, ff := range *f {
 		if (*ff) != nil {
-			defer (*ff)()
+			defer (*ff)() //nolint:gocritic // Why: intentional usage of defer here
 		}
 	}
 }
