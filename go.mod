@@ -10,7 +10,7 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-github/v43 v43.0.0
-	github.com/honeycombio/beeline-go v1.4.1
+	github.com/honeycombio/beeline-go v1.7.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
