@@ -30,24 +30,36 @@ type region struct {
 
 // Duration hits the attached region's endpoint and returns how long it took
 // to do a HEAD request.
-func (r *region) Duration(ctx context.Context) (time.Duration, error) {
-	dur, ok := cache.Get(r.Cloud, r.Name)
-	if ok {
-		return dur, nil
+func (r *region) Duration(ctx context.Context, averageOf int) (time.Duration, error) {
+	if _, ok := cache.Get(r.Cloud, r.Name); ok {
+		return 0, nil
 	}
 
-	startTime := time.Now()
-	resp, err := http.Head(r.Endpoint) //nolint:gosec // Why: not really variable
-	// we don't care about HTTP status here, we're just determining network latency
-	if err != nil {
-		return 0, err
+	var secondsSummation float64
+	fastest := time.Hour * 24 // Default this to a day so we can make ">" checks on it.
+
+	for i := 0; i < averageOf; i++ {
+		startTime := time.Now()
+
+		resp, err := http.Head(r.Endpoint) //nolint:gosec // Why: not really variable
+		// we don't care about HTTP status here, we're just determining network latency
+		if err != nil {
+			return 0, err
+		}
+		latency := time.Since(startTime)
+
+		// Close the body, swallow the error.
+		resp.Body.Close() //nolint:errcheck // Why: We don't care.
+
+		secondsSummation += latency.Seconds()
+		if fastest > latency {
+			fastest = latency
+		}
 	}
-	resp.Body.Close()
-	dur = time.Since(startTime)
 
-	cache.Set(r.Cloud, r.Name, dur) //nolint:errcheck // Why: don't need to handle errors
+	cache.Set(r.Cloud, r.Name, fastest) //nolint:errcheck // Why: don't need to handle errors
 
-	return dur, nil
+	return time.Second * time.Duration(secondsSummation/float64(averageOf)), nil
 }
 
 // Regions is a list of regions
@@ -76,7 +88,7 @@ func (regions Regions) Nearest(ctx context.Context, logger logrus.FieldLogger) (
 	var bestRegion Name
 
 	for _, r := range regions {
-		dur, err := r.Duration(ctx)
+		dur, err := r.Duration(ctx, 5)
 		if err != nil {
 			if logger != nil {
 				logger.WithError(err).WithField("cloud", r.Cloud).
