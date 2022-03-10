@@ -31,13 +31,11 @@ type region struct {
 // Duration hits the attached region's endpoint and returns how long it took
 // to do a HEAD request.
 func (r *region) Duration(ctx context.Context, averageOf int) (time.Duration, error) {
-	if _, ok := cache.Get(r.Cloud, r.Name); ok {
-		return 0, nil
+	if dur, ok := cache.Get(r.Cloud, r.Name); ok {
+		return dur, nil
 	}
 
 	var secondsSummation float64
-	fastest := time.Hour * 24 // Default this to a day so we can make ">" checks on it.
-
 	for i := 0; i < averageOf; i++ {
 		startTime := time.Now()
 
@@ -52,14 +50,12 @@ func (r *region) Duration(ctx context.Context, averageOf int) (time.Duration, er
 		resp.Body.Close() //nolint:errcheck // Why: We don't care.
 
 		secondsSummation += latency.Seconds()
-		if fastest > latency {
-			fastest = latency
-		}
 	}
 
-	cache.Set(r.Cloud, r.Name, fastest) //nolint:errcheck // Why: don't need to handle errors
+	avg := time.Second * time.Duration(secondsSummation/float64(averageOf))
+	cache.Set(r.Cloud, r.Name, avg) //nolint:errcheck // Why: don't need to handle errors
 
-	return time.Second * time.Duration(secondsSummation/float64(averageOf)), nil
+	return avg, nil
 }
 
 // Regions is a list of regions
