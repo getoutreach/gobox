@@ -136,6 +136,8 @@ func RunClose(ctx context.Context, r Runner) error {
 func RunGroup(rg []Runner) Runner {
 	ru := Func(func(ctx context.Context) error {
 		g, ctx := errgroup.WithContext(ctx)
+		ctx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
 		for idx := range rg {
 			r := rg[idx]
 			g.Go(func() error {
@@ -147,7 +149,7 @@ func RunGroup(rg []Runner) Runner {
 
 				err := r.Run(ctx)
 				if err != nil {
-					<-ctx.Done()
+					cancelFunc()
 				}
 				return err
 			})
