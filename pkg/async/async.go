@@ -32,9 +32,11 @@ package async
 import (
 	"context"
 	"errors"
+	"io"
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/getoutreach/gobox/pkg/events"
@@ -45,6 +47,11 @@ import (
 // Runner is the default interface for a runner function
 type Runner interface {
 	Run(ctx context.Context) error
+}
+
+// Closer is the interface for closing a runner function. Implement this for cleaning up things.
+type Closer interface {
+	Close(ctx context.Context) error
 }
 
 // Tasks runs tasks
@@ -112,6 +119,42 @@ func Run(ctx context.Context, r Runner) {
 // It creates a new trace for the task and passes through deadlines.
 func RunBackground(ctx context.Context, r Runner) {
 	Run(context.Background(), r)
+}
+
+// RunClose closes any references a runner might be using
+func RunClose(ctx context.Context, r Runner) error {
+	switch r := r.(type) {
+	case Closer:
+		return r.Close(ctx)
+	case io.Closer:
+		return r.Close()
+	}
+	return nil
+}
+
+// RunGroup runs a group of runner tasks and exits when the first run group errors out
+func RunGroup(rg []Runner) Runner {
+	ru := Func(func(ctx context.Context) error {
+		g, ctx := errgroup.WithContext(ctx)
+		for idx := range rg {
+			r := rg[idx]
+			g.Go(func() error {
+				defer func() {
+					if err := RunClose(ctx, r); err != nil {
+						log.Error(ctx, "Error when closing:", events.NewErrorInfo(err))
+					}
+				}()
+
+				err := r.Run(ctx)
+				if err != nil {
+					<-ctx.Done()
+				}
+				return err
+			})
+		}
+		return g.Wait()
+	})
+	return ru
 }
 
 // Loop repeatedly executes the provided task until it returns false

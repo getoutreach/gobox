@@ -20,6 +20,34 @@ func TestAll(t *testing.T) {
 
 type suite struct{}
 
+type runWithCloser struct {
+	isclosed bool
+}
+
+func (r *runWithCloser) Run(c context.Context) error {
+	for {
+		if c.Err() != nil {
+			return c.Err()
+		}
+	}
+}
+func (r *runWithCloser) Close(c context.Context) error {
+	r.isclosed = true
+	return nil
+}
+
+func (suite) TestRunGroupErrorPropagation(t *testing.T) {
+	ctx := context.Background()
+	r1 := async.Func(func(c context.Context) error {
+		return fmt.Errorf("oh no")
+	})
+	r2 := runWithCloser{}
+	aggr := async.RunGroup([]async.Runner{&r1, &r2})
+	err := aggr.Run(ctx)
+	assert.ErrorContains(t, err, "oh no")
+	assert.Equal(t, r2.isclosed, true, "Closed the infinite loop correctly")
+}
+
 func (suite) TestRunCancelPropagation(t *testing.T) {
 	trlogs := tracetest.NewTraceLog()
 	defer trlogs.Close()
