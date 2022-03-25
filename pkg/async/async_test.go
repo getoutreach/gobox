@@ -26,6 +26,7 @@ type runWithCloser struct {
 
 func (r *runWithCloser) Run(c context.Context) error {
 	for {
+		time.Sleep(time.Second)
 		if c.Err() != nil {
 			return c.Err()
 		}
