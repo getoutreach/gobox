@@ -28,7 +28,8 @@ type lastUpdateCheck struct {
 	CheckEvery time.Duration `yaml:"checkEvery"`
 }
 
-// userConfig us user configuration for checking for updates
+// userConfig us user configuration for checking for updates for a given
+// repository
 type userConfig struct {
 	// AlwaysUsePrereleases instructs the updater to always consider prereleases
 	AlwaysUsePrereleases bool `yaml:"alwaysUsePrereleases"`
@@ -82,8 +83,9 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		log.WithError(err).Warn("failed to get user's home directory")
 		return false
 	}
-	configDir := filepath.Join(homedir, ".outreach", ".updater")
-	updateCheckPath := filepath.Join(configDir, org, repoName+".yaml")
+	cacheDir := filepath.Join(homedir, ".outreach", ".cache", ".updater")
+	configDir := filepath.Join(homedir, ".outreach", ".config", repo)
+	updateCheckPath := filepath.Join(cacheDir, org, repoName+".yaml")
 
 	if userConf, err := readConfig(configDir); err == nil {
 		if userConf.AlwaysUsePrereleases {
@@ -179,7 +181,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 
 // readConfig reads the user's configuration from a well-known path
 func readConfig(configDir string) (userConfig, error) {
-	configPath := filepath.Join(configDir, "config.yaml")
+	configPath := filepath.Join(configDir, "updater.yaml")
 	f, err := os.Open(configPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return userConfig{}, nil
