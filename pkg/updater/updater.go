@@ -1,34 +1,35 @@
 package updater
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
-	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/cli/github"
+	gogithub "github.com/google/go-github/v43/github"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v2"
 )
 
-type LastUpdateCheck struct {
+// lastUpdateCheck is information about the last time we checked for updates.
+type lastUpdateCheck struct {
 	Date       time.Time     `yaml:"date"`
 	CheckEvery time.Duration `yaml:"checkEvery"`
 }
 
-func GetUserInput() (string, error) {
-	reader := bufio.NewReader(os.Stdin) //create new reader, assuming bufio imported
-	return reader.ReadString('\n')
+// userConfig us user configuration for checking for updates
+type userConfig struct {
+	// AlwaysUsePrereleases instructs the updater to always consider prereleases
+	AlwaysUsePrereleases bool `yaml:"alwaysUsePrereleases"`
 }
 
 // `NeedsUpdate` reads a GitHub token from `~/.outreach/github.token`. If it can't,
@@ -54,29 +55,20 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		return false
 	}
 
-	// Never update when device is not a terminal
-	if !forceCheck && !term.IsTerminal(int(os.Stdin.Fd())) {
+	// Never update when device is not a terminal, or when in a CI environment. However,
+	// we allow forceCheck to override this.
+	if !forceCheck && (!term.IsTerminal(int(os.Stdin.Fd())) || os.Getenv("CI") != "") {
 		return false
 	}
-
 	log = log.WithField("service", "updater")
 
 	if repo == "" {
-		info, ok := debug.ReadBuildInfo()
-		if !ok {
-			log.Warn("failed to read build info, was this built with go modules?")
+		r, err := getRepoFromBuild()
+		if err != nil {
+			log.WithError(err).Error("failed to determine which repository build this module")
 			return false
 		}
-
-		repoName := strings.TrimPrefix(info.Main.Path, "github.com/")
-		repoSplit := strings.Split(repoName, "/")
-
-		if len(repoSplit) < 2 {
-			log.Warn("failed to parse repository name ", repoName)
-			return false
-		}
-
-		repo = fmt.Sprintf("%s/%s", repoSplit[0], repoSplit[1])
+		repo = r
 	}
 
 	split := strings.Split(repo, "/")
@@ -88,12 +80,18 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		log.WithError(err).Warn("failed to get user's home directory")
 		return false
 	}
+	configDir := filepath.Join(homedir, ".outreach", ".updater")
+	updateCheckPath := filepath.Join(configDir, org, repoName+".yaml")
 
-	updateCheckPath := filepath.Join(homedir, ".outreach", ".updater", org, repoName+".yaml")
-	tokenPath := filepath.Join(homedir, ".outreach", "github.token")
+	if userConf, err := readConfig(configDir); err == nil {
+		if userConf.AlwaysUsePrereleases {
+			includePrereleases = true
+		}
+	} else {
+		log.WithError(err).Warn("failed to read user config")
+	}
 
-	err = os.MkdirAll(filepath.Dir(updateCheckPath), 0o755)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(updateCheckPath), 0o755); err != nil {
 		log.WithError(err).Error("failed to create update metadata storage directory")
 		return false
 	}
@@ -101,9 +99,8 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	if !forceCheck {
 		// check the last time we updated
 		if b, err2 := os.ReadFile(updateCheckPath); err2 == nil {
-			var last *LastUpdateCheck
-			err2 = yaml.Unmarshal(b, &last)
-			if err2 == nil {
+			var last *lastUpdateCheck
+			if err := yaml.Unmarshal(b, &last); err == nil {
 				// if we're not past the last update thereshold
 				// then we don't check for updates
 				if !time.Now().After(last.Date.Add(last.CheckEvery)) {
@@ -115,43 +112,31 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		}
 	}
 
-	token, err := ghcliToken(ctx, log)
+	gh, err := github.NewClient()
 	if err != nil {
-		// This token is not safe for usage, it will be logged if accidentally
-		// set to be logged. DO NOT USE. Use `token` instead.
-		var unsafeToken string
-		if b, err2 := os.ReadFile(tokenPath); err2 != nil {
-			unsafeToken, err2 = saveNewToken(log, tokenPath)
-			if err2 != nil {
-				log.WithError(err2).Warn("failed to persist token to disk, we will ask for it again")
-			}
-		} else {
-			// we had no error, so process the token
-			unsafeToken = string(b)
-		}
-		token = cfg.SecretData(strings.TrimSpace(unsafeToken))
+		log.WithError(err).Warn("failed to create authenticated GitHub client")
+		gh = gogithub.NewClient(nil)
 	}
 
-	g := NewGithubUpdater(ctx, token, org, repoName)
+	g := NewGithubUpdaterWithClient(ctx, gh, org, repoName)
 	r, err := g.GetLatestVersion(ctx, version, includePrereleases)
 	if err != nil && !errors.Is(err, ErrNoNewRelease) {
 		log.WithError(err).Warn("failed to check for updates")
 		return false
 	}
 
-	last := &LastUpdateCheck{
+	last := &lastUpdateCheck{
 		Date:       time.Now(),
 		CheckEvery: 30 * time.Minute,
 	}
 
 	// write that we checked for updates
-	if b, err2 := yaml.Marshal(&last); err2 == nil {
-		err2 = os.WriteFile(updateCheckPath, b, 0o600)
-		if err2 != nil {
-			log.WithError(err2).Warn("failed to write update metadata")
+	if b, err := yaml.Marshal(&last); err == nil {
+		if err := os.WriteFile(updateCheckPath, b, 0o600); err != nil {
+			log.WithError(err).Warn("failed to write update metadata")
 		}
-	} else if err2 != nil {
-		log.WithError(err2).Warn("failed to marshal update metadata")
+	} else if err != nil {
+		log.WithError(err).Warn("failed to marshal update metadata")
 	}
 
 	// return here so that we were able to write that we found no new updates
@@ -165,7 +150,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		return false
 	}
 
-	log.Infof("Downloading update %v", r.GetTagName())
+	log.Infof("Downloading update %s", r.GetTagName())
 	newBinary, cleanupFunc, err := g.DownloadRelease(ctx, r, repoName, "")
 	defer cleanupFunc()
 	if err != nil {
@@ -173,7 +158,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		return false
 	}
 
-	log.Infof("Installing update (%v -> %v)", version, r.GetTagName())
+	log.Infof("Installing update (%s -> %s)", version, r.GetTagName())
 	err = g.ReplaceRunning(ctx, newBinary)
 	if err != nil && !errors.Is(err, &exec.ExitError{}) {
 		log.WithError(err).Error("failed to install update")
@@ -182,6 +167,40 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	return true
 }
 
+// readConfig reads the user's configuration from a well-known path
+func readConfig(configDir string) (userConfig, error) {
+	configPath := filepath.Join(configDir, "config.yaml")
+	f, err := os.Open(configPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return userConfig{}, err
+	}
+
+	var config userConfig
+	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
+		return userConfig{}, errors.Wrap(err, "failed to decode user config")
+	}
+
+	return config, nil
+}
+
+// getRepoFromBuild reads the repository from the embedded go module information
+func getRepoFromBuild() (string, error) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", fmt.Errorf("failed to read build info, was this built with go module support")
+	}
+
+	repoName := strings.TrimPrefix(info.Main.Path, "github.com/")
+	repoSplit := strings.Split(repoName, "/")
+
+	if len(repoSplit) < 2 {
+		return "", fmt.Errorf("failed to parse %v as a repository", repoName)
+	}
+
+	return path.Join(repoSplit[0], repoSplit[1]), nil
+}
+
+// handleMajorVersion prompts the user when a new major version is available
 func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVersion, newVersion, repo string) bool {
 	// we skip errors because the above logic already parsed these version strings
 	cver, err := semver.ParseTolerant(currentVersion)
@@ -208,48 +227,4 @@ func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVers
 	}
 
 	return shouldContinue
-}
-
-func saveNewToken(log logrus.FieldLogger, tokenPath string) (string, error) {
-	log.Infoln("We need a GitHub Personal Access Token in order to automatically update this tool.")
-	log.Infoln("Instructions: https://outreach-io.atlassian.net/wiki/spaces/EN/pages/784041501")
-	log.Infoln("Please enter your personal Github Access Token: ")
-
-	token, err := GetUserInput()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get user input")
-	}
-
-	err = os.MkdirAll(filepath.Dir(tokenPath), 0o755)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to create token dir '%v'", tokenPath)
-	}
-
-	err = os.WriteFile(tokenPath, []byte(token), 0o600)
-	if err != nil {
-		log.WithError(err).Warn("failed to save github access token into keyring")
-	}
-
-	return token, nil
-}
-
-func ghcliToken(ctx context.Context, log logrus.FieldLogger) (cfg.SecretData, error) {
-	cmd := exec.CommandContext(ctx, "gh", "auth", "status", "--show-token")
-	log.Debug("exec: gh auth status --show-token")
-	o, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	expToken := regexp.MustCompile(`Token: (\S+)$`)
-	s := bufio.NewScanner(bytes.NewReader(o))
-	for s.Scan() {
-		if !expToken.Match(s.Bytes()) {
-			continue
-		}
-
-		return cfg.SecretData(expToken.FindSubmatch(s.Bytes())[1]), nil
-	}
-
-	return "", errors.New("no token in gh auth status --show-token output")
 }
