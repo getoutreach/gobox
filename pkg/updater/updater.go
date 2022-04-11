@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	"github.com/briandowns/spinner"
+	"github.com/charmbracelet/glamour"
 	"github.com/getoutreach/gobox/pkg/cli/github"
 	gogithub "github.com/google/go-github/v43/github"
 	"github.com/pkg/errors"
@@ -45,7 +47,7 @@ type userConfig struct {
 // at build time.
 //
 // If `debugLog` is set to true, then the core updater's debug logging will be
-// enabled.
+// enabled. Deprecated: This should be set on the provided logger.
 //
 // Update checks can be disabled by setting `disabled` to true.
 //nolint:funlen,gocyclo
@@ -112,6 +114,11 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		}
 	}
 
+	// Start the checking for updates spinner
+	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	spin.Suffix = " Checking for updates..."
+	spin.Start()
+
 	gh, err := github.NewClient()
 	if err != nil {
 		log.WithError(err).Warn("failed to create authenticated GitHub client")
@@ -124,6 +131,9 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 		log.WithError(err).Warn("failed to check for updates")
 		return false
 	}
+
+	// We're done checking for updates at this point, stop!
+	spin.Stop()
 
 	last := &lastUpdateCheck{
 		Date:       time.Now(),
@@ -145,7 +155,7 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	}
 
 	// handle major versions
-	shouldContinue := handleMajorVersion(ctx, log, version, r.GetTagName(), repo)
+	shouldContinue := handleMajorVersion(ctx, log, version, r)
 	if !shouldContinue {
 		return false
 	}
@@ -171,7 +181,9 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 func readConfig(configDir string) (userConfig, error) {
 	configPath := filepath.Join(configDir, "config.yaml")
 	f, err := os.Open(configPath)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) {
+		return userConfig{}, nil
+	} else if err != nil {
 		return userConfig{}, err
 	}
 
@@ -201,14 +213,14 @@ func getRepoFromBuild() (string, error) {
 }
 
 // handleMajorVersion prompts the user when a new major version is available
-func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVersion, newVersion, repo string) bool {
+func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVersion string, rel *gogithub.RepositoryRelease) bool {
 	// we skip errors because the above logic already parsed these version strings
 	cver, err := semver.ParseTolerant(currentVersion)
 	if err != nil {
 		return true
 	}
 
-	nver, err := semver.ParseTolerant(newVersion)
+	nver, err := semver.ParseTolerant(rel.GetTagName())
 	if err != nil {
 		return true
 	}
@@ -219,8 +231,20 @@ func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVers
 		return true
 	}
 
+	out := rel.GetBody()
+	r, err := glamour.NewTermRenderer(glamour.WithAutoStyle())
+	if err == nil {
+		out, err = r.Render(rel.GetBody())
+		if err != nil {
+			log.WithError(err).Warn("Failed to render release notes, using raw release notes")
+		}
+	} else if err != nil {
+		log.WithError(err).Warn("Failed to create markdown render, using raw release notes")
+	}
+
+	fmt.Println(out)
+
 	log.Infof("Detected major version upgrade (%d -> %d). Would you like to upgrade?", cver.Major, nver.Major)
-	log.Infof("Release notes are available here: https://github.com/%s/releases/%s", repo, newVersion)
 	shouldContinue, err := GetYesOrNoInput(ctx)
 	if err != nil {
 		return false

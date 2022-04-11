@@ -50,6 +50,7 @@ type githubRelease struct {
 	version semver.Version
 }
 
+// Deprecated: Use NewGithubUpdaterWithClient with github.NewClient instead
 // NewGithubUpdater creates a new updater powered by Github
 func NewGithubUpdater(ctx context.Context, token cfg.SecretData, org, repo string) *Github {
 	h := http.DefaultClient
@@ -102,13 +103,10 @@ func (g *Github) GetLatestVersion(ctx context.Context, currentVersion string, in
 	ctx = trace.StartCall(ctx, "github.GetLatestVersion", olog.F{"currentVersion": currentVersion, "prereleases": includePrereleases})
 	defer trace.EndCall(ctx)
 
-	// if we can't determine the version, fallback to empty (oldest) version
-	version := semver.MustParse("0.0.0")
-	if currentVersion != "" {
-		parsedVersion, err := semver.ParseTolerant(currentVersion)
-		if err == nil {
-			version = parsedVersion
-		}
+	version, err := semver.ParseTolerant(currentVersion)
+	if err != nil {
+		// if we can't determine the version, fallback to empty (oldest) version
+		version = semver.MustParse("0.0.0")
 	}
 
 	// Skip pre versions that aren't rc (made by bootstrap)
@@ -149,7 +147,7 @@ loop:
 	for {
 		rs, resp, err := g.gc.Repositories.ListReleases(ctx, g.org, g.repo, &github.ListOptions{
 			Page:    page,
-			PerPage: 10,
+			PerPage: 100,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -359,24 +357,26 @@ func (g *Github) ReplaceRunning(ctx context.Context, newBinary string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	err = update.Apply(f, update.Options{
+	return errors.Wrap(update.Apply(f, update.Options{
 		TargetPath: execPath,
-	})
-	return errors.Wrap(err, "failed to apply update")
+	}), "failed to apply update")
 }
 
 // getUncompressedReaderForArchive returns a io.ReadCloser that is the uncompressed contents of the archive
-func (g *Github) getUncompressedReaderForArchive(f *os.File) (io.Reader, error) {
+func (g *Github) getUncompressedReaderForArchive(f *os.File) (io.Reader, func() error, error) {
 	if strings.HasSuffix(f.Name(), ".gz") {
-		return gzip.NewReader(f)
+		gzr, err := gzip.NewReader(f)
+		return gzr, gzr.Close, err
 	} else if strings.HasSuffix(f.Name(), ".xz") {
 		// Use a buffered reader to speed up extraction:
 		// See: https://github.com/ulikunitz/xz/issues/23
-		return xz.NewReader(bufio.NewReader(f))
+		xzr, err := xz.NewReader(bufio.NewReader(f))
+		return xzr, func() error { return nil }, err
 	}
 
-	return nil, fmt.Errorf("unsupported archive type: %s", filepath.Ext(f.Name()))
+	return nil, nil, fmt.Errorf("unsupported archive type: %s", filepath.Ext(f.Name()))
 }
 
 // getFileFromArchive extracts a given file from the provided tar archive, returning its location
@@ -384,10 +384,11 @@ func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir,
 	ctx = trace.StartCall(ctx, "github.getFileFromArchive")
 	defer trace.EndCall(ctx)
 
-	ucr, err := g.getUncompressedReaderForArchive(f)
+	ucr, closer, err := g.getUncompressedReaderForArchive(f)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get uncompressed reader")
 	}
+	defer closer() //nolint:errcheck // Why: Best effort
 
 	tarReader := tar.NewReader(ucr)
 	srcFile, srcSize, err := findFileInTarFile(ctx, tarReader, filenameInArchive)
@@ -437,7 +438,6 @@ func findFileInTarFile(ctx context.Context, archive *tar.Reader, filename string
 			return archive, header.Size, nil
 		}
 	}
-
 	if ctx.Err() != nil {
 		return nil, 0, ctx.Err()
 	}
