@@ -32,7 +32,7 @@ var (
 	ErrMissingFile  = errors.New("file missing in archive")
 
 	AssetSeperators = []string{"_", "-"}
-	AssetExtensions = []string{".tar.gz", ""}
+	AssetExtensions = []string{".tar.xz", ".tar.gz", ""}
 )
 
 type Github struct {
@@ -318,7 +318,8 @@ func (g *Github) processArchive(ctx context.Context, file, tmpDir, execName stri
 	}
 	defer f.Close()
 
-	storageDir := filepath.Join(tmpDir, strings.TrimSuffix(asset.GetName(), ".tar.gz"))
+	// Use the asset name as the directory name, without the extension
+	storageDir := filepath.Join(tmpDir, strings.Split(asset.GetName(), ".")[0])
 	err = os.MkdirAll(storageDir, 0o755)
 	if err != nil {
 		return "", err
