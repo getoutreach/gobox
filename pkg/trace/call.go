@@ -2,13 +2,10 @@ package trace
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/getoutreach/gobox/internal/call"
 
 	"github.com/getoutreach/gobox/pkg/log"
-	"github.com/getoutreach/gobox/pkg/orerr"
-	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
 // nolint:nochecknoglobals // Why: we use this as a singleton.
@@ -43,12 +40,11 @@ var callTracker = &call.Tracker{}
 //
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
-
 	ctx = StartSpan(callTracker.StartCall(ctx, cType, args), cType)
 	AddInfo(ctx, args...)
-
-	return ctx
+	info := callTracker.Info(ctx)
+	info.IDs = IDs(ctx)
+	return providers.Start(ctx, info)
 }
 
 // Deprecated: use AsGrpcCall call.Option instead
@@ -101,25 +97,9 @@ func SetCallError(ctx context.Context, err error) error {
 // logging to happen (as do any SetCallStatus calls)
 func EndCall(ctx context.Context) {
 	defer End(ctx)
-
-	defer func(info *call.Info) {
-		addDefaultTracerInfo(ctx, info)
-		info.ReportLatency(ctx)
-
-		if info.ErrInfo != nil {
-			switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
-			case statuscodes.CategoryClientError:
-				log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryServerError:
-				log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			}
-		} else {
-			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-		}
-	}(callTracker.Info(ctx))
-
+	info := callTracker.Info(ctx)
+	defer AddSpanInfo(ctx, info)
+	defer providers.End(ctx, info)
 	callTracker.EndCall(ctx)
 }
 
@@ -146,10 +126,4 @@ func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
 	addField("honeycomb.trace_id", ID(c))
 	addField("honeycomb.parent_id", parentID(c))
 	addField("honeycomb.span_id", spanID(c))
-}
-
-type traceEventMarker struct{}
-
-func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
-	addField("event_name", "trace")
 }

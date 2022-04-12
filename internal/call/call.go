@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"github.com/getoutreach/gobox/internal/logf"
-	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/events"
-	"github.com/getoutreach/gobox/pkg/metrics"
 )
 
 // Type tracks the call type.
@@ -36,21 +34,23 @@ const (
 type Info struct {
 	Name string
 	Type Type
-	Kind metrics.CallKind
 	Args []logf.Marshaler
 
 	events.Times
 	events.Durations
 
 	ErrInfo *events.ErrorInfo
+
+	// Parent tracks the parent info.
+	Parent *Info
+
+	// IDs provides a loggable set of trace/call related IDs.
+	IDs logf.Marshaler
 }
 
 // Start initializes info with the start time and some name.
 func (info *Info) Start(ctx context.Context, name string) {
 	info.Name = name
-	if info.Kind == "" {
-		info.Kind = metrics.CallKindInternal
-	}
 	info.Times.Started = time.Now()
 }
 
@@ -58,27 +58,6 @@ func (info *Info) Start(ctx context.Context, name string) {
 func (info *Info) End(ctx context.Context) {
 	info.Times.Finished = time.Now()
 	info.Durations = *info.Times.Durations()
-}
-
-// ReportLatency reports the call latency via the metrics package based on the
-// call Kind.  If the Kind is not one of HTTP, GRPC or Outbound, it does nothing.
-func (info *Info) ReportLatency(ctx context.Context) {
-	var err error
-	if info.ErrInfo != nil {
-		err = info.ErrInfo.RawError
-	}
-
-	name, kind := app.Info().Name, metrics.WithCallKind(info.Kind)
-	switch info.Type {
-	case TypeHTTP:
-		metrics.ReportHTTPLatency(name, info.Name, info.ServiceSeconds, err, kind)
-	case TypeGRPC:
-		metrics.ReportGRPCLatency(name, info.Name, info.ServiceSeconds, err, kind)
-	case TypeOutbound:
-		metrics.ReportOutboundLatency(name, info.Name, info.ServiceSeconds, err, kind)
-	default:
-		// do not report anything.
-	}
 }
 
 // AddArgs appends the provided logf.Marshalers to the Args slice.
@@ -118,7 +97,7 @@ type Tracker struct {
 // StartCall creates a new call Info object and returns a new context
 // where tracker.Info(ctx) will return the newly setup call Info object.
 func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marshaler) context.Context {
-	var info Info
+	info := Info{Parent: t.Info(ctx)}
 	info.Start(ctx, name)
 	info.AddArgs(ctx, args...)
 	info.ApplyOpts(ctx, args...)
