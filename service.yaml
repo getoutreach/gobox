@@ -13,20 +13,26 @@ deployTo:
   environments: []
 arguments:
   circleAPIKey: ""
+  commands: []
   dependencies:
     optional: []
     required: []
   description: A collection of libraries that are useful for implementing Go services, libraries, and more.
+  grpcClients: []
   opslevel:
     confluenceSpaceKey: ""
+    datadogDashboards:
+      mainLink: ""
     designDocumentLink: ""
   oss: true
+  releaseOptions:
+    allowMajorVersions: true
+    enablePrereleases: false
   reportingTeam: fnd-dtss
   type:
     - library
 modules:
-  - url: https://github.com/getoutreach/stencil-base
-    version: ""
+  - name: github.com/getoutreach/stencil-base
 opsLevel:
   serviceTier: 0
   lifecycle: ""

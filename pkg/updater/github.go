@@ -2,6 +2,7 @@ package updater
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/getoutreach/gobox/pkg/cfg"
@@ -21,6 +21,7 @@ import (
 	"github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
+	"github.com/ulikunitz/xz"
 	"golang.org/x/oauth2"
 )
 
@@ -31,7 +32,7 @@ var (
 	ErrMissingFile  = errors.New("file missing in archive")
 
 	AssetSeperators = []string{"_", "-"}
-	AssetExtensions = []string{".tar.gz", ""}
+	AssetExtensions = []string{".tar.xz", ".tar.gz", ""}
 )
 
 type Github struct {
@@ -49,6 +50,7 @@ type githubRelease struct {
 	version semver.Version
 }
 
+// Deprecated: Use NewGithubUpdaterWithClient with github.NewClient instead
 // NewGithubUpdater creates a new updater powered by Github
 func NewGithubUpdater(ctx context.Context, token cfg.SecretData, org, repo string) *Github {
 	h := http.DefaultClient
@@ -101,16 +103,13 @@ func (g *Github) GetLatestVersion(ctx context.Context, currentVersion string, in
 	ctx = trace.StartCall(ctx, "github.GetLatestVersion", olog.F{"currentVersion": currentVersion, "prereleases": includePrereleases})
 	defer trace.EndCall(ctx)
 
-	// if we can't determine the version, fallback to empty (oldest) version
-	version := semver.MustParse("0.0.0")
-	if currentVersion != "" {
-		parsedVersion, err := semver.ParseTolerant(currentVersion)
-		if err == nil {
-			version = parsedVersion
-		}
+	version, err := semver.ParseTolerant(currentVersion)
+	if err != nil {
+		// if we can't determine the version, fallback to empty (oldest) version
+		version = semver.MustParse("0.0.0")
 	}
 
-	// Skip pre versions that don't aren't rc (made by bootstrap)
+	// Skip pre versions that aren't rc (made by bootstrap)
 	if len(version.Pre) > 0 && version.Pre[0].String() != "rc" {
 		return nil, ErrNoNewRelease
 	}
@@ -148,7 +147,7 @@ loop:
 	for {
 		rs, resp, err := g.gc.Repositories.ListReleases(ctx, g.org, g.repo, &github.ListOptions{
 			Page:    page,
-			PerPage: 10,
+			PerPage: 100,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -271,8 +270,7 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 		return "", func() {}, fmt.Errorf("got unexpected status code: %v", resp.StatusCode)
 	}
 
-	tmpDir := filepath.Join(os.TempDir(), "updater", strings.ReplaceAll(time.Now().Format(time.RFC3339Nano), ":", "_"))
-	err = os.MkdirAll(tmpDir, 0o755)
+	tmpDir, err := os.MkdirTemp("", "updater-*")
 	if err != nil {
 		return "", func() {}, errors.Wrap(err, "failed to make temp directory")
 	}
@@ -281,8 +279,8 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 		os.RemoveAll(tmpDir)
 	} //nolint:funlen
 
-	file := filepath.Join(tmpDir, *asset.Name)
-	f, err := os.Create(file)
+	assetPath := filepath.Join(tmpDir, *asset.Name)
+	f, err := os.Create(assetPath)
 	if err != nil {
 		return "", cleanupFn, errors.Wrap(err, "failed to create download file")
 	}
@@ -303,37 +301,40 @@ func (g *Github) DownloadRelease(ctx context.Context, r *github.RepositoryReleas
 	}
 	trace.EndCall(traceCtx)
 
-	file, err = g.processArchive(ctx, file, tmpDir, execName, asset)
-	return file, cleanupFn, err
+	assetPath, err = g.processArchive(ctx, assetPath, tmpDir, execName, asset)
+	return assetPath, cleanupFn, err
 }
 
 // processArchive checks if the file is an archive, and extracts it looking for the same file
 // as the current executable. If it is not an archive then the file given is returned
 func (g *Github) processArchive(ctx context.Context, file, tmpDir, execName string, asset *github.ReleaseAsset) (string, error) {
-	// TODO: better support for other archives in the future
-	if strings.HasSuffix(asset.GetName(), ".tar.gz") {
-		f, err := os.Open(file)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to open downloaded archive")
-		}
-		defer f.Close()
+	if !strings.Contains(asset.GetName(), ".tar") {
+		return file, nil
+	}
 
-		storageDir := filepath.Join(tmpDir, strings.TrimSuffix(asset.GetName(), ".tar.gz"))
-		err = os.MkdirAll(storageDir, 0o755)
-		if err != nil {
-			return "", err
-		}
+	f, err := os.Open(file)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to open downloaded archive")
+	}
+	defer f.Close()
 
-		// use the name of the executable here to allow for multiple clis in a given repository
-		file, err = g.getFileFromArchive(ctx, f, storageDir, execName)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to extract archive")
-		}
+	// Use the asset name as the directory name, without the extension
+	storageDir := filepath.Join(tmpDir, strings.Split(asset.GetName(), ".")[0])
+	err = os.MkdirAll(storageDir, 0o755)
+	if err != nil {
+		return "", err
+	}
+
+	// use the name of the executable here to allow for multiple clis in a given repository
+	file, err = g.getFileFromArchive(ctx, f, storageDir, execName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to extract archive")
 	}
 
 	return file, nil
 }
 
+// getExecPath returns the path to the currently running executable, evaluating symlinks
 func (g *Github) getExecPath() (string, error) {
 	execPath, err := os.Executable()
 	if err != nil {
@@ -357,57 +358,74 @@ func (g *Github) ReplaceRunning(ctx context.Context, newBinary string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	err = update.Apply(f, update.Options{
+	return errors.Wrap(update.Apply(f, update.Options{
 		TargetPath: execPath,
-	})
-	return errors.Wrap(err, "failed to apply update")
+	}), "failed to apply update")
 }
 
-//nolint:funlen
-func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir, filename string) (string, error) {
+// getUncompressedReaderForArchive returns a io.ReadCloser that is the uncompressed contents of the archive
+func (g *Github) getUncompressedReaderForArchive(f *os.File) (io.Reader, func() error, error) {
+	if strings.HasSuffix(f.Name(), ".gz") {
+		gzr, err := gzip.NewReader(f)
+		return gzr, gzr.Close, err
+	} else if strings.HasSuffix(f.Name(), ".xz") {
+		// Use a buffered reader to speed up extraction:
+		// See: https://github.com/ulikunitz/xz/issues/23
+		xzr, err := xz.NewReader(bufio.NewReader(f))
+		return xzr, func() error { return nil }, err
+	}
+
+	return nil, nil, fmt.Errorf("unsupported archive type: %s", filepath.Ext(f.Name()))
+}
+
+// getFileFromArchive extracts a given file from the provided tar archive, returning its location
+func (g *Github) getFileFromArchive(ctx context.Context, f *os.File, storageDir, filenameInArchive string) (string, error) {
 	ctx = trace.StartCall(ctx, "github.getFileFromArchive")
 	defer trace.EndCall(ctx)
 
-	gzr, err := gzip.NewReader(f)
+	ucr, closer, err := g.getUncompressedReaderForArchive(f)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to gzip decode stream")
+		return "", errors.Wrap(err, "failed to get uncompressed reader")
 	}
+	defer closer() //nolint:errcheck // Why: Best effort
 
-	tarReader := tar.NewReader(gzr)
-
-	srcFile, srcSize, err := findTarFile(ctx, tarReader, filename)
-	if err != nil {
-		return "", err
-	}
-
-	file := filepath.Join(storageDir, filename)
-	targetFile, err := os.Create(file)
+	tarReader := tar.NewReader(ucr)
+	srcFile, srcSize, err := findFileInTarFile(ctx, tarReader, filenameInArchive)
 	if err != nil {
 		return "", err
 	}
-	defer targetFile.Close()
 
-	if g.Silent {
-		//nolint:gosec
-		_, err = io.Copy(targetFile, srcFile)
-	} else {
+	file := filepath.Join(storageDir, filenameInArchive)
+	destFile, err := os.Create(file)
+	if err != nil {
+		return "", err
+	}
+	defer destFile.Close()
+
+	writer := io.Writer(destFile)
+	if !g.Silent {
+		// If we're not silent, use a multiwriter for the progress bar
+		// and output
 		bar := progressbar.DefaultBytes(
 			srcSize,
 			// extra space here to match the downloading update length
 			"extracting update ",
 		)
-		_, err = io.Copy(io.MultiWriter(targetFile, bar), srcFile) //nolint:gosec // wtaf?
+		writer = io.MultiWriter(destFile, bar)
 	}
-	if err != nil && !errors.Is(err, io.EOF) {
+
+	if _, err := io.Copy(writer, srcFile); err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 
 	return file, nil
 }
 
-// finds specified file in provided tar archive and returns io.Reader and its size for extraction progress
-func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.Reader, int64, error) {
+// findFileInTarFile finds a specified file in provided tar archive and returns io.Reader
+// and its size for extraction progress
+func findFileInTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.Reader, int64, error) {
 	for ctx.Err() == nil {
 		header, err := archive.Next()
 
@@ -421,7 +439,6 @@ func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.
 			return archive, header.Size, nil
 		}
 	}
-
 	if ctx.Err() != nil {
 		return nil, 0, ctx.Err()
 	}
@@ -429,13 +446,14 @@ func findTarFile(ctx context.Context, archive *tar.Reader, filename string) (io.
 	return nil, 0, ErrMissingFile
 }
 
-// SelectAsset finds an asset on a Github Release.
+// SelectAsset finds an asset on a Github Release. Returned is the URL to download it and the asset itself.
 // This looks up the following file patterns:
 // - name_GOOS_GOARCH
 // - name_version_GOOS_GOARCH
 // - name_GOOS_GOARCH.tar.gz
 // - name_version_GOOS_GOARCH.tar.gz
-func (g *Github) SelectAsset(ctx context.Context, assets []*github.ReleaseAsset, name string) (string, *github.ReleaseAsset, error) {
+func (g *Github) SelectAsset(ctx context.Context, assets []*github.ReleaseAsset,
+	name string) (string, *github.ReleaseAsset, error) {
 	ctx = trace.StartCall(ctx, "github.SelectAsset")
 	defer trace.EndCall(ctx)
 
