@@ -22,7 +22,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.1
 	github.com/ulikunitz/xz v0.5.10
-	github.com/urfave/cli/v2 v2.4.0
+	github.com/urfave/cli/v2 v2.4.8
 	github.com/versent/saml2aws/v2 v2.34.0
 	github.com/zalando/go-keyring v0.2.1
 	golang.org/x/crypto v0.0.0-20220408190544-5352b0902921
