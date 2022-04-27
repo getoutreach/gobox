@@ -109,6 +109,7 @@ func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 func addCommonProps(ctx context.Context, c telefork.Client) {
 	commonProps := log.F{
 		"os.name": runtime.GOOS,
+		"os.arch": runtime.GOARCH,
 	}
 	if b, err := osexec.Command("git", "config", "user.email").Output(); err == nil {
 		email := strings.TrimSuffix(string(b), "\n")
@@ -270,6 +271,7 @@ func urfaveBefore(a *cli.App, logger logrus.FieldLogger, exit func(), cleanup *f
 			a.Name + ".subcommand": command,
 			a.Name + ".args":       strings.Join(args, " "),
 			"os.name":              runtime.GOOS,
+			"os.arch":              runtime.GOARCH,
 		})
 
 		// restart when updated
