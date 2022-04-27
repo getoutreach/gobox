@@ -3,7 +3,6 @@ package telefork
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -83,13 +82,11 @@ func (c *client) Close() {
 
 	b, err := json.Marshal(c.events)
 	if err != nil {
-		fmt.Printf("failed to marshal events: %s\n", err)
 		return
 	}
 
 	r, err := http.NewRequest(http.MethodPost, strings.TrimSuffix(c.baseURL, "/")+"/", bytes.NewReader(b))
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -99,7 +96,6 @@ func (c *client) Close() {
 
 	res, err := c.http.Do(r)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	defer res.Body.Close()
