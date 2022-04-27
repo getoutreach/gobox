@@ -106,7 +106,7 @@ func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 	}()
 }
 
-func addCommonProps(ctx context.Context, c telefork.Client) {
+func commonProps() log.Marshaler {
 	commonProps := log.F{
 		"os.name": runtime.GOOS,
 		"os.arch": runtime.GOARCH,
@@ -132,8 +132,8 @@ func addCommonProps(ctx context.Context, c telefork.Client) {
 			}
 		}
 	}
-	trace.AddInfo(ctx, commonProps)
-	c.AddInfo(commonProps)
+
+	return commonProps
 }
 
 // setupTracer sets up a root trace for the CLI and initializes the tracer
@@ -193,9 +193,11 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 		c.SendEvent(e)
 	})
 
-	addCommonProps(ctx, c)
+	props := commonProps()
+	c.AddInfo(props)
 
 	ctx = setupTracer(ctx, a.Name)
+	trace.AddInfo(ctx, props)
 
 	exitCode, exit, cleanup := setupExitHandler(ctx)
 	defer func() {
