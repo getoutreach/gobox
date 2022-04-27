@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	osexec "os/exec"
 	"os/signal"
 	"os/user"
 	"runtime"
@@ -22,6 +23,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/secrets"
+	"github.com/getoutreach/gobox/pkg/telefork"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/updater"
 	"github.com/sirupsen/logrus"
@@ -104,6 +106,35 @@ func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 	}()
 }
 
+func addCommonProps(ctx context.Context, c telefork.Client) {
+	commonProps := log.F{
+		"os.name": runtime.GOOS,
+	}
+	if b, err := osexec.Command("git", "config", "user.email").Output(); err == nil {
+		email := strings.TrimSuffix(string(b), "\n")
+
+		// TODO: Turn the check into an config option
+		// In case of @outreach.io email, we want to add PII for easier debugging with devs
+		if strings.HasSuffix(email, "@outreach.io") {
+			commonProps["dev.email"] = email
+
+			if u, err := user.Current(); err == nil {
+				commonProps["os.user"] = u.Username
+			}
+
+			if hostname, err := os.Hostname(); err == nil {
+				commonProps["os.hostname"] = hostname
+			}
+			path, err := os.Getwd()
+			if err == nil {
+				commonProps["os.workDir"] = path
+			}
+		}
+	}
+	trace.AddInfo(ctx, commonProps)
+	c.AddInfo(commonProps)
+}
+
 // setupTracer sets up a root trace for the CLI and initializes the tracer
 func setupTracer(ctx context.Context, name string) context.Context {
 	if err := trace.InitTracer(ctx, name); err != nil {
@@ -143,7 +174,7 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup 
 // and automatically updates itself.
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
-	logger logrus.FieldLogger, honeycombAPIKey, dataset string) {
+	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
 	env.ApplyOverrides()
 	app.SetName(a.Name)
 
@@ -154,10 +185,22 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	overrideConfigLoaders(honeycombAPIKey, dataset, false)
 
 	urfaveRegisterShutdownHandler(cancel)
+
+	c := telefork.NewClient(a.Name, teleforkAPIKey)
+
+	trace.SetPresendHook(func(e map[string]interface{}) {
+		c.SendEvent(e)
+	})
+
+	addCommonProps(ctx, c)
+
 	ctx = setupTracer(ctx, a.Name)
 
 	exitCode, exit, cleanup := setupExitHandler(ctx)
-	defer exit()
+	defer func() {
+		c.Close()
+		exit()
+	}()
 
 	cli.OsExiter = func(code int) { (*exitCode) = code }
 
@@ -223,14 +266,9 @@ func urfaveBefore(a *cli.App, logger logrus.FieldLogger, exit func(), cleanup *f
 			args = cargs[1:]
 		}
 
-		userName := "unknown"
-		if u, err := user.Current(); err == nil {
-			userName = u.Username
-		}
 		trace.AddInfo(c.Context, log.F{
 			a.Name + ".subcommand": command,
 			a.Name + ".args":       strings.Join(args, " "),
-			"os.user":              userName,
 			"os.name":              runtime.GOOS,
 		})
 

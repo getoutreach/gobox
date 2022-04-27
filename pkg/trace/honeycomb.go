@@ -14,11 +14,11 @@ import (
 )
 
 // nolint:gochecknoglobals
-var testPresendHook func(map[string]interface{})
+var presendHook func(map[string]interface{})
 
-// SetTestPresendHook sets the honeycomb presend hook for testing
-func SetTestPresendHook(hook func(map[string]interface{})) {
-	testPresendHook = hook
+// SetPresendHook sets the honeycomb presend hook for testing
+func SetPresendHook(hook func(map[string]interface{})) {
+	presendHook = hook
 }
 
 func (t *tracer) startHoneycomb(ctx context.Context, serviceName string) error {
@@ -65,8 +65,8 @@ func (t *tracer) presendHook(fields map[string]interface{}) {
 	logf.Marshal("", app.Info(), setf)
 	logf.Marshal("", &t.GlobalTags, setf)
 
-	if testPresendHook != nil {
-		testPresendHook(fields)
+	if presendHook != nil {
+		presendHook(fields)
 	}
 }
 
