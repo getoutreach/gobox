@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/getoutreach/gobox/pkg/log"
 )
@@ -22,22 +23,31 @@ type Client interface {
 }
 
 func NewClient(appName, apiKey string) Client {
-	endpoint := "https://telefork.outreach.io/"
+	c := &http.Client{}
+	return NewClientWithHTTPClient(appName, apiKey, c)
+}
+
+func NewClientWithHTTPClient(appName, apiKey string, httpClient *http.Client) Client {
+	baseURL := "https://telefork.outreach.io/"
 	if os.Getenv("OUTREACH_TELEFORK_ENDPOINT") != "" {
-		endpoint = os.Getenv("OUTREACH_TELEFORK_ENDPOINT")
+		baseURL = os.Getenv("OUTREACH_TELEFORK_ENDPOINT")
 	}
 	return &client{
-		appName:  appName,
-		endpoint: endpoint,
-		apiKey:   apiKey,
+		http: httpClient,
+
+		appName: appName,
+		baseURL: baseURL,
+		apiKey:  apiKey,
 	}
 }
 
 type client struct {
-	appName  string
-	apiKey   string
-	endpoint string
-	events   []Event
+	http *http.Client
+
+	appName string
+	apiKey  string
+	baseURL string
+	events  []Event
 
 	commonProps map[string]interface{}
 }
@@ -67,13 +77,17 @@ func (c *client) Close() {
 		return
 	}
 
+	if len(c.events) == 0 {
+		return
+	}
+
 	b, err := json.Marshal(c.events)
 	if err != nil {
 		fmt.Printf("failed to marshal events: %s\n", err)
 		return
 	}
 
-	r, err := http.NewRequest(http.MethodPost, c.endpoint, bytes.NewReader(b))
+	r, err := http.NewRequest(http.MethodPost, strings.TrimSuffix(c.baseURL, "/")+"/", bytes.NewReader(b))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -83,7 +97,7 @@ func (c *client) Close() {
 	r.Header.Set("X-OUTREACH-CLIENT-LOGGING", c.apiKey)
 	r.Header.Set("X-OUTREACH-CLIENT-APP-ID", c.appName)
 
-	res, err := http.DefaultClient.Do(r)
+	res, err := c.http.Do(r)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -91,7 +105,7 @@ func (c *client) Close() {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		fmt.Println("status code:", res.StatusCode)
+		// TODO: Retry? If necessary.
 		return
 	}
 }
