@@ -20,6 +20,20 @@ func TestClientDoesNotSendNoEvents(t *testing.T) {
 	client.Close()
 }
 
+func TestClientSilentlyFails(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	os.Setenv("OUTREACH_TELEFORK_ENDPOINT", server.URL)
+	client := NewClientWithHTTPClient("testApp", "testKey", server.Client())
+
+	client.SendEvent(map[string]interface{}{"key1": "val1"})
+
+	client.Close()
+}
+
 func TestClientDoesNotSendReqWithoutAPIKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("No request should be made")
