@@ -1,0 +1,74 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: This file defines the functional arguments to the updater.
+
+package updater
+
+import (
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+)
+
+// WithRepo sets the repository to use for checking for updates.
+// The expected format is: owner/repo
+func WithRepo(repo string) Option {
+	return func(u *updater) {
+		u.repo = repo
+	}
+}
+
+// WithVersion sets the version to use as the current version when
+// checking for updates. Defaults to app.Info().Version.
+func WithVersion(version string) Option {
+	return func(u *updater) {
+		u.version = version
+	}
+}
+
+// WithLogger sets the logger to use for logging. If not set
+// a io.Discard logger is created.
+func WithLogger(logger logrus.FieldLogger) Option {
+	return func(u *updater) {
+		u.log = logger
+	}
+}
+
+// WithDisabled sets if we should disable the updater or not
+func WithDisabled(disabled bool) Option {
+	return func(u *updater) {
+		u.disabled = disabled
+	}
+}
+
+// WithPrereleases sets whether or not to include prereleases in the update check.
+func WithPrereleases(prereleases bool) Option {
+	return func(u *updater) {
+		u.prereleases = prereleases
+	}
+}
+
+// WithForceCheck sets whether or not to force the updater to check for updates
+// otherwise updates are checked for only if the last check was more than
+// the update check interval.
+func WithForceCheck(forceCheck bool) Option {
+	return func(u *updater) {
+		u.forceCheck = forceCheck
+	}
+}
+
+// WithApp sets the cli.App to setup commands on.
+func WithApp(app *cli.App) Option {
+	return func(u *updater) {
+		u.app = app
+	}
+}
+
+// WithCheckInterval sets the interval to check for updates.
+// Defaults to 30 minutes.
+func WithCheckInterval(interval time.Duration) Option {
+	return func(u *updater) {
+		u.checkInterval = &interval
+	}
+}

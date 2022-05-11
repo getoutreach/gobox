@@ -20,7 +20,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/env"
-	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/secrets"
 	"github.com/getoutreach/gobox/pkg/telefork"
@@ -156,15 +155,11 @@ func setupPanicHandler(exitCode *int) {
 }
 
 // setupExitHandler sets up an exit handler
-func setupExitHandler(ctx context.Context) (exitCode *int, exit func(), cleanup *func()) {
+func setupExitHandler(ctx context.Context) (exitCode *int, exit func()) {
 	exitCode = intPtr(0)
-	cleanup = funcPtr(func() {})
 	exit = func() {
 		trace.End(ctx)
 		trace.CloseTracer(ctx)
-		if cleanup != nil {
-			(*cleanup)()
-		}
 		os.Exit(*exitCode)
 	}
 
@@ -199,11 +194,15 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	ctx = setupTracer(ctx, a.Name)
 	trace.AddInfo(ctx, props)
 
-	exitCode, exit, cleanup := setupExitHandler(ctx)
+	exitCode, exit := setupExitHandler(ctx)
 	defer func() {
 		c.Close()
 		exit()
 	}()
+
+	if _, err := updater.UseUpdater(ctx, updater.WithApp(a), updater.WithLogger(logger)); err != nil {
+		logger.WithError(err).Warn("Failed to setup automatic updater")
+	}
 
 	cli.OsExiter = func(code int) { (*exitCode) = code }
 
@@ -213,36 +212,15 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	ctx = trace.StartCall(ctx, "main")
 	defer trace.EndCall(ctx)
 
-	oldBefore := (*a).Before //nolint:gocritic // Why: we're saving the previous value
+	oldBefore := a.Before
 	a.Before = func(c *cli.Context) error {
 		if oldBefore != nil {
 			if err := oldBefore(c); err != nil {
 				return err
 			}
 		}
-
-		return urfaveBefore(a, logger, exit, cleanup, exitCode)(c)
+		return urfaveBefore(a)(c)
 	}
-
-	// append the standard flags
-	a.Flags = append(a.Flags, []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "skip-update",
-			Usage: "skips the updater check",
-		},
-		&cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enables debug logging for all components (i.e updater)",
-		},
-		&cli.BoolFlag{
-			Name:  "enable-prereleases",
-			Usage: "Enable considering pre-releases when checking for updates",
-		},
-		&cli.BoolFlag{
-			Name:  "force-update-check",
-			Usage: "Force checking for an update",
-		},
-	}...)
 
 	if err := a.RunContext(ctx, os.Args); err != nil {
 		logger.Errorf("failed to run: %v", err)
@@ -254,65 +232,15 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	}
 }
 
-// urfaveBefore is a cli.BeforeFunc that implements tracing and automatic updating
-//nolint:funlen // Why: Not worth splitting out yet. May want to do so w/ more CLI support.
-func urfaveBefore(a *cli.App, logger logrus.FieldLogger, exit func(), cleanup *func(),
-	exitCode *int) func(c *cli.Context) error {
+// urfaveBefore is a cli.BeforeFunc that implements tracing
+func urfaveBefore(a *cli.App) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
-		cargs := c.Args().Slice()
-		command := ""
-		args := make([]string, 0)
-		if len(cargs) > 0 {
-			command = cargs[0]
-		}
-		if len(cargs) > 1 {
-			args = cargs[1:]
-		}
-
 		trace.AddInfo(c.Context, log.F{
-			a.Name + ".subcommand": command,
-			a.Name + ".args":       strings.Join(args, " "),
+			a.Name + ".subcommand": c.Args().First(),
+			a.Name + ".args":       strings.Join(c.Args().Tail(), " "),
 			"os.name":              runtime.GOOS,
 			"os.arch":              runtime.GOARCH,
 		})
-
-		// restart when updated
-		traceCtx := trace.StartCall(c.Context, "updater.NeedsUpdate")
-		defer trace.EndCall(traceCtx)
-
-		// restart when updated
-		if updater.NeedsUpdate(traceCtx, logger, "", app.Version,
-			c.Bool("skip-update"), c.Bool("debug"), c.Bool("enable-prereleases"),
-			c.Bool("force-update-check")) {
-			switch runtime.GOOS {
-			case "linux", "darwin":
-				(*cleanup) = func() {
-					binPath, err := exec.ResolveExecuable(os.Args[0])
-					if err != nil {
-						logger.WithError(err).Warn("Failed to find binary location, please re-run your command manually")
-						return
-					}
-
-					logger.Infof("%s has been updated, re-running automatically", a.Name)
-
-					//nolint:gosec // Why: We're passing in os.Args
-					if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
-						logger.WithError(err).Warn("failed to re-run binary, please re-run your command manually")
-						return
-					}
-				}
-			default:
-				logger.Infof("%s has been updated, please re-run your command", a.Name)
-			}
-
-			trace.EndCall(traceCtx)
-
-			(*exitCode) = UpdateExitCode
-			trace.EndCall(traceCtx)
-			exit()
-			return nil
-		}
-
 		return nil
 	}
 }

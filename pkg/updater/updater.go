@@ -3,254 +3,252 @@ package updater
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
-	"runtime/debug"
-	"strings"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/briandowns/spinner"
-	"github.com/charmbracelet/glamour"
+	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cli/github"
 	gogithub "github.com/google/go-github/v43/github"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
-	"gopkg.in/yaml.v2"
 )
 
-// lastUpdateCheck is information about the last time we checked for updates.
-type lastUpdateCheck struct {
-	Date       time.Time     `yaml:"date"`
-	CheckEvery time.Duration `yaml:"checkEvery"`
-}
+// Disabled globally disables the automatic updater. This is helpful
+// for when using an external package manager, such as brew.
+// This should usually be done with an ldflag.
+var Disabled bool
 
-// userConfig us user configuration for checking for updates for a given
-// repository
-type userConfig struct {
-	// AlwaysUsePrereleases instructs the updater to always consider prereleases
-	AlwaysUsePrereleases bool `yaml:"alwaysUsePrereleases"`
-}
+// This block contains directories the updater uses
+var (
+	// cacheDir is the directory where we store the cache of releases
+	cacheDir = filepath.Join(".outreach", ".cache", "updater")
 
-// `NeedsUpdate` reads a GitHub token from `~/.outreach/github.token`. If it can't,
-// it prompts the user and saves it to the path above. GitHub Releases is checked
-// for a new release, and if it's found, updates the base binary. If an update is
-// required, it returns `true`.
-//
-// If `repo` is not provided, it is determined via `debug.ReadBuildInfo` and
-// the path the binary was built from. `repo` should be in the format of
-// `getoutreach/$repoName`.
-//
-// `version` is usually the value of `gobox/pkg/app.Version`, which is set
-// at build time.
-//
-// If `debugLog` is set to true, then the core updater's debug logging will be
-// enabled. Deprecated: This should be set on the provided logger.
-//
-// Update checks can be disabled by setting `disabled` to true.
-//nolint:funlen,gocyclo
-func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version string, disabled,
-	debugLog, includePrereleases, forceCheck bool) bool {
-	if disabled {
-		return false
+	// configDir is the directory where we store the user's configuration for
+	// the updater per repository.
+	configDir = filepath.Join(".outreach", ".config")
+)
+
+// UseUpdater creates an automatic updater.
+//nolint:revive // Why: Purposely not exported.
+func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) {
+	u := &updater{
+		disabled: Disabled,
 	}
 
-	// Never update when device is not a terminal, or when in a CI environment. However,
-	// we allow forceCheck to override this.
-	if !forceCheck && (!term.IsTerminal(int(os.Stdin.Fd())) || os.Getenv("CI") != "") {
-		return false
+	// parse the provided options
+	for _, opt := range opts {
+		opt(u)
 	}
-	log = log.WithField("service", "updater")
 
-	if repo == "" {
+	if u.log == nil {
+		// create a null output logger, we're not going to use it
+		// if a logger wasn't passed in. This is to prevent panics.
+		log := logrus.New()
+		log.Out = io.Discard
+		u.log = log
+	}
+
+	if u.checkInterval == nil {
+		defaultDur := 30 * time.Minute
+		u.checkInterval = &defaultDur
+	}
+
+	if u.version == "" {
+		u.version = app.Info().Version
+	}
+
+	// if repo isn't set, then we attempt to load it from the
+	// go module debug information.
+	if u.repo == "" {
 		r, err := getRepoFromBuild()
 		if err != nil {
-			log.WithError(err).Error("failed to determine which repository build this module")
-			return false
+			return nil, fmt.Errorf("failed to determine which repository built this binary")
 		}
-		repo = r
+		u.repo = r
 	}
 
-	split := strings.Split(repo, "/")
-	org := split[0]
-	repoName := split[1]
-
-	homedir, err := os.UserHomeDir()
+	gh, err := github.NewClient()
 	if err != nil {
-		log.WithError(err).Warn("failed to get user's home directory")
+		gh = gogithub.NewClient(nil)
+	}
+	u.gh = gh
+
+	// setup the updater
+	if u.app != nil {
+		u.hookIntoCLI()
+	}
+
+	return u, nil
+}
+
+// Deprecated: Use UseUpdater instead.
+// NeedsUpdate is a deprecated method of UseUpdater.
+func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version string, disabled,
+	debugLog, includePrereleases, forceCheck bool) bool {
+	u, err := UseUpdater(ctx, WithLogger(log), WithRepo(repo), WithVersion(version),
+		WithDisabled(disabled), WithPrereleases(includePrereleases), WithForceCheck(forceCheck))
+	if err != nil {
 		return false
 	}
-	cacheDir := filepath.Join(homedir, ".outreach", ".cache", ".updater")
-	configDir := filepath.Join(homedir, ".outreach", ".config", repo)
-	updateCheckPath := filepath.Join(cacheDir, org, repoName+".yaml")
 
-	if userConf, err := readConfig(configDir); err == nil {
+	needsUpdate, err := u.check(ctx)
+	if err != nil {
+		return false
+	}
+	return needsUpdate
+}
+
+// Options configures an updater
+type Option func(*updater)
+
+// updater is an updater that updates the current running binary to the latest
+type updater struct {
+	// gh is the github client
+	gh *gogithub.Client
+
+	// log is the logger to use for logging
+	log logrus.FieldLogger
+
+	// disabled disables the updater if set
+	disabled bool
+
+	// prereleases is whether or not to include prereleases in the update check
+	prereleases bool
+
+	// forceCheck forces the updater to check for updates regardless of the
+	// last update check
+	forceCheck bool
+
+	// repo is the repository to check for updates, if this isn't
+	// set then the version will be read from the embedded module information.
+	// this requires go module to be used.
+	repo string
+
+	// version is the current version of the application, if this isn't
+	// set then the version will be read from the embedded module information.
+	// this requires go module to be used.
+	version string
+
+	// checkInterval is the interval to check for updates
+	checkInterval *time.Duration
+
+	// app is a cli.App to setup commands on
+	app *cli.App
+}
+
+// installVersion installs a specific version of the application.
+func (u *updater) installVersion(ctx context.Context, r *gogithub.RepositoryRelease) error {
+	org, repoName, err := getOrgRepoFromString(u.repo)
+	if err != nil {
+		return errors.Wrap(err, "failed to get org and repo name")
+	}
+
+	g := NewGithubUpdaterWithClient(ctx, u.gh, org, repoName)
+
+	u.log.Infof("Downloading update %s", r.GetTagName())
+	newBinary, cleanupFunc, err := g.DownloadRelease(ctx, r, repoName, "")
+	defer cleanupFunc()
+	if err != nil {
+		return errors.Wrap(err, "failed to download latest release")
+	}
+
+	u.log.Infof("Installing update (%s -> %s)", u.version, r.GetTagName())
+	err = g.ReplaceRunning(ctx, newBinary)
+	if err != nil && !errors.Is(err, &exec.ExitError{}) {
+		u.log.WithError(err).Error("failed to install update")
+	}
+
+	last, err := loadLastUpdateCheck(u.repo)
+	if err != nil {
+		return errors.Wrap(err, "failed to load last update check")
+	}
+
+	// save the version we're on as being the last version used
+	last.PreviousVersion = u.version
+
+	if err := last.Save(); err != nil {
+		u.log.WithError(err).Warn("failed to persist last version to updater cache")
+	}
+
+	return nil
+}
+
+// check checks for updates and applies them if necessary, returning true if
+// an update was applied signifying the application should restart.
+func (u *updater) check(ctx context.Context) (bool, error) {
+	// Never update when device is not a terminal, or when in a CI environment. However,
+	// we allow forceCheck to override this.
+	if u.disabled || (!u.forceCheck && (!term.IsTerminal(int(os.Stdin.Fd())) || os.Getenv("CI") != "")) {
+		return false, nil
+	}
+
+	org, repoName, err := getOrgRepoFromString(u.repo)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get org and repo name")
+	}
+
+	if userConf, err := readConfig(u.repo); err == nil {
 		if userConf.AlwaysUsePrereleases {
-			includePrereleases = true
+			u.prereleases = true
 		}
 	} else {
-		log.WithError(err).Warn("failed to read user config")
+		u.log.WithError(err).Warn("failed to read user config")
 	}
 
-	if err := os.MkdirAll(filepath.Dir(updateCheckPath), 0o755); err != nil {
-		log.WithError(err).Error("failed to create update metadata storage directory")
-		return false
-	}
-
-	if !forceCheck {
-		// check the last time we updated
-		if b, err2 := os.ReadFile(updateCheckPath); err2 == nil {
-			var last *lastUpdateCheck
-			if err := yaml.Unmarshal(b, &last); err == nil {
-				// if we're not past the last update thereshold
-				// then we don't check for updates
-				if !time.Now().After(last.Date.Add(last.CheckEvery)) {
-					return false
-				}
-			} else {
-				log.WithError(err).Warn("failed to parse last update information")
+	last, err := loadLastUpdateCheck(u.repo)
+	if !u.forceCheck {
+		if err == nil {
+			// if we're not past the last update thereshold
+			// then we don't check for updates
+			if !time.Now().After(last.Date.Add(last.CheckEvery)) {
+				return false, nil
 			}
+		} else {
+			u.log.WithError(err).Warn("failed to read last update check")
 		}
 	}
 
 	// Start the checking for updates spinner
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	spin.Suffix = " Checking for updates..."
+	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond,
+		spinner.WithSuffix(" Checking for updates..."))
 	spin.Start()
 
-	gh, err := github.NewClient()
-	if err != nil {
-		log.WithError(err).Warn("failed to create authenticated GitHub client")
-		gh = gogithub.NewClient(nil)
-	}
-
-	g := NewGithubUpdaterWithClient(ctx, gh, org, repoName)
-	r, err := g.GetLatestVersion(ctx, version, includePrereleases)
-	if err != nil && !errors.Is(err, ErrNoNewRelease) {
-		log.WithError(err).Warn("failed to check for updates")
-		return false
+	g := NewGithubUpdaterWithClient(ctx, u.gh, org, repoName)
+	r, latestVersionError := g.GetLatestVersion(ctx, u.version, u.prereleases)
+	if latestVersionError != nil && !errors.Is(latestVersionError, ErrNoNewRelease) {
+		return false, errors.Wrap(latestVersionError, "failed to check for updates")
 	}
 
 	// We're done checking for updates at this point, stop!
 	spin.Stop()
 
-	last := &lastUpdateCheck{
-		Date:       time.Now(),
-		CheckEvery: 30 * time.Minute,
-	}
+	last.Date = time.Now().UTC()
+	last.CheckEvery = *u.checkInterval
 
 	// write that we checked for updates
-	if b, err := yaml.Marshal(&last); err == nil {
-		if err := os.WriteFile(updateCheckPath, b, 0o600); err != nil {
-			log.WithError(err).Warn("failed to write update metadata")
-		}
-	} else if err != nil {
-		log.WithError(err).Warn("failed to marshal update metadata")
+	if err := last.Save(); err != nil {
+		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
 	// return here so that we were able to write that we found no new updates
-	if errors.Is(err, ErrNoNewRelease) {
-		return false
+	if errors.Is(latestVersionError, ErrNoNewRelease) {
+		return false, nil
 	}
 
-	// handle major versions
-	shouldContinue := handleMajorVersion(ctx, log, version, r)
-	if !shouldContinue {
-		return false
+	// handle major versions by prompting the user if this is one
+	if shouldContinue := handleMajorVersion(ctx, u.log, u.version, r); !shouldContinue {
+		return false, nil
 	}
 
-	log.Infof("Downloading update %s", r.GetTagName())
-	newBinary, cleanupFunc, err := g.DownloadRelease(ctx, r, repoName, "")
-	defer cleanupFunc()
-	if err != nil {
-		log.WithError(err).Error("failed to download latest release")
-		return false
+	if err := u.installVersion(ctx, r); err != nil {
+		return false, errors.Wrap(err, "failed to install update")
 	}
 
-	log.Infof("Installing update (%s -> %s)", version, r.GetTagName())
-	err = g.ReplaceRunning(ctx, newBinary)
-	if err != nil && !errors.Is(err, &exec.ExitError{}) {
-		log.WithError(err).Error("failed to install update")
-	}
-
-	return true
-}
-
-// readConfig reads the user's configuration from a well-known path
-func readConfig(configDir string) (userConfig, error) {
-	configPath := filepath.Join(configDir, "updater.yaml")
-	f, err := os.Open(configPath)
-	if errors.Is(err, os.ErrNotExist) {
-		return userConfig{}, nil
-	} else if err != nil {
-		return userConfig{}, err
-	}
-
-	var config userConfig
-	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
-		return userConfig{}, errors.Wrap(err, "failed to decode user config")
-	}
-
-	return config, nil
-}
-
-// getRepoFromBuild reads the repository from the embedded go module information
-func getRepoFromBuild() (string, error) {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "", fmt.Errorf("failed to read build info, was this built with go module support")
-	}
-
-	repoName := strings.TrimPrefix(info.Main.Path, "github.com/")
-	repoSplit := strings.Split(repoName, "/")
-
-	if len(repoSplit) < 2 {
-		return "", fmt.Errorf("failed to parse %v as a repository", repoName)
-	}
-
-	return path.Join(repoSplit[0], repoSplit[1]), nil
-}
-
-// handleMajorVersion prompts the user when a new major version is available
-func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVersion string, rel *gogithub.RepositoryRelease) bool {
-	// we skip errors because the above logic already parsed these version strings
-	cver, err := semver.ParseTolerant(currentVersion)
-	if err != nil {
-		return true
-	}
-
-	nver, err := semver.ParseTolerant(rel.GetTagName())
-	if err != nil {
-		return true
-	}
-
-	// if the current major is less than the new release
-	// major then just return
-	if !(cver.Major < nver.Major) {
-		return true
-	}
-
-	out := rel.GetBody()
-	r, err := glamour.NewTermRenderer(glamour.WithAutoStyle())
-	if err == nil {
-		out, err = r.Render(rel.GetBody())
-		if err != nil {
-			log.WithError(err).Warn("Failed to render release notes, using raw release notes")
-		}
-	} else if err != nil {
-		log.WithError(err).Warn("Failed to create markdown render, using raw release notes")
-	}
-
-	fmt.Println(out)
-
-	log.Infof("Detected major version upgrade (%d -> %d). Would you like to upgrade?", cver.Major, nver.Major)
-	shouldContinue, err := GetYesOrNoInput(ctx)
-	if err != nil {
-		return false
-	}
-
-	return shouldContinue
+	return true, nil
 }
