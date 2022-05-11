@@ -87,11 +87,6 @@ func intPtr(i int) *int {
 	return &i
 }
 
-// funcPtr turns a func into a *func
-func funcPtr(fn func()) *func() {
-	return &fn
-}
-
 // urfaveRegisterShutdownHandler registers a signal notifier that translates various term
 // signals into context cancel
 func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
