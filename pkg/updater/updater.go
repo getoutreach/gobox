@@ -35,8 +35,7 @@ var (
 )
 
 // UseUpdater creates an automatic updater.
-//nolint:revive // Why: Purposely not exported.
-func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) {
+func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolint:revive // Why: Purposely not exported.
 	u := &updater{
 		disabled: Disabled,
 	}
@@ -46,42 +45,9 @@ func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) {
 		opt(u)
 	}
 
-	if u.log == nil {
-		// create a null output logger, we're not going to use it
-		// if a logger wasn't passed in. This is to prevent panics.
-		log := logrus.New()
-		log.Out = io.Discard
-		u.log = log
-	}
-
-	if u.checkInterval == nil {
-		defaultDur := 30 * time.Minute
-		u.checkInterval = &defaultDur
-	}
-
-	if u.version == "" {
-		u.version = app.Info().Version
-	}
-
-	// if repo isn't set, then we attempt to load it from the
-	// go module debug information.
-	if u.repo == "" {
-		r, err := getRepoFromBuild()
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine which repository built this binary")
-		}
-		u.repo = r
-	}
-
-	gh, err := github.NewClient()
-	if err != nil {
-		gh = gogithub.NewClient(nil)
-	}
-	u.gh = gh
-
-	// setup the updater
-	if u.app != nil {
-		u.hookIntoCLI()
+	// set the default options as needed
+	if err := u.defaultOptions(); err != nil {
+		return nil, err
 	}
 
 	return u, nil
@@ -103,9 +69,6 @@ func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version stri
 	}
 	return needsUpdate
 }
-
-// Options configures an updater
-type Option func(*updater)
 
 // updater is an updater that updates the current running binary to the latest
 type updater struct {
@@ -140,6 +103,52 @@ type updater struct {
 
 	// app is a cli.App to setup commands on
 	app *cli.App
+}
+
+// defaultOptions configures the default options for the updater if
+// not already set
+func (u *updater) defaultOptions() error {
+	if u.log == nil {
+		// create a null output logger, we're not going to use it
+		// if a logger wasn't passed in. This is to prevent panics.
+		log := logrus.New()
+		log.Out = io.Discard
+		u.log = log
+	}
+
+	if u.checkInterval == nil {
+		defaultDur := 30 * time.Minute
+		u.checkInterval = &defaultDur
+	}
+
+	if u.version == "" {
+		u.version = app.Info().Version
+	}
+
+	// if repo isn't set, then we attempt to load it from the
+	// go module debug information.
+	if u.repo == "" {
+		r, err := getRepoFromBuild()
+		if err != nil {
+			return fmt.Errorf("failed to determine which repository built this binary")
+		}
+		u.repo = r
+	}
+
+	if u.gh == nil {
+		gh, err := github.NewClient()
+		if err != nil {
+			gh = gogithub.NewClient(nil)
+		}
+		u.gh = gh
+	}
+
+	// setup the updater
+	if u.app != nil {
+		u.hookIntoCLI()
+	}
+
+	return nil
 }
 
 // installVersion installs a specific version of the application.

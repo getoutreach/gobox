@@ -11,6 +11,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// Options configures an updater
+type Option func(*updater)
+
 // WithRepo sets the repository to use for checking for updates.
 // The expected format is: owner/repo
 func WithRepo(repo string) Option {
