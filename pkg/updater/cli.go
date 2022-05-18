@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/getoutreach/gobox/pkg/app"
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -58,6 +59,11 @@ func (u *updater) hookIntoCLI() {
 			if strings.EqualFold(f, "skip-updater") {
 				u.disabled = true
 			}
+		}
+
+		// Skip the updater if we're running an updater command, that we provide.
+		if c.Args().First() == "updater" {
+			u.disabled = true
 		}
 
 		// handle an older before if it was set
@@ -111,6 +117,7 @@ func newUpdaterCommand(u *updater) *cli.Command {
 		Usage: "Commands for interacting with the built-in updater",
 		Subcommands: []*cli.Command{
 			newSetChannel(u),
+			newGetChannel(u),
 			newRollbackCommand(u),
 			newListReleases(u),
 		},
@@ -240,6 +247,39 @@ func newSetChannel(u *updater) *cli.Command {
 			}
 
 			u.log.Infof("Updated to latest %q version", channel)
+			return nil
+		},
+	}
+}
+
+// newGetChannel creates a new cli.Command that sets the channel
+func newGetChannel(u *updater) *cli.Command {
+	return &cli.Command{
+		Name:  "get-channel",
+		Usage: "Returns the current channel: release or rc",
+		Action: func(c *cli.Context) error {
+			conf, err := readConfig(u.repo)
+			if err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					return errors.Wrap(err, "failed to read the config")
+				}
+				conf = &userConfig{}
+			}
+
+			// rc builds always consider rc versions
+			if strings.Contains(app.Info().Version, "-rc") {
+				fmt.Println("rc (running rc build)")
+				return nil
+			}
+
+			// config can be configured to always use prereleases
+			if conf.AlwaysUsePrereleases {
+				fmt.Println("rc (from config)")
+				return nil
+			}
+
+			// otherwise, release
+			fmt.Println("release")
 			return nil
 		},
 	}
