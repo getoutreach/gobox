@@ -79,7 +79,7 @@ func (u *updater) hookIntoCLI() {
 
 		switch runtime.GOOS {
 		case "linux", "darwin":
-			// handle later
+			// We handle these after the switch.
 		default:
 			u.log.Infof("%s has been updated, please re-run your command", u.app.Name)
 			return cli.Exit("", 0)
@@ -221,7 +221,7 @@ func newSetChannel(u *updater) *cli.Command {
 				if !errors.Is(err, os.ErrNotExist) {
 					return errors.Wrap(err, "failed to read the config")
 				}
-				conf = userConfig{}
+				conf = &userConfig{}
 			}
 
 			conf.AlwaysUsePrereleases = channel == "rc"

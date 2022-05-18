@@ -23,29 +23,28 @@ type userConfig struct {
 }
 
 // readConfig reads the user's configuration from a well-known path
-func readConfig(repo string) (userConfig, error) {
+func readConfig(repo string) (*userConfig, error) {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
-		return userConfig{}, errors.Wrap(err, "failed to get the user's home directory")
+		return nil, errors.Wrap(err, "failed to get the user's home directory")
 	}
 
 	configPath := filepath.Join(homedir, configDir, repo, "updater.yaml")
 
 	f, err := os.Open(configPath)
 	if err != nil {
-		defaultConfig := userConfig{path: configPath}
 		if errors.Is(err, os.ErrNotExist) {
-			return defaultConfig, nil
+			return &userConfig{path: configPath}, nil
 		}
-		return defaultConfig, err
+		return nil, err
 	}
 
 	var config userConfig
 	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
-		return userConfig{}, errors.Wrap(err, "failed to decode user config")
+		return nil, errors.Wrap(err, "failed to decode user config")
 	}
 	config.path = configPath
-	return config, nil
+	return &config, nil
 }
 
 // Save saves the user configuration to disk.
@@ -92,16 +91,17 @@ func loadLastUpdateCheck(repo string) (*lastUpdateCheck, error) {
 	}
 
 	// check the last time we updated
-	b, err := os.ReadFile(updatePath)
+	f, err := os.Open(updatePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.Wrap(err, "failed to read the last update check")
 		}
 		return &lastUpdateCheck{path: updatePath}, nil
 	}
+	defer f.Close()
 
 	var last lastUpdateCheck
-	if err := yaml.Unmarshal(b, &last); err != nil {
+	if err := yaml.NewDecoder(f).Decode(&f); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal the last update check")
 	}
 	last.path = updatePath
@@ -121,5 +121,7 @@ func (u *lastUpdateCheck) Save() error {
 	}
 	defer f.Close()
 
-	return errors.Wrap(yaml.NewEncoder(f).Encode(u), "failed to encode update cache")
+	enc := yaml.NewEncoder(f)
+	defer enc.Close()
+	return errors.Wrap(enc.Encode(u), "failed to encode update cache")
 }

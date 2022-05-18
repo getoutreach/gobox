@@ -21,19 +21,16 @@ func getRepoFromBuild() (string, error) {
 	}
 
 	repoName := strings.TrimPrefix(info.Main.Path, "github.com/")
-	repoSplit := strings.Split(repoName, "/")
-
-	if len(repoSplit) < 2 {
-		return "", fmt.Errorf("failed to parse %v as a repository", repoName)
+	org, repo, err := getOrgRepoFromString(repoName)
+	if err != nil {
+		return "", err
 	}
-
-	return path.Join(repoSplit[0], repoSplit[1]), nil
+	return path.Join(org, repo), nil
 }
 
 // getOrgRepoFromString returns the org and repo from a string
 // expected format: org/repo
-//nolint:gocritic // Why: This is in the function signature
-func getOrgRepoFromString(s string) (string, string, error) {
+func getOrgRepoFromString(s string) (string, string, error) { //nolint:gocritic // Why: This is in the function signature
 	split := strings.Split(s, "/")
 	if len(split) != 2 {
 		return "", "", fmt.Errorf("failed to parse %v as a repository", s)
