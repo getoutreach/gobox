@@ -32,7 +32,7 @@ func getRepoFromBuild() (string, error) {
 // expected format: org/repo
 func getOrgRepoFromString(s string) (string, string, error) { //nolint:gocritic // Why: This is in the function signature
 	split := strings.Split(s, "/")
-	if len(split) != 2 {
+	if len(split) < 2 {
 		return "", "", fmt.Errorf("failed to parse %v as a repository", s)
 	}
 	return split[0], split[1], nil
