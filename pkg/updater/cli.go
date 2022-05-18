@@ -95,8 +95,7 @@ func (u *updater) hookIntoCLI() {
 
 		//nolint:gosec // Why: We're passing in os.Args
 		if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
-			u.log.WithError(err).Warn("failed to re-run binary, please re-run your command manually")
-			return cli.Exit("", 0)
+			return cli.Exit("failed to re-run binary, please re-run your command manually", 1)
 		}
 
 		return cli.Exit("", 0)

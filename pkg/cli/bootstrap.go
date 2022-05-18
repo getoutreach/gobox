@@ -231,10 +231,10 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 func urfaveBefore(a *cli.App) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		trace.AddInfo(c.Context, log.F{
-			a.Name + ".subcommand": c.Args().First(),
-			a.Name + ".args":       strings.Join(c.Args().Tail(), " "),
-			"os.name":              runtime.GOOS,
-			"os.arch":              runtime.GOARCH,
+			"cli.subcommand": c.Args().First(),
+			"cli.args":       strings.Join(c.Args().Tail(), " "),
+			"os.name":        runtime.GOOS,
+			"os.arch":        runtime.GOARCH,
 		})
 		return nil
 	}
