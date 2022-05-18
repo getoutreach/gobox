@@ -50,7 +50,7 @@ func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 }
 
 func (suite) TestRunCancelPropagation(t *testing.T) {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -63,7 +63,7 @@ func (suite) TestRunCancelPropagation(t *testing.T) {
 }
 
 func (suite) TestRunDeadlinePropagation(t *testing.T) {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -88,7 +88,7 @@ func (suite) TestSleepUntil(t *testing.T) {
 }
 
 func (suite) TestRunTraceHeaders(t *testing.T) {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	async.Run(context.Background(), async.Func(func(ctx context.Context) error {
@@ -154,7 +154,7 @@ func (suite) TestMutexWithContext_ExtraUnlock(t *testing.T) {
 }
 
 func ExampleTasks_run() {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -176,7 +176,7 @@ func ExampleTasks_run() {
 }
 
 func ExampleTasks_runBackground() {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctxMain, cancel := context.WithCancel(context.Background())
@@ -202,7 +202,7 @@ func ExampleTasks_runBackground() {
 }
 
 func ExampleLoop() {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -233,7 +233,7 @@ func ExampleLoop() {
 }
 
 func ExampleTasks_loop() {
-	trlogs := tracetest.NewTraceLog()
+	trlogs := tracetest.NewTraceLog("honeycomb")
 	defer trlogs.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())

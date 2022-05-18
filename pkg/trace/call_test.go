@@ -39,7 +39,7 @@ func (suite) TestNestedCall(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog()
+	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()

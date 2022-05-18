@@ -96,19 +96,25 @@ package trace
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
 // nolint:gochecknoglobals
-var defaultTracer = &tracer{}
+var defaultTracer tracer
 
 // Deprecated: Use InitTracer() instead.
 // StartTracing starts the tracing infrastructure.
 //
 // This should be called at the start of the application.
 func StartTracing(serviceName string) error {
+	if err := setDefaultTracer(); err != nil {
+		return err
+	}
+
 	return defaultTracer.startTracing(serviceName)
 }
 
@@ -117,7 +123,28 @@ func StartTracing(serviceName string) error {
 // This needs to be called before sending any traces
 // otherwise they will not be published.
 func InitTracer(ctx context.Context, serviceName string) error {
+	if err := setDefaultTracer(); err != nil {
+		return err
+	}
 	return defaultTracer.initTracer(ctx, serviceName)
+}
+
+func setDefaultTracer() error {
+	config := Config{}
+	err := config.Load()
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	log.Info(context.TODO(), fmt.Sprintf("%#v", config), nil)
+
+	if config.Otel.Enabled {
+		defaultTracer = &otelTracer{Config: config}
+	} else if config.Honeycomb.Enabled {
+		defaultTracer = &honeycombTracer{Config: config}
+	}
+
+	return nil
 }
 
 // Deprecated: Use CloseTracer() instead.
@@ -125,6 +152,10 @@ func InitTracer(ctx context.Context, serviceName string) error {
 //
 // This should be called at the exit of the application.
 func EndTracing() {
+	if defaultTracer == nil {
+		return
+	}
+
 	defaultTracer.endTracing()
 }
 
@@ -133,6 +164,10 @@ func EndTracing() {
 // This should be called when an application is exiting, or
 // when you want to terminate the tracer.
 func CloseTracer(ctx context.Context) {
+	if defaultTracer == nil {
+		return
+	}
+
 	defaultTracer.closeTracer(ctx)
 }
 
@@ -145,16 +180,19 @@ func ContextFromHTTP(r *http.Request, name string) context.Context {
 
 // FromHeaders fetches trace info from a headers map
 func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
-	return defaultTracer.fromHeaders(ctx, hdrs, name)
-}
+	if defaultTracer == nil {
+		return ctx
+	}
 
-// FromHeadersAsync fetches trace info from a headers map and kicks off an async trace.
-func FromHeadersAsync(ctx context.Context, hdrs map[string][]string, name string) context.Context {
-	return StartSpanAsync(defaultTracer.fromHeaders(ctx, hdrs, name), name)
+	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
 
 // ToHeaders writes the current trace context into a headers map
 func ToHeaders(ctx context.Context) map[string][]string {
+	if defaultTracer == nil {
+		return map[string][]string{}
+	}
+
 	return defaultTracer.toHeaders(ctx)
 }
 
@@ -162,6 +200,10 @@ func ToHeaders(ctx context.Context) map[string][]string {
 //
 // Use trace.End to end this.
 func StartTrace(ctx context.Context, name string) context.Context {
+	if defaultTracer == nil {
+		return ctx
+	}
+
 	return defaultTracer.startTrace(ctx, name)
 }
 
@@ -169,6 +211,10 @@ func StartTrace(ctx context.Context, name string) context.Context {
 //
 // Use trace.End to end this.
 func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.Context {
+	if defaultTracer == nil {
+		return ctx
+	}
+
 	newCtx := defaultTracer.startSpan(ctx, name)
 	addDefaultTracerInfo(newCtx, args...)
 	return newCtx
@@ -180,6 +226,10 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 //
 // Use trace.End to end this.
 func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) context.Context {
+	if defaultTracer == nil {
+		return ctx
+	}
+
 	newCtx := defaultTracer.startSpanAsync(ctx, name)
 	addDefaultTracerInfo(newCtx, args...)
 	return newCtx
@@ -187,6 +237,10 @@ func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) con
 
 // End ends a span (or a trace started via StartTrace or ContextFromHTTP).
 func End(ctx context.Context) {
+	if defaultTracer == nil {
+		return
+	}
+
 	defaultTracer.end(ctx)
 }
 
@@ -207,18 +261,29 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 // tracing context.  The ID returned will be the honeycomb trace ID
 // (if honeycomb is enabled) or an empty string if neither are enabled.
 func ID(ctx context.Context) string {
+	if defaultTracer == nil {
+		return ""
+	}
+
 	return defaultTracer.id(ctx)
 }
 
 // spanID returns the root tracing spanID for use when it is needed to correlate the logs belonging to same flow.
 // The spanID returned will be the honeycomb trace spanID (if honeycomb is enabled) or an empty string if neither are enabled
 func spanID(ctx context.Context) string {
+	if defaultTracer == nil {
+		return ""
+	}
+
 	return defaultTracer.spanID(ctx)
 }
 
 // parentID returns the tracing parentID for use when it is needed to correlate the logs belonging to same flow.
 // The parentID returned will be the honeycomb trace parentID (if honeycomb is enabled) or an empty string if neither are enabled
 func parentID(ctx context.Context) string {
+	if defaultTracer == nil {
+		return ""
+	}
 	return defaultTracer.parentID(ctx)
 }
 
@@ -248,5 +313,9 @@ func AddSpanInfo(ctx context.Context, args ...log.Marshaler) {
 }
 
 func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
+	if defaultTracer == nil {
+		return
+	}
+
 	defaultTracer.addInfo(ctx, args...)
 }

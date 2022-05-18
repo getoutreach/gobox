@@ -26,7 +26,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog()
+	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 
 	ctx := trace.StartTrace(context.Background(), "trace-test")
@@ -120,7 +120,7 @@ func (suite) TestTrace(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog()
+	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 
 	ctx := trace.StartTrace(context.Background(), "trace-test")
@@ -183,7 +183,7 @@ func (suite) TestID(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog()
+	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 
 	assert.Equal(t, "", trace.ID(context.Background()))
@@ -238,7 +238,7 @@ func (suite) TestNestingIDs(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("go-outreach")
 
-	trlog := tracetest.NewTraceLog()
+	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 
 	ctx0 := context.Background()

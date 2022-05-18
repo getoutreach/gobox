@@ -6,6 +6,7 @@ import (
 
 	"github.com/honeycombio/beeline-go/propagation"
 	"github.com/honeycombio/beeline-go/trace"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -13,8 +14,23 @@ const (
 	HeaderForceTracing = "X-Force-Trace"
 )
 
+type roundtripper struct {
+	old http.RoundTripper
+}
+
+func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	for k, v := range ToHeaders(r.Context()) {
+		r.Header[k] = v
+	}
+	return rt.old.RoundTrip(r)
+}
+
+func (t *honeycombTracer) newTransport(old http.RoundTripper) http.RoundTripper {
+	return &roundtripper{old}
+}
+
 // fromHeaders fetches trace info from a headers map
-func (t *tracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+func (t *honeycombTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
 	header := http.Header(hdrs)
 
 	if t.Honeycomb.Enabled {
@@ -30,14 +46,26 @@ func (t *tracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name
 }
 
 // toHeaders writes the current trace context into a headers map
-func (t *tracer) toHeaders(ctx context.Context) map[string][]string {
+func (t *honeycombTracer) toHeaders(ctx context.Context) map[string][]string {
 	result := http.Header{}
 
-	if t.Honeycomb.Enabled {
-		if span := trace.GetSpanFromContext(ctx); span != nil {
-			result.Set(propagation.TracePropagationHTTPHeader, span.SerializeHeaders())
-		}
+	if span := trace.GetSpanFromContext(ctx); span != nil {
+		result.Set(propagation.TracePropagationHTTPHeader, span.SerializeHeaders())
 	}
 
 	return result
+}
+
+func (t *otelTracer) newTransport(old http.RoundTripper) http.RoundTripper {
+	return otelhttp.NewTransport(old)
+}
+
+// fromHeaders fetches trace info from a headers map
+func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	return ctx
+}
+
+// toHeaders writes the current trace context into a headers map
+func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
+	return http.Header{}
 }

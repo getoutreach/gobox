@@ -3,6 +3,7 @@ package trace
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
@@ -13,6 +14,11 @@ import (
 	"github.com/honeycombio/beeline-go/trace"
 )
 
+type honeycombTracer struct {
+	Config
+	sync.Once
+}
+
 // nolint:gochecknoglobals
 var presendHook func(map[string]interface{})
 
@@ -21,11 +27,26 @@ func SetPresendHook(hook func(map[string]interface{})) {
 	presendHook = hook
 }
 
-func (t *tracer) startHoneycomb(ctx context.Context, serviceName string) error {
-	if !t.Honeycomb.Enabled {
-		return nil
+func (t *honeycombTracer) presendHook(fields map[string]interface{}) {
+	setf := func(key string, value interface{}) {
+		fields[key] = value
 	}
 
+	// Set service-level tags on every single span we send.
+	logf.Marshal("", app.Info(), setf)
+	logf.Marshal("", &t.GlobalTags, setf)
+
+	if presendHook != nil {
+		presendHook(fields)
+	}
+}
+
+// Deprecated: Use initTracer() instead.
+func (t *honeycombTracer) startTracing(serviceName string) error {
+	return t.initTracer(context.TODO(), serviceName)
+}
+
+func (t *honeycombTracer) initTracer(ctx context.Context, serviceName string) error {
 	key, err := t.Honeycomb.APIKey.Data(ctx)
 	if err != nil {
 		log.Error(ctx, "Unable to fetch honeycomb API key", events.NewErrorInfo(err))
@@ -47,47 +68,34 @@ func (t *tracer) startHoneycomb(ctx context.Context, serviceName string) error {
 	return nil
 }
 
-func (t *tracer) stopHoneycomb(ctx context.Context) {
-	if !t.Honeycomb.Enabled {
-		return
-	}
+// Deprecated: Use closeTracer() instead.
+func (t *honeycombTracer) endTracing() {
+	t.closeTracer(context.TODO())
+}
 
+func (t *honeycombTracer) closeTracer(ctx context.Context) {
 	beeline.Flush(ctx)
 	beeline.Close()
 }
 
-func (t *tracer) presendHook(fields map[string]interface{}) {
-	setf := func(key string, value interface{}) {
-		fields[key] = value
-	}
-
-	// Set service-level tags on every single span we send.
-	logf.Marshal("", app.Info(), setf)
-	logf.Marshal("", &t.GlobalTags, setf)
-
-	if presendHook != nil {
-		presendHook(fields)
-	}
+func (t *honeycombTracer) startTrace(ctx context.Context, name string) context.Context {
+	return t.startHoneycombTrace(ctx, name, nil)
 }
 
-func (t *tracer) startHoneycombTrace(ctx context.Context, name string, prop *propagation.PropagationContext) context.Context {
-	if !t.Honeycomb.Enabled {
-		return ctx
-	}
-
+func (t *honeycombTracer) startHoneycombTrace(ctx context.Context, name string, prop *propagation.PropagationContext) context.Context {
 	ctx, tr := trace.NewTrace(ctx, prop)
 	tr.GetRootSpan().AddField("name", name)
 	return ctx
 }
 
-func (t *tracer) honeycombTraceID(ctx context.Context) string {
+func (t *honeycombTracer) id(ctx context.Context) string {
 	if t := trace.GetTraceFromContext(ctx); t != nil {
 		return "hctrace_" + t.GetTraceID()
 	}
 	return ""
 }
 
-func (t *tracer) startHoneycombSpan(ctx context.Context, name string) context.Context {
+func (t *honeycombTracer) startSpan(ctx context.Context, name string) context.Context {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		ctx, span = span.CreateChild(ctx)
 		span.AddField("name", name)
@@ -95,7 +103,7 @@ func (t *tracer) startHoneycombSpan(ctx context.Context, name string) context.Co
 	return ctx
 }
 
-func (t *tracer) startHoneycombSpanAsync(ctx context.Context, name string) context.Context {
+func (t *honeycombTracer) startSpanAsync(ctx context.Context, name string) context.Context {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		ctx, span = span.CreateAsyncChild(ctx)
 		span.AddField("name", name)
@@ -103,7 +111,7 @@ func (t *tracer) startHoneycombSpanAsync(ctx context.Context, name string) conte
 	return ctx
 }
 
-func (t *tracer) endHoneycombSpan(ctx context.Context) {
+func (t *honeycombTracer) end(ctx context.Context) {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		span.Send()
 		if span.GetParent() == nil {
@@ -112,7 +120,7 @@ func (t *tracer) endHoneycombSpan(ctx context.Context) {
 	}
 }
 
-func (t *tracer) addHoneycombFields(ctx context.Context, args ...log.Marshaler) {
+func (t *honeycombTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.GetSpanFromContext(ctx); span != nil {
 		for _, f := range args {
 			logf.Marshal("", f, span.AddField)
@@ -120,18 +128,18 @@ func (t *tracer) addHoneycombFields(ctx context.Context, args ...log.Marshaler) 
 	}
 }
 
-func (t *tracer) honeycombParentID(ctx context.Context) string {
+func (t *honeycombTracer) spanID(ctx context.Context) string {
 	if t := trace.GetSpanFromContext(ctx); t != nil {
-		if parentID := t.GetParentID(); parentID != "" {
-			return parentID
-		}
 		return t.GetSpanID()
 	}
 	return ""
 }
 
-func (t *tracer) honeycombSpanID(ctx context.Context) string {
+func (t *honeycombTracer) parentID(ctx context.Context) string {
 	if t := trace.GetSpanFromContext(ctx); t != nil {
+		if parentID := t.GetParentID(); parentID != "" {
+			return parentID
+		}
 		return t.GetSpanID()
 	}
 	return ""

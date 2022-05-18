@@ -2,67 +2,46 @@ package trace
 
 import (
 	"context"
-	"os"
-	"sync"
+	"net/http"
 
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
-type tracer struct {
-	Config
-	sync.Once
-}
+type tracer interface {
+	// Deprecated: Use initTracer() instead.
+	startTracing(serviceName string) error
 
-// Deprecated: Use initTracer() instead.
-func (t *tracer) startTracing(serviceName string) error {
-	return t.initTracer(context.TODO(), serviceName)
-}
+	initTracer(ctx context.Context, serviceName string) error
 
-func (t *tracer) initTracer(ctx context.Context, serviceName string) error {
-	if err := t.Config.Load(); err != nil && !os.IsNotExist(err) {
-		return err
-	}
+	// Deprecated: Use closeTracer() instead.
+	endTracing()
 
-	return t.startHoneycomb(ctx, serviceName)
-}
+	closeTracer(ctx context.Context)
 
-// Deprecated: Use closeTracer() instead.
-func (t *tracer) endTracing() {
-	t.stopHoneycomb(context.TODO())
-}
+	startTrace(ctx context.Context, name string) context.Context
 
-func (t *tracer) closeTracer(ctx context.Context) {
-	t.stopHoneycomb(ctx)
-}
+	id(ctx context.Context) string
 
-func (t *tracer) startTrace(ctx context.Context, name string) context.Context {
-	return t.startHoneycombTrace(ctx, name, nil)
-}
+	startSpan(ctx context.Context, name string) context.Context
 
-func (t *tracer) startSpan(ctx context.Context, name string) context.Context {
-	return t.startHoneycombSpan(ctx, name)
-}
+	startSpanAsync(ctx context.Context, name string) context.Context
 
-func (t *tracer) startSpanAsync(ctx context.Context, name string) context.Context {
-	return t.startHoneycombSpanAsync(ctx, name)
-}
+	end(ctx context.Context)
 
-func (t *tracer) end(ctx context.Context) {
-	t.endHoneycombSpan(ctx)
-}
+	addInfo(ctx context.Context, args ...log.Marshaler)
 
-func (t *tracer) addInfo(ctx context.Context, args ...log.Marshaler) {
-	t.addHoneycombFields(ctx, args...)
-}
+	spanID(ctx context.Context) string
 
-func (t *tracer) id(ctx context.Context) string {
-	return t.honeycombTraceID(ctx)
-}
+	// Deprecated: Will be removed with full migration to OpenTelemetry
+	// Gets the parent id. The second return value represents if a parentID should be present.
+	// Not all protocol support a parentID
+	parentID(ctx context.Context) string
 
-func (t *tracer) spanID(ctx context.Context) string {
-	return t.honeycombSpanID(ctx)
-}
+	newTransport(http.RoundTripper) http.RoundTripper
 
-func (t *tracer) parentID(ctx context.Context) string {
-	return t.honeycombParentID(ctx)
+	// Deprecated: Will be removed with full migration to OpenTelemetry
+	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
+
+	// Deprecated: Will be removed with full migration to OpenTelemetry
+	toHeaders(ctx context.Context) map[string][]string
 }

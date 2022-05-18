@@ -21,16 +21,6 @@ func NewTransport(old http.RoundTripper) http.RoundTripper {
 	if old == nil {
 		old = http.DefaultTransport
 	}
-	return &roundtripper{old}
-}
 
-type roundtripper struct {
-	old http.RoundTripper
-}
-
-func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	for k, v := range ToHeaders(r.Context()) {
-		r.Header[k] = v
-	}
-	return rt.old.RoundTrip(r)
+	return defaultTracer.newTransport(old)
 }

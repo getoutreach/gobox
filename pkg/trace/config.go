@@ -7,6 +7,7 @@ import (
 // tracing config goes into trace.yaml
 type Config struct {
 	Honeycomb  `yaml:"Honeycomb"`
+	Otel       `yaml:"OpenTelemetry"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
@@ -23,6 +24,16 @@ func (g *GlobalTags) MarshalLog(addField func(key string, v interface{})) {
 type Honeycomb struct {
 	Enabled       bool       `yaml:"Enabled"`
 	APIHost       string     `yaml:"APIHost"`
+	Dataset       string     `yaml:"Dataset"`
+	SamplePercent float64    `yaml:"SamplePercent"`
+	Debug         bool       `yaml:"Debug"`
+	Stdout        bool       `yaml:"Stdout"`
+	APIKey        cfg.Secret `yaml:"APIKey"`
+}
+
+type Otel struct {
+	Enabled       bool       `yaml:"Enabled"`
+	Endpoint      string     `yaml:"Endpoint"`
 	Dataset       string     `yaml:"Dataset"`
 	SamplePercent float64    `yaml:"SamplePercent"`
 	Debug         bool       `yaml:"Debug"`
