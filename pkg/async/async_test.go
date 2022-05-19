@@ -50,32 +50,62 @@ func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 }
 
 func (suite) TestRunCancelPropagation(t *testing.T) {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	tests := map[string]struct {
+		tracerType string
+	}{
+		"honeycomb": {
+			tracerType: "honeycomb",
+		},
+		"otel": {
+			tracerType: "otel",
+		},
+	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	async.Run(ctx, async.Func(func(ctx context.Context) error {
-		<-ctx.Done()
-		return nil
-	}))
-	cancel()
-	async.Default.Wait()
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			trlogs := tracetest.NewTraceLog(tc.tracerType)
+			defer trlogs.Close()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			async.Run(ctx, async.Func(func(ctx context.Context) error {
+				<-ctx.Done()
+				return nil
+			}))
+			cancel()
+			async.Default.Wait()
+		})
+	}
 }
 
 func (suite) TestRunDeadlinePropagation(t *testing.T) {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	tests := map[string]struct {
+		tracerType string
+	}{
+		"honeycomb": {
+			tracerType: "honeycomb",
+		},
+		"otel": {
+			tracerType: "otel",
+		},
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	async.Run(ctx, async.Func(func(ctx context.Context) error {
-		if _, ok := ctx.Deadline(); !ok {
-			t.Fatal("no deadline!")
-		}
-		return nil
-	}))
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			trlogs := tracetest.NewTraceLog(tc.tracerType)
+			defer trlogs.Close()
 
-	cancel()
-	async.Default.Wait()
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			async.Run(ctx, async.Func(func(ctx context.Context) error {
+				if _, ok := ctx.Deadline(); !ok {
+					t.Fatal("no deadline!")
+				}
+				return nil
+			}))
+
+			cancel()
+			async.Default.Wait()
+		})
+	}
 }
 
 func (suite) TestSleepUntil(t *testing.T) {

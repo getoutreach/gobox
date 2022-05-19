@@ -16,6 +16,7 @@ func (suite) TestForceTracingByHeader(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
+	// skip otel because it uses automatic instrumentation see roundtripper_test
 	trlog := tracetest.NewTraceLogWithOptions(tracetest.Options{
 		SamplePercent: 1.0,
 	})
@@ -76,6 +77,7 @@ func (suite) TestForceTracingWithCascading(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
+	// skip otel because it uses automatic instrumentation see roundtripper_test
 	trlog := tracetest.NewTraceLogWithOptions(tracetest.Options{
 		SamplePercent: 1.0,
 	})

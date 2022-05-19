@@ -26,93 +26,131 @@ func (suite) TestNestedSpan(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	trlog := tracetest.NewTraceLog("honeycomb")
-	defer trlog.Close()
-
-	ctx := trace.StartTrace(context.Background(), "trace-test")
-	trace.AddInfo(ctx, log.F{"trace": "outermost"})
-
-	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
-	trace.AddInfo(inner, log.F{"trace": "inner"})
-
-	innerAsync := trace.StartSpanAsync(inner, "innerAsync")
-	trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
-
-	inner2 := trace.StartSpan(inner, "inner2")
-	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
-
-	trace.End(inner2)
-	trace.End(inner)
-	trace.End(ctx)
-
-	// async trace ends out of band!
-	trace.End(innerAsync)
-
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "leaf",
-			"name":                 "inner2",
-			"service_name":         "log-testing",
-			"trace":                "inner2",
-			"trace.parent_id":      middleID,
-			"trace.span_id":        differs.AnyString(),
-			"trace.trace_id":       traceID,
+	tests := map[string]struct {
+		tracerType string
+		expected   []map[string]interface{}
+	}{
+		"honeycomb": {
+			tracerType: "honeycomb",
+			expected: []map[string]interface{}{
+				{
+					"app.name":             "gobox",
+					"app.version":          "testing",
+					"duration_ms":          differs.FloatRange(0, 2),
+					"meta.beeline_version": differs.AnyString(),
+					"meta.local_hostname":  differs.AnyString(),
+					"meta.span_type":       "leaf",
+					"name":                 "inner2",
+					"service_name":         "log-testing",
+					"trace":                "inner2",
+					"trace.parent_id":      middleID,
+					"trace.span_id":        differs.AnyString(),
+					"trace.trace_id":       traceID,
+				},
+				{
+					"app.name":             "gobox",
+					"app.version":          "testing",
+					"duration_ms":          differs.FloatRange(0, 2),
+					"from":                 "inner_span",
+					"meta.beeline_version": differs.AnyString(),
+					"meta.local_hostname":  differs.AnyString(),
+					"meta.span_type":       "mid",
+					"name":                 "inner",
+					"service_name":         "log-testing",
+					"trace":                "inner",
+					"trace.parent_id":      rootID,
+					"trace.span_id":        middleID,
+					"trace.trace_id":       traceID,
+				},
+				{
+					"app.name":             "gobox",
+					"app.version":          "testing",
+					"duration_ms":          differs.FloatRange(0, 2),
+					"meta.beeline_version": differs.AnyString(),
+					"meta.local_hostname":  differs.AnyString(),
+					"meta.span_type":       "root",
+					"name":                 "trace-test",
+					"service_name":         "log-testing",
+					"trace":                "outermost",
+					"trace.span_id":        rootID,
+					"trace.trace_id":       traceID,
+				},
+				{
+					"app.name":             "gobox",
+					"app.version":          "testing",
+					"duration_ms":          differs.FloatRange(0, 2),
+					"meta.beeline_version": differs.AnyString(),
+					"meta.local_hostname":  differs.AnyString(),
+					"meta.span_type":       "async",
+					"name":                 "innerAsync",
+					"service_name":         "log-testing",
+					"trace":                "innerAsync",
+					"trace.parent_id":      middleID,
+					"trace.span_id":        differs.AnyString(),
+					"trace.trace_id":       traceID,
+				},
+			},
 		},
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"from":                 "inner_span",
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "mid",
-			"name":                 "inner",
-			"service_name":         "log-testing",
-			"trace":                "inner",
-			"trace.parent_id":      rootID,
-			"trace.span_id":        middleID,
-			"trace.trace_id":       traceID,
-		},
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "root",
-			"name":                 "trace-test",
-			"service_name":         "log-testing",
-			"trace":                "outermost",
-			"trace.span_id":        rootID,
-			"trace.trace_id":       traceID,
-		},
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "async",
-			"name":                 "innerAsync",
-			"service_name":         "log-testing",
-			"trace":                "innerAsync",
-			"trace.parent_id":      middleID,
-			"trace.span_id":        differs.AnyString(),
-			"trace.trace_id":       traceID,
+		"otel": {
+			tracerType: "otel",
+			expected: []map[string]interface{}{
+				{
+					"app.name":    "gobox",
+					"app.version": "testing",
+					"trace":       "inner2",
+				},
+				{
+					"app.name":    "gobox",
+					"app.version": "testing",
+					"from":        "inner_span",
+					"trace":       "inner",
+				},
+				{
+					"app.name":    "gobox",
+					"app.version": "testing",
+					"trace":       "outermost",
+				},
+				{
+					"app.name":    "gobox",
+					"app.version": "testing",
+					"trace":       "innerAsync",
+				},
+			},
 		},
 	}
 
-	ev := trlog.HoneycombEvents()
-	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
-		t.Fatal("unexpected events", diff)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			trlog := tracetest.NewTraceLog(tc.tracerType)
+			defer trlog.Close()
+
+			ctx := trace.StartTrace(context.Background(), "trace-test")
+			trace.AddInfo(ctx, log.F{"trace": "outermost"})
+
+			inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
+			trace.AddInfo(inner, log.F{"trace": "inner"})
+
+			innerAsync := trace.StartSpanAsync(inner, "innerAsync")
+			trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
+
+			inner2 := trace.StartSpan(inner, "inner2")
+			trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
+
+			trace.End(inner2)
+			trace.End(inner)
+			trace.End(ctx)
+
+			// async trace ends out of band!
+			trace.End(innerAsync)
+
+			ev := trlog.HoneycombEvents()
+			if diff := cmp.Diff(tc.expected, ev, differs.Custom()); diff != "" {
+				t.Fatal("unexpected events", diff)
+			}
+		})
 	}
 }
 
@@ -120,6 +158,7 @@ func (suite) TestTrace(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
+	// skip otel as it automtically takes care of this scenario
 	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 
@@ -179,7 +218,7 @@ func (suite) TestTrace(t *testing.T) {
 	}
 }
 
-func (suite) TestID(t *testing.T) {
+func (suite) TestIDHoneycomb(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
@@ -234,10 +273,31 @@ func (suite) TestID(t *testing.T) {
 	}
 }
 
+func (suite) TestIDOtel(t *testing.T) {
+	defer app.SetName(app.Info().Name)
+	app.SetName("gobox")
+
+	trlog := tracetest.NewTraceLog("otel")
+	defer trlog.Close()
+
+	assert.Equal(t, "", trace.ID(context.Background()))
+
+	ctx := trace.StartTrace(context.Background(), "trace-test")
+	traceID := trace.ID(ctx)
+	assert.Check(t, traceID != "")
+
+	inner := trace.StartSpan(ctx, "inner")
+	assert.Equal(t, traceID, trace.ID(inner))
+
+	trace.End(inner)
+	trace.End(ctx)
+}
+
 func (suite) TestNestingIDs(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("go-outreach")
 
+	// Skipping otel as it automatically takes care of this
 	trlog := tracetest.NewTraceLog("honeycomb")
 	defer trlog.Close()
 

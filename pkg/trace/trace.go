@@ -96,7 +96,6 @@ package trace
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -135,8 +134,6 @@ func setDefaultTracer() error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-
-	log.Info(context.TODO(), fmt.Sprintf("%#v", config), nil)
 
 	if config.Otel.Enabled {
 		defaultTracer = &otelTracer{Config: config}

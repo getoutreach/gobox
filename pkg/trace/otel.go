@@ -100,7 +100,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(r),
-		// otel accepts sample rates as a fractions of traces >= 1 will always samble < 0 will never sample
+		// otel accepts sample rates as a fractions of traces >= 1 will always sample < 0 will never sample
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(t.Otel.SamplePercent/100)),
 		sdktrace.WithSpanProcessor(Annotator{globalTags: t.GlobalTags}),
 	)
