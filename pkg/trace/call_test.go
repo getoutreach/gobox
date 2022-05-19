@@ -231,13 +231,13 @@ func (suite) TestNestedCall(t *testing.T) {
 				},
 			},
 			expectedLogs: []log.F{
-				// {
-				// 	"app.name":    "gobox",
-				// 	"app.version": string("testing"),
-				// 	"@timestamp":  differs.RFC3339NanoTime(),
-				// 	"level":       "DEBUG",
-				// 	"message":     "calling: start call",
-				// },
+				{
+					"app.name":    "gobox",
+					"app.version": string("testing"),
+					"@timestamp":  differs.RFC3339NanoTime(),
+					"level":       "DEBUG",
+					"message":     "calling: start call",
+				},
 				{
 					"app.name":    "gobox",
 					"app.version": string("testing"),
