@@ -56,7 +56,7 @@ func (u *updater) hookIntoCLI() {
 				u.forceCheck = true
 			}
 
-			if strings.EqualFold(f, "skip-updater") {
+			if strings.EqualFold(f, "skip-update") {
 				u.disabled = true
 			}
 		}
