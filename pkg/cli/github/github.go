@@ -9,6 +9,7 @@ package github
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/google/go-github/v43/github"
 	"golang.org/x/oauth2"
@@ -16,9 +17,17 @@ import (
 
 // NewClient returns a new Github client using credentials from
 // GetToken().
-func NewClient() (*github.Client, error) {
+func NewClient(optFns ...Option) (*github.Client, error) {
+	opts := &Options{}
+	opts.apply(optFns...)
+
 	token, err := GetToken()
 	if err != nil {
+		if opts.AllowUnauthenticated {
+			opts.Logger.Warn("unable to get token, falling back to unauthenticated client")
+			return github.NewClient(http.DefaultClient), nil
+		}
+
 		return nil, err
 	}
 
