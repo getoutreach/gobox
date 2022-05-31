@@ -3,7 +3,6 @@ package trace
 import (
 	"context"
 	"strings"
-	"sync"
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
@@ -16,7 +15,6 @@ import (
 
 type honeycombTracer struct {
 	Config
-	sync.Once
 }
 
 // nolint:gochecknoglobals
