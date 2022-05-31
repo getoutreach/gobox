@@ -2,7 +2,6 @@ package trace_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -161,8 +160,6 @@ func (suite) TestRoundtripper(t *testing.T) {
 
 			trace.End(inner)
 			trace.End(ctx)
-
-			fmt.Println("ended spans")
 
 			ev := state.HoneycombEvents()
 			t.Logf("state: %#v", state)
