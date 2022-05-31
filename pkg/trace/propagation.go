@@ -60,11 +60,13 @@ func (t *otelTracer) newTransport(old http.RoundTripper) http.RoundTripper {
 	return otelhttp.NewTransport(old)
 }
 
+// Deprecated: will be removed in favor of automatic instrumentation
 // fromHeaders fetches trace info from a headers map
 func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
 	return ctx
 }
 
+// Deprecated: will be removed in favor of automatic instrumentation
 // toHeaders writes the current trace context into a headers map
 func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
 	return http.Header{}

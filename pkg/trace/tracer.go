@@ -32,16 +32,15 @@ type tracer interface {
 
 	spanID(ctx context.Context) string
 
-	// Deprecated: Will be removed with full migration to OpenTelemetry
-	// Gets the parent id. The second return value represents if a parentID should be present.
-	// Not all protocol support a parentID
+	// Deprecated: Will be removed with full migration to OpenTelemetry.
+	// OpenTelemetry automatically handle adding parentID to traces
 	parentID(ctx context.Context) string
 
 	newTransport(http.RoundTripper) http.RoundTripper
 
-	// Deprecated: Will be removed with full migration to OpenTelemetry
+	// Deprecated: will be removed in favor of automatic instrumentation
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
 
-	// Deprecated: Will be removed with full migration to OpenTelemetry
+	// Deprecated: will be removed in favor of automatic instrumentation
 	toHeaders(ctx context.Context) map[string][]string
 }
