@@ -24,3 +24,7 @@ func NewTransport(old http.RoundTripper) http.RoundTripper {
 
 	return defaultTracer.newTransport(old)
 }
+
+func NewHandler(handler http.Handler, operation string) http.Handler {
+	return defaultTracer.newHandler(handler, operation)
+}

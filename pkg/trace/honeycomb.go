@@ -11,6 +11,7 @@ import (
 	"github.com/honeycombio/beeline-go"
 	"github.com/honeycombio/beeline-go/propagation"
 	"github.com/honeycombio/beeline-go/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type honeycombTracer struct {
@@ -23,6 +24,9 @@ var presendHook func(map[string]interface{})
 // SetPresendHook sets the honeycomb presend hook for testing
 func SetPresendHook(hook func(map[string]interface{})) {
 	presendHook = hook
+}
+
+func (t *honeycombTracer) registerSpanProcessor(s sdktrace.SpanProcessor) {
 }
 
 func (t *honeycombTracer) presendHook(fields map[string]interface{}) {

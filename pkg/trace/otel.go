@@ -65,6 +65,10 @@ func (t *otelTracer) startTracing(serviceName string) error {
 	return t.initTracer(context.TODO(), serviceName)
 }
 
+func (t *otelTracer) registerSpanProcessor(s sdktrace.SpanProcessor) {
+	t.tracerProvider.RegisterSpanProcessor(s)
+}
+
 func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	key, err := t.Otel.APIKey.Data(ctx)
 	if err != nil {

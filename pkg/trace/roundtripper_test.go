@@ -13,209 +13,303 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"github.com/honeycombio/beeline-go/propagation"
 )
+
+type initRoundTripperStateFunc func(t *testing.T) *roundtripperState
+type callRoudTripperFunc func(t *testing.T, state *roundtripperState) []map[string]interface{}
 
 func (suite) TestRoundtripper(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	// don't care about specific ids but make sure same IDs are used in both settings
-	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
-
-	tests := map[string]struct {
-		tracerType string
-		expected   []map[string]interface{}
+	testCases := []struct {
+		name                  string
+		initRoundTripperState initRoundTripperStateFunc
+		callRoundTripper      callRoudTripperFunc
+		expectedGen           func(traceId, rootID differs.CustomComparer) []map[string]interface{}
 	}{
-		"honeycomb": {
-			tracerType: "honeycomb",
-			expected: []map[string]interface{}{
-				{
-					"app.name":                  "gobox",
-					"app.version":               "testing",
-					"duration":                  differs.FloatRange(0, 10),
-					"duration_ms":               differs.FloatRange(0, 10),
-					"http.method":               string("GET"),
-					"http.referer":              string(""),
-					"http.request_id":           string(""),
-					"http.status_code":          int(200),
-					"http.url_details.endpoint": string("ep"),
-					"http.url_details.path":     string("/myendpoint"),
-					"http.url_details.uri":      string("/myendpoint"),
-					"meta.beeline_version":      differs.AnyString(),
-					"meta.local_hostname":       differs.AnyString(),
-					"meta.span_type":            string("subroot"), // <--- this indicates trace is connected to remote event
-					"name":                      string("ep"),
-					"network.bytes_read":        int(0),
-					"network.bytes_written":     int(2),
-					"network.client.ip":         string(""),
-					"network.destination.ip":    string(""),
-					"service_name":              string("log-testing"),
-					"timing.dequeued_at":        differs.RFC3339NanoTime(),
-					"timing.finished_at":        differs.RFC3339NanoTime(),
-					"timing.scheduled_at":       differs.RFC3339NanoTime(),
-					"timing.service_time":       differs.FloatRange(0, 0.1),
-					"timing.total_time":         differs.FloatRange(0, 0.1),
-					"timing.wait_time":          differs.FloatRange(0, 0.1),
-					"trace.span_id":             differs.AnyString(),
-					"trace.trace_id":            traceID,
-					"trace.parent_id":           middleID,
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 10),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       string("leaf"),
-					"name":                 string("inner"),
-					"service_name":         string("log-testing"),
-					"trace":                string("inner"),
-					"trace.parent_id":      rootID,
-					"trace.span_id":        middleID,
-					"trace.trace_id":       traceID,
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 10),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       string("root"),
-					"name":                 string("trace-rt"),
-					"service_name":         string("log-testing"),
-					"trace.span_id":        rootID,
-					"trace.trace_id":       traceID,
-				},
+		{
+			name:                  "OtelServerOtelClient",
+			initRoundTripperState: otelInitRoundTripperState,
+			callRoundTripper:      otelCallRoundTripper,
+			expectedGen: func(traceID, rootID differs.CustomComparer) []map[string]interface{} {
+				return []map[string]interface{}{
+					{
+						"name":                                 "ep",
+						"spanContext.traceID":                  traceID,
+						"spanContext.spanID":                   differs.AnyString(),
+						"spanContext.traceFlags":               "01",
+						"parent.traceID":                       traceID,
+						"parent.spanID":                        differs.AnyString(),
+						"parent.traceFlags":                    "01",
+						"parent.remote":                        true,
+						"spanKind":                             "server",
+						"startTime":                            differs.AnyString(),
+						"endTime":                              differs.AnyString(),
+						"attributes.net.transport":             "ip_tcp",
+						"attributes.net.peer.ip":               "127.0.0.1",
+						"attributes.net.peer.port":             "",
+						"attributes.net.host.ip":               "127.0.0.1",
+						"attributes.net.host.port":             "",
+						"attributes.http.method":               "GET",
+						"attributes.http.target":               "/myendpoint",
+						"attributes.http.server_name":          "ep",
+						"attributes.app.name":                  "gobox",
+						"attributes.app.version":               "testing",
+						"attributes.duration":                  differs.AnyString(),
+						"attributes.http.flavor":               "1.1",
+						"attributes.http.host":                 differs.AnyString(),
+						"attributes.http.referer":              "",
+						"attributes.http.request_id":           "",
+						"attributes.http.scheme":               "http",
+						"attributes.http.status_code":          "200",
+						"attributes.http.url_details.endpoint": "ep",
+						"attributes.http.url_details.path":     "/myendpoint",
+						"attributes.http.url_details.uri":      "/myendpoint",
+						"attributes.http.user_agent":           "Go-http-client/1.1",
+						"attributes.network.bytes_read":        "0",
+						"attributes.network.bytes_written":     "2",
+						"attributes.network.client.ip":         "",
+						"attributes.network.destination.ip":    "",
+						"attributes.timing.dequeued_at":        differs.RFC3339NanoTime(),
+						"attributes.timing.finished_at":        differs.RFC3339NanoTime(),
+						"attributes.timing.scheduled_at":       differs.RFC3339NanoTime(),
+						"attributes.timing.service_time":       differs.AnyString(),
+						"attributes.timing.total_time":         differs.AnyString(),
+						"attributes.timing.wait_time":          differs.AnyString(),
+					},
+					{
+						"attributes.app.name":    "gobox",
+						"attributes.app.version": "testing",
+						"attributes.trace":       "inner",
+						"endTime":                differs.AnyString(),
+						"name":                   "inner",
+						"parent.remote":          false,
+						"parent.spanID":          rootID,
+						"parent.traceFlags":      "01",
+						"parent.traceID":         traceID,
+						"spanContext.spanID":     differs.AnyString(),
+						"spanContext.traceFlags": "01",
+						"spanContext.traceID":    traceID,
+						"spanKind":               "internal",
+						"startTime":              differs.AnyString(),
+					},
+					{
+						"attributes.app.name":    "gobox",
+						"attributes.app.version": "testing",
+						"endTime":                differs.AnyString(),
+						"name":                   "trace-rt",
+						"parent.remote":          false,
+						"parent.spanID":          "0000000000000000",
+						"parent.traceFlags":      "00",
+						"parent.traceID":         "00000000000000000000000000000000",
+						"spanContext.spanID":     rootID,
+						"spanContext.traceFlags": "01",
+						"spanContext.traceID":    traceID,
+						"spanKind":               "internal",
+						"startTime":              differs.AnyString(),
+					},
+				}
 			},
 		},
-		"otel": {
-			tracerType: "otel",
-			expected: []map[string]interface{}{
-				{
-					"app.name":                  "gobox",
-					"app.version":               "testing",
-					"duration":                  differs.AnyString(),
-					"http.flavor":               string("1.1"),
-					"http.host":                 differs.AnyString(),
-					"http.method":               string("GET"),
-					"http.referer":              string(""),
-					"http.request_id":           string(""),
-					"http.scheme":               string("http"),
-					"http.server_name":          string("ep"),
-					"http.status_code":          string("200"),
-					"http.target":               string("/myendpoint"),
-					"http.url_details.endpoint": string("ep"),
-					"http.url_details.path":     string("/myendpoint"),
-					"http.url_details.uri":      string("/myendpoint"),
-					"http.user_agent":           string("Go-http-client/1.1"),
-					"net.host.ip":               string("127.0.0.1"),
-					"net.host.port":             string(""),
-					"net.peer.ip":               string("127.0.0.1"),
-					"net.peer.port":             string(""),
-					"net.transport":             string("ip_tcp"),
-					"network.bytes_read":        string("0"),
-					"network.bytes_written":     string("2"),
-					"network.client.ip":         string(""),
-					"network.destination.ip":    string(""),
-					"timing.dequeued_at":        differs.RFC3339NanoTime(),
-					"timing.finished_at":        differs.RFC3339NanoTime(),
-					"timing.scheduled_at":       differs.RFC3339NanoTime(),
-					"timing.service_time":       differs.AnyString(),
-					"timing.total_time":         differs.AnyString(),
-					"timing.wait_time":          differs.AnyString(),
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-					"trace":       string("inner"),
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-				},
+		{
+			name:                  "HoneycombServerOtelClient",
+			initRoundTripperState: honeycombInitRoundTripperState,
+			callRoundTripper:      otelCallRoundTripper,
+			expectedGen: func(traceID, rootID differs.CustomComparer) []map[string]interface{} {
+				return []map[string]interface{}{
+					{
+						"attributes.app.name":    "gobox",
+						"attributes.app.version": "testing",
+						"attributes.trace":       "inner",
+						"endTime":                differs.AnyString(),
+						"name":                   "inner",
+						"parent.remote":          false,
+						"parent.spanID":          rootID,
+						"parent.traceFlags":      "01",
+						"parent.traceID":         traceID,
+						"spanContext.spanID":     differs.AnyString(),
+						"spanContext.traceFlags": "01",
+						"spanContext.traceID":    traceID,
+						"spanKind":               "internal",
+						"startTime":              differs.AnyString(),
+					},
+					{
+						"attributes.app.name":    "gobox",
+						"attributes.app.version": "testing",
+						"endTime":                differs.AnyString(),
+						"name":                   "trace-rt",
+						"parent.remote":          false,
+						"parent.spanID":          "0000000000000000",
+						"parent.traceFlags":      "00",
+						"parent.traceID":         "00000000000000000000000000000000",
+						"spanContext.spanID":     rootID,
+						"spanContext.traceFlags": "01",
+						"spanContext.traceID":    traceID,
+						"spanKind":               "internal",
+						"startTime":              differs.AnyString(),
+					},
+				}
+			},
+		},
+		{
+			name:                  "OtelServerHoneycombClient",
+			initRoundTripperState: otelInitRoundTripperState,
+			callRoundTripper:      honeycombCallRoundTripper,
+			expectedGen: func(traceID, rootID differs.CustomComparer) []map[string]interface{} {
+				return []map[string]interface{}{
+					{
+						"name":                                 "ep",
+						"spanContext.traceID":                  "e19c8ec3bf261ba6ea13b9892a2564c3",
+						"spanContext.spanID":                   differs.AnyString(),
+						"spanContext.traceFlags":               "01",
+						"parent.traceID":                       "e19c8ec3bf261ba6ea13b9892a2564c3",
+						"parent.spanID":                        "11ca4c05edc139ae",
+						"parent.traceFlags":                    "00",
+						"parent.remote":                        true,
+						"spanKind":                             "server",
+						"startTime":                            differs.AnyString(),
+						"endTime":                              differs.AnyString(),
+						"attributes.net.transport":             "ip_tcp",
+						"attributes.net.peer.ip":               "127.0.0.1",
+						"attributes.net.peer.port":             "",
+						"attributes.net.host.ip":               "127.0.0.1",
+						"attributes.net.host.port":             "",
+						"attributes.http.method":               "GET",
+						"attributes.http.target":               "/myendpoint",
+						"attributes.http.server_name":          "ep",
+						"attributes.app.name":                  "gobox",
+						"attributes.app.version":               "testing",
+						"attributes.duration":                  differs.AnyString(),
+						"attributes.http.flavor":               "1.1",
+						"attributes.http.host":                 differs.AnyString(),
+						"attributes.http.referer":              "",
+						"attributes.http.request_id":           "",
+						"attributes.http.scheme":               "http",
+						"attributes.http.status_code":          "200",
+						"attributes.http.url_details.endpoint": "ep",
+						"attributes.http.url_details.path":     "/myendpoint",
+						"attributes.http.url_details.uri":      "/myendpoint",
+						"attributes.http.user_agent":           "Go-http-client/1.1",
+						"attributes.network.bytes_read":        "0",
+						"attributes.network.bytes_written":     "2",
+						"attributes.network.client.ip":         "",
+						"attributes.network.destination.ip":    "",
+						"attributes.timing.dequeued_at":        differs.RFC3339NanoTime(),
+						"attributes.timing.finished_at":        differs.RFC3339NanoTime(),
+						"attributes.timing.scheduled_at":       differs.RFC3339NanoTime(),
+						"attributes.timing.service_time":       differs.AnyString(),
+						"attributes.timing.total_time":         differs.AnyString(),
+						"attributes.timing.wait_time":          differs.AnyString(),
+					},
+				}
 			},
 		},
 	}
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			state := (suite{}).initRoundTripperState(t, tc.tracerType)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := tc.initRoundTripperState(t)
 			defer state.Close()
 
-			ctx := trace.StartTrace(context.Background(), "trace-rt")
-			inner := trace.StartSpan(ctx, "inner")
-			trace.AddInfo(inner, log.F{"trace": "inner"})
+			ev := tc.callRoundTripper(t, state)
 
-			client := http.Client{Transport: trace.NewTransport(nil)}
-			req, err := http.NewRequestWithContext(inner, "GET", state.Server.URL+"/myendpoint", http.NoBody)
-			if err != nil {
-				t.Fatal("Unexpected error", err)
-			}
-			res, err := client.Do(req)
-			if err != nil {
-				t.Fatal("Unexpected error", err)
-			}
-			defer res.Body.Close()
-
-			trace.End(inner)
-			trace.End(ctx)
-
-			ev := state.HoneycombEvents()
-			t.Logf("state: %#v", state)
-			t.Logf("events: %#v", ev)
-			if diff := cmp.Diff(tc.expected, ev, differs.Custom()); diff != "" {
-				t.Fatal("unexpected events", diff)
+			expected := tc.expectedGen(differs.CaptureString(), differs.CaptureString())
+			if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
+				t.Fatal("unexpected spans", diff)
 			}
 		})
 	}
 }
 
-func (suite) initRoundTripperState(t *testing.T, tracerType string) *roundtripperState {
-	trlog := tracetest.NewTraceLog(tracerType)
-	if tracerType == "otel" {
-		server := httptest.NewServer(
-			otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				trace.StartSpan(r.Context(), "ep")
-				defer trace.End(r.Context())
+func otelInitRoundTripperState(t *testing.T) *roundtripperState {
+	t.Helper()
+	recorder := tracetest.NewSpanRecorder()
+	server := httptest.NewServer(
+		trace.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			trace.StartSpan(r.Context(), "ep")
+			defer trace.End(r.Context())
 
-				var info events.HTTPRequest
-				info.FillFieldsFromRequest(r)
-				info.Endpoint = "ep"
-				if n, err := w.Write([]byte("OK")); err != nil {
-					t.Fatal("Got error", err)
-				} else {
-					info.FillResponseInfo(n, 200)
-				}
-				trace.AddInfo(r.Context(), &info)
-			}), "ep"))
+			var info events.HTTPRequest
+			info.FillFieldsFromRequest(r)
+			info.Endpoint = "ep"
+			if n, err := w.Write([]byte("OK")); err != nil {
+				t.Fatal("Got error", err)
+			} else {
+				info.FillResponseInfo(n, 200)
+			}
+			trace.AddInfo(r.Context(), &info)
+		}), "ep"))
 
-		return &roundtripperState{trlog, server}
+	return &roundtripperState{recorder, server}
+}
+
+func otelCallRoundTripper(t *testing.T, state *roundtripperState) []map[string]interface{} {
+	ctx := trace.StartTrace(context.Background(), "trace-rt")
+	inner := trace.StartSpan(ctx, "inner")
+	trace.AddInfo(inner, log.F{"trace": "inner"})
+
+	client := http.Client{Transport: trace.NewTransport(nil)}
+	req, err := http.NewRequestWithContext(inner, "GET", state.Server.URL+"/myendpoint", http.NoBody)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
 	}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r = r.WithContext(trace.ContextFromHTTP(r, "ep"))
-		defer trace.End(r.Context())
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
+	}
+	defer res.Body.Close()
 
-		var info events.HTTPRequest
-		info.FillFieldsFromRequest(r)
-		info.Endpoint = "ep"
-		if n, err := w.Write([]byte("OK")); err != nil {
-			t.Fatal("Got error", err)
-		} else {
-			info.FillResponseInfo(n, 200)
-		}
-		trace.AddInfo(r.Context(), &info)
-	}))
+	trace.End(inner)
+	trace.End(ctx)
 
-	return &roundtripperState{trlog, server}
+	return state.Ended()
+}
+
+func honeycombInitRoundTripperState(t *testing.T) *roundtripperState {
+	recorder := tracetest.NewSpanRecorder()
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			prop, err := propagation.UnmarshalHoneycombTraceContext(r.Header.Get(propagation.TracePropagationHTTPHeader))
+			if err != nil {
+				t.Fatal("Unexpected error", err)
+			}
+			if prop == nil {
+				t.Fatal("Expected honeycomb propagation")
+			}
+		}))
+
+	return &roundtripperState{recorder, server}
+}
+
+func honeycombCallRoundTripper(t *testing.T, state *roundtripperState) []map[string]interface{} {
+	hcHeader := "1;trace_id=e19c8ec3bf261ba6ea13b9892a2564c3,parent_id=11ca4c05edc139ae,context=bnVsbA=="
+
+	client := http.Client{}
+
+	req, err := http.NewRequest("GET", state.Server.URL+"/myendpoint", http.NoBody)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
+	}
+
+	req.Header.Add("X-Honeycomb-Trace", hcHeader)
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
+	}
+	defer res.Body.Close()
+
+	return state.Ended()
 }
 
 type roundtripperState struct {
-	*tracetest.TraceLog
+	*tracetest.SpanRecorder
 	*httptest.Server
 }
 
 func (rt *roundtripperState) Close() {
-	rt.TraceLog.Close()
+	rt.SpanRecorder.Close()
 	rt.Server.Close()
 }

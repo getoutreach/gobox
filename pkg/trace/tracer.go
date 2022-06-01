@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type tracer interface {
+	registerSpanProcessor(s sdktrace.SpanProcessor)
 	// Deprecated: Use initTracer() instead.
 	startTracing(serviceName string) error
 
@@ -37,6 +39,8 @@ type tracer interface {
 	parentID(ctx context.Context) string
 
 	newTransport(http.RoundTripper) http.RoundTripper
+
+	newHandler(handler http.Handler, operation string) http.Handler
 
 	// Deprecated: will be removed in favor of automatic instrumentation
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context

@@ -96,10 +96,14 @@ package trace
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/honeycombio/beeline-go/propagation"
+	"github.com/honeycombio/beeline-go/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // nolint:gochecknoglobals
@@ -126,6 +130,10 @@ func InitTracer(ctx context.Context, serviceName string) error {
 		return err
 	}
 	return defaultTracer.initTracer(ctx, serviceName)
+}
+
+func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
+	defaultTracer.registerSpanProcessor(s)
 }
 
 func setDefaultTracer() error {
@@ -181,7 +189,18 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 		return ctx
 	}
 
-	return defaultTracer.fromHeaders(ctx, hdrs, name)
+	header := http.Header(hdrs)
+	fmt.Printf("Headers: %#v\n", header)
+	//nolint:errcheck // Why: we don't report errors in our current interface
+	prop, _ := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
+	fmt.Printf("Prop: %v\n", prop)
+	ctx, tr := trace.NewTrace(ctx, prop)
+	tr.GetRootSpan().AddField("name", name)
+
+	if _, exists := header[HeaderForceTracing]; exists {
+		ctx = ForceTracing(ctx)
+	}
+	return ctx
 }
 
 // ToHeaders writes the current trace context into a headers map
@@ -190,7 +209,13 @@ func ToHeaders(ctx context.Context) map[string][]string {
 		return map[string][]string{}
 	}
 
-	return defaultTracer.toHeaders(ctx)
+	result := http.Header{}
+
+	if span := trace.GetSpanFromContext(ctx); span != nil {
+		result.Set(propagation.TracePropagationHTTPHeader, span.SerializeHeaders())
+	}
+
+	return result
 }
 
 // StartTrace starts a new root span/trace.
