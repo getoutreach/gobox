@@ -42,345 +42,219 @@ func (suite) TestNestedCall(t *testing.T) {
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 
-	tests := map[string]struct {
-		tracerType   string
-		expected     []map[string]interface{}
-		expectedLogs []log.F
-	}{
-		"honeycomb": {
-			tracerType: "honeycomb",
-			expected: []map[string]interface{}{
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"sql.query":            "my query: some model id",
-					"model.id":             "some model id",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "leaf",
-					"name":                 "sql",
-					"service_name":         "log-testing",
-					"error.kind":           "error",
-					"error.error":          "sql error",
-					"error.message":        "sql error",
-					"error.stack":          differs.AnyString(),
-					"trace.parent_id":      middleID,
-					"trace.span_id":        differs.AnyString(),
-					"trace.trace_id":       traceID,
-					"info_1_key":           "info_1_val",
-					"info_2_key":           "info_2_val",
-					"timing.dequeued_at":   differs.RFC3339NanoTime(),
-					"timing.finished_at":   differs.RFC3339NanoTime(),
-					"timing.scheduled_at":  differs.RFC3339NanoTime(),
-					"timing.service_time":  differs.FloatRange(0, 1),
-					"timing.total_time":    differs.FloatRange(0, 1),
-					"timing.wait_time":     differs.FloatRange(0, 1),
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"error.kind":           "error",
-					"error.error":          "sql error",
-					"error.message":        "sql error",
-					"error.stack":          differs.AnyString(),
-					"model.id":             "some model id",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "leaf",
-					"name":                 "model",
-					"service_name":         "log-testing",
-					"trace.parent_id":      rootID,
-					"trace.span_id":        middleID,
-					"trace.trace_id":       traceID,
-					"info_3_key":           "info_3_val",
-					"info_4_key":           "info_4_val",
-					"timing.dequeued_at":   differs.RFC3339NanoTime(),
-					"timing.finished_at":   differs.RFC3339NanoTime(),
-					"timing.scheduled_at":  differs.RFC3339NanoTime(),
-					"timing.service_time":  differs.FloatRange(0, 1),
-					"timing.total_time":    differs.FloatRange(0, 1),
-					"timing.wait_time":     differs.FloatRange(0, 1),
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "root",
-					"name":                 "trace-test",
-					"trace.span_id":        rootID,
-					"trace.trace_id":       traceID,
-					"service_name":         "log-testing",
-				},
-			},
-			expectedLogs: []log.F{
-				{
-					"app.name":    "gobox",
-					"app.version": string("testing"),
-					"@timestamp":  differs.RFC3339NanoTime(),
-					"level":       "DEBUG",
-					"message":     "calling: model",
-					"model.id":    "some model id",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": string("testing"),
-					"@timestamp":  differs.RFC3339NanoTime(),
-					"level":       "DEBUG",
-					"message":     "calling: sql",
-					"model.id":    "some model id",
-					"sql.query":   "my query: some model id",
-				},
-				{
-					"app.name":            "gobox",
-					"app.version":         string("testing"),
-					"@timestamp":          differs.RFC3339NanoTime(),
-					"honeycomb.trace_id":  differs.AnyString(),
-					"honeycomb.parent_id": differs.AnyString(),
-					"honeycomb.span_id":   differs.AnyString(),
-					"event_name":          "trace",
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					//nolint:lll // Why: Output comparision
-					"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1.1`"),
-					"level":               "ERROR",
-					"message":             "sql",
-					"model.id":            "some model id",
-					"sql.query":           "my query: some model id",
-					"info_1_key":          "info_1_val",
-					"info_2_key":          "info_2_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.FloatRange(0, 0.1),
-					"timing.total_time":   differs.FloatRange(0, 0.1),
-					"timing.wait_time":    float64(0),
-				},
-				{
-					"app.name":            "gobox",
-					"app.version":         string("testing"),
-					"honeycomb.trace_id":  differs.AnyString(),
-					"honeycomb.parent_id": differs.AnyString(),
-					"honeycomb.span_id":   differs.AnyString(),
-					"event_name":          "trace",
-					"@timestamp":          differs.RFC3339NanoTime(),
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					//nolint:lll // Why: Output comparision
-					"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1.1`"),
-					"level":               "ERROR",
-					"message":             "model",
-					"model.id":            "some model id",
-					"info_3_key":          "info_3_val",
-					"info_4_key":          "info_4_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.FloatRange(0, 0.1),
-					"timing.total_time":   differs.FloatRange(0, 0.1),
-					"timing.wait_time":    float64(0),
-				},
-			},
+	expected := []map[string]interface{}{
+		{
+			"name":                           "sql",
+			"spanContext.traceID":            traceID,
+			"spanContext.spanID":             differs.AnyString(),
+			"spanContext.traceFlags":         "01",
+			"parent.traceID":                 traceID,
+			"parent.spanID":                  middleID,
+			"parent.traceFlags":              "01",
+			"parent.remote":                  false,
+			"spanKind":                       "internal",
+			"startTime":                      differs.AnyString(),
+			"endTime":                        differs.AnyString(),
+			"attributes.app.name":            "gobox",
+			"attributes.app.version":         "testing",
+			"attributes.sql.query":           "my query: some model id",
+			"attributes.model.id":            "some model id",
+			"attributes.error.kind":          "error",
+			"attributes.error.error":         "sql error",
+			"attributes.error.message":       "sql error",
+			"attributes.error.stack":         differs.AnyString(),
+			"attributes.info_1_key":          "info_1_val",
+			"attributes.info_2_key":          "info_2_val",
+			"attributes.timing.dequeued_at":  differs.RFC3339NanoTime(),
+			"attributes.timing.finished_at":  differs.RFC3339NanoTime(),
+			"attributes.timing.scheduled_at": differs.RFC3339NanoTime(),
+			"attributes.timing.service_time": differs.AnyString(),
+			"attributes.timing.total_time":   differs.AnyString(),
+			"attributes.timing.wait_time":    differs.AnyString(),
 		},
-		"otel": {
-			tracerType: "otel",
-			expected: []map[string]interface{}{
-				{
-					"app.name":            "gobox",
-					"app.version":         "testing",
-					"sql.query":           "my query: some model id",
-					"model.id":            "some model id",
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					"error.stack":         differs.AnyString(),
-					"info_1_key":          "info_1_val",
-					"info_2_key":          "info_2_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.AnyString(),
-					"timing.total_time":   differs.AnyString(),
-					"timing.wait_time":    differs.AnyString(),
-				},
-				{
-					"app.name":            "gobox",
-					"app.version":         "testing",
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					"error.stack":         differs.AnyString(),
-					"model.id":            "some model id",
-					"info_3_key":          "info_3_val",
-					"info_4_key":          "info_4_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.AnyString(),
-					"timing.total_time":   differs.AnyString(),
-					"timing.wait_time":    differs.AnyString(),
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-				},
-			},
-			expectedLogs: []log.F{
-				{
-					"app.name":    "gobox",
-					"app.version": string("testing"),
-					"@timestamp":  differs.RFC3339NanoTime(),
-					"level":       "DEBUG",
-					"message":     "calling: start call",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": string("testing"),
-					"@timestamp":  differs.RFC3339NanoTime(),
-					"level":       "DEBUG",
-					"message":     "calling: model",
-					"model.id":    "some model id",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": string("testing"),
-					"@timestamp":  differs.RFC3339NanoTime(),
-					"level":       "DEBUG",
-					"message":     "calling: sql",
-					"model.id":    "some model id",
-					"sql.query":   "my query: some model id",
-				},
-				{
-					"app.name":            "gobox",
-					"app.version":         string("testing"),
-					"@timestamp":          differs.RFC3339NanoTime(),
-					"honeycomb.trace_id":  differs.AnyString(),
-					"honeycomb.parent_id": differs.AnyString(),
-					"honeycomb.span_id":   differs.AnyString(),
-					"event_name":          "trace",
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					//nolint:lll // Why: Output comparision
-					"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1.1`"),
-					"level":               "ERROR",
-					"message":             "sql",
-					"model.id":            "some model id",
-					"sql.query":           "my query: some model id",
-					"info_1_key":          "info_1_val",
-					"info_2_key":          "info_2_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.FloatRange(0, 0.1),
-					"timing.total_time":   differs.FloatRange(0, 0.1),
-					"timing.wait_time":    float64(0),
-				},
-				{
-					"app.name":            "gobox",
-					"app.version":         string("testing"),
-					"honeycomb.trace_id":  differs.AnyString(),
-					"honeycomb.parent_id": differs.AnyString(),
-					"honeycomb.span_id":   differs.AnyString(),
-					"event_name":          "trace",
-					"@timestamp":          differs.RFC3339NanoTime(),
-					"error.kind":          "error",
-					"error.error":         "sql error",
-					"error.message":       "sql error",
-					//nolint:lll // Why: Output comparision
-					"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1.1`"),
-					"level":               "ERROR",
-					"message":             "model",
-					"model.id":            "some model id",
-					"info_3_key":          "info_3_val",
-					"info_4_key":          "info_4_val",
-					"timing.dequeued_at":  differs.RFC3339NanoTime(),
-					"timing.finished_at":  differs.RFC3339NanoTime(),
-					"timing.scheduled_at": differs.RFC3339NanoTime(),
-					"timing.service_time": differs.FloatRange(0, 0.1),
-					"timing.total_time":   differs.FloatRange(0, 0.1),
-					"timing.wait_time":    float64(0),
-				},
-			},
+		{
+			"name":                           "model",
+			"spanContext.traceID":            traceID,
+			"spanContext.spanID":             middleID,
+			"spanContext.traceFlags":         "01",
+			"parent.traceID":                 traceID,
+			"parent.spanID":                  rootID,
+			"parent.traceFlags":              "01",
+			"parent.remote":                  false,
+			"spanKind":                       "internal",
+			"startTime":                      differs.AnyString(),
+			"endTime":                        differs.AnyString(),
+			"attributes.app.name":            "gobox",
+			"attributes.app.version":         "testing",
+			"attributes.error.kind":          "error",
+			"attributes.error.error":         "sql error",
+			"attributes.error.message":       "sql error",
+			"attributes.error.stack":         differs.AnyString(),
+			"attributes.model.id":            "some model id",
+			"attributes.info_3_key":          "info_3_val",
+			"attributes.info_4_key":          "info_4_val",
+			"attributes.timing.dequeued_at":  differs.RFC3339NanoTime(),
+			"attributes.timing.finished_at":  differs.RFC3339NanoTime(),
+			"attributes.timing.scheduled_at": differs.RFC3339NanoTime(),
+			"attributes.timing.service_time": differs.AnyString(),
+			"attributes.timing.total_time":   differs.AnyString(),
+			"attributes.timing.wait_time":    differs.AnyString(),
+		},
+		{
+			"name":                   "trace-test",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     rootID,
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         "00000000000000000000000000000000",
+			"parent.spanID":          "0000000000000000",
+			"parent.traceFlags":      "00",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
 		},
 	}
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			trlog := tracetest.NewTraceLog(tc.tracerType)
-			defer trlog.Close()
-			logs := logtest.NewLogRecorder(t)
-			defer logs.Close()
+	expectedLogs := []log.F{
+		{
+			"app.name":    "gobox",
+			"app.version": string("testing"),
+			"@timestamp":  differs.RFC3339NanoTime(),
+			"level":       "DEBUG",
+			"message":     "calling: model",
+			"model.id":    "some model id",
+		},
+		{
+			"app.name":    "gobox",
+			"app.version": string("testing"),
+			"@timestamp":  differs.RFC3339NanoTime(),
+			"level":       "DEBUG",
+			"message":     "calling: sql",
+			"model.id":    "some model id",
+			"sql.query":   "my query: some model id",
+		},
+		{
+			"app.name":            "gobox",
+			"app.version":         string("testing"),
+			"@timestamp":          differs.RFC3339NanoTime(),
+			"honeycomb.trace_id":  differs.AnyString(),
+			"honeycomb.parent_id": differs.AnyString(),
+			"honeycomb.span_id":   differs.AnyString(),
+			"event_name":          "trace",
+			"error.kind":          "error",
+			"error.error":         "sql error",
+			"error.message":       "sql error",
+			//nolint:lll // Why: Output comparision
+			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1`"),
+			"level":               "ERROR",
+			"message":             "sql",
+			"model.id":            "some model id",
+			"sql.query":           "my query: some model id",
+			"info_1_key":          "info_1_val",
+			"info_2_key":          "info_2_val",
+			"timing.dequeued_at":  differs.RFC3339NanoTime(),
+			"timing.finished_at":  differs.RFC3339NanoTime(),
+			"timing.scheduled_at": differs.RFC3339NanoTime(),
+			"timing.service_time": differs.FloatRange(0, 0.1),
+			"timing.total_time":   differs.FloatRange(0, 0.1),
+			"timing.wait_time":    float64(0),
+		},
+		{
+			"app.name":            "gobox",
+			"app.version":         string("testing"),
+			"honeycomb.trace_id":  differs.AnyString(),
+			"honeycomb.parent_id": differs.AnyString(),
+			"honeycomb.span_id":   differs.AnyString(),
+			"event_name":          "trace",
+			"@timestamp":          differs.RFC3339NanoTime(),
+			"error.kind":          "error",
+			"error.error":         "sql error",
+			"error.message":       "sql error",
+			//nolint:lll // Why: Output comparision
+			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1`"),
+			"level":               "ERROR",
+			"message":             "model",
+			"model.id":            "some model id",
+			"info_3_key":          "info_3_val",
+			"info_4_key":          "info_4_val",
+			"timing.dequeued_at":  differs.RFC3339NanoTime(),
+			"timing.finished_at":  differs.RFC3339NanoTime(),
+			"timing.scheduled_at": differs.RFC3339NanoTime(),
+			"timing.service_time": differs.FloatRange(0, 0.1),
+			"timing.total_time":   differs.FloatRange(0, 0.1),
+			"timing.wait_time":    float64(0),
+		},
+	}
 
-			ctx := context.Background()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
+	logs := logtest.NewLogRecorder(t)
+	defer logs.Close()
 
-			//  most functions should look like this
-			doSomeTableUpdate := func(ctx context.Context, rowID string, logs ...log.Marshaler) error {
-				ctx = trace.StartCall(ctx, "sql", SQLQuery("my query: "+rowID), log.Many(logs))
-				defer trace.EndCall(ctx)
+	ctx := context.Background()
 
-				trace.AddInfo(ctx, log.F{"info_1_key": "info_1_val", "info_2_key": "info_2_val"})
-				// do some query work
+	//  most functions should look like this
+	doSomeTableUpdate := func(ctx context.Context, rowID string, logs ...log.Marshaler) error {
+		ctx = trace.StartCall(ctx, "sql", SQLQuery("my query: "+rowID), log.Many(logs))
+		defer trace.EndCall(ctx)
 
-				// report errors
-				return trace.SetCallStatus(ctx, errors.New("sql error"))
-			}
+		trace.AddInfo(ctx, log.F{"info_1_key": "info_1_val", "info_2_key": "info_2_val"})
+		// do some query work
 
-			// *model* function calls doSomeTableUpdate
-			outer := func(ctx context.Context, m *Model) error {
-				ctx = trace.StartCall(ctx, "model", m)
-				defer trace.EndCall(ctx)
+		// report errors
+		return trace.SetCallStatus(ctx, errors.New("sql error"))
+	}
 
-				trace.AddInfo(ctx, log.F{"info_3_key": "info_3_val", "info_4_key": "info_4_val"})
-				// note that m is passed here to ensure it gets logged along with SQL queries in M
-				return trace.SetCallStatus(ctx, doSomeTableUpdate(ctx, m.ID, m))
-			}
+	// *model* function calls doSomeTableUpdate
+	outer := func(ctx context.Context, m *Model) error {
+		ctx = trace.StartCall(ctx, "model", m)
+		defer trace.EndCall(ctx)
 
-			// wrapping the main logic in a function so that we can call
-			// defer per our accepted trace.StartTrace/trace.End pattern
-			func() {
-				ctx = trace.StartTrace(ctx, "trace-test")
-				defer trace.End(ctx)
+		trace.AddInfo(ctx, log.F{"info_3_key": "info_3_val", "info_4_key": "info_4_val"})
+		// note that m is passed here to ensure it gets logged along with SQL queries in M
+		return trace.SetCallStatus(ctx, doSomeTableUpdate(ctx, m.ID, m))
+	}
 
-				if err := outer(ctx, &Model{ID: "some model id"}); err == nil {
-					t.Fatal("unexpected success", err)
-				}
-			}()
+	// wrapping the main logic in a function so that we can call
+	// defer per our accepted trace.StartTrace/trace.End pattern
+	func() {
+		ctx = trace.StartTrace(ctx, "trace-test")
+		defer trace.End(ctx)
 
-			ev := trlog.HoneycombEvents()
-			if diff := cmp.Diff(tc.expected, ev, differs.Custom()); diff != "" {
-				t.Fatal("unexpected events", diff)
-			}
+		if err := outer(ctx, &Model{ID: "some model id"}); err == nil {
+			t.Fatal("unexpected success", err)
+		}
+	}()
 
-			entries := logs.Entries()
-			if diff := cmp.Diff(tc.expectedLogs, entries, differs.Custom()); diff != "" {
-				fmt.Printf("%#v", diff[1])
-				t.Fatal("unexpected log entries", diff)
-			}
+	ev := recorder.Ended()
+	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
+		t.Fatal("unexpected events", diff)
+	}
 
-			errmap := map[string]error{
-				"WARN":  orerr.NewErrorStatus(errors.New("invalid input data"), statuscodes.BadRequest),
-				"ERROR": orerr.NewErrorStatus(errors.New("cannot access DB"), statuscodes.InternalServerError),
-				"INFO":  orerr.NewErrorStatus(errors.New("success"), statuscodes.OK),
-			}
+	entries := logs.Entries()
+	if diff := cmp.Diff(expectedLogs, entries, differs.Custom()); diff != "" {
+		fmt.Printf("%#v", diff[1])
+		t.Fatal("unexpected log entries", diff)
+	}
 
-			for level, err := range errmap {
-				logs := logtest.NewLogRecorder(t)
-				ctx = trace.StartCall(ctx, "start call")
-				trace.SetCallError(ctx, err)
-				trace.EndCall(ctx)
-				// now check logs to see that the right warning message exists
-				logs.Close()
-				lastEntry := logs.Entries()[len(logs.Entries())-1]
-				assert.Equal(t, lastEntry["level"], level)
-				assert.Equal(t, lastEntry["message"], "start call")
-			}
-		})
+	errmap := map[string]error{
+		"WARN":  orerr.NewErrorStatus(errors.New("invalid input data"), statuscodes.BadRequest),
+		"ERROR": orerr.NewErrorStatus(errors.New("cannot access DB"), statuscodes.InternalServerError),
+		"INFO":  orerr.NewErrorStatus(errors.New("success"), statuscodes.OK),
+	}
+
+	for level, err := range errmap {
+		logs := logtest.NewLogRecorder(t)
+		ctx = trace.StartCall(ctx, "start call")
+		trace.SetCallError(ctx, err)
+		trace.EndCall(ctx)
+		// now check logs to see that the right warning message exists
+		logs.Close()
+		lastEntry := logs.Entries()[len(logs.Entries())-1]
+		assert.Equal(t, lastEntry["level"], level)
+		assert.Equal(t, lastEntry["message"], "start call")
 	}
 }
 
