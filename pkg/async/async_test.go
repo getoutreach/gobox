@@ -50,62 +50,32 @@ func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 }
 
 func (suite) TestRunCancelPropagation(t *testing.T) {
-	tests := map[string]struct {
-		tracerType string
-	}{
-		"honeycomb": {
-			tracerType: "honeycomb",
-		},
-		"otel": {
-			tracerType: "otel",
-		},
-	}
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			trlogs := tracetest.NewTraceLog(tc.tracerType)
-			defer trlogs.Close()
-
-			ctx, cancel := context.WithCancel(context.Background())
-			async.Run(ctx, async.Func(func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
-			}))
-			cancel()
-			async.Default.Wait()
-		})
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	async.Run(ctx, async.Func(func(ctx context.Context) error {
+		<-ctx.Done()
+		return nil
+	}))
+	cancel()
+	async.Default.Wait()
 }
 
 func (suite) TestRunDeadlinePropagation(t *testing.T) {
-	tests := map[string]struct {
-		tracerType string
-	}{
-		"honeycomb": {
-			tracerType: "honeycomb",
-		},
-		"otel": {
-			tracerType: "otel",
-		},
-	}
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			trlogs := tracetest.NewTraceLog(tc.tracerType)
-			defer trlogs.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	async.Run(ctx, async.Func(func(ctx context.Context) error {
+		if _, ok := ctx.Deadline(); !ok {
+			t.Fatal("no deadline!")
+		}
+		return nil
+	}))
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			async.Run(ctx, async.Func(func(ctx context.Context) error {
-				if _, ok := ctx.Deadline(); !ok {
-					t.Fatal("no deadline!")
-				}
-				return nil
-			}))
-
-			cancel()
-			async.Default.Wait()
-		})
-	}
+	cancel()
+	async.Default.Wait()
 }
 
 func (suite) TestSleepUntil(t *testing.T) {
@@ -115,19 +85,6 @@ func (suite) TestSleepUntil(t *testing.T) {
 
 	async.SleepUntil(context.Background(), time.Now().Add(time.Millisecond))
 	assert.Assert(t, time.Since(now) <= 5*time.Millisecond, "slept too long")
-}
-
-func (suite) TestRunTraceHeaders(t *testing.T) {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
-
-	async.Run(context.Background(), async.Func(func(ctx context.Context) error {
-		if headers := trace.ToHeaders(ctx); len(headers) == 0 {
-			t.Fatal("missing trace headers")
-		}
-		return nil
-	}))
-	async.Default.Wait()
 }
 
 func (suite) TestMutexWithContext_EarlyCancel(t *testing.T) {
@@ -184,8 +141,8 @@ func (suite) TestMutexWithContext_ExtraUnlock(t *testing.T) {
 }
 
 func ExampleTasks_run() {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -196,6 +153,7 @@ func ExampleTasks_run() {
 		defer trace.EndCall(ctx)
 
 		fmt.Println("Run example")
+
 		return nil
 	}))
 
@@ -206,8 +164,8 @@ func ExampleTasks_run() {
 }
 
 func ExampleTasks_runBackground() {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
 	ctxMain, cancel := context.WithCancel(context.Background())
 
@@ -232,8 +190,8 @@ func ExampleTasks_runBackground() {
 }
 
 func ExampleLoop() {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -263,8 +221,8 @@ func ExampleLoop() {
 }
 
 func ExampleTasks_loop() {
-	trlogs := tracetest.NewTraceLog("honeycomb")
-	defer trlogs.Close()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
