@@ -11,8 +11,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
-	hctrace "github.com/honeycombio/beeline-go/trace"
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 )
 
@@ -29,190 +27,97 @@ func (suite) TestNestedSpan(t *testing.T) {
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 
-	tests := map[string]struct {
-		tracerType string
-		expected   []map[string]interface{}
-	}{
-		"honeycomb": {
-			tracerType: "honeycomb",
-			expected: []map[string]interface{}{
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "leaf",
-					"name":                 "inner2",
-					"service_name":         "log-testing",
-					"trace":                "inner2",
-					"trace.parent_id":      middleID,
-					"trace.span_id":        differs.AnyString(),
-					"trace.trace_id":       traceID,
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"from":                 "inner_span",
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "mid",
-					"name":                 "inner",
-					"service_name":         "log-testing",
-					"trace":                "inner",
-					"trace.parent_id":      rootID,
-					"trace.span_id":        middleID,
-					"trace.trace_id":       traceID,
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "root",
-					"name":                 "trace-test",
-					"service_name":         "log-testing",
-					"trace":                "outermost",
-					"trace.span_id":        rootID,
-					"trace.trace_id":       traceID,
-				},
-				{
-					"app.name":             "gobox",
-					"app.version":          "testing",
-					"duration_ms":          differs.FloatRange(0, 2),
-					"meta.beeline_version": differs.AnyString(),
-					"meta.local_hostname":  differs.AnyString(),
-					"meta.span_type":       "async",
-					"name":                 "innerAsync",
-					"service_name":         "log-testing",
-					"trace":                "innerAsync",
-					"trace.parent_id":      middleID,
-					"trace.span_id":        differs.AnyString(),
-					"trace.trace_id":       traceID,
-				},
-			},
-		},
-		"otel": {
-			tracerType: "otel",
-			expected: []map[string]interface{}{
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-					"trace":       "inner2",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-					"from":        "inner_span",
-					"trace":       "inner",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-					"trace":       "outermost",
-				},
-				{
-					"app.name":    "gobox",
-					"app.version": "testing",
-					"trace":       "innerAsync",
-				},
-			},
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			trlog := tracetest.NewTraceLog(tc.tracerType)
-			defer trlog.Close()
-
-			ctx := trace.StartTrace(context.Background(), "trace-test")
-			trace.AddInfo(ctx, log.F{"trace": "outermost"})
-
-			inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
-			trace.AddInfo(inner, log.F{"trace": "inner"})
-
-			innerAsync := trace.StartSpanAsync(inner, "innerAsync")
-			trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
-
-			inner2 := trace.StartSpan(inner, "inner2")
-			trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
-
-			trace.End(inner2)
-			trace.End(inner)
-			trace.End(ctx)
-
-			// async trace ends out of band!
-			trace.End(innerAsync)
-
-			ev := trlog.HoneycombEvents()
-			if diff := cmp.Diff(tc.expected, ev, differs.Custom()); diff != "" {
-				t.Fatal("unexpected events", diff)
-			}
-		})
-	}
-}
-
-func (suite) TestTrace(t *testing.T) {
-	defer app.SetName(app.Info().Name)
-	app.SetName("gobox")
-
-	// skip otel as it automtically takes care of this scenario
-	trlog := tracetest.NewTraceLog("honeycomb")
-	defer trlog.Close()
-
-	ctx := trace.StartTrace(context.Background(), "trace-test")
-	span := hctrace.GetSpanFromContext(ctx)
-	if span == nil {
-		t.Fatal("failed to create a root span")
-	}
-	if parent := span.GetParent(); parent != nil {
-		t.Fatal("Did not create a root span!", parent)
-	}
-
-	// try creating another trace and ensure that it is also
-	// a root span
-	ctx2 := trace.StartTrace(ctx, "trace-inner")
-	span = hctrace.GetSpanFromContext(ctx2)
-	if span == nil || span.GetParent() != nil {
-		t.Fatal("Did not create a root span")
-	}
-	trace.AddSpanInfo(ctx2, log.F{"inner": "inner"})
-	trace.End(ctx2)
-	trace.AddInfo(ctx, log.F{"outer": "outer"})
-	trace.End(ctx)
-
 	expected := []map[string]interface{}{
 		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"inner":                "inner",
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "root",
-			"name":                 "trace-inner",
-			"service_name":         "log-testing",
-			"trace.span_id":        differs.AnyString(),
-			"trace.trace_id":       differs.AnyString(),
+			"name":                   "inner2",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     differs.AnyString(),
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         traceID,
+			"parent.spanID":          middleID,
+			"parent.traceFlags":      "01",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
+			"attributes.trace":       "inner2",
 		},
 		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "root",
-			"name":                 "trace-test",
-			"outer":                "outer",
-			"service_name":         "log-testing",
-			"trace.span_id":        differs.AnyString(),
-			"trace.trace_id":       differs.AnyString(),
+			"name":                   "inner",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     middleID,
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         traceID,
+			"parent.spanID":          rootID,
+			"parent.traceFlags":      "01",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
+			"attributes.from":        "inner_span",
+			"attributes.trace":       "inner",
+		},
+		{
+			"name":                   "trace-test",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     rootID,
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         "00000000000000000000000000000000",
+			"parent.spanID":          "0000000000000000",
+			"parent.traceFlags":      "00",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
+			"attributes.trace":       "outermost",
+		},
+		{
+			"name":                   "innerAsync",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     differs.AnyString(),
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         traceID,
+			"parent.spanID":          middleID,
+			"parent.traceFlags":      "01",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
+			"attributes.trace":       "innerAsync",
 		},
 	}
 
-	ev := trlog.HoneycombEvents()
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
+
+	ctx := trace.StartTrace(context.Background(), "trace-test")
+	trace.AddInfo(ctx, log.F{"trace": "outermost"})
+
+	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
+	trace.AddInfo(inner, log.F{"trace": "inner"})
+
+	innerAsync := trace.StartSpanAsync(inner, "innerAsync")
+	trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
+
+	inner2 := trace.StartSpan(inner, "inner2")
+	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
+
+	trace.End(inner2)
+	trace.End(inner)
+	trace.End(ctx)
+
+	// async trace ends out of band!
+	trace.End(innerAsync)
+
+	ev := recorder.Ended()
 	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
 		t.Fatal("unexpected events", diff)
 	}
@@ -291,50 +196,4 @@ func (suite) TestIDOtel(t *testing.T) {
 
 	trace.End(inner)
 	trace.End(ctx)
-}
-
-func (suite) TestNestingIDs(t *testing.T) {
-	defer app.SetName(app.Info().Name)
-	app.SetName("go-outreach")
-
-	// Skipping otel as it automatically takes care of this
-	trlog := tracetest.NewTraceLog("honeycomb")
-	defer trlog.Close()
-
-	ctx0 := context.Background()
-	ctx1 := trace.StartTrace(ctx0, "trace-test")
-	trace.AddInfo(ctx1, log.F{"trace": "outermost"})
-	info1 := log.F{}
-	trace.IDs(ctx1).MarshalLog(info1.Set)
-	pID1, sID1 := info1["honeycomb.parent_id"], info1["honeycomb.span_id"]
-	assert.Equal(t, pID1, sID1)
-
-	ctx2 := trace.StartCall(ctx1, "call-test") // StartCall == StartSpan
-	defer func() {
-		prometheus.DefaultGatherer.Gather()
-	}()
-	trace.AddInfo(ctx2, log.F{"trace": "call"})
-	info2 := log.F{}
-	trace.IDs(ctx2).MarshalLog(info2.Set)
-	pID2, sID2 := info2["honeycomb.parent_id"], info2["honeycomb.span_id"]
-	assert.Equal(t, pID2, sID1)
-
-	ctx3 := trace.StartSpan(ctx2, "ctx3")
-	trace.AddInfo(ctx3, log.F{"trace": "ctx3"})
-	info3 := log.F{}
-	trace.IDs(ctx3).MarshalLog(info3.Set)
-	pID3, sID3 := info3["honeycomb.parent_id"], info3["honeycomb.span_id"]
-	assert.Equal(t, pID3, sID2)
-
-	ctx4 := trace.StartSpan(ctx3, "inner2x")
-	trace.AddInfo(ctx4, log.F{"trace": "inner2x"})
-	info4 := log.F{}
-	trace.IDs(ctx4).MarshalLog(info4.Set)
-	pID4 := info4["honeycomb.parent_id"]
-	assert.Equal(t, pID4, sID3)
-
-	trace.End(ctx4)
-	trace.End(ctx3)
-	trace.EndCall(ctx2)
-	trace.End(ctx1)
 }

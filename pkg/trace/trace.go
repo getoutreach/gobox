@@ -242,6 +242,7 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 	return newCtx
 }
 
+// Deprecated: You can just use StartSpan
 // StartSpanAsync starts a new async span.
 //
 // An async span does not have to complete before the parent span completes.
