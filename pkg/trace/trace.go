@@ -96,7 +96,6 @@ package trace
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -190,10 +189,8 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 	}
 
 	header := http.Header(hdrs)
-	fmt.Printf("Headers: %#v\n", header)
 	//nolint:errcheck // Why: we don't report errors in our current interface
 	prop, _ := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
-	fmt.Printf("Prop: %v\n", prop)
 	ctx, tr := trace.NewTrace(ctx, prop)
 	tr.GetRootSpan().AddField("name", name)
 

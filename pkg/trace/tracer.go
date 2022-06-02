@@ -47,4 +47,8 @@ type tracer interface {
 
 	// Deprecated: will be removed in favor of automatic instrumentation
 	toHeaders(ctx context.Context) map[string][]string
+
+	isForce() bool
+
+	setForce(force bool)
 }

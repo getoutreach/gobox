@@ -146,3 +146,10 @@ func (t *honeycombTracer) parentID(ctx context.Context) string {
 	}
 	return ""
 }
+
+func (t *honeycombTracer) setForce(force bool) {
+}
+
+func (t *honeycombTracer) isForce() bool {
+	return false
+}

@@ -7,6 +7,8 @@ import (
 	"github.com/honeycombio/beeline-go/propagation"
 	"github.com/honeycombio/beeline-go/trace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -29,8 +31,13 @@ func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 
 	hcHeaders := http.Header{}
 	hcHeaders.Set(propagation.TracePropagationHTTPHeader, propagation.MarshalHoneycombTraceContext(prop))
+
 	for k, v := range hcHeaders {
 		r.Header[k] = v
+	}
+
+	if defaultTracer.isForce() {
+		r.Header.Set(HeaderForceTracing, "true")
 	}
 
 	return rt.old.RoundTrip(r)
@@ -76,18 +83,31 @@ func (t *otelTracer) newTransport(old http.RoundTripper) http.RoundTripper {
 }
 
 type Handler struct {
-	handler http.Handler
+	handler   http.Handler
+	operation string
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Traceparent") != "" {
-		h.handler.ServeHTTP(w, r)
-		return
+	if r.Header.Get("Traceparent") == "" {
+		hcHeaderToW3CHeaders(r)
 	}
 
+	var startOptions oteltrace.SpanStartEventOption
+
+	handler := otelhttp.NewHandler(h.handler, h.operation)
+
+	force := r.Header.Get(HeaderForceTracing)
+	if force != "" {
+		startOptions = oteltrace.WithAttributes(attribute.Bool(fieldForceTrace, force == "true"))
+		handler = otelhttp.NewHandler(h.handler, h.operation, otelhttp.WithSpanOptions(startOptions))
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+func hcHeaderToW3CHeaders(r *http.Request) {
 	prop, err := propagation.UnmarshalHoneycombTraceContext(r.Header.Get(propagation.TracePropagationHTTPHeader))
 	if err != nil {
-		h.handler.ServeHTTP(w, r)
 		return
 	}
 
@@ -96,13 +116,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for k, v := range headers {
 		r.Header.Set(k, v)
 	}
-
-	h.handler.ServeHTTP(w, r)
 }
 
 func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Handler {
 	h := Handler{
-		handler: otelhttp.NewHandler(handler, operation),
+		handler:   handler,
+		operation: operation,
 	}
 
 	return &h

@@ -37,13 +37,22 @@ type SpanRecorder struct {
 }
 
 func NewSpanRecorder() *SpanRecorder {
+	return NewSpanRecorderWithOptions(
+		Options{
+			SamplePercent: 100.0,
+			Type:          "otel",
+		},
+	)
+}
+
+func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 	sr := &SpanRecorder{}
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 
 	restoreConfig := env.FakeTestConfig("trace.yaml", map[string]interface{}{
 		"OpenTelemetry": map[string]interface{}{
-			"SamplePercent": 100.0,
+			"SamplePercent": options.SamplePercent,
 			"Endpoint":      "localhost",
 			"Enabled":       true,
 			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
@@ -56,7 +65,6 @@ func NewSpanRecorder() *SpanRecorder {
 	_ = trace.InitTracer(ctx, name) // nolint: errcheck
 
 	sr.recorder = tracetest.NewSpanRecorder()
-
 	trace.RegisterSpanProcessor(sr.recorder)
 
 	sr.cleanup = func() {

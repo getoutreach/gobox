@@ -5,6 +5,8 @@ import (
 
 	"github.com/honeycombio/beeline-go/sample"
 	"github.com/honeycombio/beeline-go/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type samplerHook func(map[string]interface{}) (bool, int)
@@ -42,9 +44,8 @@ func forceSampler(sampleRate uint) samplerHook {
 }
 
 func forceTracing(ctx context.Context) context.Context {
-	if t := trace.GetTraceFromContext(ctx); t != nil {
-		t.AddField(fieldForceTrace, "true")
-	}
+	defaultTracer.setForce(true)
+
 	return ctx
 }
 
@@ -56,4 +57,54 @@ func sampleAt(ctx context.Context, rate uint) context.Context {
 		t.AddField(fieldSampleTrace, rate)
 	}
 	return ctx
+}
+
+type otelForceSampler struct {
+	sampleRate uint
+}
+
+func (s *otelForceSampler) Description() string {
+	return "Samples at the specified rate or forces sampling based on the `force_trace` attribute."
+}
+
+//nolint:gocritic // Why: Required to pass SamplingParameters as a copy
+func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
+	psc := oteltrace.SpanContextFromContext(p.ParentContext)
+	sampler, err := sample.NewDeterministicSampler(s.sampleRate)
+	if err != nil {
+		panic(err)
+	}
+
+	var forceTrace bool
+	for _, a := range p.Attributes {
+		if string(a.Key) == fieldForceTrace {
+			forceTrace = a.Value.AsBool()
+		}
+	}
+
+	if forceTrace {
+		return sdktrace.SamplingResult{
+			Decision:   sdktrace.RecordAndSample,
+			Tracestate: psc.TraceState(),
+		}
+	}
+
+	traceID := p.TraceID.String()
+	if sampler.Sample(traceID) {
+		return sdktrace.SamplingResult{
+			Decision:   sdktrace.RecordAndSample,
+			Tracestate: psc.TraceState(),
+		}
+	}
+
+	return sdktrace.SamplingResult{
+		Decision:   sdktrace.Drop,
+		Tracestate: psc.TraceState(),
+	}
+}
+
+func forceSample(sampleRate uint) sdktrace.Sampler {
+	return &otelForceSampler{
+		sampleRate: sampleRate,
+	}
 }
