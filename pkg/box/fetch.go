@@ -35,14 +35,13 @@ func getBoxPath() (string, error) {
 
 // LoadBox loads the default box or returns an error
 func LoadBox() (*Config, error) {
-	s, err := LoadBoxStorage()
+	_, c, err := LoadBoxStorage()
 	if err != nil {
 		return nil, err
 	}
 
-	ApplyEnvOverrides(s.Config)
-
-	return s.Config, nil
+	ApplyEnvOverrides(c)
+	return c, nil
 }
 
 // ApplyEnvOverrides overrides a box configuration based on env vars.
@@ -63,19 +62,38 @@ func ApplyEnvOverrides(s *Config) {
 // LoadBoxStorage reads a serialized, storage wrapped
 // box config from disk and returns it. In general LoadBox
 // should be used over this function.
-func LoadBoxStorage() (*Storage, error) {
+func LoadBoxStorage() (*Storage, *Config, error) {
 	confPath, err := getBoxPath()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	f, err := os.Open(confPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var s *Storage
-	return s, yaml.NewDecoder(f).Decode(&s) //nolint:gocritic
+	var s Storage
+	var c Config
+
+	// Parse the storage layer
+	if err := yaml.NewDecoder(f).Decode(&s); err != nil {
+		return nil, nil, err
+	}
+
+	// Encode the config back to yaml so we can attempt to turn it
+	// into a Config.
+	b, err := yaml.Marshal(s.Config)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Parse the config out of the storage
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return nil, nil, err
+	}
+
+	return &s, &c, nil
 }
 
 // EnsureBox loads a box if it already exists, or prompts the user for the box
@@ -97,7 +115,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 		f(opts)
 	}
 
-	s, err := LoadBoxStorage()
+	s, c, err := LoadBoxStorage()
 	if os.IsNotExist(err) {
 		err = InitializeBox(ctx, []string{})
 		if err != nil {
@@ -112,6 +130,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 	var reason string
 
 	// Ensure that the min version is met if provided
+	// this ensures that forwards compatibility is maintained
 	if opts.MinVersion != nil {
 		if s.Version < *opts.MinVersion {
 			reason = "Minimum box spec version not met"
@@ -120,21 +139,21 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 	if reason == "" {
 		diff := time.Now().UTC().Sub(s.LastUpdated)
-		if diff < s.Config.RefreshInterval { // if last updated wasn't time interval, skip update
-			return s.Config, nil
+		if diff < c.RefreshInterval { // if last updated wasn't time interval, skip update
+			return c, nil
 		}
 		reason = "Periodic refresh hit"
 	}
 
 	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
 	// past the time interval, refresh the config
-	c, err := DownloadBox(ctx, s.StorageURL)
+	c, err = DownloadBox(ctx, s.StorageURL)
 	if err != nil {
 		return nil, err
 	}
 
 	s.Config = c
-	return s.Config, SaveBox(ctx, s)
+	return c, SaveBox(ctx, s)
 }
 
 // DownloadBox downloads and parses a box config from a given repository
@@ -183,8 +202,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(confPath), 0o755)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
 		return err
 	}
 
@@ -199,7 +217,7 @@ func InitializeBox(ctx context.Context, defaults []string) error {
 
 	err := survey.AskOne(&survey.Input{
 		Message: "Please enter your box configuration git URL",
-		Help:    "This is the repository that contains your box.yaml and will be used for devenv configuration.",
+		Help:    "This is the repository that contains your box.yaml and will be used for outreach tooling",
 	}, &gitRepo)
 	if err != nil {
 		return err
