@@ -5,6 +5,8 @@ package box
 
 import (
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // SnapshotLockChannel is used to determine the quality of
@@ -19,7 +21,7 @@ const (
 	SnapshotLockChannelRC SnapshotLockChannel = "rc"
 
 	// Version is the current version of the box spec.
-	Version float32 = 2
+	Version float32 = 3
 )
 
 // AWSConfig configures AWS access for tools that support it
@@ -115,12 +117,17 @@ type Config struct {
 
 	// AWS is the configuration for communicating with AWS.
 	AWS AWSConfig `yaml:"aws"`
+
+	// CI is the configuration for the CI environment
+	CI CI `yaml:"ci"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
 type Storage struct {
-	// Config is the box configuration, see Config
-	Config *Config `yaml:"config"`
+	// Config is the box configuration, see Config.
+	// This is an yaml.Node because we can't guarantee that the
+	// underlying type is a Config as we expect it to be.
+	Config *yaml.Node `yaml:"config"`
 
 	// LastUpdated is the last time this file was checked for updates
 	LastUpdated time.Time `yaml:"lastUpdated"`

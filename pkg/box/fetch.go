@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -35,14 +35,13 @@ func getBoxPath() (string, error) {
 
 // LoadBox loads the default box or returns an error
 func LoadBox() (*Config, error) {
-	s, err := LoadBoxStorage()
+	_, c, err := LoadBoxStorage()
 	if err != nil {
 		return nil, err
 	}
 
-	ApplyEnvOverrides(s.Config)
-
-	return s.Config, nil
+	ApplyEnvOverrides(c)
+	return c, nil
 }
 
 // ApplyEnvOverrides overrides a box configuration based on env vars.
@@ -63,19 +62,38 @@ func ApplyEnvOverrides(s *Config) {
 // LoadBoxStorage reads a serialized, storage wrapped
 // box config from disk and returns it. In general LoadBox
 // should be used over this function.
-func LoadBoxStorage() (*Storage, error) {
+func LoadBoxStorage() (*Storage, *Config, error) {
 	confPath, err := getBoxPath()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	f, err := os.Open(confPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var s *Storage
-	return s, yaml.NewDecoder(f).Decode(&s) //nolint:gocritic
+	var s Storage
+	var c Config
+
+	// Parse the storage layer
+	if err := yaml.NewDecoder(f).Decode(&s); err != nil {
+		return nil, nil, errors.Wrap(err, "failed to parse box storage")
+	}
+
+	// Encode the config back to yaml so we can attempt to turn it
+	// into a Config.
+	b, err := yaml.Marshal(s.Config)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to marshal config")
+	}
+
+	// Parse the config out of the storage
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return nil, nil, errors.Wrap(err, "failed to parse config")
+	}
+
+	return &s, &c, nil
 }
 
 // EnsureBox loads a box if it already exists, or prompts the user for the box
@@ -89,15 +107,20 @@ func EnsureBox(ctx context.Context, defaults []string, log logrus.FieldLogger) (
 // The box config is periodically refreshed based on the configured interval and
 // based on a min version requirement, if set.
 func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config, error) {
+	v := Version
 	opts := &LoadBoxOptions{
 		log: logrus.New(),
+
+		// Always default to the min version being the version
+		// in this package.
+		MinVersion: &v,
 	}
 
 	for _, f := range optFns {
 		f(opts)
 	}
 
-	s, err := LoadBoxStorage()
+	s, c, err := LoadBoxStorage()
 	if os.IsNotExist(err) {
 		err = InitializeBox(ctx, []string{})
 		if err != nil {
@@ -112,6 +135,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 	var reason string
 
 	// Ensure that the min version is met if provided
+	// this ensures that forwards compatibility is maintained
 	if opts.MinVersion != nil {
 		if s.Version < *opts.MinVersion {
 			reason = "Minimum box spec version not met"
@@ -120,26 +144,24 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 	if reason == "" {
 		diff := time.Now().UTC().Sub(s.LastUpdated)
-		if diff < s.Config.RefreshInterval { // if last updated wasn't time interval, skip update
-			return s.Config, nil
+		if diff < c.RefreshInterval { // if last updated wasn't time interval, skip update
+			return c, nil
 		}
 		reason = "Periodic refresh hit"
 	}
 
 	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
 	// past the time interval, refresh the config
-	c, err := DownloadBox(ctx, s.StorageURL)
+	s.Config, err = downloadBox(ctx, s.StorageURL)
 	if err != nil {
 		return nil, err
 	}
-
-	s.Config = c
-	return s.Config, SaveBox(ctx, s)
+	return c, SaveBox(ctx, s)
 }
 
-// DownloadBox downloads and parses a box config from a given repository
+// downloadBox downloads and parses a box config from a given repository
 // URL.
-func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
+func downloadBox(ctx context.Context, gitRepo string) (*yaml.Node, error) {
 	a := sshhelper.GetSSHAgent()
 
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
@@ -163,8 +185,14 @@ func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
 		return nil, errors.Wrap(err, "failed to read box configuration file")
 	}
 
-	var c *Config
-	return c, yaml.NewDecoder(f).Decode(&c) //nolint:gocritic
+	// Parse the config into a yaml.Node to keep comments
+	var n yaml.Node
+	if err := yaml.NewDecoder(f).Decode(&n); err != nil {
+		return nil, errors.Wrap(err, "failed to decode box configuration file")
+	}
+
+	// We return the first node because we don't want the document start
+	return n.Content[0], nil
 }
 
 // SaveBox takes a Storage wrapped box configuration, serializes it
@@ -175,7 +203,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 
 	b, err := yaml.Marshal(s)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to marshal box storage")
 	}
 
 	confPath, err := getBoxPath()
@@ -183,8 +211,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(confPath), 0o755)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
 		return err
 	}
 
@@ -199,13 +226,13 @@ func InitializeBox(ctx context.Context, defaults []string) error {
 
 	err := survey.AskOne(&survey.Input{
 		Message: "Please enter your box configuration git URL",
-		Help:    "This is the repository that contains your box.yaml and will be used for devenv configuration.",
+		Help:    "This is the repository that contains your box.yaml and will be used for outreach tooling",
 	}, &gitRepo)
 	if err != nil {
 		return err
 	}
 
-	conf, err := DownloadBox(ctx, gitRepo)
+	conf, err := downloadBox(ctx, gitRepo)
 	if err != nil {
 		return err
 	}
