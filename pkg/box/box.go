@@ -5,6 +5,8 @@ package box
 
 import (
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // SnapshotLockChannel is used to determine the quality of
@@ -123,9 +125,9 @@ type Config struct {
 // Storage is a wrapper type used for storing the box configuration
 type Storage struct {
 	// Config is the box configuration, see Config.
-	// This is an interface because we can't guarantee that the
+	// This is an yaml.Node because we can't guarantee that the
 	// underlying type is a Config as we expect it to be.
-	Config interface{} `yaml:"config"`
+	Config *yaml.Node `yaml:"config"`
 
 	// LastUpdated is the last time this file was checked for updates
 	LastUpdated time.Time `yaml:"lastUpdated"`

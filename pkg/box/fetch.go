@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -78,19 +78,19 @@ func LoadBoxStorage() (*Storage, *Config, error) {
 
 	// Parse the storage layer
 	if err := yaml.NewDecoder(f).Decode(&s); err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to parse box storage")
 	}
 
 	// Encode the config back to yaml so we can attempt to turn it
 	// into a Config.
 	b, err := yaml.Marshal(s.Config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to marshal config")
 	}
 
 	// Parse the config out of the storage
 	if err := yaml.Unmarshal(b, &c); err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to parse config")
 	}
 
 	return &s, &c, nil
@@ -152,18 +152,16 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
 	// past the time interval, refresh the config
-	c, err = DownloadBox(ctx, s.StorageURL)
+	s.Config, err = downloadBox(ctx, s.StorageURL)
 	if err != nil {
 		return nil, err
 	}
-
-	s.Config = c
 	return c, SaveBox(ctx, s)
 }
 
-// DownloadBox downloads and parses a box config from a given repository
+// downloadBox downloads and parses a box config from a given repository
 // URL.
-func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
+func downloadBox(ctx context.Context, gitRepo string) (*yaml.Node, error) {
 	a := sshhelper.GetSSHAgent()
 
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
@@ -187,8 +185,14 @@ func DownloadBox(ctx context.Context, gitRepo string) (*Config, error) {
 		return nil, errors.Wrap(err, "failed to read box configuration file")
 	}
 
-	var c *Config
-	return c, yaml.NewDecoder(f).Decode(&c) //nolint:gocritic
+	// Parse the config into a yaml.Node to keep comments
+	var n yaml.Node
+	if err := yaml.NewDecoder(f).Decode(&n); err != nil {
+		return nil, errors.Wrap(err, "failed to decode box configuration file")
+	}
+
+	// We return the first node because we don't want the document start
+	return n.Content[0], nil
 }
 
 // SaveBox takes a Storage wrapped box configuration, serializes it
@@ -199,7 +203,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 
 	b, err := yaml.Marshal(s)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to marshal box storage")
 	}
 
 	confPath, err := getBoxPath()
@@ -228,7 +232,7 @@ func InitializeBox(ctx context.Context, defaults []string) error {
 		return err
 	}
 
-	conf, err := DownloadBox(ctx, gitRepo)
+	conf, err := downloadBox(ctx, gitRepo)
 	if err != nil {
 		return err
 	}
