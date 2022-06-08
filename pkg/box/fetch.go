@@ -107,8 +107,13 @@ func EnsureBox(ctx context.Context, defaults []string, log logrus.FieldLogger) (
 // The box config is periodically refreshed based on the configured interval and
 // based on a min version requirement, if set.
 func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config, error) {
+	v := Version
 	opts := &LoadBoxOptions{
 		log: logrus.New(),
+
+		// Always default to the min version being the version
+		// in this package.
+		MinVersion: &v,
 	}
 
 	for _, f := range optFns {
