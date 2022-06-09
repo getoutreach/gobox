@@ -144,8 +144,6 @@ func setDefaultTracer() error {
 
 	if config.Otel.Enabled {
 		defaultTracer = &otelTracer{Config: config}
-	} else if config.Honeycomb.Enabled {
-		defaultTracer = &honeycombTracer{Config: config}
 	}
 
 	return nil
@@ -311,18 +309,6 @@ func parentID(ctx context.Context) string {
 // and all downstream services that will be invoken on the way.
 func ForceTracing(ctx context.Context) context.Context {
 	return forceTracing(ctx)
-}
-
-// ForceSampleRate will force a desired sample rate for the given trace and all children
-// of said trace. The sample rate in practice will be 1/<rate>.
-//
-// For example, if you invoked:
-//	ctx = trace.ForceSampleRate(ctx, 1000)
-//
-// The trace spawned from that and all of it's children would be sampled at a rate of
-// 1/1000, or 1/10 of a percent (.1%).
-func ForceSampleRate(ctx context.Context, rate uint) context.Context {
-	return sampleAt(ctx, rate)
 }
 
 // AddSpanInfo updates the current span with the provided fields.

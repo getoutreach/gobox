@@ -56,7 +56,7 @@ func (a Annotator) ForceFlush(context.Context) error { return nil }
 // nolint:gochecknoglobals
 var spanProcessorHook func([]attribute.KeyValue)
 
-// SetPresendHook sets the honeycomb presend hook for testing
+// SetSpanProcessorHook sets a hook to run when a span ends
 func SetSpanProcessorHook(hook func([]attribute.KeyValue)) {
 	spanProcessorHook = hook
 }

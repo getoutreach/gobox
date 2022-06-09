@@ -8,12 +8,13 @@ import (
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Event map[string]interface{}
 
 type Client interface {
-	SendEvent(event Event)
+	SendEvent(attributes []attribute.KeyValue)
 
 	AddField(key string, val interface{})
 	AddInfo(args ...log.Marshaler)
@@ -51,22 +52,15 @@ type client struct {
 	commonProps map[string]interface{}
 }
 
-func (c *client) SendEvent(event Event) {
+func (c *client) SendEvent(attributes []attribute.KeyValue) {
 	e := make(Event)
 
 	for k, v := range c.commonProps {
 		e[k] = v
 	}
-	for k, v := range event {
-		e[k] = v
+	for _, a := range attributes {
+		e[string(a.Key)] = a.Value.AsString()
 	}
-
-	// We don't want certain fields added by honeycomb automatically.
-	// We do add some of them under different keys we've used before in CLIs.
-	// We skip adding them for non-@outreach.io emails. (Since it can be used in OSS projects)
-	delete(e, "meta.beeline_version")
-	delete(e, "meta.local_hostname")
-	delete(e, "meta.span_type")
 
 	c.events = append(c.events, e)
 }

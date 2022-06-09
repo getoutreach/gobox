@@ -11,7 +11,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
-	"gotest.tools/v3/assert"
 )
 
 func TestAll(t *testing.T) {
@@ -121,79 +120,4 @@ func (suite) TestNestedSpan(t *testing.T) {
 	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
 		t.Fatal("unexpected events", diff)
 	}
-}
-
-func (suite) TestIDHoneycomb(t *testing.T) {
-	defer app.SetName(app.Info().Name)
-	app.SetName("gobox")
-
-	trlog := tracetest.NewTraceLog("honeycomb")
-	defer trlog.Close()
-
-	assert.Equal(t, "", trace.ID(context.Background()))
-
-	ctx := trace.StartTrace(context.Background(), "trace-test")
-	traceID := trace.ID(ctx)
-	assert.Check(t, traceID != "")
-
-	inner := trace.StartSpan(ctx, "inner")
-	assert.Equal(t, traceID, trace.ID(inner))
-
-	trace.End(inner)
-	trace.End(ctx)
-
-	rootID := differs.CaptureString()
-
-	expected := []map[string]interface{}{
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "leaf",
-			"name":                 "inner",
-			"service_name":         "log-testing",
-			"trace.span_id":        differs.AnyString(),
-			"trace.parent_id":      rootID,
-			"trace.trace_id":       traceID[len("hctrace_"):],
-		},
-		{
-			"app.name":             "gobox",
-			"app.version":          "testing",
-			"duration_ms":          differs.FloatRange(0, 2),
-			"meta.beeline_version": differs.AnyString(),
-			"meta.local_hostname":  differs.AnyString(),
-			"meta.span_type":       "root",
-			"name":                 "trace-test",
-			"service_name":         "log-testing",
-			"trace.span_id":        rootID,
-			"trace.trace_id":       traceID[len("hctrace_"):],
-		},
-	}
-
-	ev := trlog.HoneycombEvents()
-	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
-		t.Fatal("unexpected events", diff)
-	}
-}
-
-func (suite) TestIDOtel(t *testing.T) {
-	defer app.SetName(app.Info().Name)
-	app.SetName("gobox")
-
-	trlog := tracetest.NewTraceLog("otel")
-	defer trlog.Close()
-
-	assert.Equal(t, "", trace.ID(context.Background()))
-
-	ctx := trace.StartTrace(context.Background(), "trace-test")
-	traceID := trace.ID(ctx)
-	assert.Check(t, traceID != "")
-
-	inner := trace.StartSpan(ctx, "inner")
-	assert.Equal(t, traceID, trace.ID(inner))
-
-	trace.End(inner)
-	trace.End(ctx)
 }

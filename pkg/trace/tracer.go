@@ -42,12 +42,6 @@ type tracer interface {
 
 	newHandler(handler http.Handler, operation string) http.Handler
 
-	// Deprecated: will be removed in favor of automatic instrumentation
-	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
-
-	// Deprecated: will be removed in favor of automatic instrumentation
-	toHeaders(ctx context.Context) map[string][]string
-
 	isForce() bool
 
 	setForce(force bool)

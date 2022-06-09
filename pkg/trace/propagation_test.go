@@ -112,8 +112,8 @@ func (suite) TestForceTracing(t *testing.T) {
 	state := propagationInitRoundTripperState(t, recorder)
 	defer state.Close()
 
-	ctx := trace.StartSpan(context.Background(), "trace-test")
-	ctx = trace.ForceTracing(ctx)
+	ctx := trace.ForceTracing(context.Background())
+	ctx = trace.StartSpan(ctx, "trace-test")
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
 	req, err := http.NewRequestWithContext(ctx, "GET", state.Server.URL+"/myendpoint", http.NoBody)
@@ -130,7 +130,6 @@ func (suite) TestForceTracing(t *testing.T) {
 	trace.End(ctx)
 
 	traceID := trace.ID(ctx)
-	rootID := differs.CaptureString()
 
 	expected := []map[string]interface{}{
 		{
@@ -139,8 +138,8 @@ func (suite) TestForceTracing(t *testing.T) {
 			"spanContext.spanID":     differs.AnyString(),
 			"spanContext.traceFlags": "01",
 			"parent.traceID":         traceID,
-			"parent.spanID":          rootID,
-			"parent.traceFlags":      "00",
+			"parent.spanID":          differs.AnyString(),
+			"parent.traceFlags":      "01",
 			"parent.remote":          true,
 			"spanKind":               "server",
 			"startTime":              differs.AnyString(),
@@ -178,6 +177,21 @@ func (suite) TestForceTracing(t *testing.T) {
 			"attributes.timing.service_time":       differs.AnyString(),
 			"attributes.timing.total_time":         differs.AnyString(),
 			"attributes.timing.wait_time":          differs.AnyString(),
+		},
+		{
+			"name":                   "trace-test",
+			"spanContext.traceID":    traceID,
+			"spanContext.spanID":     differs.AnyString(),
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         "00000000000000000000000000000000",
+			"parent.spanID":          "0000000000000000",
+			"parent.traceFlags":      "00",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.name":    "gobox",
+			"attributes.app.version": "testing",
 		},
 	}
 
