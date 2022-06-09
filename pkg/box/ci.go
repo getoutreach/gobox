@@ -16,7 +16,7 @@ type CI struct {
 			// The context should contain the following values:
 			// AWS_ACCESS_KEY_ID: <access key id>
 			// AWS_SECRET_ACCESS_KEY: <secret access key>
-			AWS string
+			AWS string `yaml:"aws"`
 
 			// Github is the Github authentication context
 			// The context should contain the following values:
@@ -25,22 +25,22 @@ type CI struct {
 			//
 			// For more information on this, see:
 			// https://github.com/getoutreach/ci/blob/main/cmd/ghaccesstoken/token.go
-			Github string
+			Github string `yaml:"github"`
 
 			// Docker is the docker authentication context
 			// Currently all that is supported is gcp.
 			// The context should contain the following values:
 			// GCLOUD_SERVICE_ACCOUNT: <gcp service account json>
-			Docker string
+			Docker string `yaml:"docker"`
 
 			// NPM is the npm authentication context
 			// The context should contain the following values:
 			// NPM_TOKEN: <npm token>
-			NPM string
+			NPM string `yaml:"npm"`
 
 			// ExtraContexts is a list of extra contexts to include
 			// for every job
-			ExtraContexts []string
+			ExtraContexts []string `yaml:"extraContexts"`
 		} `yaml:"contexts"`
 	} `yaml:"circleci"`
 }
