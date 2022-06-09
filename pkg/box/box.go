@@ -127,7 +127,7 @@ type Storage struct {
 	// Config is the box configuration, see Config.
 	// This is an yaml.Node because we can't guarantee that the
 	// underlying type is a Config as we expect it to be.
-	Config *yaml.Node `yaml:"config"`
+	Config yaml.Node `yaml:"config"`
 
 	// LastUpdated is the last time this file was checked for updates
 	LastUpdated time.Time `yaml:"lastUpdated"`

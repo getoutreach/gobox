@@ -161,13 +161,13 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 // downloadBox downloads and parses a box config from a given repository
 // URL.
-func downloadBox(ctx context.Context, gitRepo string) (*yaml.Node, error) {
+func downloadBox(ctx context.Context, gitRepo string) (yaml.Node, error) {
 	a := sshhelper.GetSSHAgent()
 
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
 	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load Github SSH key into in-memory keyring")
+		return yaml.Node{}, errors.Wrap(err, "failed to load Github SSH key into in-memory keyring")
 	}
 
 	fs := memfs.New()
@@ -177,22 +177,22 @@ func downloadBox(ctx context.Context, gitRepo string) (*yaml.Node, error) {
 		Depth: 1,
 	})
 	if err != nil {
-		return nil, err
+		return yaml.Node{}, err
 	}
 
 	f, err := fs.Open(BoxConfigFile)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read box configuration file")
+		return yaml.Node{}, errors.Wrap(err, "failed to read box configuration file")
 	}
 
 	// Parse the config into a yaml.Node to keep comments
 	var n yaml.Node
 	if err := yaml.NewDecoder(f).Decode(&n); err != nil {
-		return nil, errors.Wrap(err, "failed to decode box configuration file")
+		return yaml.Node{}, errors.Wrap(err, "failed to decode box configuration file")
 	}
 
 	// We return the first node because we don't want the document start
-	return n.Content[0], nil
+	return *n.Content[0], nil
 }
 
 // SaveBox takes a Storage wrapped box configuration, serializes it
