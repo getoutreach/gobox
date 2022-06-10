@@ -42,6 +42,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"attributes.app.name":    "gobox",
 			"attributes.app.version": "testing",
 			"attributes.trace":       "inner2",
+			"SampleRate":             int64(1),
 		},
 		{
 			"name":                   "inner",
@@ -59,6 +60,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"attributes.app.version": "testing",
 			"attributes.from":        "inner_span",
 			"attributes.trace":       "inner",
+			"SampleRate":             int64(1),
 		},
 		{
 			"name":                   "trace-test",
@@ -75,6 +77,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"attributes.app.name":    "gobox",
 			"attributes.app.version": "testing",
 			"attributes.trace":       "outermost",
+			"SampleRate":             int64(1),
 		},
 		{
 			"name":                   "innerAsync",
@@ -91,6 +94,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"attributes.app.name":    "gobox",
 			"attributes.app.version": "testing",
 			"attributes.trace":       "innerAsync",
+			"SampleRate":             int64(1),
 		},
 	}
 

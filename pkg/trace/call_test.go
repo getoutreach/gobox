@@ -71,6 +71,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"attributes.timing.service_time": differs.AnyString(),
 			"attributes.timing.total_time":   differs.AnyString(),
 			"attributes.timing.wait_time":    differs.AnyString(),
+			"SampleRate":                     int64(1),
 		},
 		{
 			"name":                           "model",
@@ -99,6 +100,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"attributes.timing.service_time": differs.AnyString(),
 			"attributes.timing.total_time":   differs.AnyString(),
 			"attributes.timing.wait_time":    differs.AnyString(),
+			"SampleRate":                     int64(1),
 		},
 		{
 			"name":                   "trace-test",
@@ -114,6 +116,7 @@ func (suite) TestNestedCall(t *testing.T) {
 			"endTime":                differs.AnyString(),
 			"attributes.app.name":    "gobox",
 			"attributes.app.version": "testing",
+			"SampleRate":             int64(1),
 		},
 	}
 

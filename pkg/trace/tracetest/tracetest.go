@@ -88,6 +88,11 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 		}
 
 		for _, a := range s.Attributes() {
+			if a.Key == "SampleRate" {
+				spanInfo["SampleRate"] = a.Value.AsInt64()
+				continue
+			}
+
 			key := fmt.Sprintf("attributes.%s", a.Key)
 			spanInfo[key] = a.Value.AsString()
 		}

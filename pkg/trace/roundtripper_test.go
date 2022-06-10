@@ -78,6 +78,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"attributes.timing.service_time":       differs.AnyString(),
 						"attributes.timing.total_time":         differs.AnyString(),
 						"attributes.timing.wait_time":          differs.AnyString(),
+						"SampleRate":                           int64(1),
 					},
 					{
 						"attributes.app.name":    "gobox",
@@ -94,6 +95,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"spanContext.traceID":    traceID,
 						"spanKind":               "internal",
 						"startTime":              differs.AnyString(),
+						"SampleRate":             int64(1),
 					},
 					{
 						"attributes.app.name":    "gobox",
@@ -109,6 +111,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"spanContext.traceID":    traceID,
 						"spanKind":               "internal",
 						"startTime":              differs.AnyString(),
+						"SampleRate":             int64(1),
 					},
 				}
 			},
@@ -134,6 +137,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"spanContext.traceID":    traceID,
 						"spanKind":               "internal",
 						"startTime":              differs.AnyString(),
+						"SampleRate":             int64(1),
 					},
 					{
 						"attributes.app.name":    "gobox",
@@ -149,6 +153,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"spanContext.traceID":    traceID,
 						"spanKind":               "internal",
 						"startTime":              differs.AnyString(),
+						"SampleRate":             int64(1),
 					},
 				}
 			},
@@ -202,6 +207,7 @@ func (suite) TestRoundtripper(t *testing.T) {
 						"attributes.timing.service_time":       differs.AnyString(),
 						"attributes.timing.total_time":         differs.AnyString(),
 						"attributes.timing.wait_time":          differs.AnyString(),
+						"SampleRate":                           int64(1),
 					},
 				}
 			},

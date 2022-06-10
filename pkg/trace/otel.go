@@ -32,6 +32,7 @@ type otelTracer struct {
 // Annotator is a SpanProcessor that adds service-level tags on every span
 type Annotator struct {
 	globalTags GlobalTags
+	sampleRate int64
 }
 
 func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
@@ -39,6 +40,7 @@ func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 		s.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
 	}
 
+	s.SetAttributes(attribute.Int64("SampleRate", a.sampleRate))
 	logf.Marshal("", app.Info(), setf)
 	logf.Marshal("", a.globalTags, setf)
 }
@@ -107,7 +109,10 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		sdktrace.WithResource(r),
 		// accepts sample rates as number of requests seen per request sampled
 		sdktrace.WithSampler(forceSample(uint(100/t.Otel.SamplePercent))),
-		sdktrace.WithSpanProcessor(Annotator{globalTags: t.GlobalTags}),
+		sdktrace.WithSpanProcessor(Annotator{
+			globalTags: t.GlobalTags,
+			sampleRate: int64(100 / t.Otel.SamplePercent),
+		}),
 	)
 
 	otel.SetTracerProvider(tp)
