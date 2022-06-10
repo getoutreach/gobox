@@ -43,14 +43,14 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 		panic(err)
 	}
 
-	var forceTrace bool
+	var forceTrace string
 	for _, a := range p.Attributes {
 		if string(a.Key) == fieldForceTrace {
-			forceTrace = a.Value.AsBool()
+			forceTrace = a.Value.AsString()
 		}
 	}
 
-	if forceTrace {
+	if forceTrace != "" {
 		return sdktrace.SamplingResult{
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: psc.TraceState(),
