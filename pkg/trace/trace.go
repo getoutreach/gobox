@@ -26,9 +26,11 @@
 //
 // Custom http servers should wrap their request handling code like so:
 //
-//      r = r.WithContext(trace.ContextFromHTTP(r, "my endpoint"))
-//      defer trace.End(r.Context()
-//      ... do actual request handling ...
+// 		trace.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) *roundtripperState {
+// 		  trace.StartSpan(r.Context(), "my endpoint")
+// 		  defer trace.End(r.Context())
+// 		  ... do actual request handling ...
+//      }), "my endpoint")
 //
 // Non-HTTP servers should wrap their request handling like so:
 //
@@ -37,10 +39,12 @@
 //      ... do actual request handling ...
 //
 //
-// Clients
+// Clients should use a Client with the provided transport like so:
 //
-// Propagating trace headers to HTTP clients or non-HTTP clients is
-// not yet implemented here.  Please see ETC-190.
+//      ctx = trace.StartTrace(ctx, "my call")
+//      defer trace.End(ctx)
+//      client := http.Client{Transport: trace.NewTransport(nil)}
+//      ... do actual call using the new client ...
 //
 // Tracing calls
 //
@@ -96,12 +100,9 @@ package trace
 
 import (
 	"context"
-	"net/http"
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/log"
-	"github.com/honeycombio/beeline-go/propagation"
-	"github.com/honeycombio/beeline-go/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -173,46 +174,6 @@ func CloseTracer(ctx context.Context) {
 	defaultTracer.closeTracer(ctx)
 }
 
-// ContextFromHTTP starts a new trace from an incoming http request.
-//
-// Use trace.End to end this.
-func ContextFromHTTP(r *http.Request, name string) context.Context {
-	return FromHeaders(r.Context(), r.Header, name)
-}
-
-// FromHeaders fetches trace info from a headers map
-func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
-	if defaultTracer == nil {
-		return ctx
-	}
-
-	header := http.Header(hdrs)
-	//nolint:errcheck // Why: we don't report errors in our current interface
-	prop, _ := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
-	ctx, tr := trace.NewTrace(ctx, prop)
-	tr.GetRootSpan().AddField("name", name)
-
-	if _, exists := header[HeaderForceTracing]; exists {
-		ctx = ForceTracing(ctx)
-	}
-	return ctx
-}
-
-// ToHeaders writes the current trace context into a headers map
-func ToHeaders(ctx context.Context) map[string][]string {
-	if defaultTracer == nil {
-		return map[string][]string{}
-	}
-
-	result := http.Header{}
-
-	if span := trace.GetSpanFromContext(ctx); span != nil {
-		result.Set(propagation.TracePropagationHTTPHeader, span.SerializeHeaders())
-	}
-
-	return result
-}
-
 // StartTrace starts a new root span/trace.
 //
 // Use trace.End to end this.
@@ -253,7 +214,7 @@ func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) con
 	return newCtx
 }
 
-// End ends a span (or a trace started via StartTrace or ContextFromHTTP).
+// End ends a span (or a trace started via StartTrace).
 func End(ctx context.Context) {
 	if defaultTracer == nil {
 		return
