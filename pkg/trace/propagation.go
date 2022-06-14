@@ -1,11 +1,14 @@
 package trace
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/honeycombio/beeline-go/propagation"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	otelpropagation "go.opentelemetry.io/otel/propagation"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -88,4 +91,55 @@ func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Han
 	}
 
 	return &h
+}
+
+func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
+	result := http.Header{}
+
+	if defaultTracer != nil {
+		propagator := otel.GetTextMapPropagator()
+		propagator.Inject(ctx, otelpropagation.HeaderCarrier(result))
+
+		headers := map[string]string{
+			"traceparent": result.Get("Traceparent"),
+		}
+
+		_, prop, err := propagation.UnmarshalW3CTraceContext(ctx, headers)
+		if err != nil {
+			return result
+		}
+
+		result.Set(
+			propagation.TracePropagationHTTPHeader,
+			propagation.MarshalHoneycombTraceContext(prop))
+	}
+
+	return result
+}
+
+func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	header := http.Header(hdrs)
+
+	force := header.Get(HeaderForceTracing)
+	if force != "" {
+		ctx = ForceTracing(ctx)
+	}
+
+	if defaultTracer != nil {
+		if header.Get("Traceparent") == "" {
+			prop, err := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
+			if err == nil {
+				_, headers := propagation.MarshalW3CTraceContext(ctx, prop)
+				for k, v := range headers {
+					header.Set(k, v)
+				}
+			}
+		}
+
+		propagator := otel.GetTextMapPropagator()
+		ctx = propagator.Extract(ctx, otelpropagation.HeaderCarrier(header))
+		ctx = StartSpan(ctx, name)
+	}
+
+	return ctx
 }

@@ -45,4 +45,8 @@ type tracer interface {
 	isForce() bool
 
 	setForce(force bool)
+
+	toHeaders(ctx context.Context) map[string][]string
+
+	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
 }

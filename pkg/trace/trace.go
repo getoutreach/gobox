@@ -286,3 +286,17 @@ func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
 
 	defaultTracer.addInfo(ctx, args...)
 }
+
+// ToHeaders writes the current trace context into a headers map
+//
+// Only use for GRPC. Prefer NewTransport for http calls.
+func ToHeaders(ctx context.Context) map[string][]string {
+	return defaultTracer.toHeaders(ctx)
+}
+
+// FromHeaders fetches trace info from a headers map
+//
+// Only use for GRPC. Prefer NewHandler for http calls.
+func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	return defaultTracer.fromHeaders(ctx, hdrs, name)
+}
