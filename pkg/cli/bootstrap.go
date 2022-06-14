@@ -21,7 +21,9 @@ import (
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/secrets"
+	"github.com/getoutreach/gobox/pkg/statuscodes"
 	"github.com/getoutreach/gobox/pkg/telefork"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/updater"
@@ -219,10 +221,18 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	if err := a.RunContext(ctx, os.Args); err != nil {
 		logger.Errorf("failed to run: %v", err)
-		//nolint:errcheck // Why: We're attaching the error to the trace.
-		trace.SetCallStatus(ctx, err)
 		(*exitCode) = 1
 
+		// If we're a status code error, check and see if it's a client error.
+		// If it's a client error, we assume this is an error that wasn't caused
+		// by our software (e.g. authentication failure) so we don't want to
+		// emit it.
+		if orerr.IsErrorStatusCategory(err, statuscodes.CategoryClientError) {
+			return
+		}
+
+		//nolint:errcheck // Why: We're attaching the error to the trace.
+		trace.SetCallStatus(ctx, err)
 		return
 	}
 }
