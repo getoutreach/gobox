@@ -57,6 +57,11 @@ func ApplyEnvOverrides(s *Config) {
 	if role := os.Getenv("AWS_ROLE"); role != "" {
 		s.AWS.DefaultRole = role
 	}
+
+	// Set the CI address to the address if not set
+	if s.DeveloperEnvironmentConfig.VaultConfig.AddressCI == "" {
+		s.DeveloperEnvironmentConfig.VaultConfig.AddressCI = s.DeveloperEnvironmentConfig.VaultConfig.Address
+	}
 }
 
 // LoadBoxStorage reads a serialized, storage wrapped

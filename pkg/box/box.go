@@ -80,6 +80,10 @@ type VaultConfig struct {
 
 	// Address is the URL to talk to Vault
 	Address string `yaml:"address"`
+
+	// AddressCI is the URL to use to talk to Vault in CI
+	// Defaults to Address
+	AddressCI string `yaml:"addressCI"`
 }
 
 // SnapshotConfig stores configuration for generated and accessing
