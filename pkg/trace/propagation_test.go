@@ -102,6 +102,72 @@ func (suite) TestForceTracingByHeader(t *testing.T) {
 	}
 }
 
+func (suite) TestHeadersForceTracingByHeader(t *testing.T) {
+	defer app.SetName(app.Info().Name)
+	app.SetName("gobox")
+
+	recorder := tracetest.NewSpanRecorderWithOptions(tracetest.Options{
+		SamplePercent: 0.1,
+	})
+	defer recorder.Close()
+
+	header := http.Header{}
+
+	header.Set(trace.HeaderForceTracing, "true")
+
+	ctx := trace.FromHeaders(context.Background(), header, "trace-test")
+
+	traceID := trace.ID(ctx)
+	rootID := differs.CaptureString()
+
+	inner := trace.StartSpan(ctx, "inner")
+
+	trace.End(inner)
+	trace.End(ctx)
+
+	expected := []map[string]interface{}{
+		{
+			"SampleRate":              int64(1000),
+			"name":                    "inner",
+			"spanContext.traceID":     traceID,
+			"spanContext.spanID":      differs.AnyString(),
+			"spanContext.traceFlags":  "01",
+			"parent.traceID":          traceID,
+			"parent.spanID":           rootID,
+			"parent.traceFlags":       "01",
+			"parent.remote":           false,
+			"spanKind":                "internal",
+			"startTime":               differs.AnyString(),
+			"endTime":                 differs.AnyString(),
+			"attributes.app.name":     "gobox",
+			"attributes.app.version":  "testing",
+			"attributes.service_name": "gobox",
+		},
+		{
+			"SampleRate":              int64(1000),
+			"name":                    "trace-test",
+			"spanContext.traceID":     traceID,
+			"spanContext.spanID":      rootID,
+			"spanContext.traceFlags":  "01",
+			"parent.traceID":          "00000000000000000000000000000000",
+			"parent.spanID":           "0000000000000000",
+			"parent.traceFlags":       "00",
+			"parent.remote":           false,
+			"spanKind":                "internal",
+			"startTime":               differs.AnyString(),
+			"endTime":                 differs.AnyString(),
+			"attributes.app.name":     "gobox",
+			"attributes.app.version":  "testing",
+			"attributes.service_name": "gobox",
+		},
+	}
+
+	ev := recorder.Ended()
+	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
+		t.Fatal("unexpected events", diff)
+	}
+}
+
 func (suite) TestForceTracing(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
