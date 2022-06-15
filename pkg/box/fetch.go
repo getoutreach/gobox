@@ -57,6 +57,11 @@ func ApplyEnvOverrides(s *Config) {
 	if role := os.Getenv("AWS_ROLE"); role != "" {
 		s.AWS.DefaultRole = role
 	}
+
+	// Set the CI address to the address if not set
+	if s.DeveloperEnvironmentConfig.VaultConfig.AddressCI == "" {
+		s.DeveloperEnvironmentConfig.VaultConfig.AddressCI = s.DeveloperEnvironmentConfig.VaultConfig.Address
+	}
 }
 
 // LoadBoxStorage reads a serialized, storage wrapped
@@ -156,7 +161,13 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 	if err != nil {
 		return nil, err
 	}
-	return c, SaveBox(ctx, s)
+	if err := SaveBox(ctx, s); err != nil {
+		return nil, err
+	}
+
+	// Reload the box config
+	_, c, err = LoadBoxStorage()
+	return c, err
 }
 
 // downloadBox downloads and parses a box config from a given repository
