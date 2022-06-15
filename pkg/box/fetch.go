@@ -166,7 +166,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 	}
 
 	// Reload the box config
-	s, c, err = LoadBoxStorage()
+	_, c, err = LoadBoxStorage()
 	return c, err
 }
 
