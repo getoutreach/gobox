@@ -161,7 +161,13 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 	if err != nil {
 		return nil, err
 	}
-	return c, SaveBox(ctx, s)
+	if err := SaveBox(ctx, s); err != nil {
+		return nil, err
+	}
+
+	// Reload the box config
+	_, c, err = LoadBoxStorage()
+	return c, err
 }
 
 // downloadBox downloads and parses a box config from a given repository
