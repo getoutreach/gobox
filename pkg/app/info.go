@@ -131,7 +131,7 @@ func SetName(name string) {
 	defer appInfo.mu.Unlock()
 
 	appName = name
-	info()
+	appInfo.Data = info()
 }
 
 // Data provides the global app info
