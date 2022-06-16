@@ -18,7 +18,6 @@ var appName = "unknown"
 
 var appInfo struct {
 	*Data
-	mu sync.Mutex // guarding Data to be set initialized concurrently
 }
 
 // Info returns the static app info
@@ -27,17 +26,13 @@ var appInfo struct {
 // by a handful of infrastructure-y packages like Mint or orgservice that have
 // special needs.  Most services will never need to access it directly.
 func Info() *Data {
-	if appInfo.Data == nil {
-		initInfoLocked()
-	}
-	return appInfo.Data
-}
-
-func initInfoLocked() {
 	appInfo.mu.Lock()
 	defer appInfo.mu.Unlock()
 
-	appInfo.Data = info()
+	if appInfo.Data == nil {
+		appInfo.Data = info()
+	}
+	return appInfo.Data
 }
 
 //nolint:funlen
@@ -131,12 +126,17 @@ func info() *Data {
 //
 // Should only be called from tests and app initialization
 func SetName(name string) {
+	appInfo.mu.Lock()
+	defer appInfo.mu.Unlock()
+
 	appName = name
-	initInfoLocked()
+	info()
 }
 
 // Data provides the global app info
 type Data struct {
+	mu sync.Mutex // guarding Data to be set initialized concurrently
+
 	Name    string
 	Version string
 
@@ -160,6 +160,9 @@ type Data struct {
 
 // MarshalLog marshals the struct for logging
 func (d *Data) MarshalLog(addField func(key string, v interface{})) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.Name != "unknown" {
 		addField("app.name", d.Name)
 	}
