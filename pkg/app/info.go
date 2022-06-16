@@ -17,6 +17,7 @@ var Version = "Please see http://github.com/getoutreach/gobox/blob/master/docs/v
 var appName = "unknown"
 
 var appInfo struct {
+	mu sync.Mutex // guarding Data to be set initialized concurrently
 	*Data
 }
 
@@ -135,7 +136,7 @@ func SetName(name string) {
 
 // Data provides the global app info
 type Data struct {
-	mu sync.Mutex // guarding Data to be set initialized concurrently
+	mu sync.Mutex // Just for the log marshaler
 
 	Name    string
 	Version string
