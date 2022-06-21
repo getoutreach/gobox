@@ -588,8 +588,8 @@ github.com/urfave/cli/v2 v2.6.0/go.mod h1:oDzoM7pVwz6wHn5ogWgFUU1s4VJayeQS+aEZDq
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPUpymEIMZ47gx8=
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
-github.com/versent/saml2aws/v2 v2.34.0 h1:EBci7gdUUrj6YCePjD0RCO5DHrByuXxKt+aa0jnoaYg=
-github.com/versent/saml2aws/v2 v2.34.0/go.mod h1:ZGX2eg23eINLc7VBkqdDbRs6oqVLwbPW9kTJwM1Jjko=
+github.com/versent/saml2aws/v2 v2.35.0 h1:3IMuRWxrtb8id0Rz3TcdH8tx5XYFzIj0TXBjxS0qM/w=
+github.com/versent/saml2aws/v2 v2.35.0/go.mod h1:ZGX2eg23eINLc7VBkqdDbRs6oqVLwbPW9kTJwM1Jjko=
 github.com/vmihailenco/msgpack/v5 v5.3.5/go.mod h1:7xyJ9e+0+9SaZT0Wt1RGleJXzli6Q/V5KbhBonMG9jc=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
 github.com/xanzy/ssh-agent v0.3.0/go.mod h1:3s9xbODqPuuhK9JV1R321M/FlMZSBvE5aY6eAcqrDh0=

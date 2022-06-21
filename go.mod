@@ -23,7 +23,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/cli/v2 v2.6.0
-	github.com/versent/saml2aws/v2 v2.34.0
+	github.com/versent/saml2aws/v2 v2.35.0
 	github.com/zalando/go-keyring v0.2.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.32.0
 	go.opentelemetry.io/otel v1.7.0
