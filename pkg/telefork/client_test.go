@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func TestClientDoesNotSendNoEvents(t *testing.T) {
@@ -29,7 +31,7 @@ func TestClientSilentlyFails(t *testing.T) {
 	os.Setenv("OUTREACH_TELEFORK_ENDPOINT", server.URL)
 	client := NewClientWithHTTPClient("testApp", "testKey", server.Client())
 
-	client.SendEvent(map[string]interface{}{"key1": "val1"})
+	client.SendEvent([]attribute.KeyValue{attribute.String("key1", "val1")})
 
 	client.Close()
 }
@@ -70,7 +72,7 @@ func TestClientSendsEvent(t *testing.T) {
 	os.Setenv("OUTREACH_TELEFORK_ENDPOINT", server.URL)
 	client := NewClientWithHTTPClient("testApp", "testAPIKey", server.Client())
 
-	client.SendEvent(map[string]interface{}{"key1": "val1"})
+	client.SendEvent([]attribute.KeyValue{attribute.String("key1", "val1")})
 
 	client.Close()
 }
@@ -101,8 +103,8 @@ func TestClientCombinesDefaultInfo(t *testing.T) {
 
 	client.AddField("key1", "defaultVal1")
 	client.AddField("key2", "val2")
-	client.SendEvent(map[string]interface{}{"req": "req1", "key1": "val1"})
-	client.SendEvent(map[string]interface{}{"req": "req2"})
+	client.SendEvent([]attribute.KeyValue{attribute.String("req", "req1"), attribute.String("key1", "val1")})
+	client.SendEvent([]attribute.KeyValue{attribute.String("req", "req2")})
 
 	client.Close()
 }

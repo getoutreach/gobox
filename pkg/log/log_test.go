@@ -96,8 +96,9 @@ func Example_appName() {
 	log.Info(context.Background(), "orgful", log.F{"myField": 42})
 
 	printEntries(logs.Entries())
+	//nolint:lll // Why: Output
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.name":"app_name","app.version":"testing","level":"INFO","message":"orgful","myField":42}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.name":"app_name","app.version":"testing","level":"INFO","message":"orgful","myField":42,"service_name":"app_name"}
 }
 
 func printEntries(entries []log.F) {

@@ -18,19 +18,31 @@ import (
 //
 // Note: the request context must be derived from StartSpan/StartTrace etc.
 func NewTransport(old http.RoundTripper) http.RoundTripper {
+	if defaultTracer == nil {
+		return old
+	}
+
 	if old == nil {
 		old = http.DefaultTransport
 	}
-	return &roundtripper{old}
+
+	return defaultTracer.newTransport(old)
 }
 
-type roundtripper struct {
-	old http.RoundTripper
-}
-
-func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	for k, v := range ToHeaders(r.Context()) {
-		r.Header[k] = v
+// NewHandler creates a new handlers which reads propagated headers
+// from the current trace context.
+//
+// Usage:
+//
+// 	  trace.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) *roundtripperState {
+// 		trace.StartSpan(r.Context(), "my endpoint")
+// 		defer trace.End(r.Context())
+// 		... do actual request handling ...
+//    }), "my endpoint")
+func NewHandler(handler http.Handler, operation string) http.Handler {
+	if defaultTracer == nil {
+		return handler
 	}
-	return rt.old.RoundTrip(r)
+
+	return defaultTracer.newHandler(handler, operation)
 }

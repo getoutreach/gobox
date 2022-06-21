@@ -166,6 +166,7 @@ func (d *Data) MarshalLog(addField func(key string, v interface{})) {
 
 	if d.Name != "unknown" {
 		addField("app.name", d.Name)
+		addField("service_name", d.Name)
 	}
 	if d.Version != "" {
 		addField("app.version", d.Version)

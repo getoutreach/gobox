@@ -27,6 +27,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/updater"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/yaml.v2"
 )
 
@@ -179,7 +180,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	c := telefork.NewClient(a.Name, teleforkAPIKey)
 
-	trace.SetPresendHook(func(e map[string]interface{}) {
+	trace.SetSpanProcessorHook(func(e []attribute.KeyValue) {
 		c.SendEvent(e)
 	})
 
