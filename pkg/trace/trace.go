@@ -291,6 +291,10 @@ func addDefaultTracerInfo(ctx context.Context, args ...log.Marshaler) {
 //
 // Only use for GRPC. Prefer NewTransport for http calls.
 func ToHeaders(ctx context.Context) map[string][]string {
+	if defaultTracer == nil {
+		return map[string][]string{}
+	}
+
 	return defaultTracer.toHeaders(ctx)
 }
 
@@ -298,5 +302,8 @@ func ToHeaders(ctx context.Context) map[string][]string {
 //
 // Only use for GRPC. Prefer NewHandler for http calls.
 func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	if defaultTracer == nil {
+		return ctx
+	}
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
