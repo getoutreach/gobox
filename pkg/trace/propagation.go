@@ -141,6 +141,7 @@ func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, 
 		forceNoTracing := header.Get(HeaderForceNoTracing)
 		if forceNoTracing != "" {
 			ctx = ForceNoTracing(ctx)
+			return ctx
 		}
 	}
 
