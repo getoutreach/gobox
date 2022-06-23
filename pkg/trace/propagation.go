@@ -16,6 +16,10 @@ import (
 const (
 	// Header that enforces the tracing for particular request
 	HeaderForceTracing = "X-Force-Trace"
+
+	// HeaderForceNoTracing forces the trace not to be registered.
+	HeaderForceNoTracing = "X-Force-No-Trace"
+
 	// Header used by OpenTelemetry to propagate traces
 	OtelPropagationHeader = "Traceparent"
 )
@@ -127,6 +131,12 @@ func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, 
 	force := header.Get(HeaderForceTracing)
 	if force != "" {
 		ctx = ForceTracing(ctx)
+	} else {
+		// We do this in an else block so force-trace always takes precedent over force-no-trace.
+		forceNoTracing := header.Get(HeaderForceNoTracing)
+		if forceNoTracing != "" {
+			ctx = ForceNoTracing(ctx)
+		}
 	}
 
 	if defaultTracer != nil {

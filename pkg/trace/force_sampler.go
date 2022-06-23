@@ -18,6 +18,10 @@ func forceTracing(ctx context.Context) context.Context {
 	return ctx
 }
 
+func forceNoTracing(ctx context.Context) context.Context {
+	return defaultTracer.setForceNoTrace(ctx, true)
+}
+
 // forceSampler allows force sample rate to 100% when trace context contains field force_trace
 // and sample at a rate of 1/<given rate> when context contains field sample_trace.
 type otelForceSampler struct {

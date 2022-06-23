@@ -14,6 +14,40 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func (suite) TestForceNoTracingByHeader(t *testing.T) {
+	defer app.SetName(app.Info().Name)
+	app.SetName("gobox")
+
+	recorder := tracetest.NewSpanRecorderWithOptions(tracetest.Options{
+		SamplePercent: 0.1,
+	})
+
+	state := propagationInitRoundTripperState(t, recorder)
+	defer state.Close()
+
+	ctx := trace.StartSpan(context.Background(), "trace-test")
+
+	client := http.Client{Transport: trace.NewTransport(nil)}
+	req, err := http.NewRequestWithContext(ctx, "GET", state.Server.URL+"/myendpoint", http.NoBody)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
+	}
+
+	req.Header.Set(trace.HeaderForceNoTracing, "true")
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal("Unexpected error", err)
+	}
+	defer res.Body.Close()
+
+	trace.End(ctx)
+
+	if traceID := trace.ID(ctx); traceID != "" {
+		t.Fatalf("expected no trace id, got %s", traceID)
+	}
+}
+
 func (suite) TestForceTracingByHeader(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")

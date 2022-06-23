@@ -272,6 +272,11 @@ func ForceTracing(ctx context.Context) context.Context {
 	return forceTracing(ctx)
 }
 
+// ForceNoTracing will force a trace to not be registered and report to the provider.
+func ForceNoTracing(ctx context.Context) context.Context {
+	return forceNoTracing(ctx)
+}
+
 // AddSpanInfo updates the current span with the provided fields.
 //
 // It does nothing if there isn't a current span.

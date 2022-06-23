@@ -42,9 +42,14 @@ type tracer interface {
 
 	newHandler(handler http.Handler, operation string) http.Handler
 
+	// isForce returns whether or not the trace is forced to be recorded.
 	isForce() bool
 
-	setForce(force bool)
+	// setForce enables the caller to force record a trace.
+	setForce(forceTrace bool)
+
+	// setForceNoTrace enables the caller to force not recording a trace.
+	setForceNoTrace(ctx context.Context, forceNoTrace bool) context.Context
 
 	toHeaders(ctx context.Context) map[string][]string
 
