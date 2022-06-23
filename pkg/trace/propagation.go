@@ -69,10 +69,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handler := otelhttp.NewHandler(h.handler, h.operation)
 
-	force := r.Header.Get(HeaderForceTracing)
-	if force != "" {
-		startOptions = oteltrace.WithAttributes(attribute.String(fieldForceTrace, force))
+	forceTrace := r.Header.Get(HeaderForceTracing)
+	if forceTrace != "" {
+		startOptions = oteltrace.WithAttributes(attribute.String(fieldForceTrace, forceTrace))
 		handler = otelhttp.NewHandler(h.handler, h.operation, otelhttp.WithSpanOptions(startOptions))
+	} else {
+		forceNoTrace := r.Header.Get(HeaderForceNoTracing)
+		if forceNoTrace != "" {
+			handler = h.handler
+		}
 	}
 
 	handler.ServeHTTP(w, r)

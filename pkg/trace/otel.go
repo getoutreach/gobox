@@ -27,7 +27,6 @@ type otelTracer struct {
 	serviceName    string
 	tracerProvider *sdktrace.TracerProvider
 	forceTrace     bool
-	forceNoTrace   bool
 }
 
 // Annotator is a SpanProcessor that adds service-level tags on every span
@@ -215,13 +214,9 @@ func (t *otelTracer) isForce() bool {
 	return t.forceTrace
 }
 
-func (t *otelTracer) setForceNoTrace(ctx context.Context, forceNoTrace bool) context.Context {
-	t.forceNoTrace = forceNoTrace
-
-	if t.forceNoTrace {
-		if span := trace.SpanFromContext(ctx); span != nil {
-			ctx = trace.ContextWithSpan(ctx, nil)
-		}
+func (t *otelTracer) forceNoTrace(ctx context.Context) context.Context {
+	if span := trace.SpanFromContext(ctx); span != nil {
+		ctx = trace.ContextWithSpan(ctx, nil)
 	}
 
 	return ctx

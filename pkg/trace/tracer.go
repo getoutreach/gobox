@@ -48,8 +48,8 @@ type tracer interface {
 	// setForce enables the caller to force record a trace.
 	setForce(forceTrace bool)
 
-	// setForceNoTrace enables the caller to force not recording a trace.
-	setForceNoTrace(ctx context.Context, forceNoTrace bool) context.Context
+	// forceNoTrace enables the caller to force not recording a trace.
+	forceNoTrace(ctx context.Context) context.Context
 
 	toHeaders(ctx context.Context) map[string][]string
 

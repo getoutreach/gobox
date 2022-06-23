@@ -18,9 +18,7 @@ func (suite) TestForceNoTracingByHeader(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
-	recorder := tracetest.NewSpanRecorderWithOptions(tracetest.Options{
-		SamplePercent: 0.1,
-	})
+	recorder := tracetest.NewSpanRecorder()
 
 	state := propagationInitRoundTripperState(t, recorder)
 	defer state.Close()

@@ -19,7 +19,7 @@ func forceTracing(ctx context.Context) context.Context {
 }
 
 func forceNoTracing(ctx context.Context) context.Context {
-	return defaultTracer.setForceNoTrace(ctx, true)
+	return defaultTracer.forceNoTrace(ctx)
 }
 
 // forceSampler allows force sample rate to 100% when trace context contains field force_trace
