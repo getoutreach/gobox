@@ -99,24 +99,22 @@ func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Han
 func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
 	result := http.Header{}
 
-	if defaultTracer != nil {
-		propagator := otel.GetTextMapPropagator()
-		propagator.Inject(ctx, otelpropagation.HeaderCarrier(result))
+	propagator := otel.GetTextMapPropagator()
+	propagator.Inject(ctx, otelpropagation.HeaderCarrier(result))
 
-		// Honeycomb expects
-		headers := map[string]string{
-			strings.ToLower(OtelPropagationHeader): result.Get(OtelPropagationHeader),
-		}
-
-		_, prop, err := propagation.UnmarshalW3CTraceContext(ctx, headers)
-		if err != nil {
-			return result
-		}
-
-		result.Set(
-			propagation.TracePropagationHTTPHeader,
-			propagation.MarshalHoneycombTraceContext(prop))
+	// Honeycomb expects
+	headers := map[string]string{
+		strings.ToLower(OtelPropagationHeader): result.Get(OtelPropagationHeader),
 	}
+
+	_, prop, err := propagation.UnmarshalW3CTraceContext(ctx, headers)
+	if err != nil {
+		return result
+	}
+
+	result.Set(
+		propagation.TracePropagationHTTPHeader,
+		propagation.MarshalHoneycombTraceContext(prop))
 
 	return result
 }
@@ -129,21 +127,19 @@ func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, 
 		ctx = ForceTracing(ctx)
 	}
 
-	if defaultTracer != nil {
-		if header.Get(OtelPropagationHeader) == "" {
-			prop, err := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
-			if err == nil {
-				_, headers := propagation.MarshalW3CTraceContext(ctx, prop)
-				for k, v := range headers {
-					header.Set(k, v)
-				}
+	if header.Get(OtelPropagationHeader) == "" {
+		prop, err := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
+		if err == nil {
+			_, headers := propagation.MarshalW3CTraceContext(ctx, prop)
+			for k, v := range headers {
+				header.Set(k, v)
 			}
 		}
-
-		propagator := otel.GetTextMapPropagator()
-		ctx = propagator.Extract(ctx, otelpropagation.HeaderCarrier(header))
-		ctx = StartSpan(ctx, name)
 	}
+
+	propagator := otel.GetTextMapPropagator()
+	ctx = propagator.Extract(ctx, otelpropagation.HeaderCarrier(header))
+	ctx = StartSpan(ctx, name)
 
 	return ctx
 }

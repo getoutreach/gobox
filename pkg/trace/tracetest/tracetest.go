@@ -8,12 +8,13 @@ import (
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/secrets/secretstest"
 	"github.com/getoutreach/gobox/pkg/trace"
+	oteltrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 type Options struct {
 	SamplePercent float32
-	Type          string
+	NoTracer      bool
 }
 
 type SpanRecorder struct {
@@ -25,7 +26,7 @@ func NewSpanRecorder() *SpanRecorder {
 	return NewSpanRecorderWithOptions(
 		Options{
 			SamplePercent: 100.0,
-			Type:          "otel",
+			NoTracer:      false,
 		},
 	)
 }
@@ -35,22 +36,38 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 
-	restoreConfig := env.FakeTestConfig("trace.yaml", map[string]interface{}{
-		"OpenTelemetry": map[string]interface{}{
-			"SamplePercent": options.SamplePercent,
-			"Endpoint":      "localhost",
-			"Enabled":       true,
-			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
-		},
-	})
+	var restoreConfig func()
+	var ctx context.Context
+	if options.NoTracer {
+		restoreConfig = env.FakeTestConfig("trace.yaml", map[string]interface{}{
+			"Unknown": map[string]interface{}{
+				"SamplePercent": options.SamplePercent,
+				"Endpoint":      "localhost",
+				"Enabled":       true,
+				"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
+			},
+		})
 
-	ctx := context.Background()
+		ctx = context.Background()
+	} else {
+		restoreConfig = env.FakeTestConfig("trace.yaml", map[string]interface{}{
+			"OpenTelemetry": map[string]interface{}{
+				"SamplePercent": options.SamplePercent,
+				"Endpoint":      "localhost",
+				"Enabled":       true,
+				"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
+			},
+		})
+	}
 
+	ctx = context.Background()
 	name := "log-testing"
 	_ = trace.InitTracer(ctx, name) // nolint: errcheck
 
-	sr.recorder = tracetest.NewSpanRecorder()
-	trace.RegisterSpanProcessor(sr.recorder)
+	if !options.NoTracer {
+		sr.recorder = tracetest.NewSpanRecorder()
+		trace.RegisterSpanProcessor(sr.recorder)
+	}
 
 	sr.cleanup = func() {
 		trace.CloseTracer(ctx)
@@ -66,7 +83,11 @@ func (sr *SpanRecorder) Close() {
 }
 
 func (sr *SpanRecorder) Ended() []map[string]interface{} {
-	ended := sr.recorder.Ended()
+	var ended []oteltrace.ReadOnlySpan
+
+	if sr.recorder != nil {
+		ended = sr.recorder.Ended()
+	}
 
 	result := make([]map[string]interface{}, 0, len(ended))
 	for _, s := range ended {
