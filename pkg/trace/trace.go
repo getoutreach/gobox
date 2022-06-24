@@ -129,6 +129,13 @@ func InitTracer(ctx context.Context, serviceName string) error {
 	if err := setDefaultTracer(); err != nil {
 		return err
 	}
+
+	if defaultTracer == nil {
+		panic(`It looks like you upgraded gobox without upgrading bootstrap. To correct the issue:
+  - Update bootstrap to v10.2.0-rc.3 or later
+  - add 'tracing: opentelemetry' to your service.yaml`)
+	}
+
 	return defaultTracer.initTracer(ctx, serviceName)
 }
 
