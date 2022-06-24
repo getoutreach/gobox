@@ -37,7 +37,11 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 			Tracestate: psc.TraceState(),
 		}
 	}
-
+	if s.sampleRate == 0 {
+		return sdktrace.SamplingResult{
+			Decision: sdktrace.Drop,
+		}
+	}
 	sampler, err := sample.NewDeterministicSampler(s.sampleRate)
 	if err != nil {
 		panic(err)

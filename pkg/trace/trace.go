@@ -142,10 +142,7 @@ func setDefaultTracer() error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-
-	if config.Otel.Enabled {
-		defaultTracer = &otelTracer{Config: config}
-	}
+	defaultTracer = &otelTracer{Config: config}
 
 	return nil
 }
