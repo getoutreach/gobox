@@ -80,7 +80,10 @@ func SetCallTypeOutbound(ctx context.Context) context.Context {
 // When the error is nil, no-op from this function
 func SetCallStatus(ctx context.Context, err error) error {
 	if err != nil {
-		callTracker.Info(ctx).SetStatus(ctx, err)
+		info := callTracker.Info(ctx)
+		if info != nil {
+			info.SetStatus(ctx, err)
+		}
 	}
 	return err
 }

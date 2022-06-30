@@ -356,3 +356,7 @@ func (suite) TestEndCallDoesNotPanicWithNilError(t *testing.T) {
 	ctx := trace.StartCall(context.Background(), "")
 	trace.EndCall(ctx)
 }
+
+func (suite) TestSetCallStatusDoesNotPanicWithNilInfo(t *testing.T) {
+	trace.SetCallStatus(context.Background(), errors.New(""))
+}
