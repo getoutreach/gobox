@@ -1,10 +1,9 @@
-// logtest provides the ability to test logs
+// Package logtest provides the ability to test logs
 //
 // Usage:
 //
 //     func MyTestFunc(t *testing.T) {
 //         logs := logTest.NewLogRecorder(t)
-//         defer logs.Close()
 //         .....
 //         if diff := logs.Diff(expected); diff != "" {
 //             t.Fatal("logs unexpected", diff);
@@ -23,10 +22,16 @@ import (
 
 // NewLogRecorder starts a new log recorder.
 //
-// Logs must be stopped by calling Close() on the recorder
+// No need to call Close() explicitly, it will be called for you when the tests are completed.
 func NewLogRecorder(t *testing.T) *LogRecorder {
 	r := &LogRecorder{T: t, oldOutput: log.Output()}
 	log.SetOutput(r)
+	if t != nil {
+		t.Cleanup(func() {
+			r.Close()
+		})
+	}
+
 	return r
 }
 
@@ -62,7 +67,7 @@ func (l *LogRecorder) Entries() []log.F {
 	return l.entries[:len(l.entries):len(l.entries)]
 }
 
-// MarshalToMap uses the given arguments `MarshalLog` function to serialize it
+// Map uses the given arguments `MarshalLog` function to serialize it
 // into a map, which it returns.
 //
 // The serialization is similar to the one performed by logs.  Any nesting is
