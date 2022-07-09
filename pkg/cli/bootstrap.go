@@ -72,6 +72,15 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 					SamplePercent: 100,
 				},
 			}
+			traceConfig.Otel = trace.Otel{
+				Enabled:       traceConfig.Honeycomb.Enabled,
+				Endpoint:      traceConfig.Honeycomb.APIHost,
+				Dataset:       traceConfig.Honeycomb.Dataset,
+				SamplePercent: traceConfig.Honeycomb.SamplePercent,
+				Debug:         tracingDebug,
+				Stdout:        false,
+				APIKey:        traceConfig.Honeycomb.APIKey,
+			}
 			b, err := yaml.Marshal(&traceConfig)
 			if err != nil {
 				panic(err)
