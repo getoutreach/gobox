@@ -200,6 +200,7 @@ func (suite) TestNestedCall(t *testing.T) {
 
 	recorder := tracetest.NewSpanRecorder()
 	defer recorder.Close()
+
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
 
@@ -238,15 +239,15 @@ func (suite) TestNestedCall(t *testing.T) {
 		}
 	}()
 
-	ev := recorder.Ended()
-	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
-		t.Fatal("unexpected events", diff)
-	}
-
 	entries := logs.Entries()
 	if diff := cmp.Diff(expectedLogs, entries, differs.Custom()); diff != "" {
 		fmt.Printf("%#v", diff[1])
 		t.Fatal("unexpected log entries", diff)
+	}
+
+	ev := recorder.Ended()
+	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
+		t.Fatal("unexpected events", diff)
 	}
 
 	errmap := map[string]error{
