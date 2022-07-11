@@ -10,27 +10,27 @@ import (
 )
 
 func Example() {
-	type HoneycombConfig struct {
+	type OtelConfig struct {
 		Disable    bool
 		Dataset    string
-		APIHost    string
+		Endpoint   string
 		SampleRate float64
 		Key        cfg.Secret
 	}
 
-	expected := HoneycombConfig{
+	expected := OtelConfig{
 		Disable:    true,
 		Dataset:    "boo",
-		APIHost:    "hoo",
+		Endpoint:   "hoo",
 		SampleRate: 5.3,
 		Key:        cfg.Secret{Path: "someSecretPath"},
 	}
 
-	defer env.FakeTestConfig("honeycomb.yaml", expected)()
+	defer env.FakeTestConfig("trace.yaml", expected)()
 	defer secretstest.Fake("someSecretPath", "someSecretData")()
 
-	var hcConfig HoneycombConfig
-	if err := cfg.Load("honeycomb.yaml", &hcConfig); err != nil {
+	var hcConfig OtelConfig
+	if err := cfg.Load("trace.yaml", &hcConfig); err != nil {
 		fmt.Println("Unexpected error", err)
 	}
 

@@ -5,17 +5,17 @@
 //
 // Example
 //
-//     type HoneycombConfig struct {
+//     type OtelConfig struct {
 //        Disable    bool       `yaml:"Disable"`
 //        Dataset    string     `yaml:"Dataset"`
-//        APIHost    string     `yaml:"APIHost"`
+//        Endpoint    string     `yaml:"APIHost"`
 //        SampleRate float64    `yaml:"SampleRate"`
 //        Key        cfg.Secret `yaml:"Key"`
 //     }
 //
 //     func (x someComponent) someFunc(ctx context.Context) error {
-//          var hcConfig HoneycombConfig
-//          if err := cfg.Load("honeycomb.yaml", &hcConfig); err != nil {
+//          var otelConfig OtelConfig
+//          if err := cfg.Load("trace.yaml", &hcConfig); err != nil {
 //              return err
 //          }
 //
@@ -26,8 +26,8 @@
 // All config structs should typically implement their own `Load()`
 // method so that the config location is specified in one spot:
 //
-//     func (c *HoneycombConfig) Load() error {
-//         return cfg.Load("honeycomb.yaml", &c)
+//     func (c *OtelConfig) Load() error {
+//         return cfg.Load("trace.yaml", &c)
 //     }
 //
 //

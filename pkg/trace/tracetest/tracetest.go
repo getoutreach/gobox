@@ -14,7 +14,6 @@ import (
 
 type Options struct {
 	SamplePercent float32
-	NoTracer      bool
 }
 
 type SpanRecorder struct {
@@ -26,7 +25,6 @@ func NewSpanRecorder() *SpanRecorder {
 	return NewSpanRecorderWithOptions(
 		Options{
 			SamplePercent: 100.0,
-			NoTracer:      false,
 		},
 	)
 }
@@ -36,38 +34,21 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 
-	var restoreConfig func()
-	var ctx context.Context
-	if options.NoTracer {
-		restoreConfig = env.FakeTestConfig("trace.yaml", map[string]interface{}{
-			"Unknown": map[string]interface{}{
-				"SamplePercent": options.SamplePercent,
-				"Endpoint":      "localhost",
-				"Enabled":       true,
-				"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
-			},
-		})
+	restoreConfig := env.FakeTestConfig("trace.yaml", map[string]interface{}{
+		"OpenTelemetry": map[string]interface{}{
+			"SamplePercent": options.SamplePercent,
+			"Endpoint":      "localhost",
+			"Enabled":       true,
+			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
+		},
+	})
 
-		ctx = context.Background()
-	} else {
-		restoreConfig = env.FakeTestConfig("trace.yaml", map[string]interface{}{
-			"OpenTelemetry": map[string]interface{}{
-				"SamplePercent": options.SamplePercent,
-				"Endpoint":      "localhost",
-				"Enabled":       true,
-				"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
-			},
-		})
-	}
-
-	ctx = context.Background()
+	ctx := context.Background()
 	name := "log-testing"
 	_ = trace.InitTracer(ctx, name) // nolint: errcheck
 
-	if !options.NoTracer {
-		sr.recorder = tracetest.NewSpanRecorder()
-		trace.RegisterSpanProcessor(sr.recorder)
-	}
+	sr.recorder = tracetest.NewSpanRecorder()
+	trace.RegisterSpanProcessor(sr.recorder)
 
 	sr.cleanup = func() {
 		trace.CloseTracer(ctx)
@@ -129,7 +110,7 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 func Disabled() (cleanup func()) {
 	cleanupSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 	cleanupCfg := env.FakeTestConfig("trace.yaml", map[string]interface{}{
-		"Honeycomb": map[string]interface{}{
+		"Otel": map[string]interface{}{
 			"Enabled": false,
 		},
 	})

@@ -61,9 +61,9 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 	cfg.SetDefaultReader(func(fileName string) ([]byte, error) {
 		if fileName == "trace.yaml" {
 			traceConfig := &trace.Config{
-				Honeycomb: trace.Honeycomb{
-					Enabled: true,
-					APIHost: "https://api.honeycomb.io",
+				Otel: trace.Otel{
+					Enabled:  true,
+					Endpoint: "api.honeycomb.io",
 					APIKey: cfg.Secret{
 						Path: "APIKey",
 					},
