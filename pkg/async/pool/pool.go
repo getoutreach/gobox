@@ -58,13 +58,6 @@ func ResizeEvery(d time.Duration) OptionFunc {
 	}
 }
 
-// Name helps to set Name option
-func Name(s string) OptionFunc {
-	return func(opts *Options) {
-		opts.Name = s
-	}
-}
-
 // ScheduleBehavior defines the behavior of pool Schedule method
 type ScheduleBehavior func(context.Context, chan unit, async.Runner) error
 
