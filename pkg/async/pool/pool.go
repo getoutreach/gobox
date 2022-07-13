@@ -210,6 +210,7 @@ func (p *Pool) worker(ctx context.Context) {
 	for {
 		select {
 		case u = <-p.queue:
+			//nolint:errcheck
 			_ = u.Runner.Run(u.Context)
 		case <-ctx.Done():
 			return
