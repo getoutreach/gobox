@@ -274,6 +274,7 @@ func (w *loggingScheduler) Schedule(ctx context.Context, r async.Runner) error {
 	})))
 }
 
+// WithLogging creates a scheduler which logs the errors returned from the scheduling as well as executing phase
 func WithLogging(name string, s Scheduler) Scheduler {
 	return &loggingScheduler{Name: name, Inner: s}
 }
