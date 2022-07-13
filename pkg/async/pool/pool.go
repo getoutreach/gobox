@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/events"
+
+	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/orerr"
 )
@@ -204,17 +205,12 @@ func (p *Pool) run(ctx context.Context) {
 func (p *Pool) worker(ctx context.Context) {
 	defer p.wg.Done()
 	var (
-		err error
-		u   unit
+		u unit
 	)
 	for {
 		select {
 		case u = <-p.queue:
-			err = u.Runner.Run(u.Context)
-			if err != nil {
-				//nolint:errcheck
-				p.log(u.Context, err)
-			}
+			_ = u.Runner.Run(u.Context)
 		case <-ctx.Done():
 			return
 		}
@@ -238,17 +234,9 @@ func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	if p.context.Err() != nil {
 		ctxErr, cancel := orerr.CancelWithError(ctx)
 		cancel(p.context.Err())
-		return p.log(ctxErr, r.Run(ctxErr))
+		return r.Run(ctxErr)
 	}
-	return p.log(ctx, p.opts.ScheduleBehavior(ctx, p.queue, r))
-}
-
-func (p *Pool) log(ctx context.Context, err error) error {
-	if err == nil {
-		return nil
-	}
-	log.Error(ctx, "async.pool runner error", log.F{"pool": p.opts.Name}, events.NewErrorInfo(err))
-	return err
+	return p.opts.ScheduleBehavior(ctx, p.queue, r)
 }
 
 type cancellations []context.CancelFunc
@@ -272,4 +260,27 @@ func (c cancellations) Shrink(by int) cancellations {
 type unit struct {
 	Context context.Context
 	Runner  async.Runner
+}
+
+type loggingScheduler struct {
+	Inner Scheduler
+	Name  string
+}
+
+func (w *loggingScheduler) Schedule(ctx context.Context, r async.Runner) error {
+	return w.log(ctx, w.Inner.Schedule(ctx, async.Func(func(ctx context.Context) error {
+		return w.log(ctx, r.Run(ctx))
+	})))
+}
+
+func WithLogging(name string, s Scheduler) Scheduler {
+	return &loggingScheduler{Name: name, Inner: s}
+}
+
+func (w *loggingScheduler) log(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	log.Error(ctx, "async.pool runner error", log.F{"pool": w.Name}, events.NewErrorInfo(err))
+	return err
 }
