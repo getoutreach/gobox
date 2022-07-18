@@ -229,9 +229,9 @@ func (suite) TestNestedCall(t *testing.T) {
 	}
 
 	// wrapping the main logic in a function so that we can call
-	// defer per our accepted trace.StartTrace/trace.End pattern
+	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx = trace.StartTrace(ctx, "trace-test")
+		ctx = trace.StartSpan(ctx, "trace-test")
 		defer trace.End(ctx)
 
 		if err := outer(ctx, &Model{ID: "some model id"}); err == nil {
@@ -286,9 +286,9 @@ func TestReportLatencyMetrics(t *testing.T) {
 	}
 
 	// wrapping the main logic in a function so that we can call
-	// defer per our accepted trace.StartTrace/trace.End pattern
+	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx = trace.StartTrace(ctx, "trace-test")
+		ctx = trace.StartSpan(ctx, "trace-test")
 		defer trace.End(ctx)
 
 		if err := httpCall(ctx); err != nil {

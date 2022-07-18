@@ -34,14 +34,14 @@
 //
 // Non-HTTP servers should wrap their request handling like so:
 //
-//      ctx = trace.StartTrace(ctx, "my endpoint")
+//      ctx = trace.StartSpan(ctx, "my endpoint")
 //      defer trace.End(ctx)
 //      ... do actual request handling ...
 //
 //
 // Clients should use a Client with the provided transport like so:
 //
-//      ctx = trace.StartTrace(ctx, "my call")
+//      ctx = trace.StartSpan(ctx, "my call")
 //      defer trace.End(ctx)
 //      client := http.Client{Transport: trace.NewTransport(nil)}
 //      ... do actual call using the new client ...
@@ -77,7 +77,7 @@
 // or span (based on the `context`).  The redis example above would
 // look like so:
 //
-//     ctx = trace.StartTrace(ctx, "redis")
+//     ctx = trace.StartSpan(ctx, "redis")
 //     defer trace.End(ctx)
 //     .... do actual redis call...
 //
@@ -181,6 +181,8 @@ func CloseTracer(ctx context.Context) {
 	defaultTracer.closeTracer(ctx)
 }
 
+// Deprecated: use StartSpan() instead. It will start a trace automatically
+// if the context does not contain one already.
 // StartTrace starts a new root span/trace.
 //
 // Use trace.End to end this.
@@ -205,7 +207,7 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 	return newCtx
 }
 
-// Deprecated: You can just use StartSpan
+// Deprecated: use StartSpan() instead. It will handle async traces automatically.
 // StartSpanAsync starts a new async span.
 //
 // An async span does not have to complete before the parent span completes.

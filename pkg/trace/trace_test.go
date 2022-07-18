@@ -105,7 +105,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	defer recorder.Close()
 
-	ctx := trace.StartTrace(context.Background(), "trace-test")
+	ctx := trace.StartSpan(context.Background(), "trace-test")
 	trace.AddInfo(ctx, log.F{"trace": "outermost"})
 
 	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
