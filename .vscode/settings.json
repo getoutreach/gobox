@@ -2,6 +2,7 @@
   // Please consider contributing back all added
   // settings to bootstrap!
   ///Block(settings)
+
   ///EndBlock(settings)
   "go.lintTool": "golangci-lint",
   "go.lintFlags": [],
@@ -21,6 +22,9 @@
   "shellformat.path": "./.bootstrap/shell/shfmt.sh",
   "[dockerfile]": {
     "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[proto3]": {
     "editor.defaultFormatter": "zxh404.vscode-proto3"
