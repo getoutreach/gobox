@@ -96,6 +96,7 @@ func (suite) TestGracefullyStops(t *testing.T) {
 
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
 func (suite) TestPoolGrows(t *testing.T) {
+	var mu sync.Mutex
 	var size = 1
 	var resportResize = false
 	wg := new(sync.WaitGroup)
@@ -103,7 +104,9 @@ func (suite) TestPoolGrows(t *testing.T) {
 
 	waitForResize := func() {
 		wg.Add(1)
+		mu.Lock()
 		resportResize = true
+		mu.Unlock()
 		wg.Wait()
 		time.Sleep(5 * time.Millisecond)
 		assert.Equal(t, size+1, runtime.NumGoroutine()-ng)
@@ -112,6 +115,8 @@ func (suite) TestPoolGrows(t *testing.T) {
 	s := &testState{
 		Items: 10,
 		Size: pool.Size(func() int {
+			mu.Lock()
+			defer mu.Unlock()
 			if resportResize {
 				resportResize = false
 				wg.Done()
@@ -128,9 +133,13 @@ func (suite) TestPoolGrows(t *testing.T) {
 	defer s.Pool.Close()
 
 	waitForResize() // initital resize
+	mu.Lock()
 	size = 10
+	mu.Unlock()
 	waitForResize()
+	mu.Lock()
 	size = 2
+	mu.Unlock()
 	waitForResize()
 }
 
