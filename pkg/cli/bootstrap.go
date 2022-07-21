@@ -65,7 +65,7 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 					Enabled:  true,
 					Endpoint: "api.honeycomb.io",
 					APIKey: cfg.Secret{
-						Path: "APIKey",
+						Path: "apiKey",
 					},
 					Debug:         tracingDebug,
 					Dataset:       dataset,
