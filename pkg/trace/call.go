@@ -116,10 +116,10 @@ func EndCall(ctx context.Context) {
 			case statuscodes.CategoryServerError:
 				log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+				log.Debug(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			}
 		} else {
-			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			log.Debug(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 		}
 	}(callTracker.Info(ctx))
 
