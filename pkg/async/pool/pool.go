@@ -121,11 +121,13 @@ type Options struct {
 
 // Pool structure
 type Pool struct {
-	queue   chan unit
-	opts    *Options
-	wg      *sync.WaitGroup
-	cancel  func(error)
-	context context.Context
+	// Protects the context during cancelation
+	cancel    func(error)
+	context   context.Context
+	contextMu sync.Mutex
+	opts      *Options
+	queue     chan unit
+	wg        *sync.WaitGroup
 }
 
 // New creates new instance of Pool and start goroutine that will spawn the workers
@@ -164,7 +166,10 @@ func (p *Pool) run(ctx context.Context) {
 		cancellations         = cancellations{}
 	)
 	for {
-		if ctx.Err() != nil {
+		p.contextMu.Lock()
+		err := ctx.Err()
+		p.contextMu.Unlock()
+		if err != nil {
 			return
 		}
 		size = p.opts.Size()
@@ -223,7 +228,9 @@ func (p *Pool) worker(ctx context.Context) {
 
 // Close blocks until all workers finshes current items and terminates
 func (p *Pool) Close() {
+	p.contextMu.Lock()
 	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
+	p.contextMu.Unlock()
 	p.wg.Wait()
 }
 
