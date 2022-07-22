@@ -49,7 +49,7 @@ func (u *updater) hookIntoCLI() {
 		for _, f := range c.FlagNames() {
 			if strings.EqualFold(f, "enable-prereleases") {
 				u.prereleases = true
-				u.log.Warn("--enable-prereleases is deprecated, use the new 'updater set-channel prereleases' command instead")
+				u.log.Warn("--enable-prereleases is deprecated, use the new 'updater set-channel rc' command instead")
 			}
 
 			if strings.EqualFold(f, "force-update-check") {
