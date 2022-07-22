@@ -65,7 +65,7 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 					Enabled:  true,
 					Endpoint: "api.honeycomb.io",
 					APIKey: cfg.Secret{
-						Path: "apiKey",
+						Path: "APIKey",
 					},
 					Debug:         tracingDebug,
 					Dataset:       dataset,
@@ -166,7 +166,7 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func()) {
 // and automatically updates itself.
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
-	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
+	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string, enableTracing bool) {
 	env.ApplyOverrides()
 	app.SetName(a.Name)
 
@@ -187,8 +187,10 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	props := commonProps()
 	c.AddInfo(props)
 
-	ctx = setupTracer(ctx, a.Name)
-	trace.AddInfo(ctx, props)
+	if enableTracing {
+		ctx = setupTracer(ctx, a.Name)
+		trace.AddInfo(ctx, props)
+	}
 
 	exitCode, exit := setupExitHandler(ctx)
 	defer func() {
