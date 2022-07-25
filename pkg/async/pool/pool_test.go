@@ -83,7 +83,6 @@ func (suite) TestGracefullyStops(t *testing.T) {
 	size := 10
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(size)})
 	defer s.Cancel()
-	defer s.Pool.Close()
 
 	// When pool was running there were pool goroutines
 	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
