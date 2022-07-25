@@ -51,7 +51,7 @@ func (suite) TestHasCorrectOutput(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
-	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 8*time.Millisecond))
+	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 10*time.Millisecond))
 	actual := s.Results.ToSlice()
 	sort.Strings(s.Expected)
 	sort.Strings(actual)
