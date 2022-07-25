@@ -161,14 +161,14 @@ func New(ctx context.Context, options ...Option) *Pool {
 
 func (p *Pool) run(ctx context.Context) {
 	defer p.wg.Done()
+	p.contextMu.Lock()
+	defer p.contextMu.Unlock()
 	var (
 		prevSize, delta, size int
 		cancellations         = cancellations{}
 	)
 	for {
-		p.contextMu.Lock()
 		err := ctx.Err()
-		p.contextMu.Unlock()
 		if err != nil {
 			return
 		}
