@@ -51,7 +51,7 @@ func (suite) TestHasCorrectOutput(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
-	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 20*time.Millisecond))
+	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 100*time.Millisecond))
 	actual := s.Results.ToSlice()
 	sort.Strings(s.Expected)
 	sort.Strings(actual)
@@ -96,13 +96,12 @@ func (suite) TestGracefullyStops(t *testing.T) {
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
 func (suite) TestPoolGrows(t *testing.T) {
 	var size = make(chan int, 1)
-	var resizeSize = make(chan int, 1)
 	ng := 0
 
-	waitForResize := func() {
-		s := <-resizeSize
+	waitForResize := func(s int) {
+		size <- s
 		time.Sleep(5 * time.Millisecond)
-		assert.Equal(t, s+1, runtime.NumGoroutine()-ng)
+		assert.Assert(t, InDelta(float64(s+1), float64(runtime.NumGoroutine()-ng), 1))
 	}
 
 	savedSize := 1
@@ -126,13 +125,8 @@ func (suite) TestPoolGrows(t *testing.T) {
 	defer s.Cancel()
 	defer s.Pool.Close()
 
-	go waitForResize() // initital resize
-	size <- 10
-	resizeSize <- 10
-	go waitForResize()
-	size <- 2
-	resizeSize <- 2
-	go waitForResize()
+	waitForResize(10)
+	waitForResize(2)
 }
 
 func runPool(ctx context.Context, s *testState) *testState {

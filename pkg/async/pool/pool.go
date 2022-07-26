@@ -219,7 +219,6 @@ func (p *Pool) worker(ctx context.Context) {
 				p.log(u.Context, err)
 			}
 		case <-p.closed:
-			p.cancel(&orerr.ShutdownError{Err: context.Canceled})
 			return
 		case <-ctx.Done():
 			return
