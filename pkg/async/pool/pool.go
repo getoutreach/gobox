@@ -218,6 +218,8 @@ func (p *Pool) worker(ctx context.Context) {
 				//nolint:errcheck
 				p.log(u.Context, err)
 			}
+		case <-p.closed:
+			return
 		case <-ctx.Done():
 			return
 		}
@@ -238,12 +240,14 @@ func (p *Pool) Close() {
 // - When pool is in shutdown phase.
 func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	// Check whether pool is alive
-	if p.context.Err() != nil {
+	select {
+	case <-p.closed:
 		ctxErr, cancel := orerr.CancelWithError(ctx)
 		cancel(p.context.Err())
 		return p.log(ctxErr, r.Run(ctxErr))
+	default:
+		return p.log(ctx, p.opts.ScheduleBehavior(ctx, p.queue, r))
 	}
-	return p.log(ctx, p.opts.ScheduleBehavior(ctx, p.queue, r))
 }
 
 func (p *Pool) log(ctx context.Context, err error) error {
