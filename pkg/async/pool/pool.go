@@ -218,8 +218,6 @@ func (p *Pool) worker(ctx context.Context) {
 				//nolint:errcheck
 				p.log(u.Context, err)
 			}
-		case <-p.closed:
-			return
 		case <-ctx.Done():
 			return
 		}
