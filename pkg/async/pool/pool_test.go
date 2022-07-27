@@ -88,6 +88,7 @@ func (suite) TestGracefullyStops(t *testing.T) {
 	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
 		float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
 	s.Pool.Close()
+	time.Sleep(5 * time.Millisecond)
 	// After close all workers goroutines are dead
 	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart),
 		float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
