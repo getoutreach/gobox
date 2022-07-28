@@ -197,9 +197,9 @@ func (p *Pool) run(ctx context.Context) {
 			continue
 		case <-p.closed:
 			p.cancel(&orerr.ShutdownError{Err: context.Canceled})
-			break
+			return
 		case <-ctx.Done():
-			break
+			return
 		}
 	}
 }
