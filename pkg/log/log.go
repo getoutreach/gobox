@@ -42,8 +42,9 @@ var (
 	// wrap stdout and stderr in sync writers to ensure that writes exceeding
 	// PAGE_SIZE (4KB) are not interleaved.
 
-	stdOut io.Writer = &syncWriter{w: os.Stdout}
-	errOut io.Writer = &syncWriter{w: os.Stderr}
+	stdOutLock *sync.RWMutex = new(sync.RWMutex)
+	stdOut     io.Writer     = &syncWriter{w: os.Stdout}
+	errOut     io.Writer     = &syncWriter{w: os.Stderr}
 
 	dbgEntries = entries.New()
 )
@@ -73,15 +74,19 @@ func (sw *syncWriter) Write(b []byte) (int, error) {
 // Note: this function should not be used in production code outside of service startup.
 // SetOutput can be used for tests that need to redirect or filter logs
 func SetOutput(w io.Writer) {
+	stdOutLock.Lock()
+	defer stdOutLock.Unlock()
 	stdOut = w
 }
 
 func Output() io.Writer {
+	stdOutLock.RLock()
+	defer stdOutLock.RUnlock()
 	return stdOut
 }
 
 func Write(s string) {
-	if _, err := fmt.Fprintln(stdOut, s); err != nil {
+	if _, err := fmt.Fprintln(Output(), s); err != nil {
 		fmt.Fprintln(errOut, err)
 	}
 }
