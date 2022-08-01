@@ -42,9 +42,9 @@ var (
 	// wrap stdout and stderr in sync writers to ensure that writes exceeding
 	// PAGE_SIZE (4KB) are not interleaved.
 
-	stdOutLock *sync.RWMutex = new(sync.RWMutex)
-	stdOut     io.Writer     = &syncWriter{w: os.Stdout}
-	errOut     io.Writer     = &syncWriter{w: os.Stderr}
+	stdOutLock           = new(sync.RWMutex)
+	stdOut     io.Writer = &syncWriter{w: os.Stdout}
+	errOut     io.Writer = &syncWriter{w: os.Stderr}
 
 	dbgEntries = entries.New()
 )
