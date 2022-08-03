@@ -101,7 +101,7 @@ func (suite) TestPoolGrows(t *testing.T) {
 
 	waitForResize := func(s int) {
 		size <- s
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		assert.Assert(t, InDelta(float64(s+1), float64(runtime.NumGoroutine()-ng), 1))
 	}
 

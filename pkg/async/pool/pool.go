@@ -196,10 +196,9 @@ func (p *Pool) run(ctx context.Context) {
 		case <-time.After(p.opts.ResizeEvery):
 			continue
 		case <-p.closed:
-			p.cancel(&orerr.ShutdownError{Err: context.Canceled})
-			break
+			return
 		case <-ctx.Done():
-			break
+			return
 		}
 	}
 }
@@ -228,8 +227,9 @@ func (p *Pool) worker(ctx context.Context) {
 
 // Close blocks until all workers finshes current items and terminates
 func (p *Pool) Close() {
-	close(p.closed)
 	p.wg.Wait()
+	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
+	close(p.closed)
 }
 
 // Schedule tries to schedule runner for processing in the pool
