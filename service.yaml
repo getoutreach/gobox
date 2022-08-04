@@ -1,5 +1,5 @@
 name: gobox
-reportingTeam: fnd-dtss
+reportingTeam: fnd-dt
 description: A collection of libraries that are useful for implementing Go services, libraries, and more.
 oss: true
 slack: dev-tooling-notifications
@@ -36,7 +36,7 @@ arguments:
   releaseOptions:
     allowMajorVersions: true
     enablePrereleases: false
-  reportingTeam: fnd-dtss
+  reportingTeam: fnd-dt
   resources: {}
   service: false
   tracing: honeycomb
@@ -47,12 +47,12 @@ arguments:
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
-  - name: github.com/getoutreach/stencil-outreach
-  - name: github.com/getoutreach/stencil-circleci
-  - name: github.com/getoutreach/stencil-actions
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
   - name: github.com/getoutreach/stencil-opslevel
+  - name: github.com/getoutreach/stencil-outreach
+  - name: github.com/getoutreach/stencil-circleci
+  - name: github.com/getoutreach/stencil-actions
 opsLevel:
   serviceTier: 0
   lifecycle: ""
