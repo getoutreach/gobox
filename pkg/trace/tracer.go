@@ -20,12 +20,14 @@ type tracer interface {
 
 	closeTracer(ctx context.Context)
 
+	// Deprecated: Use startSpan() instead.
 	startTrace(ctx context.Context, name string) context.Context
 
 	id(ctx context.Context) string
 
 	startSpan(ctx context.Context, name string) context.Context
 
+	// Deprecated: Use startSpan() instead.
 	startSpanAsync(ctx context.Context, name string) context.Context
 
 	end(ctx context.Context)

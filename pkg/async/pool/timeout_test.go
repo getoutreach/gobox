@@ -44,5 +44,5 @@ func TestTimeout(t *testing.T) {
 	wait()
 
 	assert.Equal(t, context.DeadlineExceeded, err)
-	assert.Assert(t, WithinDuration(time.Now(), startedAt, 15*time.Millisecond))
+	assert.Assert(t, WithinDuration(time.Now(), startedAt, 20*time.Millisecond))
 }

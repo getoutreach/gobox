@@ -16,7 +16,7 @@ import (
 // For most cases, use the httpx/pkg/fetch package as it also logs the
 // request, updates latency metrics and adds traces with full info
 //
-// Note: the request context must be derived from StartSpan/StartTrace etc.
+// Note: the request context must be derived from StartSpan.
 func NewTransport(old http.RoundTripper) http.RoundTripper {
 	if defaultTracer == nil {
 		return old

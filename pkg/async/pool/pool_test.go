@@ -51,7 +51,7 @@ func (suite) TestHasCorrectOutput(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
-	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 8*time.Millisecond))
+	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 100*time.Millisecond))
 	actual := s.Results.ToSlice()
 	sort.Strings(s.Expected)
 	sort.Strings(actual)
@@ -83,12 +83,12 @@ func (suite) TestGracefullyStops(t *testing.T) {
 	size := 10
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(size)})
 	defer s.Cancel()
-	defer s.Pool.Close()
 
 	// When pool was running there were pool goroutines
 	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
 		float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
 	s.Pool.Close()
+	time.Sleep(5 * time.Millisecond)
 	// After close all workers goroutines are dead
 	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart),
 		float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
@@ -96,27 +96,26 @@ func (suite) TestGracefullyStops(t *testing.T) {
 
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
 func (suite) TestPoolGrows(t *testing.T) {
-	var size = 1
-	var resportResize = false
-	wg := new(sync.WaitGroup)
+	var size = make(chan int, 1)
 	ng := 0
 
-	waitForResize := func() {
-		wg.Add(1)
-		resportResize = true
-		wg.Wait()
-		time.Sleep(5 * time.Millisecond)
-		assert.Equal(t, size+1, runtime.NumGoroutine()-ng)
+	waitForResize := func(s int) {
+		size <- s
+		time.Sleep(10 * time.Millisecond)
+		assert.Assert(t, InDelta(float64(s+1), float64(runtime.NumGoroutine()-ng), 1))
 	}
 
+	savedSize := 1
 	s := &testState{
 		Items: 10,
 		Size: pool.Size(func() int {
-			if resportResize {
-				resportResize = false
-				wg.Done()
+			select {
+			case s := <-size:
+				savedSize = s
+				return s
+			default:
+				return savedSize
 			}
-			return size
 		}),
 		ResizeEvery: 1 * time.Millisecond,
 	}
@@ -127,11 +126,8 @@ func (suite) TestPoolGrows(t *testing.T) {
 	defer s.Cancel()
 	defer s.Pool.Close()
 
-	waitForResize() // initital resize
-	size = 10
-	waitForResize()
-	size = 2
-	waitForResize()
+	waitForResize(10)
+	waitForResize(2)
 }
 
 func runPool(ctx context.Context, s *testState) *testState {

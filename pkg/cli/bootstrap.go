@@ -137,7 +137,7 @@ func setupTracer(ctx context.Context, name string) context.Context {
 		fmt.Println(err)
 		return ctx
 	}
-	return trace.StartTrace(ctx, name)
+	return trace.StartSpan(ctx, name)
 }
 
 // setupPanicHandler sets up a panic handler for CLIs

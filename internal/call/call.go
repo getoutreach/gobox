@@ -7,6 +7,7 @@ package call
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/getoutreach/gobox/internal/logf"
@@ -43,6 +44,8 @@ type Info struct {
 	events.Durations
 
 	ErrInfo *events.ErrorInfo
+
+	mu sync.Mutex
 }
 
 // Start initializes info with the start time and some name.
@@ -83,7 +86,9 @@ func (info *Info) ReportLatency(ctx context.Context) {
 
 // AddArgs appends the provided logf.Marshalers to the Args slice.
 func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
+	info.mu.Lock()
 	info.Args = append(info.Args, args...)
+	info.mu.Unlock()
 }
 
 // ApplyOpts applies call Option functions to the call Info object.

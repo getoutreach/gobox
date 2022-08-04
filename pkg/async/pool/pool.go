@@ -115,11 +115,13 @@ type Options struct {
 
 // Pool structure
 type Pool struct {
-	queue   chan unit
-	opts    *Options
-	wg      *sync.WaitGroup
+	// Protects the context during cancelation
 	cancel  func(error)
 	context context.Context
+	closed  chan struct{}
+	opts    *Options
+	queue   chan unit
+	wg      *sync.WaitGroup
 }
 
 // New creates new instance of Pool and start goroutine that will spawn the workers
@@ -145,6 +147,7 @@ func New(ctx context.Context, options ...Option) *Pool {
 		opts:    opts,
 		cancel:  cancel,
 		context: ctx,
+		closed:  make(chan struct{}),
 	}
 	p.wg.Add(1)
 	go p.run(ctx)
@@ -157,10 +160,7 @@ func (p *Pool) run(ctx context.Context) {
 		prevSize, delta, size int
 		cancellations         = cancellations{}
 	)
-	for {
-		if ctx.Err() != nil {
-			return
-		}
+	for ctx.Err() == nil {
 		size = p.opts.Size()
 		delta = size - prevSize
 		if delta < 0 {
@@ -189,8 +189,10 @@ func (p *Pool) run(ctx context.Context) {
 		select {
 		case <-time.After(p.opts.ResizeEvery):
 			continue
+		case <-p.closed:
+			return
 		case <-ctx.Done():
-			break
+			return
 		}
 	}
 }
@@ -205,6 +207,8 @@ func (p *Pool) worker(ctx context.Context) {
 		case u = <-p.queue:
 			//nolint:errcheck
 			_ = u.Runner.Run(u.Context)
+		case <-p.closed:
+			return
 		case <-ctx.Done():
 			return
 		}
@@ -213,8 +217,9 @@ func (p *Pool) worker(ctx context.Context) {
 
 // Close blocks until all workers finshes current items and terminates
 func (p *Pool) Close() {
-	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
 	p.wg.Wait()
+	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
+	close(p.closed)
 }
 
 // Schedule tries to schedule runner for processing in the pool
@@ -225,7 +230,8 @@ func (p *Pool) Close() {
 // - When pool is in shutdown phase.
 func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	// Check whether pool is alive
-	if p.context.Err() != nil {
+	select {
+	case <-p.closed:
 		ctxErr, cancel := orerr.CancelWithError(ctx)
 		cancel(p.context.Err())
 		return r.Run(ctxErr)
