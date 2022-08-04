@@ -17,7 +17,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/async/pool"
 	"github.com/getoutreach/gobox/pkg/orerr"
-	"github.com/getoutreach/gobox/pkg/shuffler"
 	"gotest.tools/v3/assert"
 )
 
@@ -45,13 +44,7 @@ type testState struct {
 	Cancel                  context.CancelFunc
 }
 
-func TestAll(t *testing.T) {
-	shuffler.Run(t, suite{})
-}
-
-type suite struct{}
-
-func (suite) TestHasCorrectOutput(t *testing.T) {
+func TestHasCorrectOutput(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
@@ -62,7 +55,7 @@ func (suite) TestHasCorrectOutput(t *testing.T) {
 	assert.DeepEqual(t, s.Expected, actual)
 }
 
-func (suite) TestWeCantEnqueueWhenStopped(t *testing.T) {
+func TestWeCantEnqueueWhenStopped(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Cancel()
 	s.Pool.Close()
@@ -83,31 +76,26 @@ func (suite) TestWeCantEnqueueWhenStopped(t *testing.T) {
 	assert.Assert(t, errors.As(err, &shutdownErr))
 }
 
-func (suite) TestGracefullyStops(t *testing.T) {
+func TestGracefullyStops(t *testing.T) {
 	size := 10
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(size)})
 	defer s.Cancel()
 
 	// When pool was running there were pool goroutines
-	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
-		float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
+	assert.Assert(t, waitForWorkers(t, size), "workers not detected")
+
 	s.Pool.Close()
 
-	// We don't want to wait for the context to close the pool.
-	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 50*time.Millisecond))
-
-	time.Sleep(5 * time.Millisecond)
-	// After close all workers goroutines are dead
-	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart),
-		float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
+	assert.Assert(t, waitForWorkers(t, 0), "workers detected")
 }
 
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
-func (suite) TestPoolGrows(t *testing.T) {
+func TestPoolGrows(t *testing.T) {
 	var size = make(chan int, 1)
 	//ng := 0
 
 	resize := func(s int) {
+		fmt.Println("resizing to:", s)
 		size <- s
 	}
 
@@ -131,10 +119,12 @@ func (suite) TestPoolGrows(t *testing.T) {
 	defer s.Pool.Close()
 
 	resize(10)
-	waitForWorkers(t, 10)
+
+	assert.Assert(t, waitForWorkers(t, 10), "workers not detected")
 
 	resize(2)
-	waitForWorkers(t, 2)
+
+	assert.Assert(t, waitForWorkers(t, 2), "workers not detected")
 }
 
 func numWorkers() int {
@@ -147,16 +137,17 @@ func numWorkers() int {
 	return len(matches)
 }
 
-func waitForWorkers(t *testing.T, num int) {
+func waitForWorkers(t *testing.T, num int) bool {
 	current := 0
 	for i := 0; i < 5; i++ {
 		current = numWorkers()
 		if current == num {
-			return
+			return true
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Errorf("workers are %v not %v", current, num)
+	return false
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
