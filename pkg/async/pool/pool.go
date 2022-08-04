@@ -230,8 +230,7 @@ func (p *Pool) Close() {
 // - When pool is in shutdown phase.
 func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	// Check whether pool is alive
-	select {
-	case <-p.closed:
+	if p.context.Err() != nil {
 		ctxErr, cancel := orerr.CancelWithError(ctx)
 		cancel(p.context.Err())
 		return r.Run(ctxErr)
