@@ -192,11 +192,6 @@ func runPool(ctx context.Context, s *testState) *testState {
 			}))
 		}(i)
 	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		s.NumGoroutineWithWorkers = runtime.NumGoroutine()
-	}()
 
 	wg.Wait()
 	close(s.Results)
