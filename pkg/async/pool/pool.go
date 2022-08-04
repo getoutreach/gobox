@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/events"
+
+	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/orerr"
 )
@@ -54,13 +55,6 @@ func BufferLength(size int) OptionFunc {
 func ResizeEvery(d time.Duration) OptionFunc {
 	return func(opts *Options) {
 		opts.ResizeEvery = d
-	}
-}
-
-// Name helps to set Name option
-func Name(s string) OptionFunc {
-	return func(opts *Options) {
-		opts.Name = s
 	}
 }
 
@@ -206,17 +200,13 @@ func (p *Pool) run(ctx context.Context) {
 func (p *Pool) worker(ctx context.Context) {
 	defer p.wg.Done()
 	var (
-		err error
-		u   unit
+		u unit
 	)
 	for {
 		select {
 		case u = <-p.queue:
-			err = u.Runner.Run(u.Context)
-			if err != nil {
-				//nolint:errcheck
-				p.log(u.Context, err)
-			}
+			//nolint:errcheck
+			_ = u.Runner.Run(u.Context)
 		case <-p.closed:
 			return
 		case <-ctx.Done():
@@ -240,22 +230,12 @@ func (p *Pool) Close() {
 // - When pool is in shutdown phase.
 func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	// Check whether pool is alive
-	select {
-	case <-p.closed:
+	if p.context.Err() != nil {
 		ctxErr, cancel := orerr.CancelWithError(ctx)
 		cancel(p.context.Err())
-		return p.log(ctxErr, r.Run(ctxErr))
-	default:
-		return p.log(ctx, p.opts.ScheduleBehavior(ctx, p.queue, r))
+		return r.Run(ctxErr)
 	}
-}
-
-func (p *Pool) log(ctx context.Context, err error) error {
-	if err == nil {
-		return nil
-	}
-	log.Error(ctx, "async.pool runner error", log.F{"pool": p.opts.Name}, events.NewErrorInfo(err))
-	return err
+	return p.opts.ScheduleBehavior(ctx, p.queue, r)
 }
 
 type cancellations []context.CancelFunc
@@ -279,4 +259,28 @@ func (c cancellations) Shrink(by int) cancellations {
 type unit struct {
 	Context context.Context
 	Runner  async.Runner
+}
+
+type loggingScheduler struct {
+	Inner Scheduler
+	Name  string
+}
+
+func (w *loggingScheduler) Schedule(ctx context.Context, r async.Runner) error {
+	return w.log(ctx, w.Inner.Schedule(ctx, async.Func(func(ctx context.Context) error {
+		return w.log(ctx, r.Run(ctx))
+	})))
+}
+
+// WithLogging creates a scheduler which logs the errors returned from the scheduling as well as executing phase
+func WithLogging(name string, s Scheduler) Scheduler {
+	return &loggingScheduler{Name: name, Inner: s}
+}
+
+func (w *loggingScheduler) log(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	log.Error(ctx, "async.pool runner error", log.F{"pool": w.Name}, events.NewErrorInfo(err))
+	return err
 }

@@ -31,6 +31,7 @@ func ExamplePool() {
 
 	// Lets wait for all scheduled items from this point
 	scheduler, wait := pool.WithWait(scheduler)
+	scheduler = pool.WithLogging("test-worker-pool", scheduler)
 
 	output := make(chan string, items)
 	now := time.Now()
