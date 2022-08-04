@@ -91,7 +91,6 @@ func TestGracefullyStops(t *testing.T) {
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
 func TestPoolGrows(t *testing.T) {
 	var size = make(chan int, 1)
-	//ng := 0
 
 	resize := func(s int) {
 		fmt.Println("resizing to:", s)
