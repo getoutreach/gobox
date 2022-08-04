@@ -1,19 +1,23 @@
 package pool_test
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
+	"regexp"
+	"runtime/pprof"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
+	"log"
+
 	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/async/pool"
 	"github.com/getoutreach/gobox/pkg/orerr"
-	"github.com/getoutreach/gobox/pkg/shuffler"
 	"gotest.tools/v3/assert"
 )
 
@@ -28,26 +32,18 @@ func (sr stringChan) ToSlice() []string {
 }
 
 type testState struct {
-	Items                   int
-	Size                    pool.OptionFunc
-	ResizeEvery             time.Duration
-	NumGoroutineOnStart     int
-	NumGoroutineWithWorkers int
-	Expected                []string
-	StartedAt               time.Time
-	Results                 stringChan
-	Pool                    *pool.Pool
-	Context                 context.Context
-	Cancel                  context.CancelFunc
+	Items       int
+	Size        pool.OptionFunc
+	ResizeEvery time.Duration
+	Expected    []string
+	StartedAt   time.Time
+	Results     stringChan
+	Pool        *pool.Pool
+	Context     context.Context
+	Cancel      context.CancelFunc
 }
 
-func TestAll(t *testing.T) {
-	shuffler.Run(t, suite{})
-}
-
-type suite struct{}
-
-func (suite) TestHasCorrectOutput(t *testing.T) {
+func TestHasCorrectOutput(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
@@ -58,7 +54,7 @@ func (suite) TestHasCorrectOutput(t *testing.T) {
 	assert.DeepEqual(t, s.Expected, actual)
 }
 
-func (suite) TestWeCantEnqueueWhenStopped(t *testing.T) {
+func TestWeCantEnqueueWhenStopped(t *testing.T) {
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Cancel()
 	s.Pool.Close()
@@ -79,30 +75,26 @@ func (suite) TestWeCantEnqueueWhenStopped(t *testing.T) {
 	assert.Assert(t, errors.As(err, &shutdownErr))
 }
 
-func (suite) TestGracefullyStops(t *testing.T) {
+func TestGracefullyStops(t *testing.T) {
 	size := 10
 	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(size)})
 	defer s.Cancel()
 
 	// When pool was running there were pool goroutines
-	assert.Assert(t, InDelta(float64(s.NumGoroutineWithWorkers),
-		float64(runtime.NumGoroutine()), float64(size+1)), "Num of Goroutine is higher then expected")
+	assert.Assert(t, waitForWorkers(t, size), "workers not detected")
+
 	s.Pool.Close()
-	time.Sleep(5 * time.Millisecond)
-	// After close all workers goroutines are dead
-	assert.Assert(t, InDelta(float64(s.NumGoroutineOnStart),
-		float64(runtime.NumGoroutine()), 1), "Num of Goroutine is higher then expected")
+
+	assert.Assert(t, waitForWorkers(t, 0), "workers detected")
 }
 
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
-func (suite) TestPoolGrows(t *testing.T) {
+func TestPoolGrows(t *testing.T) {
 	var size = make(chan int, 1)
-	ng := 0
 
-	waitForResize := func(s int) {
+	resize := func(s int) {
+		fmt.Println("resizing to:", s)
 		size <- s
-		time.Sleep(10 * time.Millisecond)
-		assert.Assert(t, InDelta(float64(s+1), float64(runtime.NumGoroutine()-ng), 1))
 	}
 
 	savedSize := 1
@@ -111,6 +103,7 @@ func (suite) TestPoolGrows(t *testing.T) {
 		Size: pool.Size(func() int {
 			select {
 			case s := <-size:
+				fmt.Println("size saved:", s)
 				savedSize = s
 				return s
 			default:
@@ -119,21 +112,46 @@ func (suite) TestPoolGrows(t *testing.T) {
 		}),
 		ResizeEvery: 1 * time.Millisecond,
 	}
-	ng = runtime.NumGoroutine()
-
 	runPool(context.Background(), s)
 
 	defer s.Cancel()
 	defer s.Pool.Close()
 
-	waitForResize(10)
-	waitForResize(2)
+	assert.Assert(t, waitForWorkers(t, 1), "workers not detected")
+
+	resize(10)
+	assert.Assert(t, waitForWorkers(t, 10), "workers not detected")
+
+	resize(2)
+	assert.Assert(t, waitForWorkers(t, 2), "workers not detected")
+}
+
+func numWorkers() int {
+	buf := bytes.Buffer{}
+	b := bufio.NewWriter(&buf)
+	profile := pprof.Lookup("goroutine")
+	profile.WriteTo(b, 2)
+	b.Flush()
+	matches := regexp.MustCompile(`\(\*Pool\).worker\(`).FindAllString(buf.String(), -1)
+	return len(matches)
+}
+
+func waitForWorkers(t *testing.T, num int) bool {
+	current := 0
+	for i := 0; i < 20; i++ {
+		current = numWorkers()
+		if current == num {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Errorf("workers are %v not %v", current, num)
+	return false
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
-	s.NumGoroutineOnStart = runtime.NumGoroutine()
 	s.Results = make(stringChan, s.Items)
-	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, 5000*time.Millisecond)
 
 	if s.ResizeEvery == 0 {
 		s.ResizeEvery = 5 * time.Millisecond
@@ -168,17 +186,18 @@ func runPool(ctx context.Context, s *testState) *testState {
 				}
 				time.Sleep(5 * time.Millisecond)
 				s.Results <- fmt.Sprintf("task_%d", i)
+				log.Println(">  Item written", i, "err:", ctx.Err())
 				return nil
 			}))
 		}(i)
 	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		s.NumGoroutineWithWorkers = runtime.NumGoroutine()
-	}()
+
+	log.Println("> waiting on pool")
 
 	wg.Wait()
+
+	log.Println("> pool done")
+
 	close(s.Results)
 	return s
 }

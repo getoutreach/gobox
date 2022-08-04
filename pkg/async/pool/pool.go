@@ -217,9 +217,9 @@ func (p *Pool) worker(ctx context.Context) {
 
 // Close blocks until all workers finshes current items and terminates
 func (p *Pool) Close() {
-	p.wg.Wait()
 	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
 	close(p.closed)
+	p.wg.Wait()
 }
 
 // Schedule tries to schedule runner for processing in the pool
