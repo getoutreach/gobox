@@ -1,6 +1,9 @@
 package orerr
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 // CancelWithError returns a context and a cancel function where the
 // cancel function can override the error reported by the context.
@@ -11,10 +14,12 @@ import "context"
 // context.WithCancel.
 func CancelWithError(ctx context.Context) (c context.Context, cancel func(err error)) {
 	inner, innerCancel := context.WithCancel(ctx)
-	result := &contextWithError{inner, nil}
+	result := &contextWithError{Context: inner, err: nil}
 	return result, func(err error) {
 		if err != nil {
+			result.mu.Lock()
 			result.err = err
+			result.mu.Unlock()
 		}
 		innerCancel()
 	}
@@ -23,10 +28,13 @@ func CancelWithError(ctx context.Context) (c context.Context, cancel func(err er
 type contextWithError struct {
 	context.Context
 	err error
+	mu  sync.Mutex
 }
 
 // Err returns any error captured in CancelWithError
 func (c *contextWithError) Err() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.err == nil {
 		return c.Context.Err()
 	}
