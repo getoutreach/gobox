@@ -1,10 +1,14 @@
 package pool_test
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"runtime"
+	"runtime/pprof"
 	"sort"
 	"sync"
 	"testing"
@@ -101,12 +105,10 @@ func (suite) TestGracefullyStops(t *testing.T) {
 // TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
 func (suite) TestPoolGrows(t *testing.T) {
 	var size = make(chan int, 1)
-	ng := 0
+	//ng := 0
 
-	waitForResize := func(s int) {
+	resize := func(s int) {
 		size <- s
-		time.Sleep(10 * time.Millisecond)
-		assert.Assert(t, InDelta(float64(s+1), float64(runtime.NumGoroutine()-ng), 1))
 	}
 
 	savedSize := 1
@@ -123,15 +125,38 @@ func (suite) TestPoolGrows(t *testing.T) {
 		}),
 		ResizeEvery: 1 * time.Millisecond,
 	}
-	ng = runtime.NumGoroutine()
-
 	runPool(context.Background(), s)
 
 	defer s.Cancel()
 	defer s.Pool.Close()
 
-	waitForResize(10)
-	waitForResize(2)
+	resize(10)
+	waitForWorkers(t, 10)
+
+	resize(2)
+	waitForWorkers(t, 2)
+}
+
+func numWorkers() int {
+	buf := bytes.Buffer{}
+	b := bufio.NewWriter(&buf)
+	profile := pprof.Lookup("goroutine")
+	profile.WriteTo(b, 2)
+	b.Flush()
+	matches := regexp.MustCompile(`\(\*Pool\).worker\(`).FindAllString(buf.String(), -1)
+	return len(matches)
+}
+
+func waitForWorkers(t *testing.T, num int) {
+	current := 0
+	for i := 0; i < 5; i++ {
+		current = numWorkers()
+		if current == num {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Errorf("workers are %v not %v", current, num)
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
