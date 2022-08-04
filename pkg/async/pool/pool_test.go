@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"runtime"
 	"runtime/pprof"
 	"sort"
 	"sync"
 	"testing"
 	"time"
+
+	"log"
 
 	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/async/pool"
@@ -31,17 +32,15 @@ func (sr stringChan) ToSlice() []string {
 }
 
 type testState struct {
-	Items                   int
-	Size                    pool.OptionFunc
-	ResizeEvery             time.Duration
-	NumGoroutineOnStart     int
-	NumGoroutineWithWorkers int
-	Expected                []string
-	StartedAt               time.Time
-	Results                 stringChan
-	Pool                    *pool.Pool
-	Context                 context.Context
-	Cancel                  context.CancelFunc
+	Items       int
+	Size        pool.OptionFunc
+	ResizeEvery time.Duration
+	Expected    []string
+	StartedAt   time.Time
+	Results     stringChan
+	Pool        *pool.Pool
+	Context     context.Context
+	Cancel      context.CancelFunc
 }
 
 func TestHasCorrectOutput(t *testing.T) {
@@ -152,7 +151,6 @@ func waitForWorkers(t *testing.T, num int) bool {
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
-	s.NumGoroutineOnStart = runtime.NumGoroutine()
 	s.Results = make(stringChan, s.Items)
 	ctx, cancel := context.WithTimeout(ctx, 5000*time.Millisecond)
 
@@ -189,12 +187,18 @@ func runPool(ctx context.Context, s *testState) *testState {
 				}
 				time.Sleep(5 * time.Millisecond)
 				s.Results <- fmt.Sprintf("task_%d", i)
+				log.Println(">  Item written", i, "err:", ctx.Err())
 				return nil
 			}))
 		}(i)
 	}
 
+	log.Println("> waiting on pool")
+
 	wg.Wait()
+
+	log.Println("> pool done")
+
 	close(s.Results)
 	return s
 }
