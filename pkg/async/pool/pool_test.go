@@ -105,6 +105,7 @@ func TestPoolGrows(t *testing.T) {
 		Size: pool.Size(func() int {
 			select {
 			case s := <-size:
+				fmt.Println("size saved:", s)
 				savedSize = s
 				return s
 			default:
@@ -118,12 +119,12 @@ func TestPoolGrows(t *testing.T) {
 	defer s.Cancel()
 	defer s.Pool.Close()
 
-	resize(10)
+	assert.Assert(t, waitForWorkers(t, 1), "workers not detected")
 
+	resize(10)
 	assert.Assert(t, waitForWorkers(t, 10), "workers not detected")
 
 	resize(2)
-
 	assert.Assert(t, waitForWorkers(t, 2), "workers not detected")
 }
 
@@ -139,7 +140,7 @@ func numWorkers() int {
 
 func waitForWorkers(t *testing.T, num int) bool {
 	current := 0
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		current = numWorkers()
 		if current == num {
 			return true
@@ -153,7 +154,7 @@ func waitForWorkers(t *testing.T, num int) bool {
 func runPool(ctx context.Context, s *testState) *testState {
 	s.NumGoroutineOnStart = runtime.NumGoroutine()
 	s.Results = make(stringChan, s.Items)
-	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, 5000*time.Millisecond)
 
 	if s.ResizeEvery == 0 {
 		s.ResizeEvery = 5 * time.Millisecond
