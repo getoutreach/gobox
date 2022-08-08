@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -83,9 +83,9 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		"x-honeycomb-dataset": t.Otel.Dataset,
 	}
 
-	client := otlptracehttp.NewClient(
-		otlptracehttp.WithEndpoint(t.Otel.Endpoint),
-		otlptracehttp.WithHeaders(headers),
+	client := otlptracegrpc.NewClient(
+		otlptracegrpc.WithEndpoint(t.Otel.Endpoint),
+		otlptracegrpc.WithHeaders(headers),
 	)
 
 	exp, err := otlptrace.New(ctx, client)
