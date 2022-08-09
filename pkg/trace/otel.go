@@ -84,7 +84,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	}
 
 	client := otlptracegrpc.NewClient(
-		otlptracegrpc.WithEndpoint(t.Otel.Endpoint),
+		otlptracegrpc.WithEndpoint(t.Otel.Endpoint+":443"),
 		otlptracegrpc.WithHeaders(headers),
 	)
 
@@ -96,7 +96,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			"",
 			semconv.ServiceNameKey.String(serviceName),
 		),
 	)
