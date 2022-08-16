@@ -104,7 +104,17 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		log.Error(ctx, "Unable to configure trace provider", events.NewErrorInfo(err))
 	}
 
-	var tp *sdktrace.TracerProvider
+	tpOptions := []sdktrace.TracerProviderOption{
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(r),
+		// accepts sample rates as number of requests seen per request sampled
+		sdktrace.WithSampler(forceSample(uint(100 / t.Otel.SamplePercent))),
+		sdktrace.WithSpanProcessor(Annotator{
+			globalTags: t.GlobalTags,
+			sampleRate: int64(100 / t.Otel.SamplePercent),
+		}),
+	}
+
 	if t.Otel.AdditionalEndpoint != "" {
 		key, err := t.Otel.AdditionalAPIKey.Data(ctx)
 		if err != nil {
@@ -120,34 +130,15 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 			otlptracegrpc.WithHeaders(headers),
 		)
 
-		aexp, err := otlptrace.New(ctx, client)
+		exp, err := otlptrace.New(ctx, client)
 		if err != nil {
 			log.Error(ctx, "Unable to start additional trace exporter", events.NewErrorInfo(err))
 		}
 
-		tp = sdktrace.NewTracerProvider(
-			sdktrace.WithBatcher(exp),
-			sdktrace.WithBatcher(aexp),
-			sdktrace.WithResource(r),
-			// accepts sample rates as number of requests seen per request sampled
-			sdktrace.WithSampler(forceSample(uint(100/t.Otel.SamplePercent))),
-			sdktrace.WithSpanProcessor(Annotator{
-				globalTags: t.GlobalTags,
-				sampleRate: int64(100 / t.Otel.SamplePercent),
-			}),
-		)
-	} else {
-		tp = sdktrace.NewTracerProvider(
-			sdktrace.WithBatcher(exp),
-			sdktrace.WithResource(r),
-			// accepts sample rates as number of requests seen per request sampled
-			sdktrace.WithSampler(forceSample(uint(100/t.Otel.SamplePercent))),
-			sdktrace.WithSpanProcessor(Annotator{
-				globalTags: t.GlobalTags,
-				sampleRate: int64(100 / t.Otel.SamplePercent),
-			}),
-		)
+		tpOptions = append(tpOptions, sdktrace.WithBatcher(exp))
 	}
+
+	tp := sdktrace.NewTracerProvider(tpOptions...)
 
 	otel.SetTracerProvider(tp)
 
