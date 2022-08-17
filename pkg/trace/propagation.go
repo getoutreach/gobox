@@ -99,6 +99,10 @@ func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Han
 func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
 	result := http.Header{}
 
+	if !oteltrace.SpanFromContext(ctx).SpanContext().HasTraceID() {
+		return result
+	}
+
 	propagator := otel.GetTextMapPropagator()
 	propagator.Inject(ctx, otelpropagation.HeaderCarrier(result))
 
