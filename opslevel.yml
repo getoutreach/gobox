@@ -9,7 +9,7 @@ version: 1
 service:
   name: gobox
   product: Outreach
-  owner: fnd_dt
+  owner: fnd-dt
   language: Golang
   framework: stencil
   description: >
