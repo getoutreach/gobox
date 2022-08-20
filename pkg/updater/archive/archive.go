@@ -48,7 +48,6 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 	if extractor == nil {
 		return nil, nil, fmt.Errorf("unsupported archive type: %v", archiveName)
 	}
-	defer extractor.Close()
 
 	// create an Archive interface from the archive
 	archive, err := extractor.Open(ctx, archiveName, r)
@@ -70,22 +69,10 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 			continue
 		}
 
-		// If we have a FilePath, check if it matches. If it does
-		// we found the file we want.
-		if opts.FilePath != "" {
-			if header.Name == opts.FilePath {
-				// found the file
-				return rc, header, nil
-			}
-		}
-
-		// If we have a FilePathSelectorFunc we need to check if the file
-		// matches the selector. If it does we found the file we want.
-		if opts.FilePathSelectorFunc != nil {
-			if opts.FilePathSelectorFunc(header.Name) {
-				// found the file
-				return rc, header, nil
-			}
+		// if we found the file we want, return it
+		if selectFile(header, opts) {
+			// close the file then close the extractor
+			return newSequencedReadCloser(rc, extractor), header, nil
 		}
 	}
 	if ctx.Err() != nil {
@@ -93,4 +80,21 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 	}
 
 	return nil, nil, fmt.Errorf("no matching file in archive")
+}
+
+// selectFile selects a file from the archive based on the provided options.
+func selectFile(h *Header, opts *ExtractOptions) bool {
+	// If we have a FilePath, check if it matches. If it does
+	// we found the file we want.
+	if opts.FilePath != "" {
+		return h.Name == opts.FilePath
+	}
+
+	// If we have a FilePathSelectorFunc we need to check if the file
+	// matches the selector. If it does we found the file we want.
+	if opts.FilePathSelectorFunc != nil {
+		return opts.FilePathSelectorFunc(h.Name)
+	}
+
+	return false
 }

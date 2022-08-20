@@ -6,13 +6,13 @@ package archive
 
 import "io"
 
-// sequencedReadCloser is a ReadCloser that closes all other readers it
+// sequencedReadCloser is a ReadCloser that closes all other closers it
 // contains in the order they were added when Close is called.
 // The first provided reader is embedded and implements the io.ReadCloser,
 // minus the Close() method which is implemented by the sequencedCloser.
 type sequencedReadCloser struct {
 	io.ReadCloser
-	rcs []io.ReadCloser
+	rcs []io.Closer
 }
 
 // Close closes all of the contained ReadClosers in the order they were added
@@ -29,11 +29,6 @@ func (n *sequencedReadCloser) Close() error {
 }
 
 // newSequencedReadCloser returns a new sequencedReadCloser
-func newSequencedReadCloser(rcs ...io.ReadCloser) *sequencedReadCloser {
-	// If we were provided no ReadClosers, return nil
-	if len(rcs) == 0 {
-		return nil
-	}
-
-	return &sequencedReadCloser{rcs[0], rcs}
+func newSequencedReadCloser(rc io.ReadCloser, closers ...io.Closer) *sequencedReadCloser {
+	return &sequencedReadCloser{rc, closers}
 }
