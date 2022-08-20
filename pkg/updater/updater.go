@@ -53,23 +53,6 @@ func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolin
 	return u, nil
 }
 
-// Deprecated: Use UseUpdater instead.
-// NeedsUpdate is a deprecated method of UseUpdater.
-func NeedsUpdate(ctx context.Context, log logrus.FieldLogger, repo, version string, disabled,
-	debugLog, includePrereleases, forceCheck bool) bool {
-	u, err := UseUpdater(ctx, WithLogger(log), WithRepo(repo), WithVersion(version),
-		WithDisabled(disabled), WithPrereleases(includePrereleases), WithForceCheck(forceCheck))
-	if err != nil {
-		return false
-	}
-
-	needsUpdate, err := u.check(ctx)
-	if err != nil {
-		return false
-	}
-	return needsUpdate
-}
-
 // updater is an updater that updates the current running binary to the latest
 type updater struct {
 	// gh is the github client
@@ -227,6 +210,9 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond,
 		spinner.WithSuffix(" Checking for updates..."))
 	spin.Start()
+
+	// stop the spinner when we leave this function, a catch-all for errors
+	defer spin.Stop()
 
 	g := NewGithubUpdaterWithClient(ctx, u.gh, org, repoName)
 	r, latestVersionError := g.GetLatestVersion(ctx, u.version, u.prereleases)

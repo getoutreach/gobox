@@ -31,14 +31,6 @@ func (u *updater) hookIntoCLI() {
 			Usage: "skips the updater check",
 		},
 		&cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enables debug logging for all components that use logrus",
-		},
-		&cli.BoolFlag{
-			Name:  "enable-prereleases",
-			Usage: "Enable considering pre-releases when checking for updates",
-		},
-		&cli.BoolFlag{
 			Name:  "force-update-check",
 			Usage: "Force checking for an update",
 		},
