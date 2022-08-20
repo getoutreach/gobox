@@ -5,6 +5,7 @@
 
 // Package archive contains methods for extracting file(s) from arbitrary archive
 // types. The archive types supported are:
+//   - tar
 //   - tar.gz
 //   - tar.xz
 //   - tar.bz2
