@@ -234,7 +234,11 @@ func TestExtract(t *testing.T) {
 			if got != nil {
 				byt, err := io.ReadAll(got)
 				if err != nil {
-					t.Errorf("Extract() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("Extract() got ReadAll error = %v", err)
+					return
+				}
+				if err := got.Close(); err != nil {
+					t.Errorf("Extract() got Close error = %v", err)
 					return
 				}
 
