@@ -45,10 +45,18 @@ func WithDisabled(disabled bool) Option {
 	}
 }
 
+// Deprecated: Set the channel via the WithChannel option.
 // WithPrereleases sets whether or not to include prereleases in the update check.
 func WithPrereleases(prereleases bool) Option {
 	return func(u *updater) {
-		u.prereleases = prereleases
+		u.channel = "rc"
+	}
+}
+
+// WithChannel sets the channel to use for checking for updates
+func WithChannel(channel string) Option {
+	return func(u *updater) {
+		u.channel = channel
 	}
 }
 

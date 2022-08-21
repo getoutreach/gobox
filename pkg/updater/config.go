@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: This file defines the user configuration for the updater.
+// Description: This file defines the user configuration for the updater that
+// is stored on the user's machine. This is not configuration that the updater
+// takes in. This is, however, loaded into the updater's configuration.
 
 package updater
 
@@ -18,8 +20,11 @@ type userConfig struct {
 	// path is the path to this user configuration
 	path string
 
-	// AlwaysUsePrereleases instructs the updater to always consider prereleases
-	AlwaysUsePrereleases bool `yaml:"alwaysUsePrereleases"`
+	// Version is the version of this user config.
+	Version int `yaml:"version"`
+
+	// Channel is a the channel to use for updates.
+	Channel string `yaml:"channel"`
 }
 
 // readConfig reads the user's configuration from a well-known path
@@ -43,6 +48,15 @@ func readConfig(repo string) (*userConfig, error) {
 	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
 		return nil, errors.Wrap(err, "failed to decode user config")
 	}
+
+	// migrate v0 to v1
+	if config.Version == 0 {
+		config.Version = 1
+		if config.Channel == "" {
+			config.Channel = "rc"
+		}
+	}
+
 	config.path = configPath
 	return &config, nil
 }

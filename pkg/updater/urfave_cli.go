@@ -14,8 +14,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/getoutreach/gobox/pkg/app"
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
+	"github.com/getoutreach/gobox/pkg/updater/resolver"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -39,11 +39,6 @@ func (u *updater) hookIntoCLI() {
 	u.app.Before = func(c *cli.Context) error {
 		// Handle deprecations and parse the flags onto our updater struct
 		for _, f := range c.FlagNames() {
-			if strings.EqualFold(f, "enable-prereleases") {
-				u.prereleases = true
-				u.log.Warn("--enable-prereleases is deprecated, use the new 'updater set-channel rc' command instead")
-			}
-
 			if strings.EqualFold(f, "force-update-check") {
 				u.forceCheck = true
 			}
@@ -110,6 +105,7 @@ func newUpdaterCommand(u *updater) *cli.Command {
 		Subcommands: []*cli.Command{
 			newSetChannel(u),
 			newGetChannel(u),
+			newGetChannels(u),
 			newRollbackCommand(u),
 			newListReleases(u),
 		},
@@ -143,26 +139,7 @@ func newRollbackCommand(u *updater) *cli.Command {
 
 			u.log.Infof("Rolling back to %s", version)
 
-			org, repoName, err := getOrgRepoFromString(u.repo)
-			if err != nil {
-				return errors.Wrap(err, "failed to get org and repo name")
-			}
-
-			g := NewGithubUpdaterWithClient(c.Context, u.gh, org, repoName)
-			r, err := g.GetRelease(c.Context, version)
-			if err != nil {
-				return errors.Wrapf(err, "failed to find version %q", version)
-			}
-
-			newBinary, cleanupFunc, err := g.DownloadRelease(c.Context, r, repoName, "")
-			defer cleanupFunc()
-			if err != nil {
-				return errors.Wrap(err, "failed to download release")
-			}
-
-			if err := g.ReplaceRunning(c.Context, newBinary); err != nil && !errors.Is(err, &exec.ExitError{}) {
-				return errors.Wrap(err, "failed to install update")
-			}
+			// TODO(jaredallard): rollback to the previous version
 
 			u.log.Info("Rollback complete")
 			return nil
@@ -211,8 +188,14 @@ func newSetChannel(u *updater) *cli.Command {
 				return fmt.Errorf("channel must be provided")
 			}
 
-			if channel != "release" && channel != "rc" {
-				return fmt.Errorf("channel must be either 'release' or 'rc'")
+			// TODO(jaredallard): URL
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, "https://"+u.repo)
+			if err != nil {
+				return errors.Wrap(err, "failed to determine channels from remote")
+			}
+
+			if _, ok := versions[channel]; !ok {
+				return fmt.Errorf("channel %q is not valid, run 'get-channels' to return a list of valid channels", channel)
 			}
 
 			conf, err := readConfig(u.repo)
@@ -223,7 +206,7 @@ func newSetChannel(u *updater) *cli.Command {
 				conf = &userConfig{}
 			}
 
-			conf.AlwaysUsePrereleases = channel == "rc"
+			conf.Channel = channel
 			if err := conf.Save(); err != nil {
 				return errors.Wrap(err, "failed to save the config")
 			}
@@ -248,30 +231,29 @@ func newSetChannel(u *updater) *cli.Command {
 func newGetChannel(u *updater) *cli.Command {
 	return &cli.Command{
 		Name:  "get-channel",
-		Usage: "Returns the current channel: release or rc",
+		Usage: "Returns the current channel",
 		Action: func(c *cli.Context) error {
-			conf, err := readConfig(u.repo)
+			fmt.Println(u.channel)
+			return nil
+		},
+	}
+}
+
+// newGetChannels creates a new cli.Command that returns the channels for the
+// current application
+func newGetChannels(u *updater) *cli.Command {
+	return &cli.Command{
+		Name:  "get-channels",
+		Usage: "Returns the valid channels",
+		Action: func(c *cli.Context) error {
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, "https://"+u.repo)
 			if err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return errors.Wrap(err, "failed to read the config")
-				}
-				conf = &userConfig{}
+				return errors.Wrap(err, "failed to determine channels from remote")
 			}
 
-			// rc builds always consider rc versions
-			if strings.Contains(app.Info().Version, "-rc") {
-				fmt.Println("rc (running rc build)")
-				return nil
+			for channel := range versions {
+				fmt.Println(channel)
 			}
-
-			// config can be configured to always use prereleases
-			if conf.AlwaysUsePrereleases {
-				fmt.Println("rc (from config)")
-				return nil
-			}
-
-			// otherwise, release
-			fmt.Println("release")
 			return nil
 		},
 	}

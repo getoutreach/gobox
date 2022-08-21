@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/briandowns/spinner"
 	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
-	gogithub "github.com/google/go-github/v43/github"
+	"github.com/getoutreach/gobox/pkg/updater/resolver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -55,8 +56,8 @@ func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolin
 
 // updater is an updater that updates the current running binary to the latest
 type updater struct {
-	// gh is the github client
-	gh *gogithub.Client
+	// ghToken is the GitHub token to use for the updater.
+	ghToken cfg.SecretData
 
 	// log is the logger to use for logging
 	log logrus.FieldLogger
@@ -64,8 +65,10 @@ type updater struct {
 	// disabled disables the updater if set
 	disabled bool
 
-	// prereleases is whether or not to include prereleases in the update check
-	prereleases bool
+	// channel is the channel to use for checking for updates, this corresponds
+	// to a git tag _or_ the pre-release field of versions, e.g. `0.1.0-alpha.1`
+	// would be the channel `alpha`.
+	channel string
 
 	// forceCheck forces the updater to check for updates regardless of the
 	// last update check
@@ -74,6 +77,9 @@ type updater struct {
 	// repo is the repository to check for updates, if this isn't
 	// set then the version will be read from the embedded module information.
 	// this requires go module to be used.
+	//
+	// The format is expected to be the go import path of a repository, e.g.
+	// https://github.com/getoutreach/devenv -> github.com/getoutreach/devenv
 	repo string
 
 	// version is the current version of the application, if this isn't
@@ -118,12 +124,12 @@ func (u *updater) defaultOptions() error {
 		u.repo = r
 	}
 
-	if u.gh == nil {
-		gh, err := github.NewClient()
+	if string(u.ghToken) == "" {
+		token, err := github.GetToken()
 		if err != nil {
-			gh = gogithub.NewClient(nil)
+			token = ""
 		}
-		u.gh = gh
+		u.ghToken = token
 	}
 
 	// setup the updater
@@ -131,41 +137,27 @@ func (u *updater) defaultOptions() error {
 		u.hookIntoCLI()
 	}
 
-	return nil
-}
-
-// installVersion installs a specific version of the application.
-func (u *updater) installVersion(ctx context.Context, r *gogithub.RepositoryRelease) error {
-	org, repoName, err := getOrgRepoFromString(u.repo)
-	if err != nil {
-		return errors.Wrap(err, "failed to get org and repo name")
+	// read the user's config and mutate the options based on that
+	// if certain values are present
+	if userConf, err := readConfig(u.repo); err == nil {
+		// always use the user's channel, if they have one
+		if userConf.Channel != "" {
+			u.channel = userConf.Channel
+		}
 	}
 
-	g := NewGithubUpdaterWithClient(ctx, u.gh, org, repoName)
+	// determine channel from version string if not set
+	if u.channel == "" {
+		curVersion, err := semver.ParseTolerant(u.version)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
+		}
 
-	u.log.Infof("Downloading update %s", r.GetTagName())
-	newBinary, cleanupFunc, err := g.DownloadRelease(ctx, r, repoName, "")
-	defer cleanupFunc()
-	if err != nil {
-		return errors.Wrap(err, "failed to download latest release")
-	}
-
-	u.log.Infof("Installing update (%s -> %s)", u.version, r.GetTagName())
-	err = g.ReplaceRunning(ctx, newBinary)
-	if err != nil && !errors.Is(err, &exec.ExitError{}) {
-		u.log.WithError(err).Error("failed to install update")
-	}
-
-	last, err := loadLastUpdateCheck(u.repo)
-	if err != nil {
-		return errors.Wrap(err, "failed to load last update check")
-	}
-
-	// save the version we're on as being the last version used
-	last.PreviousVersion = u.version
-
-	if err := last.Save(); err != nil {
-		u.log.WithError(err).Warn("failed to persist last version to updater cache")
+		// If we don't have a channel, but we have a PreRelease field, use that.
+		// e.g. v0.1.0-alpha.1 -> alpha
+		if len(curVersion.Pre) > 0 {
+			u.channel = curVersion.Pre[0].String()
+		}
 	}
 
 	return nil
@@ -180,23 +172,10 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	org, repoName, err := getOrgRepoFromString(u.repo)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get org and repo name")
-	}
-
-	if userConf, err := readConfig(u.repo); err == nil {
-		if userConf.AlwaysUsePrereleases {
-			u.prereleases = true
-		}
-	} else {
-		u.log.WithError(err).Warn("failed to read user config")
-	}
-
 	last, err := loadLastUpdateCheck(u.repo)
 	if !u.forceCheck {
 		if err == nil {
-			// if we're not past the last update thereshold
+			// if we're not past the last update threshold
 			// then we don't check for updates
 			if !time.Now().After(last.Date.Add(last.CheckEvery)) {
 				return false, nil
@@ -211,17 +190,17 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		spinner.WithSuffix(" Checking for updates..."))
 	spin.Start()
 
-	// stop the spinner when we leave this function, a catch-all for errors
-	defer spin.Stop()
-
-	g := NewGithubUpdaterWithClient(ctx, u.gh, org, repoName)
-	r, latestVersionError := g.GetLatestVersion(ctx, u.version, u.prereleases)
-	if latestVersionError != nil && !errors.Is(latestVersionError, ErrNoNewRelease) {
-		return false, errors.Wrap(latestVersionError, "failed to check for updates")
-	}
+	v, err := resolver.Resolve(ctx, u.ghToken, &resolver.Criteria{
+		URL:     "https://" + u.repo,
+		Channel: u.channel,
+	})
 
 	// We're done checking for updates at this point, stop!
 	spin.Stop()
+
+	if err != nil {
+		return false, errors.Wrap(err, "failed to check for updates")
+	}
 
 	last.Date = time.Now().UTC()
 	last.CheckEvery = *u.checkInterval
@@ -231,19 +210,19 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
-	// return here so that we were able to write that we found no new updates
-	if errors.Is(latestVersionError, ErrNoNewRelease) {
+	// If the latest version is equal to what we have right now, then we don't need to update.
+	if v.String() == u.version {
 		return false, nil
 	}
 
 	// handle major versions by prompting the user if this is one
-	if shouldContinue := handleMajorVersion(ctx, u.log, u.version, r); !shouldContinue {
-		return false, nil
-	}
+	// if shouldContinue := handleMajorVersion(ctx, u.log, u.version, r); !shouldContinue {
+	// 	return false, nil
+	// }
 
-	if err := u.installVersion(ctx, r); err != nil {
-		return false, errors.Wrap(err, "failed to install update")
-	}
+	// if err := u.installVersion(ctx, r); err != nil {
+	// 	return false, errors.Wrap(err, "failed to install update")
+	// }
 
 	return true, nil
 }
