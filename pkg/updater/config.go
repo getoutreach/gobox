@@ -15,6 +15,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// configVersion is the current config version
+const configVersion = 1
+
 // userConfig is the user configuration for the updater.
 type userConfig struct {
 	// path is the path to this user configuration
@@ -36,22 +39,25 @@ func readConfig(repo string) (*userConfig, error) {
 
 	configPath := filepath.Join(homedir, configDir, repo, "updater.yaml")
 
+	var config userConfig
 	f, err := os.Open(configPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &userConfig{path: configPath}, nil
+			return &userConfig{
+				path:    configPath,
+				Version: configVersion,
+			}, nil
 		}
 		return nil, err
 	}
 
-	var config userConfig
 	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
 		return nil, errors.Wrap(err, "failed to decode user config")
 	}
 
 	// migrate v0 to v1
 	if config.Version == 0 {
-		config.Version = 1
+		config.Version = configVersion
 		if config.Channel == "" {
 			config.Channel = "rc"
 		}

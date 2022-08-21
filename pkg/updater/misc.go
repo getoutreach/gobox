@@ -20,12 +20,14 @@ func getRepoFromBuild() (string, error) {
 		return "", fmt.Errorf("failed to read build info, was this built with go module support")
 	}
 
-	repoName := strings.TrimPrefix(info.Main.Path, "github.com/")
-	org, repo, err := getOrgRepoFromString(repoName)
-	if err != nil {
-		return "", err
+	// split on / so we can try to ignore a major version at the end
+	spl := strings.Split(info.Main.Path, "/")
+	if len(spl) < 3 {
+		return "", fmt.Errorf("failed to parse repository from build info (len less than 3)")
 	}
-	return path.Join(org, repo), nil
+
+	// github.com getoutreach devenv -> github.com/getoutreach/devenv
+	return path.Join(spl[0], spl[1], spl[2]), nil
 }
 
 // getOrgRepoFromString returns the org and repo from a string
