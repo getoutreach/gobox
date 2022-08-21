@@ -191,7 +191,10 @@ func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, 
 	if c.Channel != StableChannel {
 		stableV := getLatestVersion(versions[StableChannel])
 		if stableV != nil {
-			latestV := getLatestVersion([]Version{*v, *stableV})
+			vers := []Version{*v, *stableV}
+			Sort(vers)
+
+			latestV := getLatestVersion(vers)
 			if latestV != nil && latestV != v {
 				v = latestV
 			}
