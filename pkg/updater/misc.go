@@ -9,7 +9,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/charmbracelet/glamour"
-	gogithub "github.com/google/go-github/v43/github"
+	gogithub "github.com/google/go-github/v47/github"
 	"github.com/sirupsen/logrus"
 )
 

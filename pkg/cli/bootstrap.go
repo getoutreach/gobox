@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/otel/attribute"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // UpdateExitCode is the exit code returned when an update ocurred
@@ -164,6 +164,7 @@ func setupExitHandler(ctx context.Context) (exitCode *int, exit func()) {
 
 // HookInUrfaveCLI sets up an app.Before that automatically traces command runs
 // and automatically updates itself.
+//
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
