@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -21,165 +20,116 @@ var (
 	// ConfigVersion is the current version of the configuration schema.
 	ConfigVersion = 1
 
-	// CacheVersion is the current version of the cache file schema.
-	CacheVersion = 1
-
-	// ConfigFile is the non-HOME containing path to the configuration file for the updater
+	// ConfigFile is the non-HOME containing path to the config file for the updater
 	ConfigFile = filepath.Join(".outreach", ".config", "updater", "config.yaml")
-
-	// CacheFile is the non-HOME containing path to the cache file for the updater
-	CacheFile = filepath.Join(".outreach", ".cache", "updater", "cache.yaml")
 )
 
-// saveAsYAML saves an interface{} to a path on disk in the user's
-// home directory as YAML.
-func saveAsYAML(obj interface{}, path string) error {
+// config is the configuration for the updater
+type config struct {
+	Version int `yaml:"version"`
+
+	// GlobalConfig is the global configuration for the updater
+	GlobalConfig *updateConfiguration `yaml:"global"`
+
+	// PerRepositoryConfiguration is configuration for each repository
+	PerRepositoryConfiguration map[string]*updateConfiguration `yaml:"perRepository"`
+
+	// UpdaterCache contains the cache for the updater
+	UpdaterCache map[string]updateCache `yaml:"cache,omitempty"`
+}
+
+type updateConfiguration struct {
+	// CheckEvery is the interval at which the updater will check for updates
+	// for the provided tool.
+	CheckEvery time.Duration `yaml:"checkEvery,omitempty"`
+
+	// Channel is the channel to use for this tool
+	Channel string `yaml:"channel,omitempty"`
+}
+
+type updateCache struct {
+	// LastChecked is the time this tool checked for an update
+	LastChecked time.Time `yaml:"lastChecked,omitempty"`
+
+	// LastVersion is the last version used before being updated.
+	LastVersion string `yaml:"lastVersion,omitempty"`
+}
+
+// readConfig returns the configuration for the updater
+func readConfig() (*config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return errors.Wrap(err, "failed to get user home directory")
-	}
-	fqpath := filepath.Join(homeDir, path)
-
-	if err := os.MkdirAll(filepath.Dir(fqpath), 0o755); err != nil {
-		return errors.Wrap(err, "failed to create config directory")
+		return nil, err
 	}
 
-	f, err := os.Create(fqpath)
+	confPath := filepath.Join(homeDir, ConfigFile)
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		return &config{
+			Version:                    ConfigVersion,
+			GlobalConfig:               &updateConfiguration{},
+			PerRepositoryConfiguration: make(map[string]*updateConfiguration),
+			UpdaterCache:               make(map[string]updateCache),
+		}, nil
+	}
+
+	f, err := os.Open(confPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to create config file")
+		return nil, err
+	}
+	defer f.Close()
+
+	var conf config
+	if err := yaml.NewDecoder(f).Decode(&conf); err != nil {
+		return nil, err
+	}
+
+	return &conf, err
+}
+
+// Get returns a copy of a specific repository's configuration
+func (c *config) Get(repoURL string) (updateConfiguration, bool) {
+	if c.PerRepositoryConfiguration == nil {
+		return updateConfiguration{}, false
+	}
+
+	v, ok := c.PerRepositoryConfiguration[repoURL]
+	if !ok {
+		return updateConfiguration{}, false
+	}
+
+	return *v, true
+}
+
+// Set updates a repository's configuration, call Save() to
+// save the changes
+func (c *config) Set(repoURL string, conf updateConfiguration) {
+	c.PerRepositoryConfiguration[repoURL] = &conf
+}
+
+// Save saves the changes to the configuration
+func (c *config) Save() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	confPath := filepath.Join(homeDir, ConfigFile)
+	if _, err := os.Stat(confPath); !os.IsNotExist(err) {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
+		return err
+	}
+
+	f, err := os.Create(confPath)
+	if err != nil {
+		return err
 	}
 	defer f.Close()
 
 	enc := yaml.NewEncoder(f)
 	defer enc.Close()
 
-	return errors.Wrap(enc.Encode(obj), "failed to encode config")
-}
-
-// userConfig is the user configuration for the updater.
-type userConfig struct {
-	// Version is the version of this config file
-	Version int `yaml:"version"`
-
-	// Repositories is a map of repository URLs to
-	// configEntry.
-	Repositories map[string]configEntry `yaml:"repositories"`
-}
-
-// configEntry is configuration for the updaters of a repository
-type configEntry struct {
-	// Channel is a the channel to use for updates.
-	Channel string `yaml:"channel"`
-
-	// CheckEvery is the interval we should check for updates.
-	CheckEvery time.Duration `yaml:"checkEvery"`
-}
-
-// readConfig reads the user's configuration from a well-known path
-func readConfig() (*userConfig, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get user home directory")
-	}
-	configFile := filepath.Join(homeDir, ConfigFile)
-
-	f, err := os.Open(configFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &userConfig{
-				Version:      ConfigVersion,
-				Repositories: map[string]configEntry{},
-			}, nil
-		}
-		return nil, errors.Wrap(err, "failed to open config file")
-	}
-	defer f.Close()
-
-	var u userConfig
-	if err := yaml.NewDecoder(f).Decode(&u); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal config")
-	}
-	return &u, nil
-}
-
-// Get returns a cache entry for a given repository, this can
-// be mutated and reflected in the underlying cache. Save changes
-// with the Save() function.
-func (u *userConfig) Get(repoURL string) (*configEntry, bool) {
-	if u.Repositories != nil {
-		u.Repositories = make(map[string]configEntry)
-	}
-
-	conf, ok := u.Repositories[repoURL]
-	return &conf, ok
-}
-
-// Save saves the user configuration to disk.
-func (u *userConfig) Save() error {
-	return saveAsYAML(u, ConfigFile)
-}
-
-// cache contains metadata for the updater that drives when to
-// check for updates, and other non-configuration related
-// values.
-type cache struct {
-	// Version is the version of this cache file.
-	Version int `yaml:"version"`
-
-	// Repositories is a map to cacheEntry for a repository
-	Repositories map[string]cacheEntry `yaml:"repositories"`
-}
-
-// cacheEntry is metadata for the updater, see cache struct.
-type cacheEntry struct {
-	// Date is the date we last checked for updates.
-	Date time.Time `yaml:"date"`
-
-	// PreviousVersion is the version that was last used
-	// before the updater updated.
-	PreviousVersion string `yaml:"previousVersion"`
-}
-
-// loadCache loads the cache from disk
-func loadCache() (*cache, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get user home directory")
-	}
-	configFile := filepath.Join(homeDir, CacheFile)
-
-	f, err := os.Open(configFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &cache{
-				Version:      CacheVersion,
-				Repositories: map[string]cacheEntry{},
-			}, nil
-		}
-		return nil, errors.Wrap(err, "failed to open cache file")
-	}
-	defer f.Close()
-
-	var c cache
-	if err := yaml.NewDecoder(f).Decode(&c); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal cache")
-	}
-	return &c, nil
-}
-
-// Get returns a cache entry for a given repository, this can
-// be mutated and reflected in the underlying cache. Save changes
-// with the Save() function.
-func (c *cache) Get(repoURL string) (*cacheEntry, bool) {
-	if c.Repositories != nil {
-		c.Repositories = make(map[string]cacheEntry)
-	}
-
-	e, ok := c.Repositories[repoURL]
-	return &e, ok
-}
-
-// Save saves the last update check to disk.
-func (c *cache) Save() error {
-	return saveAsYAML(c, CacheFile)
+	return enc.Encode(c)
 }

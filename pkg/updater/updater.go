@@ -161,13 +161,13 @@ func (u *updater) defaultOptions() error {
 
 	// read the user's config and mutate the options based on that
 	// if certain values are present
-	if userConf, err := readConfig(); err == nil {
-		conf, ok := userConf.Get(u.repoURL)
-		if ok {
-			// always use the user's channel, if they have one
-			if conf.Channel != "" {
-				u.channel = conf.Channel
-			}
+	if conf, err := readConfig(); err == nil {
+		if conf.GlobalConfig.Channel != "" {
+			u.channel = conf.GlobalConfig.Channel
+		}
+
+		if repoConf, ok := conf.Get(u.repoURL); ok {
+			u.channel = repoConf.Channel
 		}
 	}
 
@@ -204,31 +204,31 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	cache, err := loadCache()
-	if err != nil {
-		u.log.WithError(err).Warn("failed to load user cache")
-	}
-
 	conf, err := readConfig()
 	if err != nil {
-		u.log.WithError(err).Warn("failed to read user config")
+		u.log.WithError(err).Warn("failed to read config")
 	}
 
-	repoCache, _ := cache.Get(u.repoURL)
-	repoConf, _ := conf.Get(u.channel)
+	repoCache := conf.UpdaterCache[u.repoURL]
 
 	// if we're not forcing an update, then check if we need to update
 	// based on the check interval
 	if !u.forceCheck {
 		// We're ok with dereferencing the pointer here.
 		checkAmount := *u.checkInterval
-		if repoConf.CheckEvery != 0 {
-			checkAmount = repoConf.CheckEvery
+		if conf.GlobalConfig.CheckEvery != 0 {
+			checkAmount = conf.GlobalConfig.CheckEvery
+		}
+
+		if repoConf, ok := conf.Get(u.repoURL); ok {
+			if repoConf.CheckEvery != 0 {
+				checkAmount = repoConf.CheckEvery
+			}
 		}
 
 		// if we're not past the last update threshold
 		// then we don't check for updates.
-		if !time.Now().After(repoCache.Date.Add(checkAmount)) {
+		if !time.Now().After(repoCache.LastChecked.Add(checkAmount)) {
 			return false, nil
 		}
 	}
@@ -251,10 +251,11 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	}
 
 	// update the cache with the latest check time
-	repoCache.Date = time.Now().UTC()
+	repoCache.LastChecked = time.Now().UTC()
+	conf.UpdaterCache[u.repoURL] = repoCache
 
 	// write that we checked for updates
-	if err := cache.Save(); err != nil {
+	if err := conf.Save(); err != nil {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
@@ -283,8 +284,9 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	}
 
 	// write our current version to the cache, as we just successfully updated
-	repoCache.PreviousVersion = u.version
-	if err := cache.Save(); err != nil {
+	repoCache.LastVersion = u.version
+	conf.UpdaterCache[u.repoURL] = repoCache
+	if err := conf.Save(); err != nil {
 		u.log.WithError(err).Warn("failed to save updater cache")
 		return true, nil
 	}

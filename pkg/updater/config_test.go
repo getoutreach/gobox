@@ -14,15 +14,17 @@ import (
 func Test_readConfig(t *testing.T) {
 	tests := []struct {
 		name    string
-		want    *userConfig
-		config  *userConfig
+		want    *config
+		config  *config
 		wantErr bool
 	}{
 		{
 			name: "should load a default config",
-			want: &userConfig{
-				Version:      ConfigVersion,
-				Repositories: make(map[string]configEntry),
+			want: &config{
+				Version:                    ConfigVersion,
+				GlobalConfig:               &updateConfiguration{},
+				PerRepositoryConfiguration: map[string]*updateConfiguration{},
+				UpdaterCache:               map[string]updateCache{},
 			},
 		},
 	}
@@ -32,7 +34,7 @@ func Test_readConfig(t *testing.T) {
 
 			// persist the configuration to disk for the test to use
 			if tt.config != nil {
-				if err := saveAsYAML(tt.config, ConfigFile); err != nil {
+				if err := tt.config.Save(); err != nil {
 					t.Fatal(err)
 				}
 			}

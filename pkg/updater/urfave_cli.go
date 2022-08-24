@@ -6,11 +6,11 @@
 package updater
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -107,16 +107,39 @@ func newUpdaterCommand(u *updater) *cli.Command {
 			newGetChannel(u),
 			newGetChannels(u),
 			newRollbackCommand(u),
-			newListReleases(u),
+			newUseCommand(u),
 		},
 	}
+}
+
+// cliInstallVersion is shared code to install/rollback and application version
+func cliInstallVersion(ctx context.Context, u *updater, version string, rollback bool) error {
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
+
+	str := "Rolling back to"
+	if !rollback {
+		str = "Installing"
+	}
+	u.log.Infof("%s %s", str, version)
+	if err := u.installVersion(ctx, version); err != nil {
+		return err
+	}
+	str = "Rollback complete"
+	if !rollback {
+		str = "Installation complete"
+	}
+	u.log.Info(str)
+
+	return nil
 }
 
 // newRollbackCommand creates a new cli.Command that rolls back to the previous version
 // or to the specified version
 func newRollbackCommand(u *updater) *cli.Command {
-	cache, _ := loadCache() //nolint:errcheck // Why: Handled below
-	repoCache, _ := cache.Get(u.repoURL)
+	conf, _ := readConfig() //nolint:errcheck // Why: Handled below
+	repoCache := conf.UpdaterCache[u.repoURL]
 
 	return &cli.Command{
 		Name:  "rollback",
@@ -125,51 +148,53 @@ func newRollbackCommand(u *updater) *cli.Command {
 			&cli.StringFlag{
 				Name:  "version",
 				Usage: "The version to rollback to",
-				Value: repoCache.PreviousVersion,
+				Value: repoCache.LastVersion,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			version := c.String("version")
-			if version == "" {
+			ver := c.String("version")
+			if ver == "" {
 				return fmt.Errorf("no previous version to rollback to, must be set with --version")
 			}
 
-			u.log.Infof("Rolling back to %s", version)
-
-			// TODO(jaredallard): rollback to the previous version
-
-			u.log.Info("Rollback complete")
-			return nil
+			return cliInstallVersion(c.Context, u, ver, true)
 		},
 	}
 }
 
-// newListReleases creates a new cli.Command that lists the releases for the
-// current application
-func newListReleases(u *updater) *cli.Command {
+// new creates a new cli.Command that replaces the current binary with
+// a specific version of the binary.
+func newUseCommand(u *updater) *cli.Command {
 	return &cli.Command{
-		Name:  "list-releases",
-		Usage: "List all releases",
+		Name:  "use",
+		Usage: "Use a specific version of the application",
 		Flags: []cli.Flag{
-			&cli.IntFlag{
-				Name:    "limit",
-				Aliases: []string{"L"},
-				Usage:   "The number of releases to list",
-				Value:   20,
+			&cli.BoolFlag{
+				Name:  "list",
+				Usage: "List available versions",
 			},
 		},
 		Action: func(c *cli.Context) error {
-			if ghPath, err := exec.LookPath("gh"); ghPath == "" || err != nil {
-				return errors.New("gh is not installed, please install it to use this command")
+			if c.Bool("list") {
+				if ghPath, err := exec.LookPath("gh"); ghPath == "" || err != nil {
+					return errors.New("gh is not installed, please install it to use this command")
+				}
+
+				//nolint:gosec // Why: This is OK.
+				cmd := exec.CommandContext(c.Context, "gh", "-R", u.repoURL, "release",
+					"list", "-L", "20")
+				cmd.Stderr = os.Stderr
+				cmd.Stdout = os.Stdout
+				cmd.Stdin = os.Stdin
+				return cmd.Run()
 			}
 
-			//nolint:gosec // Why: This is OK.
-			cmd := exec.CommandContext(c.Context, "gh", "-R", u.repoURL, "release",
-				"list", "-L", strconv.Itoa(c.Int("limit")))
-			cmd.Stderr = os.Stderr
-			cmd.Stdout = os.Stdout
-			cmd.Stdin = os.Stdin
-			return cmd.Run()
+			ver := c.Args().First()
+			if ver == "" {
+				return fmt.Errorf("no version specified")
+			}
+
+			return cliInstallVersion(c.Context, u, ver, false)
 		},
 	}
 }
@@ -178,14 +203,13 @@ func newListReleases(u *updater) *cli.Command {
 func newSetChannel(u *updater) *cli.Command {
 	return &cli.Command{
 		Name:  "set-channel",
-		Usage: "Set the channel to check for updates: release or rc",
+		Usage: "Set the channel to check for updates",
 		Action: func(c *cli.Context) error {
 			channel := strings.ToLower(c.Args().Get(0))
 			if channel == "" {
 				return fmt.Errorf("channel must be provided")
 			}
 
-			// TODO(jaredallard): URL
 			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
@@ -199,9 +223,11 @@ func newSetChannel(u *updater) *cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "failed to read config")
 			}
-			repoConf, _ := conf.Get(u.repoURL)
 
+			repoConf, _ := conf.Get(u.repoURL)
 			repoConf.Channel = channel
+			conf.Set(u.repoURL, repoConf)
+
 			if err := conf.Save(); err != nil {
 				return errors.Wrap(err, "failed to save the config")
 			}
