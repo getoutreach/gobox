@@ -115,11 +115,8 @@ func newUpdaterCommand(u *updater) *cli.Command {
 // newRollbackCommand creates a new cli.Command that rolls back to the previous version
 // or to the specified version
 func newRollbackCommand(u *updater) *cli.Command {
-	last, _ := loadLastUpdateCheck(u.repo) //nolint:errcheck // Why: Handled below
-	if last == nil {
-		// we're going to require user input via --version
-		last = &lastUpdateCheck{}
-	}
+	cache, _ := loadCache() //nolint:errcheck // Why: Handled below
+	repoCache, _ := cache.Get(u.repoURL)
 
 	return &cli.Command{
 		Name:  "rollback",
@@ -128,7 +125,7 @@ func newRollbackCommand(u *updater) *cli.Command {
 			&cli.StringFlag{
 				Name:  "version",
 				Usage: "The version to rollback to",
-				Value: last.PreviousVersion,
+				Value: repoCache.PreviousVersion,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -158,7 +155,7 @@ func newListReleases(u *updater) *cli.Command {
 				Name:    "limit",
 				Aliases: []string{"L"},
 				Usage:   "The number of releases to list",
-				Value:   50,
+				Value:   20,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -167,7 +164,7 @@ func newListReleases(u *updater) *cli.Command {
 			}
 
 			//nolint:gosec // Why: This is OK.
-			cmd := exec.CommandContext(c.Context, "gh", "-R", u.repo, "release",
+			cmd := exec.CommandContext(c.Context, "gh", "-R", u.repoURL, "release",
 				"list", "-L", strconv.Itoa(c.Int("limit")))
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
@@ -189,7 +186,7 @@ func newSetChannel(u *updater) *cli.Command {
 			}
 
 			// TODO(jaredallard): URL
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, "https://"+u.repo)
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}
@@ -198,20 +195,19 @@ func newSetChannel(u *updater) *cli.Command {
 				return fmt.Errorf("channel %q is not valid, run 'get-channels' to return a list of valid channels", channel)
 			}
 
-			conf, err := readConfig(u.repo)
+			conf, err := readConfig()
 			if err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return errors.Wrap(err, "failed to read the config")
-				}
-				conf = &userConfig{}
+				return errors.Wrap(err, "failed to read config")
 			}
+			repoConf, _ := conf.Get(u.repoURL)
 
-			conf.Channel = channel
+			repoConf.Channel = channel
 			if err := conf.Save(); err != nil {
 				return errors.Wrap(err, "failed to save the config")
 			}
 
 			u.forceCheck = true
+			u.channel = channel
 			updated, err := u.check(c.Context)
 			if err != nil {
 				return errors.Wrap(err, "failed to check for updates")
@@ -246,7 +242,7 @@ func newGetChannels(u *updater) *cli.Command {
 		Name:  "get-channels",
 		Usage: "Returns the valid channels",
 		Action: func(c *cli.Context) error {
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, "https://"+u.repo)
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}

@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -13,7 +15,11 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/getoutreach/gobox/pkg/exec"
+	"github.com/getoutreach/gobox/pkg/updater/archive"
+	"github.com/getoutreach/gobox/pkg/updater/release"
 	"github.com/getoutreach/gobox/pkg/updater/resolver"
+	"github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -24,16 +30,6 @@ import (
 // for when using an external package manager, such as brew.
 // This should usually be done with an ldflag.
 var Disabled bool
-
-// This block contains directories the updater uses
-var (
-	// cacheDir is the directory where we store the cache of releases
-	cacheDir = filepath.Join(".outreach", ".cache", "updater")
-
-	// configDir is the directory where we store the user's configuration for
-	// the updater per repository.
-	configDir = filepath.Join(".outreach", ".config")
-)
 
 // UseUpdater creates an automatic updater.
 func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolint:revive // Why: Purposely not exported.
@@ -76,19 +72,28 @@ type updater struct {
 
 	// repo is the repository to check for updates, if this isn't
 	// set then the version will be read from the embedded module information.
-	// this requires go module to be used.
-	//
-	// The format is expected to be the go import path of a repository, e.g.
-	// https://github.com/getoutreach/devenv -> github.com/getoutreach/devenv
-	repo string
+	// this requires go module to be used
+	repoURL string
 
 	// version is the current version of the application, if this isn't
 	// set then the version will be read from the embedded module information.
 	// this requires go module to be used.
 	version string
 
+	// executableName is the name of the executable to update, defaults
+	// to the current executable name. This is also used to determine the
+	// binary to retrieve out of an archive.
+	executableName string
+
+	// skipInstall skips the installation of the update if set
+	skipInstall bool
+
 	// checkInterval is the interval to check for updates
 	checkInterval *time.Duration
+
+	// skipMajorVersionPrompt auto-accepts the major version confirmation dialog
+	// if set
+	skipMajorVersionPrompt bool
 
 	// app is a cli.App to setup commands on
 	app *cli.App
@@ -114,14 +119,27 @@ func (u *updater) defaultOptions() error {
 		u.version = app.Info().Version
 	}
 
+	curVersion, err := semver.ParseTolerant(u.version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
+	}
+
+	if u.executableName == "" {
+		var err error
+		u.executableName, err = exec.ResolveExecuable(os.Args[0])
+		if err != nil {
+			return err
+		}
+	}
+
 	// if repo isn't set, then we attempt to load it from the
 	// go module debug information.
-	if u.repo == "" {
+	if u.repoURL == "" {
 		r, err := getRepoFromBuild()
 		if err != nil {
 			return fmt.Errorf("failed to determine which repository built this binary")
 		}
-		u.repo = r
+		u.repoURL = "https://" + r
 	}
 
 	if string(u.ghToken) == "" {
@@ -139,25 +157,35 @@ func (u *updater) defaultOptions() error {
 
 	// read the user's config and mutate the options based on that
 	// if certain values are present
-	if userConf, err := readConfig(u.repo); err == nil {
-		// always use the user's channel, if they have one
-		if userConf.Channel != "" {
-			u.channel = userConf.Channel
+	if userConf, err := readConfig(); err == nil {
+		conf, ok := userConf.Get(u.repoURL)
+		if ok {
+			// always use the user's channel, if they have one
+			if conf.Channel != "" {
+				u.channel = conf.Channel
+			}
 		}
 	}
 
 	// determine channel from version string if not set
 	if u.channel == "" {
-		curVersion, err := semver.ParseTolerant(u.version)
-		if err != nil {
-			return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
-		}
-
 		// If we don't have a channel, but we have a PreRelease field, use that.
 		// e.g. v0.1.0-alpha.1 -> alpha
 		if len(curVersion.Pre) > 0 {
 			u.channel = curVersion.Pre[0].String()
+		} else {
+			// default to the stable channel if we don't have a channel
+			u.channel = "stable"
 		}
+	}
+
+	// Disable the updater if we have >= 2 pre-releases in
+	// our version string, for example:
+	//  Skips: v10.3.0-rc.14-23-gfe7ad99 -> [rc, 14-23-gfe7ad99]
+	//  But not: v10.3.0-rc.14
+	//  But not: v0.0.0-unstable+fe7ad99f422422abb97d9104aac54259d3a1c9b4 (+ is build metadata)
+	if len(curVersion.Pre) >= 2 {
+		u.disabled = true
 	}
 
 	return nil
@@ -172,16 +200,32 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	last, err := loadLastUpdateCheck(u.repo)
+	cache, err := loadCache()
+	if err != nil {
+		u.log.WithError(err).Warn("failed to load user cache")
+	}
+
+	conf, err := readConfig()
+	if err != nil {
+		u.log.WithError(err).Warn("failed to read user config")
+	}
+
+	repoCache, _ := cache.Get(u.repoURL)
+	repoConf, _ := conf.Get(u.channel)
+
+	// if we're not forcing an update, then check if we need to update
+	// based on the check interval
 	if !u.forceCheck {
-		if err == nil {
-			// if we're not past the last update threshold
-			// then we don't check for updates
-			if !time.Now().After(last.Date.Add(last.CheckEvery)) {
-				return false, nil
-			}
-		} else {
-			u.log.WithError(err).Warn("failed to read last update check")
+		// We're ok with dereferencing the pointer here.
+		checkAmount := *u.checkInterval
+		if repoConf.CheckEvery != 0 {
+			checkAmount = repoConf.CheckEvery
+		}
+
+		// if we're not past the last update threshold
+		// then we don't check for updates.
+		if !time.Now().After(repoCache.Date.Add(checkAmount)) {
+			return false, nil
 		}
 	}
 
@@ -191,7 +235,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	spin.Start()
 
 	v, err := resolver.Resolve(ctx, u.ghToken, &resolver.Criteria{
-		URL:     "https://" + u.repo,
+		URL:     u.repoURL,
 		Channel: u.channel,
 	})
 
@@ -202,11 +246,11 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, errors.Wrap(err, "failed to check for updates")
 	}
 
-	last.Date = time.Now().UTC()
-	last.CheckEvery = *u.checkInterval
+	// update the cache with the latest check time
+	repoCache.Date = time.Now().UTC()
 
 	// write that we checked for updates
-	if err := last.Save(); err != nil {
+	if err := cache.Save(); err != nil {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
@@ -215,14 +259,82 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	// handle major versions by prompting the user if this is one
-	// if shouldContinue := handleMajorVersion(ctx, u.log, u.version, r); !shouldContinue {
-	// 	return false, nil
-	// }
+	relNotes, err := release.GetReleaseNotes(ctx, u.ghToken, &release.GetReleaseNoteOptions{
+		RepoURL: u.repoURL,
+		Tag:     v.Tag,
+	})
+	if err != nil {
+		return false, errors.Wrap(err, "failed to fetch release")
+	}
 
-	// if err := u.installVersion(ctx, r); err != nil {
-	// 	return false, errors.Wrap(err, "failed to install update")
-	// }
+	// handle major versions by prompting the user if this is one
+	if !u.skipMajorVersionPrompt {
+		if shouldContinue := handleMajorVersion(u.log, u.version, v.String(), relNotes); !shouldContinue {
+			return false, nil
+		}
+	}
+
+	if err := u.installVersion(ctx, v.Tag); err != nil {
+		return false, errors.Wrap(err, "failed to install update")
+	}
+
+	// write our current version to the cache, as we just successfully updated
+	repoCache.PreviousVersion = u.version
+	if err := cache.Save(); err != nil {
+		u.log.WithError(err).Warn("failed to save updater cache")
+		return true, nil
+	}
 
 	return true, nil
+}
+
+// installVersion installs a specific version of the application
+func (u *updater) installVersion(ctx context.Context, tag string) error {
+	a, name, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
+		RepoURL: u.repoURL,
+		Tag:     tag,
+		// Note: If we're ever supporting azure devops or some other setup we might
+		// need to change this logic and pull it into release?
+		AssetNames: generatePossibleAssetNames(filepath.Base(u.repoURL), tag),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch release")
+	}
+	defer a.Close()
+
+	bin, _, err := archive.Extract(ctx, name, a, archive.WithFilePath(u.executableName))
+	if err != nil {
+		return errors.Wrap(err, "failed to extract release")
+	}
+	defer bin.Close()
+
+	// skip install is mostly just for testing
+	if u.skipInstall {
+		return nil
+	}
+
+	return update.Apply(bin, update.Options{})
+}
+
+// generatePossibleAssetNames generates a list of possible asset names for the
+// given version. This is used to find the right asset to download.
+func generatePossibleAssetNames(name, version string) []string {
+	seperators := []string{"_", "-"}
+	extensions := []string{".tar.xz", ".tar.gz", ".tar.bz2", ".zip"}
+	versions := []string{version}
+	if strings.HasPrefix(version, "v") {
+		versions = append(versions, strings.TrimPrefix(version, "v"))
+	}
+
+	names := []string{}
+	for _, v := range versions {
+		for _, sep := range seperators {
+			for _, ext := range extensions {
+				// name[_-]version[_-]linux[_-]arm64[ext]
+				names = append(names, name+sep+v+sep+runtime.GOOS+sep+runtime.GOARCH+ext)
+			}
+		}
+	}
+
+	return names
 }

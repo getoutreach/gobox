@@ -1,7 +1,6 @@
 package updater
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"runtime/debug"
@@ -9,7 +8,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/charmbracelet/glamour"
-	gogithub "github.com/google/go-github/v47/github"
+	"github.com/manifoldco/promptui"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,25 +29,16 @@ func getRepoFromBuild() (string, error) {
 	return path.Join(spl[0], spl[1], spl[2]), nil
 }
 
-// getOrgRepoFromString returns the org and repo from a string
-// expected format: org/repo
-func getOrgRepoFromString(s string) (string, string, error) { //nolint:gocritic // Why: This is in the function signature
-	split := strings.Split(s, "/")
-	if len(split) < 2 {
-		return "", "", fmt.Errorf("failed to parse %v as a repository", s)
-	}
-	return split[0], split[1], nil
-}
-
-// handleMajorVersion prompts the user when a new major version is available
-func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVersion string, rel *gogithub.RepositoryRelease) bool {
+// handleMajorVersion prompts the user when a new major version is available, returns
+// true if we should continue, or false if we shouldn't
+func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) bool {
 	// we skip errors because the above logic already parsed these version strings
-	cver, err := semver.ParseTolerant(currentVersion)
+	cver, err := semver.ParseTolerant(curV)
 	if err != nil {
 		return true
 	}
 
-	nver, err := semver.ParseTolerant(rel.GetTagName())
+	nver, err := semver.ParseTolerant(newV)
 	if err != nil {
 		return true
 	}
@@ -59,24 +49,27 @@ func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, currentVers
 		return true
 	}
 
-	out := rel.GetBody()
+	out := relNotes
 	r, err := glamour.NewTermRenderer(glamour.WithAutoStyle())
 	if err == nil {
-		out, err = r.Render(rel.GetBody())
+		out, err = r.Render(out)
 		if err != nil {
 			log.WithError(err).Warn("Failed to render release notes, using raw release notes")
 		}
 	} else if err != nil {
 		log.WithError(err).Warn("Failed to create markdown render, using raw release notes")
 	}
-
 	fmt.Println(out)
 
 	log.Infof("Detected major version upgrade (%d -> %d). Would you like to upgrade?", cver.Major, nver.Major)
-	shouldContinue, err := GetYesOrNoInput(ctx)
+	prompt := promptui.Select{
+		Label: "Select",
+		Items: []string{"Yes", "No"},
+	}
+	_, resp, err := prompt.Run()
 	if err != nil {
 		return false
 	}
 
-	return shouldContinue
+	return strings.EqualFold(resp, "yes")
 }

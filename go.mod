@@ -13,6 +13,7 @@ require (
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-github/v47 v47.0.0
 	github.com/honeycombio/beeline-go v1.4.1
+	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
