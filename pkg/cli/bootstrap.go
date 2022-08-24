@@ -19,12 +19,12 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/cli/updater"
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/secrets"
 	"github.com/getoutreach/gobox/pkg/telefork"
 	"github.com/getoutreach/gobox/pkg/trace"
-	"github.com/getoutreach/gobox/pkg/updater"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/otel/attribute"

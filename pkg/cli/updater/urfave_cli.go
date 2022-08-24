@@ -14,8 +14,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
-	"github.com/getoutreach/gobox/pkg/updater/resolver"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
