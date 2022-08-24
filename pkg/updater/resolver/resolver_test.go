@@ -89,10 +89,10 @@ func TestResolve(t *testing.T) {
 					newTestingVersion("v1.0.0", false),
 				},
 				"rc": {
-					newTestingVersion("v0.9.0", true),
+					newTestingVersion("v0.9.0", false),
 				},
 			},
-			want:    newTestingVersion("v0.9.0", true),
+			want:    newTestingVersion("v1.0.0", false),
 			wantErr: false,
 		},
 	}

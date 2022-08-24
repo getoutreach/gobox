@@ -187,14 +187,15 @@ func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, 
 	}
 
 	// check if the stable version is greater than the latest version inside
-	// of our requested version, if so, use that
-	if c.Channel != StableChannel {
+	// of our requested version, if so, use that.
+	//
+	// However, when using a mutable tag, do not automatically promote because
+	// we can't actually tell, reliably, when the version is greater, or lesser,
+	// than the stable version.
+	if c.Channel != StableChannel && !v.mutable {
 		stableV := getLatestVersion(versions[StableChannel])
 		if stableV != nil {
-			vers := []Version{*v, *stableV}
-			Sort(vers)
-
-			latestV := getLatestVersion(vers)
+			latestV := getLatestVersion([]Version{*v, *stableV})
 			if latestV != nil && latestV != v {
 				v = latestV
 			}
@@ -207,9 +208,8 @@ func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, 
 // getLatestVersion returns the latest versions from a slice of versions.
 // This does not mutate the provided slice, and it does not need to be sorted.
 func getLatestVersion(argVersions []Version) *Version {
-	if len(argVersions) == 0 {
-		return nil
-	}
-
-	return &argVersions[0]
+	vers := make([]Version, len(argVersions))
+	copy(vers, argVersions)
+	Sort(vers)
+	return &vers[len(vers)-1]
 }
