@@ -13,7 +13,10 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/fatih/color"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
 	"github.com/pkg/errors"
@@ -104,10 +107,10 @@ func newUpdaterCommand(u *updater) *cli.Command {
 		Usage: "Commands for interacting with the built-in updater",
 		Subcommands: []*cli.Command{
 			newSetChannel(u),
-			newGetChannel(u),
 			newGetChannels(u),
 			newRollbackCommand(u),
 			newUseCommand(u),
+			newStatusCommand(u),
 		},
 	}
 }
@@ -249,18 +252,6 @@ func newSetChannel(u *updater) *cli.Command {
 	}
 }
 
-// newGetChannel creates a new cli.Command that sets the channel
-func newGetChannel(u *updater) *cli.Command {
-	return &cli.Command{
-		Name:  "get-channel",
-		Usage: "Returns the current channel",
-		Action: func(c *cli.Context) error {
-			fmt.Println(u.channel)
-			return nil
-		},
-	}
-}
-
 // newGetChannels creates a new cli.Command that returns the channels for the
 // current application
 func newGetChannels(u *updater) *cli.Command {
@@ -276,6 +267,60 @@ func newGetChannels(u *updater) *cli.Command {
 			for channel := range versions {
 				fmt.Println(channel)
 			}
+			return nil
+		},
+	}
+}
+
+func newStatusCommand(u *updater) *cli.Command {
+	return &cli.Command{
+		Name:  "status",
+		Usage: "Returns the current status of the application",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "debug",
+				Usage: "Show debug information",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			conf, err := readConfig()
+			if err != nil {
+				return errors.Wrap(err, "failed to read config")
+			}
+
+			disabled := (u.disabled && !u.forceCheck)
+			lastCheck := conf.UpdaterCache[u.repoURL].LastChecked
+			nextCheck := lastCheck.Add(*u.checkInterval)
+			status := "enabled"
+			if disabled {
+				status = fmt.Sprintf("disabled (%s)", u.disabledReason)
+			} else if u.forceCheck {
+				status = "enabled (forced)"
+			}
+
+			fmt.Println("Version:", u.version)
+			fmt.Printf("Channel: %s (%s)\n", u.channel, u.channelReason)
+			fmt.Println("Updater Status:", status)
+
+			fmt.Println("Last Update Check:", lastCheck.Format(time.RFC1123))
+			if !disabled {
+				fmt.Println("")
+				fmt.Printf("Checking for updates again at %s\n", color.New(color.Bold).Sprint(nextCheck.Format(time.RFC1123)))
+			}
+
+			if c.Bool("debug") {
+				fmt.Println("")
+				fmt.Println("Debug Information")
+				fmt.Println("=================")
+
+				// Safety first Cooper
+				u.ghToken = "***"
+
+				sConf := spew.NewDefaultConfig()
+				sConf.MaxDepth = 1
+				sConf.Dump(u)
+			}
+
 			return nil
 		},
 	}

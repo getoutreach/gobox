@@ -34,9 +34,7 @@ var Disabled bool
 
 // UseUpdater creates an automatic updater.
 func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolint:revive // Why: Purposely not exported.
-	u := &updater{
-		disabled: Disabled,
-	}
+	u := &updater{}
 
 	// parse the provided options
 	for _, opt := range opts {
@@ -62,10 +60,16 @@ type updater struct {
 	// disabled disables the updater if set
 	disabled bool
 
+	// disabledReason is the reason the updater is disabled
+	disabledReason string
+
 	// channel is the channel to use for checking for updates, this corresponds
 	// to a git tag _or_ the pre-release field of versions, e.g. `0.1.0-alpha.1`
 	// would be the channel `alpha`.
 	channel string
+
+	// channelReason is the reason why the channel is being used
+	channelReason string
 
 	// forceCheck forces the updater to check for updates regardless of the
 	// last update check
@@ -106,6 +110,11 @@ type updater struct {
 // defaultOptions configures the default options for the updater if
 // not already set
 func (u *updater) defaultOptions() error {
+	if Disabled {
+		u.disabled = true
+		u.disabledReason = "disabled via go linker"
+	}
+
 	if u.log == nil {
 		// create a null output logger, we're not going to use it
 		// if a logger wasn't passed in. This is to prevent panics.
@@ -177,10 +186,14 @@ func (u *updater) defaultOptions() error {
 		// e.g. v0.1.0-alpha.1 -> alpha
 		if len(curVersion.Pre) > 0 {
 			u.channel = curVersion.Pre[0].String()
+			u.channelReason = fmt.Sprintf("using %s release", u.channel)
 		} else {
 			// default to the stable channel if we don't have a channel
 			u.channel = "stable"
+			u.channelReason = "using stable version"
 		}
+	} else {
+		u.channelReason = "using channel from config"
 	}
 
 	// Disable the updater if we have >= 2 pre-releases in
@@ -190,6 +203,7 @@ func (u *updater) defaultOptions() error {
 	//  But not: v0.0.0-unstable+fe7ad99f422422abb97d9104aac54259d3a1c9b4 (+ is build metadata)
 	if len(curVersion.Pre) >= 2 {
 		u.disabled = true
+		u.disabledReason = "using locally built version"
 	}
 
 	return nil
