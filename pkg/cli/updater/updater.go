@@ -171,12 +171,19 @@ func (u *updater) defaultOptions() error {
 	// read the user's config and mutate the options based on that
 	// if certain values are present
 	if conf, err := readConfig(); err == nil {
-		if conf.GlobalConfig.Channel != "" {
-			u.channel = conf.GlobalConfig.Channel
-		}
+		// If we don't have a channel, use the one from the config
+		if u.channel == "" {
+			if conf.GlobalConfig.Channel != "" {
+				u.channel = conf.GlobalConfig.Channel
+				u.channelReason = "configured in config (global)"
+			}
 
-		if repoConf, ok := conf.Get(u.repoURL); ok {
-			u.channel = repoConf.Channel
+			if repoConf, ok := conf.Get(u.repoURL); ok {
+				u.channel = repoConf.Channel
+				u.channelReason = "configured in config (repo level)"
+			}
+		} else {
+			u.channelReason = "channel passed in to updater"
 		}
 	}
 
@@ -192,8 +199,6 @@ func (u *updater) defaultOptions() error {
 			u.channel = "stable"
 			u.channelReason = "using stable version"
 		}
-	} else {
-		u.channelReason = "using channel from config"
 	}
 
 	// Disable the updater if we have >= 2 pre-releases in

@@ -102,8 +102,8 @@ func (c *config) Get(repoURL string) (updateConfiguration, bool) {
 
 // Set updates a repository's configuration, call Save() to
 // save the changes
-func (c *config) Set(repoURL string, conf updateConfiguration) {
-	c.PerRepositoryConfiguration[repoURL] = &conf
+func (c *config) Set(repoURL string, conf *updateConfiguration) {
+	c.PerRepositoryConfiguration[repoURL] = conf
 }
 
 // Save saves the changes to the configuration
@@ -114,7 +114,7 @@ func (c *config) Save() error {
 	}
 
 	confPath := filepath.Join(homeDir, ConfigFile)
-	if _, err := os.Stat(confPath); !os.IsNotExist(err) {
+	if _, err := os.Stat(confPath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 

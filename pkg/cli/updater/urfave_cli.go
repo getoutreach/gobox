@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -207,8 +208,29 @@ func newSetChannel(u *updater) *cli.Command {
 	return &cli.Command{
 		Name:  "set-channel",
 		Usage: "Set the channel to check for updates",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "reset",
+				Usage: "Reset the channel to the default",
+			},
+		},
 		Action: func(c *cli.Context) error {
-			channel := strings.ToLower(c.Args().Get(0))
+			conf, err := readConfig()
+			if err != nil {
+				return errors.Wrap(err, "failed to read config")
+			}
+
+			if c.Bool("reset") {
+				delete(conf.PerRepositoryConfiguration, u.repoURL)
+				if err := conf.Save(); err != nil {
+					return errors.Wrap(err, "failed to save config")
+				}
+
+				fmt.Println("Reset channel to default (or global config) value")
+				return nil
+			}
+
+			channel := strings.ToLower(c.Args().First())
 			if channel == "" {
 				return fmt.Errorf("channel must be provided")
 			}
@@ -222,15 +244,9 @@ func newSetChannel(u *updater) *cli.Command {
 				return fmt.Errorf("channel %q is not valid, run 'get-channels' to return a list of valid channels", channel)
 			}
 
-			conf, err := readConfig()
-			if err != nil {
-				return errors.Wrap(err, "failed to read config")
-			}
-
 			repoConf, _ := conf.Get(u.repoURL)
 			repoConf.Channel = channel
-			conf.Set(u.repoURL, repoConf)
-
+			conf.Set(u.repoURL, &repoConf)
 			if err := conf.Save(); err != nil {
 				return errors.Wrap(err, "failed to save the config")
 			}
@@ -272,10 +288,12 @@ func newGetChannels(u *updater) *cli.Command {
 	}
 }
 
+// newStatusCommand creates a new cli.Command that returns the current
+// status of the updater
 func newStatusCommand(u *updater) *cli.Command {
 	return &cli.Command{
 		Name:  "status",
-		Usage: "Returns the current status of the application",
+		Usage: "Returns the current status of the updater",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "debug",
@@ -302,26 +320,62 @@ func newStatusCommand(u *updater) *cli.Command {
 			fmt.Printf("Channel: %s (%s)\n", u.channel, u.channelReason)
 			fmt.Println("Updater Status:", status)
 
-			fmt.Println("Last Update Check:", lastCheck.Format(time.RFC1123))
+			lastCheckStr := lastCheck.Format(time.RFC1123)
+			if lastCheck.IsZero() {
+				lastCheckStr = "never"
+			}
+
+			fmt.Println("Last Update Check:", lastCheckStr)
 			if !disabled {
 				fmt.Println("")
 				fmt.Printf("Checking for updates again at %s\n", color.New(color.Bold).Sprint(nextCheck.Format(time.RFC1123)))
 			}
 
 			if c.Bool("debug") {
-				fmt.Println("")
-				fmt.Println("Debug Information")
-				fmt.Println("=================")
-
-				// Safety first Cooper
-				u.ghToken = "***"
-
-				sConf := spew.NewDefaultConfig()
-				sConf.MaxDepth = 1
-				sConf.Dump(u)
+				if err := printDebug(u); err != nil {
+					return errors.Wrap(err, "failed to print debug information")
+				}
 			}
 
 			return nil
 		},
 	}
+}
+
+// printDebug prints debug information about the updater
+func printDebug(u *updater) error {
+	fmt.Println("")
+	fmt.Println("Updater Struct")
+	fmt.Println("=================")
+
+	// Safety first Cooper
+	u.ghToken = "***"
+	sConf := spew.NewDefaultConfig()
+	sConf.MaxDepth = 1
+	sConf.Dump(u)
+
+	fmt.Println("")
+	fmt.Println("Config")
+	fmt.Println("=================")
+
+	conf, err := readConfig()
+	if err != nil {
+		return errors.Wrap(err, "failed to read config")
+	}
+	spew.Dump(conf)
+
+	fmt.Println("")
+	fmt.Println("-- Raw:")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return errors.Wrap(err, "failed to determine home directory")
+	}
+
+	b, err := os.ReadFile(filepath.Join(homeDir, ConfigFile))
+	if err != nil {
+		return errors.Wrap(err, "failed to read config file")
+	}
+	fmt.Println(string(b))
+
+	return nil
 }
