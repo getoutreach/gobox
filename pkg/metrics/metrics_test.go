@@ -11,8 +11,10 @@ import (
 
 func Example() {
 	start := time.Now()
-	// sleep for 6ms to cross the lower most bucket of 5ms
-	time.Sleep(6 * time.Millisecond)
+	// need to sleep for 6ms to cross the lower most bucket of 5ms
+	// however, that's also flaky. So, we bump this to 2s.
+	time.Sleep(2 * time.Second)
+
 	latency := float64(time.Since(start)) / float64(time.Second)
 	metrics.ReportHTTPLatency("example_app", "example_call", latency, nil)
 
@@ -45,7 +47,7 @@ func Example() {
 		}
 	}
 
-	//nolint:lll // Why: Output comparision
+	//nolint:lll // Why: Output comparison is not easy to read
 	// Output:
 	// name http_request_handled
 	// help The latency of the HTTP request, in seconds
