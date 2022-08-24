@@ -106,7 +106,7 @@ func TestFetch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, name, err := Fetch(context.Background(), "", tt.args.opts)
+			got, name, _, err := Fetch(context.Background(), "", tt.args.opts)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Fetch() error = %v, wantErr %v", err, tt.wantErr)
 				return

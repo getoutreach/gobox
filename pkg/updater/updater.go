@@ -21,6 +21,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/updater/resolver"
 	"github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
@@ -94,6 +95,9 @@ type updater struct {
 	// skipMajorVersionPrompt auto-accepts the major version confirmation dialog
 	// if set
 	skipMajorVersionPrompt bool
+
+	// noProgressBar disables the progress bar if set
+	noProgressBar bool
 
 	// app is a cli.App to setup commands on
 	app *cli.App
@@ -290,7 +294,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 
 // installVersion installs a specific version of the application
 func (u *updater) installVersion(ctx context.Context, tag string) error {
-	a, name, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
+	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
 		RepoURL: u.repoURL,
 		Tag:     tag,
 		// Note: If we're ever supporting azure devops or some other setup we might
@@ -302,7 +306,36 @@ func (u *updater) installVersion(ctx context.Context, tag string) error {
 	}
 	defer a.Close()
 
-	bin, _, err := archive.Extract(ctx, name, a, archive.WithFilePath(u.executableName))
+	// write to temp file for better user experience on download
+	tmpF, err := os.CreateTemp("", aName)
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp file")
+	}
+	defer tmpF.Close()
+	defer os.Remove(tmpF.Name()) //nolint:errcheck // Why: Best effort
+
+	var w io.Writer = tmpF
+	if !u.noProgressBar {
+		pb := progressbar.DefaultBytes(aSize, "Downloading Update")
+		defer pb.Close()
+
+		w = io.MultiWriter(tmpF, pb)
+	}
+
+	if _, err := io.Copy(w, a); err != nil {
+		return errors.Wrap(err, "failed to download update")
+	}
+
+	// re-open the file to reset the position
+	tmpF.Close() //no lint:errcheck // Why: Best effort
+	tmpF, err = os.Open(tmpF.Name())
+	if err != nil {
+		return errors.Wrap(err, "failed to open temp file")
+	}
+
+	bin, header, err := archive.Extract(ctx, aName, tmpF,
+		archive.WithFilePath(filepath.Base(u.executableName)),
+	)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract release")
 	}
@@ -313,7 +346,16 @@ func (u *updater) installVersion(ctx context.Context, tag string) error {
 		return nil
 	}
 
-	return update.Apply(bin, update.Options{})
+	var r io.Reader = bin
+	if !u.noProgressBar {
+		// There's an empty space here to make it align with the first progress bar.
+		pb := progressbar.DefaultBytes(header.Size, "Extracting Update ")
+		defer pb.Close()
+
+		r = io.TeeReader(bin, pb)
+	}
+
+	return update.Apply(r, update.Options{})
 }
 
 // generatePossibleAssetNames generates a list of possible asset names for the

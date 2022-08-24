@@ -148,6 +148,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 			u := &updater{
 				ghToken:        "1234",
 				log:            logrus.New(),
+				noProgressBar:  true,
 				disabled:       tt.fields.disabled,
 				channel:        tt.fields.channel,
 				forceCheck:     tt.fields.forceCheck,
@@ -218,6 +219,7 @@ func Test_updater_installVersion(t *testing.T) {
 				version:        "v0.0.0",
 				executableName: tt.fields.executableName,
 				skipInstall:    true,
+				noProgressBar:  true,
 			}
 			if err := u.defaultOptions(); err != nil {
 				t.Errorf("updater.defaultOptions() error = %v", err)
@@ -241,6 +243,7 @@ func TestE2EUpdater(t *testing.T) {
 		WithForceCheck(true),
 		WithSkipInstall(true),
 		WithSkipMajorVersionPrompt(true),
+		WithNoProgressBar(true),
 	)
 	if err != nil {
 		t.Errorf("UseUpdater() error = %v", err)

@@ -38,13 +38,13 @@ func saveAsYAML(obj interface{}, path string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get user home directory")
 	}
-	configFile := filepath.Join(homeDir, path)
+	fqpath := filepath.Join(homeDir, path)
 
-	if err := os.MkdirAll(filepath.Dir(configFile), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fqpath), 0o755); err != nil {
 		return errors.Wrap(err, "failed to create config directory")
 	}
 
-	f, err := os.Create(configFile)
+	f, err := os.Create(fqpath)
 	if err != nil {
 		return errors.Wrap(err, "failed to create config file")
 	}
@@ -181,5 +181,5 @@ func (c *cache) Get(repoURL string) (*cacheEntry, bool) {
 
 // Save saves the last update check to disk.
 func (c *cache) Save() error {
-	return saveAsYAML(c, ConfigFile)
+	return saveAsYAML(c, CacheFile)
 }

@@ -9,31 +9,13 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func setupEnv(t *testing.T) (tempDir string, cleanup func()) {
-	envVars := []string{"HOME", "GITHUB_TOKEN", "OUTREACH_GITHUB_TOKEN"}
-	origValues := make(map[string]string)
-	for _, k := range envVars {
-		v := os.Getenv(k)
-		t.Logf("Cleared env var %s", k)
-		os.Setenv(k, "") // set to empty
-		origValues[k] = v
-	}
-
-	var err error
-	tempDir, err = os.MkdirTemp("", "gobox-github-auth-*")
-	assert.NilError(t, err, "expected test setup mkdir to succeed")
-
-	cleanup = func() {
-		assert.NilError(t, os.RemoveAll(tempDir), "expected test cleanup to succeed")
-		for k, v := range origValues {
-			t.Logf("Resetting env var %s=%v", k, v)
-			os.Setenv(k, v)
-		}
-	}
-
-	// set HOME to the temp dir, undone by cleanup()
-	os.Setenv("HOME", tempDir)
-	return
+//nolint:gocritic // Why: It's obvious.
+func setupEnv(t *testing.T) (string, func()) {
+	tempDir := t.TempDir()
+	t.Setenv("HOME", tempDir)
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("OUTREACH_GITHUB_TOKEN", "")
+	return tempDir, func() {}
 }
 
 func Test_GetToken_outreachDirToken(t *testing.T) {

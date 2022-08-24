@@ -31,6 +31,13 @@ func WithSkipMajorVersionPrompt(skip bool) Option {
 	}
 }
 
+// WithNoProgressBar sets whether or not to show the progress bar.
+func WithNoProgressBar(noProgressBar bool) Option {
+	return func(u *updater) {
+		u.noProgressBar = noProgressBar
+	}
+}
+
 // WithVersion sets the version to use as the current version when
 // checking for updates. Defaults to app.Info().Version.
 func WithVersion(version string) Option {

@@ -19,7 +19,7 @@ import (
 // fetcher implements the Fetch method for a VCS provider
 type fetcher interface {
 	// Fetch returns an asset as a io.ReadCloser
-	Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, error)
+	Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, int64, error)
 
 	// GetReleaseNotes returns the release notes of a release
 	GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts *GetReleaseNoteOptions) (string, error)
@@ -55,24 +55,26 @@ type GetReleaseNoteOptions struct {
 // Fetch fetches a release from a VCS provider and returns an asset
 // from it as an io.ReadCloser. This must be closed to close the
 // underlying HTTP request.
-func Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, error) {
+//
+//nolint:gocritic // Why: rc, name, size, error
+func Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, int64, error) {
 	if opts == nil {
-		return nil, "", fmt.Errorf("opts is nil")
+		return nil, "", 0, fmt.Errorf("opts is nil")
 	}
 
 	if opts.RepoURL == "" {
-		return nil, "", fmt.Errorf("repo url is required")
+		return nil, "", 0, fmt.Errorf("repo url is required")
 	}
 
 	if opts.Tag == "" {
-		return nil, "", fmt.Errorf("tag is required")
+		return nil, "", 0, fmt.Errorf("tag is required")
 	}
 
 	if strings.Contains(opts.RepoURL, "github.com") {
 		return (&github{}).Fetch(ctx, token, opts)
 	}
 
-	return nil, "", fmt.Errorf("unsupported fetch repo url: %s", opts.RepoURL)
+	return nil, "", 0, fmt.Errorf("unsupported fetch repo url: %s", opts.RepoURL)
 }
 
 // GetReleaseNotes fetches the release notes of a release from a VCS provider.

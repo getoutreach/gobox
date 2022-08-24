@@ -118,9 +118,9 @@ func ghCLIToken() (cfg.SecretData, error) {
 		return "", fmt.Errorf("failed to find host '%s' in gh auth config, try running 'gh auth login'", githubKey)
 	}
 
-	realConf, ok := conf[githubKey].(map[interface{}]interface{})
+	realConf, ok := conf[githubKey].(map[string]interface{})
 	if !ok {
-		return "", fmt.Errorf("expected map[interface{}]interface{} for %s host, got %v", githubKey, reflect.ValueOf(conf[githubKey]).String())
+		return "", fmt.Errorf("expected map[string]interface{} for %s host, got %v", githubKey, reflect.ValueOf(conf[githubKey]).String())
 	}
 
 	tokenInf, ok := realConf["oauth_token"]

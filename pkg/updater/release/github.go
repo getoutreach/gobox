@@ -67,17 +67,19 @@ func (g *github) GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts
 }
 
 // Fetch fetches a release from a github repository and the underlying release
-func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, error) {
+//
+//nolint:gocritic // Why: rc, name, size, error
+func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, int64, error) {
 	gh := g.createClient(ctx, token)
 
 	org, repo, err := getOrgRepoFromURL(opts.RepoURL)
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 
 	rel, _, err := gh.Repositories.GetReleaseByTag(ctx, org, repo, opts.Tag)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to get release for %s/%s:%s", org, repo, opts.Tag)
+		return nil, "", 0, errors.Wrapf(err, "failed to get release for %s/%s:%s", org, repo, opts.Tag)
 	}
 
 	// copy the assetNames slice, and append the assetName if it is not empty
@@ -97,7 +99,7 @@ func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOpt
 		}
 	}
 	if a == nil {
-		return nil, "", fmt.Errorf("failed to find asset %v in release %s/%s:%s", validAssets, org, repo, opts.Tag)
+		return nil, "", 0, fmt.Errorf("failed to find asset %v in release %s/%s:%s", validAssets, org, repo, opts.Tag)
 	}
 
 	// The second return value is a redirectURL, but by passing http.DefaultClient we shouldn't have
@@ -105,7 +107,7 @@ func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOpt
 	// ourselves.
 	rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, org, repo, a.GetID(), http.DefaultClient)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to download asset %s from release %s/%s:%s", a.GetName(), org, repo, opts.Tag)
+		return nil, "", 0, errors.Wrapf(err, "failed to download asset %s from release %s/%s:%s", a.GetName(), org, repo, opts.Tag)
 	}
-	return rc, a.GetName(), nil
+	return rc, a.GetName(), int64(a.GetSize()), nil
 }
