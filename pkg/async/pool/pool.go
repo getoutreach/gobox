@@ -149,42 +149,49 @@ func New(ctx context.Context, options ...Option) *Pool {
 		context: ctx,
 		closed:  make(chan struct{}),
 	}
+	// spawn initial workers synchronously
+	cancellations := p.spawnWorkers(ctx, p.opts.Size())
 	p.wg.Add(1)
-	go p.run(ctx)
+	go p.run(ctx, cancellations)
 	return p
 }
 
-func (p *Pool) run(ctx context.Context) {
+func (p *Pool) spawnWorkers(ctx context.Context, n int) cancellations {
+	cancels := make(cancellations, 0, n)
+	for i := 0; i < n; i++ {
+		workerCtx, cancel := context.WithCancel(ctx)
+		cancels = append(cancels, cancel)
+		p.wg.Add(1)
+		go p.worker(workerCtx)
+	}
+
+	return cancels
+}
+
+func (p *Pool) run(ctx context.Context, cancellations cancellations) {
 	defer p.wg.Done()
 	var (
-		prevSize, delta, size int
-		cancellations         = cancellations{}
+		prevSize, delta int
 	)
 	for ctx.Err() == nil {
-		size = p.opts.Size()
-		delta = size - prevSize
+		prevSize = len(cancellations)
+		delta = p.opts.Size() - prevSize
 		if delta < 0 {
 			// Cancel some workers
 			cancellations = cancellations.Shrink(-delta)
 		} else if delta > 0 {
 			// Spawn new workers
-			for i := 0; i < delta; i++ {
-				workerCtx, cancel := context.WithCancel(ctx)
-				cancellations = append(cancellations, cancel)
-				p.wg.Add(1)
-				go p.worker(workerCtx)
-			}
+			cancellations = append(cancellations, p.spawnWorkers(ctx, delta)...)
 		}
-		if prevSize != 0 && prevSize != size {
+		if delta != 0 {
 			log.Info(ctx, "async.pool resized",
 				log.F{
 					"pool":     p.opts.Name,
-					"size":     size,
+					"size":     len(cancellations),
 					"previous": prevSize,
 				},
 			)
 		}
-		prevSize = size
 
 		select {
 		case <-time.After(p.opts.ResizeEvery):
@@ -199,9 +206,7 @@ func (p *Pool) run(ctx context.Context) {
 
 func (p *Pool) worker(ctx context.Context) {
 	defer p.wg.Done()
-	var (
-		u unit
-	)
+	var u unit
 	for {
 		select {
 		case u = <-p.queue:
