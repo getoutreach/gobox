@@ -5,33 +5,31 @@
 //
 // Example
 //
-//     type OtelConfig struct {
-//        Disable    bool       `yaml:"Disable"`
-//        Dataset    string     `yaml:"Dataset"`
-//        Endpoint    string     `yaml:"APIHost"`
-//        SampleRate float64    `yaml:"SampleRate"`
-//        Key        cfg.Secret `yaml:"Key"`
-//     }
+//	type OtelConfig struct {
+//	   Disable    bool       `yaml:"Disable"`
+//	   Dataset    string     `yaml:"Dataset"`
+//	   Endpoint    string     `yaml:"APIHost"`
+//	   SampleRate float64    `yaml:"SampleRate"`
+//	   Key        cfg.Secret `yaml:"Key"`
+//	}
 //
-//     func (x someComponent) someFunc(ctx context.Context) error {
-//          var otelConfig OtelConfig
-//          if err := cfg.Load("trace.yaml", &hcConfig); err != nil {
-//              return err
-//          }
+//	func (x someComponent) someFunc(ctx context.Context) error {
+//	     var otelConfig OtelConfig
+//	     if err := cfg.Load("trace.yaml", &hcConfig); err != nil {
+//	         return err
+//	     }
 //
-//          ... now use the config...
-//     }
-//
+//	     ... now use the config...
+//	}
 //
 // All config structs should typically implement their own `Load()`
 // method so that the config location is specified in one spot:
 //
-//     func (c *OtelConfig) Load() error {
-//         return cfg.Load("trace.yaml", &c)
-//     }
+//	func (c *OtelConfig) Load() error {
+//	    return cfg.Load("trace.yaml", &c)
+//	}
 //
-//
-// Dev environment overrides
+// # Dev environment overrides
 //
 // The default directory prefix for config will be chosen to be
 // compatible with our k8s deployment strategy.
@@ -39,10 +37,10 @@
 // For dev environments, the preferred path is ~/.outreach/ and this
 // can be configured by app init using the following override:
 //
-//      import env "github.com/getoutreach/gobox/pkg/env"
-//      func init() {
-//          env.ApplyOverrides()
-//      }
+//	import env "github.com/getoutreach/gobox/pkg/env"
+//	func init() {
+//	    env.ApplyOverrides()
+//	}
 //
 // To build with this override, the build tag or_dev should be used.
 //
@@ -54,14 +52,14 @@
 // `Load()` methods will be automatically generated with the specified
 // overrides.
 //
-// Secrets
+// # Secrets
 //
 // While secrets can be accessed in an adhoc way using the secrets
 // package, the recommended way is to fetch fixed secrets (i.e. not
 // things like oauth tokens) via the `cfg.Secret` type.  For the
 // example above, the API key can be accessed via:
 //
-//      secretData, err := hcConfig.Key.Data(ctx)
+//	secretData, err := hcConfig.Key.Data(ctx)
 //
 // Note that SecretData cannot be serialized to JSON or YAML.  While
 // it can be converted to string using an explicit conversion, the
@@ -74,7 +72,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // the default read is a prod reader which looks for
@@ -96,9 +94,8 @@ type Reader func(fileName string) ([]byte, error)
 //
 // Usage:
 //
-//     var appConfig MyConfig
-//     err := cfg.Load("myapp.json", &appConfig)
-//
+//	var appConfig MyConfig
+//	err := cfg.Load("myapp.json", &appConfig)
 //
 // This parses the config using JSON.  If a config has special needs,
 // it can implement its own UnmarshalJSON (such as implementing

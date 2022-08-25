@@ -6,14 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"runtime/pprof"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
-
-	"log"
 
 	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/async/pool"
@@ -147,6 +147,46 @@ func waitForWorkers(t *testing.T, num int) bool {
 	}
 	t.Errorf("workers are %v not %v", current, num)
 	return false
+}
+
+func TestPoolWithZeroBuffer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	poolSize := 5
+	jobs := 10
+
+	p := pool.New(ctx, pool.BufferLength(0), pool.ConstantSize(poolSize), pool.RejectWhenFull)
+
+	var wg sync.WaitGroup
+	var passed, rejected, cancelled int32
+
+	wg.Add(jobs)
+	// schedule 10 jobs, only 5 should pass
+	for i := 0; i < jobs; i++ {
+		p.Schedule(ctx, async.Func(func(ctx context.Context) error {
+			defer wg.Done()
+			if err := ctx.Err(); err != nil { // return immediately if ctx is closed
+				var lee orerr.LimitExceededError
+				if errors.As(err, &lee) {
+					atomic.AddInt32(&rejected, 1)
+					return nil
+				}
+				atomic.AddInt32(&cancelled, 1)
+				return nil
+			}
+
+			<-ctx.Done() // simulating blocking job until context is cancelled
+			atomic.AddInt32(&passed, 1)
+			return nil
+		}))
+	}
+
+	go cancel()
+	wg.Wait() // wait till all jobs are processed/rejected
+
+	assert.Equal(t, poolSize, int(passed), "should process only %d jobs", poolSize)
+	assert.Equal(t, jobs-poolSize, int(rejected), "should reject %d jobs", jobs-poolSize)
+	assert.Equal(t, 0, int(cancelled))
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
