@@ -14,11 +14,27 @@ import (
 // Options configures an updater
 type Option func(*updater)
 
-// WithRepo sets the repository to use for checking for updates.
-// The expected format is: owner/repo
-func WithRepo(repo string) Option {
+// WithRepoURL sets the repository to use for checking for updates.
+// The expected format is: https://<host>/<repo>
+// Note: It should not contain .git at the end
+func WithRepoURL(repo string) Option {
 	return func(u *updater) {
-		u.repo = repo
+		u.repoURL = repo
+	}
+}
+
+// WithSkipMajorVersionPrompt sets whether or not to skip the prompt for
+// major version upgrades
+func WithSkipMajorVersionPrompt(skip bool) Option {
+	return func(u *updater) {
+		u.skipMajorVersionPrompt = true
+	}
+}
+
+// WithNoProgressBar sets whether or not to show the progress bar.
+func WithNoProgressBar(noProgressBar bool) Option {
+	return func(u *updater) {
+		u.noProgressBar = noProgressBar
 	}
 }
 
@@ -45,10 +61,18 @@ func WithDisabled(disabled bool) Option {
 	}
 }
 
+// Deprecated: Set the channel via the WithChannel option.
 // WithPrereleases sets whether or not to include prereleases in the update check.
 func WithPrereleases(prereleases bool) Option {
 	return func(u *updater) {
-		u.prereleases = prereleases
+		u.channel = "rc"
+	}
+}
+
+// WithChannel sets the channel to use for checking for updates
+func WithChannel(channel string) Option {
+	return func(u *updater) {
+		u.channel = channel
 	}
 }
 
@@ -73,5 +97,19 @@ func WithApp(app *cli.App) Option {
 func WithCheckInterval(interval time.Duration) Option {
 	return func(u *updater) {
 		u.checkInterval = &interval
+	}
+}
+
+// WithSkipInstall sets whether or not to skip the installation of the update
+func WithSkipInstall(skipInstall bool) Option {
+	return func(u *updater) {
+		u.skipInstall = skipInstall
+	}
+}
+
+// WithExecutableName overrides the name of the executable. See u.executableName.
+func WithExecutableName(execName string) Option {
+	return func(u *updater) {
+		u.executableName = execName
 	}
 }
