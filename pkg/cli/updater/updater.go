@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -207,8 +208,12 @@ func (u *updater) defaultOptions() error {
 	//  But not: v10.3.0-rc.14
 	//  But not: v0.0.0-unstable+fe7ad99f422422abb97d9104aac54259d3a1c9b4 (+ is build metadata)
 	if len(curVersion.Pre) >= 2 {
-		u.disabled = true
-		u.disabledReason = "using locally built version"
+		// This parses the second part of pre-release string, e.g. if you have
+		// `rc.1` this parses to `1`.
+		if _, err := strconv.Atoi(curVersion.Pre[1].String()); err != nil {
+			u.disabled = true
+			u.disabledReason = "using locally built version"
+		}
 	}
 
 	return nil
@@ -278,8 +283,19 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
-	// If the latest version is equal to what we have right now, then we don't need to update.
-	if v.String() == u.version {
+	curV, err := semver.ParseTolerant(u.version)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse current version")
+	}
+
+	newV, err := semver.ParseTolerant(v.String())
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse new version")
+	}
+
+	// if the newer version is less than, or equal to the current version, then
+	// we don't need to update
+	if newV.LTE(curV) {
 		return false, nil
 	}
 
@@ -298,7 +314,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		}
 	}
 
-	if err := u.installVersion(ctx, v.Tag); err != nil {
+	if err := u.installVersion(ctx, v); err != nil {
 		return false, errors.Wrap(err, "failed to install update")
 	}
 
@@ -314,13 +330,14 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 }
 
 // installVersion installs a specific version of the application
-func (u *updater) installVersion(ctx context.Context, tag string) error {
+func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error {
+	u.log.WithField("version", v.String()).Info("Installing update")
 	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
 		RepoURL: u.repoURL,
-		Tag:     tag,
+		Tag:     v.Tag,
 		// Note: If we're ever supporting azure devops or some other setup we might
 		// need to change this logic and pull it into release?
-		AssetNames: generatePossibleAssetNames(filepath.Base(u.repoURL), tag),
+		AssetNames: generatePossibleAssetNames(filepath.Base(u.repoURL), v.Tag),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch release")

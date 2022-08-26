@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -65,7 +65,6 @@ func Test_generatePossibleAssetNames(t *testing.T) {
 func Test_updater_defaultOptions(t *testing.T) {
 	defaultCheckInterval := 30 * time.Minute
 	type fields struct {
-		ghToken        cfg.SecretData
 		disabled       bool
 		channel        string
 		forceCheck     bool
@@ -85,14 +84,12 @@ func Test_updater_defaultOptions(t *testing.T) {
 		{
 			name: "should disable updater if version is from a local build",
 			fields: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.14-23-gfe7ad99",
 				disabled:       false,
 				executableName: "gobox",
 			},
 			want: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.14-23-gfe7ad99",
 				disabled:       true,
@@ -105,14 +102,12 @@ func Test_updater_defaultOptions(t *testing.T) {
 		{
 			name: "should get channel from version string",
 			fields: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-unstable+adadafafafafafaf",
 				disabled:       false,
 				executableName: "gobox",
 			},
 			want: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-unstable+adadafafafafafaf",
 				disabled:       false,
@@ -125,14 +120,12 @@ func Test_updater_defaultOptions(t *testing.T) {
 		{
 			name: "should default to stable",
 			fields: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0",
 				disabled:       false,
 				executableName: "gobox",
 			},
 			want: fields{
-				ghToken:        "1234",
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0",
 				disabled:       false,
@@ -140,6 +133,23 @@ func Test_updater_defaultOptions(t *testing.T) {
 				skipInstall:    false,
 				checkInterval:  &defaultCheckInterval,
 				channel:        "stable",
+			},
+		},
+		{
+			name: "shouldn't disable rc release",
+			fields: fields{
+				repoURL:        "https://github.com/getoutreach/gobox",
+				version:        "v10.3.0-rc.15",
+				executableName: "gobox",
+			},
+			want: fields{
+				repoURL:        "https://github.com/getoutreach/gobox",
+				version:        "v10.3.0-rc.15",
+				disabled:       false,
+				executableName: "gobox",
+				skipInstall:    false,
+				checkInterval:  &defaultCheckInterval,
+				channel:        "rc",
 			},
 		},
 	}
@@ -168,7 +178,6 @@ func Test_updater_defaultOptions(t *testing.T) {
 			}
 
 			modifiedFields := fields{
-				ghToken:        u.ghToken,
 				disabled:       u.disabled,
 				channel:        u.channel,
 				forceCheck:     u.forceCheck,
@@ -180,7 +189,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 				app:            u.app,
 			}
 
-			if diff := cmp.Diff(modifiedFields, tt.want, cmp.AllowUnexported(fields{})); diff != "" {
+			if diff := cmp.Diff(tt.want, modifiedFields, cmp.AllowUnexported(fields{})); diff != "" {
 				t.Errorf("updater.defaultOptions() %s", diff)
 			}
 		})
@@ -193,7 +202,7 @@ func Test_updater_installVersion(t *testing.T) {
 		executableName string
 	}
 	type args struct {
-		tag string
+		version *resolver.Version
 	}
 	tests := []struct {
 		name    string
@@ -208,7 +217,9 @@ func Test_updater_installVersion(t *testing.T) {
 				executableName: "stencil",
 			},
 			args: args{
-				tag: "v1.25.1",
+				version: &resolver.Version{
+					Tag: "v1.25.1",
+				},
 			},
 		},
 	}
@@ -226,7 +237,7 @@ func Test_updater_installVersion(t *testing.T) {
 				return
 			}
 
-			if err := u.installVersion(context.Background(), tt.args.tag); (err != nil) != tt.wantErr {
+			if err := u.installVersion(context.Background(), tt.args.version); (err != nil) != tt.wantErr {
 				t.Errorf("updater.installVersion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

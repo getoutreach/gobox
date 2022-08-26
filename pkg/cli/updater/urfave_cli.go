@@ -49,12 +49,8 @@ func (u *updater) hookIntoCLI() {
 
 			if strings.EqualFold(f, "skip-update") {
 				u.disabled = true
+				u.disabledReason = "skip-update flag set"
 			}
-		}
-
-		// Skip the updater if we're running an updater command, that we provide.
-		if c.Args().First() == "updater" {
-			u.disabled = true
 		}
 
 		// handle an older before if it was set
@@ -127,7 +123,9 @@ func cliInstallVersion(ctx context.Context, u *updater, version string, rollback
 		str = "Installing"
 	}
 	u.log.Infof("%s %s", str, version)
-	if err := u.installVersion(ctx, version); err != nil {
+	if err := u.installVersion(ctx, &resolver.Version{
+		Tag: version,
+	}); err != nil {
 		return err
 	}
 	str = "Rollback complete"

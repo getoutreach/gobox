@@ -83,6 +83,18 @@ func readConfig() (*config, error) {
 		return nil, err
 	}
 
+	if conf.GlobalConfig == nil {
+		conf.GlobalConfig = &updateConfiguration{}
+	}
+
+	if conf.PerRepositoryConfiguration == nil {
+		conf.PerRepositoryConfiguration = make(map[string]*updateConfiguration)
+	}
+
+	if conf.UpdaterCache == nil {
+		conf.UpdaterCache = make(map[string]updateCache)
+	}
+
 	return &conf, err
 }
 
