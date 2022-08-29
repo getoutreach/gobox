@@ -362,7 +362,8 @@ parseField:
 			pos.col += quoteLen
 			for {
 				i := bytes.IndexByte(line, '"')
-				if i >= 0 {
+				switch {
+				case i >= 0:
 					// Hit next quote.
 					r.recordBuffer = append(r.recordBuffer, line[:i]...)
 					line = line[i+quoteLen:]
@@ -393,7 +394,7 @@ parseField:
 						err = &ParseError{StartLine: recLine, Line: r.numLine, Column: pos.col - quoteLen, Err: ErrQuote}
 						break parseField
 					}
-				} else if len(line) > 0 {
+				case len(line) > 0:
 					// Hit end of line (copy all data so far).
 					r.recordBuffer = append(r.recordBuffer, line...)
 					if errRead != nil {
@@ -408,7 +409,7 @@ parseField:
 					if errors.Is(errRead, io.EOF) {
 						errRead = nil
 					}
-				} else {
+				default:
 					// Abrupt end of file (EOF or error).
 					if !r.LazyQuotes && errRead == nil {
 						err = &ParseError{StartLine: recLine, Line: pos.line, Column: pos.col, Err: ErrQuote}
