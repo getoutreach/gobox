@@ -283,6 +283,7 @@ func nextRune(b []byte) rune {
 	return r
 }
 
+// nolint:gocyclo // Why: Copied logic from encoding/csv.
 func (r *Reader) readRecord(dst []string) ([]string, error) {
 	if r.Comma == r.Comment || !validDelim(r.Comma) || (r.Comment != 0 && !validDelim(r.Comment)) {
 		return nil, errInvalidDelim
