@@ -256,7 +256,7 @@ field"`,
 	Name:  "CRLFInQuotedField", // Issue 21201
 	Input: "§A,§\"Hello\r\nHi\",§B\r\n",
 	Output: [][]string{
-		{"A", "Hello\nHi", "B"},
+		{"A", "Hello\r\nHi", "B"},
 	},
 }, {
 	Name:   "BinaryBlobField", // Issue 19410

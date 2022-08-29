@@ -101,10 +101,6 @@ func validDelim(r rune) bool {
 // As returned by NewReader, a Reader expects input conforming to RFC 4180.
 // The exported fields can be changed to customize the details before the
 // first call to Read or ReadAll.
-//
-// The Reader converts all \r\n sequences in its input to plain \n,
-// including in multiline field values, so that the returned data does
-// not depend on which line-ending convention an input file uses.
 type Reader struct {
 	// Comma is the field delimiter.
 	// It is set to comma (',') by NewReader.
@@ -267,17 +263,15 @@ func (r *Reader) readLine() ([]byte, error) {
 	}
 	r.numLine++
 	r.offset += int64(readSize)
-	// Normalize \r\n to \n on all input lines.
-	if n := len(line); n >= 2 && line[n-2] == '\r' && line[n-1] == '\n' {
-		line[n-2] = '\n'
-		line = line[:n-1]
-	}
 	return line, err
 }
 
-// lengthNL reports the number of bytes for the trailing \n.
-func lengthNL(b []byte) int {
-	if len(b) > 0 && b[len(b)-1] == '\n' {
+// lengthCRLF reports the number of bytes for the trailing \n.
+func lengthCRLF(b []byte) int {
+	if j := len(b) - 1; j >= 0 && b[j] == '\n' {
+		if j := len(b) - 2; j >= 0 && b[j] == '\r' {
+			return 2
+		}
 		return 1
 	}
 	return 0
@@ -303,7 +297,7 @@ func (r *Reader) readRecord(dst []string) ([]string, error) {
 			line = nil
 			continue // Skip comment lines
 		}
-		if errRead == nil && len(line) == lengthNL(line) {
+		if errRead == nil && len(line) == lengthCRLF(line) {
 			line = nil
 			continue // Skip empty lines
 		}
@@ -330,7 +324,7 @@ parseField:
 			})
 			if i < 0 {
 				i = len(line)
-				pos.col -= lengthNL(line)
+				pos.col -= lengthCRLF(line)
 			}
 			line = line[i:]
 			pos.col += i
@@ -342,7 +336,7 @@ parseField:
 			if i >= 0 {
 				field = field[:i]
 			} else {
-				field = field[:len(field)-lengthNL(field)]
+				field = field[:len(field)-lengthCRLF(field)]
 			}
 			// Check to make sure a quote does not appear in field.
 			if !r.LazyQuotes {
@@ -386,7 +380,7 @@ parseField:
 						r.fieldIndexes = append(r.fieldIndexes, len(r.recordBuffer))
 						r.fieldPositions = append(r.fieldPositions, fieldPos)
 						continue parseField
-					case lengthNL(line) == len(line):
+					case lengthCRLF(line) == len(line):
 						// `"\n` sequence (end of line).
 						r.fieldIndexes = append(r.fieldIndexes, len(r.recordBuffer))
 						r.fieldPositions = append(r.fieldPositions, fieldPos)
