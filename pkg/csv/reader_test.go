@@ -509,7 +509,8 @@ func firstError(errs []error, positions [][][2]int, errPositions map[int][2]int)
 }
 
 func errorWithPosition(err error, recNum int, positions [][][2]int, errPositions map[int][2]int) error {
-	parseErr, ok := err.(*ParseError)
+	var parseErr *ParseError
+	ok := errors.As(err, &parseErr)
 	if !ok {
 		return err
 	}
@@ -534,10 +535,9 @@ func errorWithPosition(err error, recNum int, positions [][][2]int, errPositions
 // The start of each field is marked with a § symbol;
 // CSV lines are separated by ¶ symbols;
 // Error positions are marked with ∑ symbols.
-func makePositions(text string) ([][][2]int, map[int][2]int, string) {
+func makePositions(text string) (positions [][][2]int, errPositions map[int][2]int, bufString string) {
 	buf := make([]byte, 0, len(text))
-	var positions [][][2]int
-	errPositions := make(map[int][2]int)
+	errPositions = make(map[int][2]int)
 	line, col := 1, 1
 	recNum := 0
 
