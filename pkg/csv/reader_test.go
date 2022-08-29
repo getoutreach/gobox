@@ -12,7 +12,15 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/getoutreach/gobox/pkg/shuffler"
 )
+
+func TestAll(t *testing.T) {
+	shuffler.Run(t, suite{})
+}
+
+type suite struct{}
 
 type readTest struct {
 	Name      string
@@ -403,7 +411,7 @@ field"`,
 	Errors:  []error{errInvalidDelim},
 }}
 
-func TestRead(t *testing.T) {
+func (suite) TestRead(t *testing.T) {
 	newReader := func(tt readTest) (*Reader, [][][2]int, map[int][2]int, string) {
 		positions, errPositions, input := makePositions(tt.Input)
 		r := NewReader(strings.NewReader(input))
