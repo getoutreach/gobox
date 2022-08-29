@@ -71,7 +71,7 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	if e.Err == ErrFieldCount {
+	if errors.Is(e.Err, ErrFieldCount) {
 		return fmt.Sprintf("record on line %d: %v", e.Line, e.Err)
 	}
 	if e.StartLine != e.Line {
@@ -229,7 +229,7 @@ type position struct {
 func (r *Reader) ReadAll() (records [][]string, err error) {
 	for {
 		record, err := r.readRecord(nil)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return records, nil
 		}
 		if err != nil {
@@ -245,9 +245,9 @@ func (r *Reader) ReadAll() (records [][]string, err error) {
 // The result is only valid until the next call to readLine.
 func (r *Reader) readLine() ([]byte, error) {
 	line, err := r.r.ReadSlice('\n')
-	if err == bufio.ErrBufferFull {
+	if errors.Is(err, bufio.ErrBufferFull) {
 		r.rawBuffer = append(r.rawBuffer[:0], line...)
-		for err == bufio.ErrBufferFull {
+		for errors.Is(err, bufio.ErrBufferFull) {
 			line, err = r.r.ReadSlice('\n')
 			r.rawBuffer = append(r.rawBuffer, line...)
 		}
@@ -303,7 +303,7 @@ func (r *Reader) readRecord(dst []string) ([]string, error) {
 		}
 		break
 	}
-	if errRead == io.EOF {
+	if errors.Is(errRead, io.EOF) {
 		return nil, errRead
 	}
 
@@ -405,7 +405,7 @@ parseField:
 						pos.line++
 						pos.col = 1
 					}
-					if errRead == io.EOF {
+					if errors.Is(errRead, io.EOF) {
 						errRead = nil
 					}
 				} else {
