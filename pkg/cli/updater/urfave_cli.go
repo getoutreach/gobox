@@ -24,21 +24,24 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// The urfave flags the updater will inject.
+var UpdaterFlags = []cli.Flag{
+	&cli.BoolFlag{
+		Name:  "skip-update",
+		Usage: "skips the updater check",
+	},
+	&cli.BoolFlag{
+		Name:  "force-update-check",
+		Usage: "Force checking for an update",
+	},
+}
+
 // hookIntoCLI hooks into a urfave/cli.App to add updater support
 func (u *updater) hookIntoCLI() {
 	oldBefore := u.app.Before
 
 	// append the standard flags
-	u.app.Flags = append(u.app.Flags, []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "skip-update",
-			Usage: "skips the updater check",
-		},
-		&cli.BoolFlag{
-			Name:  "force-update-check",
-			Usage: "Force checking for an update",
-		},
-	}...)
+	u.app.Flags = append(u.app.Flags, UpdaterFlags...)
 
 	u.app.Before = func(c *cli.Context) error {
 		// Handle deprecations and parse the flags onto our updater struct
