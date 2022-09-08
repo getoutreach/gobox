@@ -203,7 +203,7 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string) (map[str
 // semver library used. In order to support this we parse the constraints to determine the allowed channels. By
 // default `stable` is always considered, with whatever pre-release (e.g. `>=1.0.0-alpha` -> `alpha`) is specified
 // in the pre-release constraint being added to the allowed channels. If a channel is specified, it is also added
-// to the allowed channels.
+// to the allowed channels. Due to this '&&' and '||' are not supported in constraints.
 func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, error) {
 	versions, err := GetVersions(ctx, token, c.URL)
 	if err != nil {
