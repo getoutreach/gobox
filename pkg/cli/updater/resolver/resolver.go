@@ -275,7 +275,7 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 		// allow you to specify which pre-releases to allow, so we just allow all here
 		// and filter it down later.
 		if c.Channel != StableChannel && !strings.Contains(constraintStr, "-") {
-			constraintStr += "-" + "prereleases"
+			constraintStr += "-prereleases"
 		}
 
 		constraint, err := semver.NewConstraint(constraintStr)
