@@ -207,6 +207,19 @@ func StartSpan(ctx context.Context, name string, args ...log.Marshaler) context.
 	return newCtx
 }
 
+// StartSpanWithOptions starts a new span, with extra start options (such as links to external spans).
+//
+// Use trace.End to end this.
+func StartSpanWithOptions(ctx context.Context, name string, opts []SpanStartOption, args ...log.Marshaler) context.Context {
+	if defaultTracer == nil {
+		return ctx
+	}
+
+	newCtx := defaultTracer.startSpan(ctx, name, opts...)
+	addDefaultTracerInfo(newCtx, args...)
+	return newCtx
+}
+
 // Deprecated: use StartSpan() instead. It will handle async traces automatically.
 // StartSpanAsync starts a new async span.
 //
@@ -307,7 +320,8 @@ func ToHeaders(ctx context.Context) map[string][]string {
 	return defaultTracer.toHeaders(ctx)
 }
 
-// FromHeaders fetches trace info from a headers map
+// FromHeaders fetches trace info from a headers map and starts a new Span on top of the extracted
+// span context (which can be either local or remote). You must end this context with End.
 //
 // Only use for GRPC. Prefer NewHandler for http calls.
 func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {

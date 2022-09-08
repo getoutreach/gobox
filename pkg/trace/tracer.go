@@ -25,7 +25,7 @@ type tracer interface {
 
 	id(ctx context.Context) string
 
-	startSpan(ctx context.Context, name string) context.Context
+	startSpan(ctx context.Context, name string, opts ...SpanStartOption) context.Context
 
 	// Deprecated: Use startSpan() instead.
 	startSpanAsync(ctx context.Context, name string) context.Context

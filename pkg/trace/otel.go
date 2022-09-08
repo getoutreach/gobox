@@ -193,11 +193,22 @@ func (t *otelTracer) id(ctx context.Context) string {
 	return ""
 }
 
-func (t *otelTracer) startSpan(ctx context.Context, name string) context.Context {
+func (t *otelTracer) startSpan(ctx context.Context, name string, opts ...SpanStartOption) context.Context {
 	tracer := otel.GetTracerProvider().Tracer(t.serviceName)
-	ctx, _ = tracer.Start(ctx, name)
+	ctx, _ = tracer.Start(ctx, name, t.toOtelOptions(opts)...)
 
 	return ctx
+}
+
+func (t *otelTracer) toOtelOptions(opts []SpanStartOption) []trace.SpanStartOption {
+	otelOpts := []trace.SpanStartOption{}
+	for _, opt := range opts {
+		otelOpt := opt.otelOption(t)
+		if otelOpt != nil {
+			otelOpts = append(otelOpts, otelOpt)
+		}
+	}
+	return otelOpts
 }
 
 func (t *otelTracer) startSpanAsync(ctx context.Context, name string) context.Context {
