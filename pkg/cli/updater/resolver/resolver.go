@@ -275,7 +275,7 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 		// mutate the constraint to allow pre-releases. The constraint matching doesn't
 		// allow you to specify which pre-releases to allow, so we just allow all here
 		// and filter it down later.
-		if c.Channel != StableChannel {
+		if c.Channel != StableChannel && !strings.Contains(constraintStr, "-") {
 			constraintStr += "-" + "prereleases"
 		}
 
@@ -289,7 +289,12 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 
 	// join all the versions into a single slice to consider for the constraint
 	allVersions := make([]*Version, 0)
-	for _, vers := range versions {
+	for channel, vers := range versions {
+		// skip channels that aren't allowed from the constraint / channel argument
+		if !stringInSlice(channel, allowedChannels) {
+			continue
+		}
+
 		for i := range vers {
 			allVersions = append(allVersions, &vers[i])
 		}
@@ -307,12 +312,6 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 		// ensure this version meets all constraints
 		matchesConstraints := true
 		for _, constraint := range constraints {
-			// if the version isn't within our allowed channels, skip it
-			if !stringInSlice(v.Channel, allowedChannels) {
-				matchesConstraints = false
-				break
-			}
-
 			// if the version doesn't match the constraint, skip it
 			if !constraint.Check(v.sv) {
 				matchesConstraints = false
