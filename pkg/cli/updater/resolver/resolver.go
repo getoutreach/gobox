@@ -259,7 +259,6 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 
 		// extract allowed channels from the constraint if there is one
 		exampleVer := oprStripRegex.ReplaceAllString(constraintStr, "$1")
-		fmt.Println(exampleVer)
 		if exampleVerSem, err := semver.NewVersion(exampleVer); err == nil {
 			channel := strings.Split(exampleVerSem.Prerelease(), ".")[0]
 

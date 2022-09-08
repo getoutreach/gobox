@@ -166,6 +166,40 @@ func TestResolve(t *testing.T) {
 			},
 			want: newTestingVersion("v0.9.1-rc.1"),
 		},
+		{
+			name: "should support channel with constraint wanting another channel",
+			c:    Criteria{Channel: "rc", Constraints: []string{">=0.9.1-beta"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"rc": {
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+				"beta": {
+					newTestingVersion("v0.9.2-beta.1"),
+				},
+			},
+			// should return beta because module asked for it
+			want: newTestingVersion("v0.9.2-beta.1"),
+		},
+		{
+			name: "should support channel being gtr with constraint wanting another channel",
+			c:    Criteria{Channel: "beta", Constraints: []string{">=0.9.1-rc"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"rc": {
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+				"beta": {
+					newTestingVersion("v0.9.2-beta.1"),
+				},
+			},
+			// should return beta because channel asked for it
+			want: newTestingVersion("v0.9.2-beta.1"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
