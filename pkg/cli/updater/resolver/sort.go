@@ -34,7 +34,7 @@ func (s Versions) Less(i, j int) bool {
 		return false
 	}
 
-	return s[i].sv.LT(s[j].sv)
+	return s[i].sv.LessThan(s[j].sv)
 }
 
 // Sort sorts a slice of versions

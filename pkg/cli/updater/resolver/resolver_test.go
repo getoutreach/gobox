@@ -13,37 +13,17 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blang/semver/v4"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
 )
 
 // newTestingVersion is a helper function to create a testing version
-func newTestingVersion(tag string, mutable bool) Version {
-	v := Version{
-		Tag:     tag,
-		Commit:  "abcdef",
-		Channel: StableChannel,
+func newTestingVersion(tag string) Version {
+	v, err := NewVersion(tag, "abcdefghijklmnopqrstuvwxyz")
+	if err != nil {
+		panic(err)
 	}
-
-	// IDEA(jaredallard): Move the version parsing logic out of
-	// GetVersions so we can use this here.
-	if mutable {
-		v.mutable = true
-		v.Channel = tag
-	} else {
-		var err error
-		v.sv, err = semver.ParseTolerant(tag)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(v.sv.Pre) > 0 {
-			v.Channel = v.sv.Pre[0].String()
-		}
-	}
-
-	return v
+	return *v
 }
 
 func TestResolve(t *testing.T) {
@@ -58,42 +38,133 @@ func TestResolve(t *testing.T) {
 			name: "should return the stable version when no channel is specified",
 			versions: map[string][]Version{
 				StableChannel: {
-					newTestingVersion("v1.0.0", false),
+					newTestingVersion("v1.0.0"),
 				},
 				"unstable": {
-					newTestingVersion("unstable", true),
+					newTestingVersion("unstable"),
 				},
 			},
-			want:    newTestingVersion("v1.0.0", false),
-			wantErr: false,
+			want: newTestingVersion("v1.0.0"),
 		},
 		{
 			name: "should support a channel",
+			c:    Criteria{Channel: "rc"},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v1.0.0"),
+				},
+				"rc": {
+					newTestingVersion("v1.0.1-rc.1"),
+				},
+			},
+			want: newTestingVersion("v1.0.1-rc.1"),
+		},
+		{
+			name: "should always return a mutable channel as the latest version",
 			c:    Criteria{Channel: "unstable"},
 			versions: map[string][]Version{
 				StableChannel: {
-					newTestingVersion("v1.0.0", false),
+					newTestingVersion("v1.0.0"),
 				},
 				"unstable": {
-					newTestingVersion("unstable", true),
+					newTestingVersion("unstable"),
 				},
 			},
-			want:    newTestingVersion("unstable", true),
-			wantErr: false,
+			want: newTestingVersion("unstable"),
 		},
 		{
 			name: "should promote a channel to stable channel when stable is higher",
 			c:    Criteria{Channel: "rc"},
 			versions: map[string][]Version{
 				StableChannel: {
-					newTestingVersion("v1.0.0", false),
+					newTestingVersion("v1.0.0"),
 				},
 				"rc": {
-					newTestingVersion("v0.9.0", false),
+					newTestingVersion("v0.9.0-rc.1"),
 				},
 			},
-			want:    newTestingVersion("v1.0.0", false),
-			wantErr: false,
+			want: newTestingVersion("v1.0.0"),
+		},
+		{
+			name: "should support a constraint",
+			c:    Criteria{Constraints: []string{"0.9.0"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v1.0.0"),
+					newTestingVersion("v0.9.0"),
+					newTestingVersion("v0.8.0"),
+				},
+			},
+			want: newTestingVersion("v0.9.0"),
+		},
+		{
+			name: "should return a version between constraints",
+			c:    Criteria{Constraints: []string{">0.9.0", "<1.0.0"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v1.0.0"),
+					newTestingVersion("v0.9.1"),
+					newTestingVersion("v0.9.0"),
+				},
+			},
+			want: newTestingVersion("v0.9.1"),
+		},
+		{
+			name: "should satisfy a version constraint when there are multiple channels",
+			c:    Criteria{Channel: "rc", Constraints: []string{">=0.9.0"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.1"),
+				},
+				"rc": {
+					// this older than v0.9.1
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+			},
+			want: newTestingVersion("v0.9.1"),
+		},
+		{
+			name: "should satisfy a version constraint when there are multiple channels with a pre-release being higher",
+			c:    Criteria{Channel: "rc", Constraints: []string{">=0.9.0"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"rc": {
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+			},
+			want: newTestingVersion("v0.9.1-rc.1"),
+		},
+		{
+			name: "should return a version outside of the channel when a constraint is provided asking for it",
+			c:    Criteria{Constraints: []string{"~0.9.1-rc"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"rc": {
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+			},
+			want: newTestingVersion("v0.9.1-rc.1"),
+		},
+		{
+			name: "should only opt-into a channel when a constraint is provided or in the channel",
+			c:    Criteria{Constraints: []string{">=0.9.1-rc.1"}},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"rc": {
+					newTestingVersion("v0.9.1-rc.1"),
+				},
+				"beta": {
+					// should be ignored
+					newTestingVersion("v0.9.2-beta.1"),
+				},
+			},
+			want: newTestingVersion("v0.9.1-rc.1"),
 		},
 	}
 	for _, tt := range tests {
@@ -109,7 +180,10 @@ func TestResolve(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			} else if tt.wantErr && err != nil {
+				return
 			}
+
 			got := *gotPtr
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Resolve() = %v, want %v", got, tt.want)
@@ -123,9 +197,9 @@ func Test_getVersions(t *testing.T) {
 		url string
 	}
 
-	githubVersionTest := newTestingVersion("v1.0.0", false)
+	githubVersionTest := newTestingVersion("v1.0.0")
 	githubVersionTest.Commit = "398187b6edf742d4868b455754552b8b56f6abb0"
-	unstableVersionText := newTestingVersion("unstable", true)
+	unstableVersionText := newTestingVersion("unstable")
 	unstableVersionText.Commit = "skip-validate"
 
 	tests := []struct {
