@@ -123,7 +123,9 @@ func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
 	return result
 }
 
-func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+// contextFromHeaders loads the headers into a context as 'detached'. This method does not create a new span,
+// thus do not end it and do not expose it directly to the callers (it is for FromHeaders and for WithLink usage only).
+func (t *otelTracer) contextFromHeaders(ctx context.Context, hdrs map[string][]string) context.Context {
 	header := http.Header(hdrs)
 
 	force := header.Get(HeaderForceTracing)
@@ -143,7 +145,12 @@ func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, 
 
 	propagator := otel.GetTextMapPropagator()
 	ctx = propagator.Extract(ctx, otelpropagation.HeaderCarrier(header))
-	ctx = StartSpan(ctx, name)
+	// this method does not create new span to allow WithLink-related methods use the context to generate otel's Link
+	return ctx
+}
 
+func (t *otelTracer) fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
+	ctx = t.contextFromHeaders(ctx, hdrs)
+	ctx = StartSpan(ctx, name)
 	return ctx
 }

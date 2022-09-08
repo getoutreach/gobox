@@ -99,6 +99,19 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 			spanInfo[key] = a.Value.AsString()
 		}
 
+		links := s.Links()
+		if len(links) > 0 {
+			var linksInfo []map[string]interface{}
+			for _, link := range links {
+				linkInfo := map[string]interface{}{
+					"spanContext.traceID": link.SpanContext.TraceID().String(),
+					"spanContext.spanID":  link.SpanContext.SpanID().String(),
+				}
+				linksInfo = append(linksInfo, linkInfo)
+			}
+			spanInfo["links"] = linksInfo
+		}
+
 		result = append(result, spanInfo)
 	}
 

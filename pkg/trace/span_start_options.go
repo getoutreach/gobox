@@ -23,22 +23,20 @@ type SpanStartOption interface {
 // and the linked contexts come from 'outside' by other means (e.g. clerk system event headers).
 // In case you need to link trace with a span and you have direct access to that Span's context,
 // you can use trace.ToHeaders to extract the same headers map.
-func WithLink(traceHeaders map[string][]string, name string) SpanStartOption {
-	return linkOption{traceHeaders: traceHeaders, name: name}
+func WithLink(traceHeaders map[string][]string) SpanStartOption {
+	return linkOption{traceHeaders: traceHeaders}
 }
 
 // linkOption implements SpanStartOption
 type linkOption struct {
 	// traceHeaders to create span from
 	traceHeaders map[string][]string
-	// name to use for the linked span
-	name string
 }
 
 // otelOption generates a link to be attached to the StartSpan call
 func (o linkOption) otelOption(t *otelTracer) trace.SpanStartOption {
 	// must have fresh context as an input to avoid any external pollution of the span context
-	linkCtx := t.fromHeaders(context.Background(), o.traceHeaders, o.name)
+	linkCtx := t.contextFromHeaders(context.Background(), o.traceHeaders)
 	link := trace.LinkFromContext(linkCtx)
 	return trace.WithLinks(link)
 }

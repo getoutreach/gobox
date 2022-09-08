@@ -25,6 +25,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
+	linkTraceID, linkID := differs.CaptureString(), differs.CaptureString()
 
 	expected := []map[string]interface{}{
 		{
@@ -44,6 +45,12 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"attributes.app.version":  "testing",
 			"attributes.trace":        "inner2",
 			"SampleRate":              int64(1),
+			"links": []map[string]interface{}{
+				{
+					"spanContext.traceID": linkTraceID,
+					"spanContext.spanID":  linkID,
+				},
+			},
 		},
 		{
 			"name":                    "inner",
@@ -65,7 +72,24 @@ func (suite) TestNestedSpan(t *testing.T) {
 			"SampleRate":              int64(1),
 		},
 		{
-			"name":                    "trace-test",
+			"name":                    "link-span",
+			"spanContext.traceID":     linkTraceID, // link will have its own trace ID - it represents remote span
+			"spanContext.spanID":      linkID,
+			"spanContext.traceFlags":  "01",
+			"parent.traceID":          "00000000000000000000000000000000",
+			"parent.spanID":           "0000000000000000",
+			"parent.traceFlags":       "00",
+			"parent.remote":           false,
+			"spanKind":                "internal",
+			"startTime":               differs.AnyString(),
+			"endTime":                 differs.AnyString(),
+			"attributes.app.name":     "gobox",
+			"attributes.service_name": "gobox",
+			"attributes.app.version":  "testing",
+			"SampleRate":              int64(1),
+		},
+		{
+			"name":                    "root-span",
 			"spanContext.traceID":     traceID,
 			"spanContext.spanID":      rootID,
 			"spanContext.traceFlags":  "01",
@@ -105,21 +129,26 @@ func (suite) TestNestedSpan(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	defer recorder.Close()
 
-	ctx := trace.StartSpan(context.Background(), "trace-test")
-	trace.AddInfo(ctx, log.F{"trace": "outermost"})
+	rootCtx := trace.StartSpan(context.Background(), "root-span")
+	trace.AddInfo(rootCtx, log.F{"trace": "outermost"})
 
-	inner := trace.StartSpan(ctx, "inner", log.F{"from": "inner_span"})
+	linkCtx := trace.StartSpan(context.Background(), "link-span")
+	linkHeaders := trace.ToHeaders(linkCtx)
+
+	inner := trace.StartSpan(rootCtx, "inner", log.F{"from": "inner_span"})
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
 	innerAsync := trace.StartSpanAsync(inner, "innerAsync")
 	trace.AddSpanInfo(innerAsync, log.F{"trace": "innerAsync"})
 
-	inner2 := trace.StartSpan(inner, "inner2")
+	opts := []trace.SpanStartOption{trace.WithLink(linkHeaders)}
+	inner2 := trace.StartSpanWithOptions(inner, "inner2", opts)
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
 
 	trace.End(inner2)
 	trace.End(inner)
-	trace.End(ctx)
+	trace.End(linkCtx)
+	trace.End(rootCtx)
 
 	// async trace ends out of band!
 	trace.End(innerAsync)

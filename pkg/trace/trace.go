@@ -320,7 +320,8 @@ func ToHeaders(ctx context.Context) map[string][]string {
 	return defaultTracer.toHeaders(ctx)
 }
 
-// FromHeaders fetches trace info from a headers map
+// FromHeaders fetches trace info from a headers map and starts a new Span on top of the extracted
+// span context (which can be either local or remote). You must end this context with End.
 //
 // Only use for GRPC. Prefer NewHandler for http calls.
 func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context {
