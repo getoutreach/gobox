@@ -50,5 +50,8 @@ type tracer interface {
 
 	toHeaders(ctx context.Context) map[string][]string
 
+	contextFromHeaders(ctx context.Context, hdrs map[string][]string) context.Context
+
+	// fromHeaders is similar to contextFromHeaders + it starts a new span
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
 }
