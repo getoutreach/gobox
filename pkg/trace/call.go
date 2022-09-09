@@ -148,7 +148,7 @@ type traceInfo struct {
 func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
 	addField("honeycomb.trace_id", ID(c))
 	addField("honeycomb.parent_id", parentID(c))
-	addField("honeycomb.span_id", spanID(c))
+	addField("honeycomb.span_id", SpanID(c))
 }
 
 type traceEventMarker struct{}

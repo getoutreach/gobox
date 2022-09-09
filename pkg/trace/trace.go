@@ -269,9 +269,9 @@ func ID(ctx context.Context) string {
 	return defaultTracer.id(ctx)
 }
 
-// spanID returns the root tracing spanID for use when it is needed to correlate the logs belonging to same flow.
-// The spanID returned will be the honeycomb trace spanID (if honeycomb is enabled) or an empty string if neither are enabled
-func spanID(ctx context.Context) string {
+// SpanID returns the root tracing SpanID for use when it is needed to correlate the logs belonging to same flow.
+// The SpanID returned will be the honeycomb trace SpanID (if honeycomb is enabled) or an empty string if neither are enabled
+func SpanID(ctx context.Context) string {
 	if defaultTracer == nil {
 		return ""
 	}
