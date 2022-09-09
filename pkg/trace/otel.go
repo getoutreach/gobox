@@ -203,7 +203,7 @@ func (t *otelTracer) startSpan(ctx context.Context, name string, opts ...SpanSta
 func (t *otelTracer) toOtelOptions(opts []SpanStartOption) []trace.SpanStartOption {
 	otelOpts := []trace.SpanStartOption{}
 	for _, opt := range opts {
-		otelOpt := opt.otelOption(t)
+		otelOpt := opt.otelOption()
 		if otelOpt != nil {
 			otelOpts = append(otelOpts, otelOpt)
 		}
