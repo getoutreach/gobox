@@ -54,6 +54,10 @@ type Criteria struct {
 	// Constraints are the semver constraint(s) to use for determining the latest version.
 	// See: https://pkg.go.dev/github.com/Masterminds/semver/v3#hdr-Checking_Version_Constraints_and_Comparing_Versions
 	Constraints []string
+
+	// AllowBranches is a flag to allow branches to be considered as versions, branches
+	// will be represented as their own channel.
+	AllowBranches bool
 }
 
 // Version is a resolved version from a git repository
@@ -65,6 +69,10 @@ type Version struct {
 	// sv is the semver version of the tag if it is a semver tag
 	// note: if mutable == true, not semver
 	sv *semver.Version
+
+	// Branch is the branch that the version is on, branches are special
+	// versions that are always mutable.
+	Branch string
 
 	// Tag is the git tag that represents the version.
 	Tag string `yaml:"version"`
@@ -88,13 +96,13 @@ func (v *Version) String() string {
 }
 
 // NewVersion creates a new version from a tag and commit.
-func NewVersion(tag, hash string) (*Version, error) {
+func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 	var v Version
 
 	// Attempt to parse the tag as semver for a normal version
 	// tag.
 	//nolint:gocritic // Why: A switch statement doesn't read well.
-	if semV, err := semver.NewVersion(tag); err == nil {
+	if semV, err := semver.NewVersion(ref); err == nil {
 		// Determine the channel from the tag
 		// `v1.0.0-alpha.1` -> `alpha`
 		// `v1.0.0-unstable+commit` -> `unstable`
@@ -106,20 +114,24 @@ func NewVersion(tag, hash string) (*Version, error) {
 
 		v = Version{
 			sv:      semV,
-			Tag:     tag,
+			Tag:     ref,
 			Commit:  hash,
 			Channel: channel,
 		}
-	} else if mutableTagRegex.MatchString(tag) {
+	} else if mutableTagRegex.MatchString(ref) || isBranch {
 		// Matches mutable tag format, so handle it as one
 		v = Version{
 			mutable: true,
-			Tag:     tag,
+			Tag:     ref,
 			Commit:  hash,
-			Channel: tag,
+			Channel: ref,
+		}
+		if isBranch {
+			v.Branch = ref
+			v.Tag = ""
 		}
 	} else {
-		return nil, errors.Errorf("tag %q is not a valid version", tag)
+		return nil, errors.Errorf("reference %q is not a valid version", ref)
 	}
 
 	return &v, nil
@@ -133,7 +145,7 @@ func NewVersion(tag, hash string) (*Version, error) {
 var GetVersions = getVersions
 
 // getVersions is documented above
-func getVersions(ctx context.Context, token cfg.SecretData, url string) (map[string][]Version, error) {
+func getVersions(ctx context.Context, token cfg.SecretData, url string, allowBranches bool) (map[string][]Version, error) {
 	r := git.NewRemote(memory.NewStorage(), &gitconfig.RemoteConfig{
 		Name: "origin",
 		URLs: []string{url},
@@ -159,11 +171,15 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string) (map[str
 	channels := map[string][]Version{}
 
 	for _, ref := range refs {
+		// skip references that aren't a tag
 		if !ref.Name().IsTag() {
-			continue
+			// if we allow branches and this reference is a branch, we want to process it
+			if !allowBranches || !ref.Name().IsBranch() {
+				continue
+			}
 		}
 
-		v, err := NewVersion(ref.Name().Short(), ref.Hash().String())
+		v, err := NewVersion(ref.Name().Short(), ref.Name().IsBranch(), ref.Hash().String())
 		if err != nil {
 			// IDEA(jaredallard): Some way to log this tag has been ignored?
 			continue
@@ -205,7 +221,7 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string) (map[str
 // in the pre-release constraint being added to the allowed channels. If a channel is specified, it is also added
 // to the allowed channels. Due to this '&&' and '||' are not supported in constraints.
 func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, error) {
-	versions, err := GetVersions(ctx, token, c.URL)
+	versions, err := GetVersions(ctx, token, c.URL, c.AllowBranches)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get versions for %q", c.URL)
 	}

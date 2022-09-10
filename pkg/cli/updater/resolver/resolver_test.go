@@ -19,7 +19,12 @@ import (
 
 // newTestingVersion is a helper function to create a testing version
 func newTestingVersion(tag string) Version {
-	v, err := NewVersion(tag, "abcdefghijklmnopqrstuvwxyz")
+	return mustNewVersion(NewVersion(tag, false, "abcdefghijklmnopqrstuvwxyz"))
+}
+
+// mustNewVersion is a helper function to create a new version for tests
+// that panics on errors
+func mustNewVersion(v *Version, err error) Version {
 	if err != nil {
 		panic(err)
 	}
@@ -200,12 +205,25 @@ func TestResolve(t *testing.T) {
 			// should return beta because channel asked for it
 			want: newTestingVersion("v0.9.2-beta.1"),
 		},
+		{
+			name: "should support branches",
+			c:    Criteria{Channel: "main", AllowBranches: true},
+			versions: map[string][]Version{
+				StableChannel: {
+					newTestingVersion("v0.9.0"),
+				},
+				"main": {
+					mustNewVersion(NewVersion("main", true, "abcedfg")),
+				},
+			},
+			want: mustNewVersion(NewVersion("main", true, "abcedfg")),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// mock the version resolver
 			oldGetVersions := GetVersions
-			GetVersions = func(ctx context.Context, token cfg.SecretData, url string) (map[string][]Version, error) {
+			GetVersions = func(ctx context.Context, token cfg.SecretData, url string, allowBranches bool) (map[string][]Version, error) {
 				return tt.versions, nil
 			}
 			defer func() { GetVersions = oldGetVersions }()
@@ -263,7 +281,7 @@ func Test_getVersions(t *testing.T) {
 				return
 			}
 
-			got, err := getVersions(context.Background(), token, tt.args.url)
+			got, err := getVersions(context.Background(), token, tt.args.url, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getVersions() error = %v, wantErr %v", err, tt.wantErr)
 				return
