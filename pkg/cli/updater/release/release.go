@@ -34,11 +34,12 @@ type FetchOptions struct {
 	// Tag is the tag of the release
 	Tag string
 
-	// AssetName is the name of the asset to fetch
+	// AssetName is the name of the asset to fetch, globs are
+	// supported.
 	AssetName string
 
 	// AssetNames is a list of asset names to fetch, the first
-	// asset that matches will be returned.
+	// asset that matches will be returned. Globs are supported.
 	AssetNames []string
 }
 

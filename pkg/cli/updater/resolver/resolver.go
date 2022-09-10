@@ -62,13 +62,15 @@ type Criteria struct {
 
 // Version is a resolved version from a git repository
 type Version struct {
-	// mutable denotes if this version came from a mutable
-	// tag
-	mutable bool
-
 	// sv is the semver version of the tag if it is a semver tag
 	// note: if mutable == true, not semver
 	sv *semver.Version
+
+	// Mutable denotes if this version is a reference pointing to a specific
+	// sha that can't be compared as a semantic version. When encountering a
+	// mutable version, it should always be used over a semantic version as
+	// there is no way to compare the two.
+	Mutable bool
 
 	// Branch is the branch that the version is on, branches are special
 	// versions that are always mutable.
@@ -88,8 +90,17 @@ type Version struct {
 // e.g. when using a version that came from a mutable tag use
 // the commit hash+channel as opposed to just the tag.
 func (v *Version) String() string {
-	if v.mutable {
+	if v.Mutable {
 		return fmt.Sprintf("v0.0.0-%s+%s", v.Channel, v.Commit)
+	}
+
+	return v.Tag
+}
+
+// GitRef returns the git ref for the version if there is one
+func (v *Version) GitRef() string {
+	if v.Branch != "" {
+		return v.Branch
 	}
 
 	return v.Tag
@@ -121,7 +132,7 @@ func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 	} else if mutableTagRegex.MatchString(ref) || isBranch {
 		// Matches mutable tag format, so handle it as one
 		v = Version{
-			mutable: true,
+			Mutable: true,
 			Tag:     ref,
 			Commit:  hash,
 			Channel: ref,
@@ -320,7 +331,7 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 	for _, v := range allVersions {
 		// if we find a mutable version, always skip it. They must be explicitly
 		// selected.
-		if v.mutable {
+		if v.Mutable {
 			continue
 		}
 
@@ -360,7 +371,7 @@ func getLatestVersion(versions map[string][]Version, c *Criteria) (*Version, err
 		// upgrading mutable (non-semver) versions to the stable channel or doing version
 		// constraints.
 		cv := getLatestVersionFromSlice(versions[c.Channel])
-		if cv.mutable {
+		if cv.Mutable {
 			return cv, nil
 		}
 

@@ -301,7 +301,7 @@ func Test_getVersions(t *testing.T) {
 					if gotV.Channel != expectedV.Channel ||
 						(gotV.Commit != expectedV.Commit && expectedV.Commit != "skip-validate") ||
 						gotV.Tag != expectedV.Tag ||
-						gotV.mutable != expectedV.mutable ||
+						gotV.Mutable != expectedV.Mutable ||
 						!reflect.DeepEqual(gotV.sv, expectedV.sv) {
 						t.Errorf("getVersions() = %v, want %v", gotV, expectedV)
 						return
