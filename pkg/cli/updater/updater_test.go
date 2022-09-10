@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -267,4 +268,68 @@ func TestE2EUpdater(t *testing.T) {
 	}
 
 	assert.Equal(t, true, updated, "expected updater to trigger")
+}
+
+func Test_updater_getVersionInfo(t *testing.T) {
+	type fields struct{}
+	type args struct {
+		v *semver.Version
+	}
+	tests := []struct {
+		name             string
+		fields           fields
+		args             args
+		wantChannel      string
+		wantLocallyBuilt bool
+	}{
+		{
+			name: "should return basic channel from string",
+			args: args{
+				v: semver.MustParse("v1.2.3-rc.1"),
+			},
+			wantChannel: "rc",
+		},
+		{
+			name: "should return locally built when locally built",
+			args: args{
+				v: semver.MustParse("v1.2.3-rc.1-2-g1234"),
+			},
+			wantChannel:      "rc",
+			wantLocallyBuilt: true,
+		},
+		{
+			name: "should return locally built when locally built from no channel",
+			args: args{
+				v: semver.MustParse("v1.2.3-2-g1234"),
+			},
+			wantChannel:      resolver.StableChannel,
+			wantLocallyBuilt: true,
+		},
+		{
+			name: "should return channel and no local build with build metadata",
+			args: args{
+				v: semver.MustParse("v1.2.3-aNotherChannel.1+build.1"),
+			},
+			wantChannel: "aNotherChannel",
+		},
+		{
+			name: "should not fail on basic version",
+			args: args{
+				v: semver.MustParse("v1.2.3"),
+			},
+			wantChannel: resolver.StableChannel,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &updater{}
+			gotChannel, gotLocallyBuilt := u.getVersionInfo(tt.args.v)
+			if gotChannel != tt.wantChannel {
+				t.Errorf("updater.getVersionInfo() gotChannel = %v, want %v", gotChannel, tt.wantChannel)
+			}
+			if gotLocallyBuilt != tt.wantLocallyBuilt {
+				t.Errorf("updater.getVersionInfo() gotLocallyBuilt = %v, want %v", gotLocallyBuilt, tt.wantLocallyBuilt)
+			}
+		})
+	}
 }

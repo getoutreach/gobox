@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver/v4"
+	"github.com/Masterminds/semver/v3"
 	"github.com/briandowns/spinner"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
@@ -133,7 +133,7 @@ func (u *updater) defaultOptions() error {
 		u.version = app.Info().Version
 	}
 
-	curVersion, err := semver.ParseTolerant(u.version)
+	curVersion, err := semver.NewVersion(u.version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
 	}
@@ -188,35 +188,55 @@ func (u *updater) defaultOptions() error {
 		}
 	}
 
-	// determine channel from version string if not set
-	if u.channel == "" {
-		// If we don't have a channel, but we have a PreRelease field, use that.
-		// e.g. v0.1.0-alpha.1 -> alpha
-		if len(curVersion.Pre) > 0 {
-			u.channel = curVersion.Pre[0].String()
-			u.channelReason = fmt.Sprintf("using %s release", u.channel)
-		} else {
-			// default to the stable channel if we don't have a channel
-			u.channel = "stable"
-			u.channelReason = "using stable version"
-		}
+	curChannel, curLocalBuild := u.getVersionInfo(curVersion)
+	if curLocalBuild {
+		u.disabled = true
+		u.disabledReason = "using locally built version"
 	}
 
-	// Disable the updater if we have >= 2 pre-releases in
-	// our version string, for example:
-	//  Skips: v10.3.0-rc.14-23-gfe7ad99 -> [rc, 14-23-gfe7ad99]
-	//  But not: v10.3.0-rc.14
-	//  But not: v0.0.0-unstable+fe7ad99f422422abb97d9104aac54259d3a1c9b4 (+ is build metadata)
-	if len(curVersion.Pre) >= 2 {
-		// This parses the second part of pre-release string, e.g. if you have
-		// `rc.1` this parses to `1`.
-		if _, err := strconv.Atoi(curVersion.Pre[1].String()); err != nil {
-			u.disabled = true
-			u.disabledReason = "using locally built version"
-		}
+	// determine channel from version string if not set
+	if u.channel == "" {
+		u.channel = curChannel
+		u.channelReason = fmt.Sprintf("using %s version", curChannel)
 	}
 
 	return nil
+}
+
+// getVersionInfo returns information about a version from
+// a string. This is used to parse the version from the config file.
+func (u *updater) getVersionInfo(v *semver.Version) (channel string, locallyBuilt bool) {
+	splPre := strings.Split(v.Prerelease(), ".")
+
+	// get the channel from the version string if set
+	if len(splPre) > 0 && splPre[0] != "" {
+		channel = splPre[0]
+
+		// If the first char of the pre-release is a number then it's just
+		// another locally built release, e.g. [2-gfe7ad99][0] -> 2
+		if _, err := strconv.Atoi(channel[0:1]); err == nil {
+			// we have no channel, so unset the previous value
+			// (we had a number as the channel)
+			channel = ""
+			locallyBuilt = true
+		}
+	}
+
+	// check if the build is a locally built version
+	if len(splPre) >= 2 {
+		// If the second part of the pre-release is _not_ a number then it's
+		// a locally built release, e.g. [rc, 14-23-gfe7ad99][1]
+		if _, err := strconv.Atoi(splPre[1]); err != nil {
+			locallyBuilt = true
+		}
+	}
+
+	// no channel defaults to stable
+	if channel == "" {
+		channel = resolver.StableChannel
+	}
+
+	return channel, locallyBuilt
 }
 
 // check checks for updates and applies them if necessary, returning true if
@@ -283,19 +303,19 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
-	curV, err := semver.ParseTolerant(u.version)
+	curV, err := semver.NewVersion(u.version)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to parse current version")
 	}
 
-	newV, err := semver.ParseTolerant(v.String())
+	newV, err := semver.NewVersion(v.String())
 	if err != nil {
 		return false, errors.Wrap(err, "failed to parse new version")
 	}
 
 	// if the newer version is less than, or equal to the current version, then
 	// we don't need to update
-	if newV.LTE(curV) {
+	if newV.LessThan(curV) || newV.Equal(curV) {
 		return false, nil
 	}
 

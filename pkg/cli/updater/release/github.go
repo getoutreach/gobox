@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/cfg"
@@ -92,7 +93,16 @@ func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOpt
 	var a *gogithub.ReleaseAsset
 	for _, asset := range rel.Assets {
 		for _, assetName := range validAssets {
-			if asset.GetName() == assetName {
+			matched := false
+
+			// attempt to use glob first, if that errors then fall back to straight strings comparison
+			if filePathMatched, err := filepath.Match(assetName, asset.GetName()); err == nil {
+				matched = filePathMatched
+			} else if err != nil && assetName == asset.GetName() {
+				matched = true
+			}
+
+			if matched {
 				a = asset
 				break
 			}

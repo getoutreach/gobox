@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/blang/semver/v4"
+	"github.com/Masterminds/semver/v3"
 	"github.com/charmbracelet/glamour"
 	"github.com/manifoldco/promptui"
 	"github.com/sirupsen/logrus"
@@ -33,19 +33,19 @@ func getRepoFromBuild() (string, error) {
 // true if we should continue, or false if we shouldn't
 func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) bool {
 	// we skip errors because the above logic already parsed these version strings
-	cver, err := semver.ParseTolerant(curV)
+	cver, err := semver.NewVersion(curV)
 	if err != nil {
 		return true
 	}
 
-	nver, err := semver.ParseTolerant(newV)
+	nver, err := semver.NewVersion(newV)
 	if err != nil {
 		return true
 	}
 
 	// if the current major is less than the new release
 	// major then just return
-	if !(cver.Major < nver.Major) {
+	if !(cver.Major() < nver.Major()) {
 		return true
 	}
 

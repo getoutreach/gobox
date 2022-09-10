@@ -236,7 +236,7 @@ func newSetChannel(u *updater) *cli.Command {
 				return fmt.Errorf("channel must be provided")
 			}
 
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL)
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}
@@ -276,7 +276,7 @@ func newGetChannels(u *updater) *cli.Command {
 		Name:  "get-channels",
 		Usage: "Returns the valid channels",
 		Action: func(c *cli.Context) error {
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL)
+			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}

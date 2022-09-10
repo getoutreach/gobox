@@ -24,17 +24,17 @@ func (s Versions) Swap(i, j int) {
 func (s Versions) Less(i, j int) bool {
 	// if either of these versions are mutable, they are always
 	// ranked less than the other.
-	if s[i].mutable {
+	if s[i].Mutable {
 		// less than j
 		return true
 	}
 
-	if s[j].mutable {
+	if s[j].Mutable {
 		// greater than i
 		return false
 	}
 
-	return s[i].sv.LT(s[j].sv)
+	return s[i].sv.LessThan(s[j].sv)
 }
 
 // Sort sorts a slice of versions

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
-	github.com/blang/semver/v4 v4.0.0
+	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/briandowns/spinner v1.18.1
 	github.com/charmbracelet/glamour v0.5.0
 	github.com/davecgh/go-spew v1.1.1
