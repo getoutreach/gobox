@@ -7,8 +7,9 @@ import (
 	"github.com/getoutreach/gobox/pkg/async"
 )
 
-// Wait is a scheduler that allow you to wait until all scheduled tasks are processed or failed to enqueue.
-// It can be used when you need to wait for all items from one batch are processed
+// Wait is a scheduler that allows you to wait until all scheduled tasks are
+// processed or have failed to enqueue. It can be used when you need to wait
+// for all items from one batch to be processed.
 type Wait struct {
 	Scheduler Scheduler
 	sync.WaitGroup
