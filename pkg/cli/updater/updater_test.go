@@ -2,8 +2,6 @@ package updater
 
 import (
 	"context"
-	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -14,54 +12,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"gotest.tools/v3/assert"
 )
-
-func Test_generatePossibleAssetNames(t *testing.T) {
-	type args struct {
-		name    string
-		version string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		{
-			name: "should generate all possible asset names",
-			args: args{
-				name:    "test",
-				version: "v1.0.0",
-			},
-			want: []string{
-				// v prefixes
-				"test_v1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.xz",
-				"test_v1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz",
-				"test_v1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.bz2",
-				"test_v1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".zip",
-				"test-v1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.xz",
-				"test-v1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.gz",
-				"test-v1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.bz2",
-				"test-v1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".zip",
-
-				// without v prefixes
-				"test_1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.xz",
-				"test_1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.gz",
-				"test_1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.bz2",
-				"test_1.0.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".zip",
-				"test-1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.xz",
-				"test-1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.gz",
-				"test-1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".tar.bz2",
-				"test-1.0.0-" + runtime.GOOS + "-" + runtime.GOARCH + ".zip",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := generatePossibleAssetNames(tt.args.name, tt.args.version); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("generatePossibleAssetNames() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func Test_updater_defaultOptions(t *testing.T) {
 	defaultCheckInterval := 30 * time.Minute

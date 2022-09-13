@@ -106,6 +106,39 @@ func (v *Version) GitRef() string {
 	return v.Tag
 }
 
+// NewVersionFromVersionString creates a Version from a version string
+// returned from v.String()
+//
+// Note: This is lossy, for non-mutable versions it will not have a commit hash
+// and it cannot determine a branch vs. a mutable version.
+func NewVersionFromVersionString(ver string) (*Version, error) {
+	sv, err := semver.NewVersion(ver)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse version string as semver")
+	}
+
+	v := &Version{
+		sv:      sv,
+		Channel: StableChannel,
+		Tag:     ver,
+	}
+
+	splPre := strings.Split(sv.Prerelease(), ".")
+
+	// get the channel from the version string if set
+	if len(splPre) > 0 && splPre[0] != "" {
+		v.Channel = splPre[0]
+	}
+
+	if sv.Prerelease() != "" && mutableTagRegex.MatchString(sv.Prerelease()) {
+		v.Mutable = true
+		v.Commit = sv.Metadata()
+		v.Tag = v.Channel
+	}
+
+	return v, nil
+}
+
 // NewVersion creates a new version from a tag and commit.
 func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 	var v Version

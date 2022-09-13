@@ -13,8 +13,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/google/go-cmp/cmp"
 )
 
 // newTestingVersion is a helper function to create a testing version
@@ -321,6 +323,84 @@ func Test_getVersions(t *testing.T) {
 						return
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestNewVersionFromVersionString(t *testing.T) {
+	type args struct {
+		ver string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Version
+		wantErr bool
+	}{
+		{
+			name: "should parse a version string",
+			args: args{
+				ver: "v1.0.0",
+			},
+			want: &Version{
+				Tag:     "v1.0.0",
+				Channel: StableChannel,
+				sv:      semver.MustParse("1.0.0"),
+			},
+		},
+		{
+			name: "should parse a non-mutable channel",
+			args: args{
+				ver: "v1.0.0-rc.1",
+			},
+			want: &Version{
+				Tag:     "v1.0.0-rc.1",
+				Channel: "rc",
+				sv:      semver.MustParse("1.0.0-rc.1"),
+			},
+		},
+		{
+			name: "should parse a version string with a channel",
+			args: args{
+				ver: "v0.0.0-unstable",
+			},
+			want: &Version{
+				Mutable: true,
+				Tag:     "unstable",
+				Channel: "unstable",
+				sv:      semver.MustParse("1.0.0"),
+			},
+		},
+		{
+			name: "should parse a version string with a channel and get commit info",
+			args: args{
+				ver: "v0.0.0-unstable+abcdefg",
+			},
+			want: &Version{
+				Mutable: true,
+				Tag:     "unstable",
+				Channel: "unstable",
+				Commit:  "abcdefg",
+				sv:      semver.MustParse("1.0.0"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewVersionFromVersionString(tt.args.ver)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewVersionFromVersionString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(*tt.want, *got, cmp.FilterPath(func(p cmp.Path) bool {
+				return p.String() == "sv" // ignore semver
+			}, cmp.Ignore())); diff != "" {
+				t.Fatalf(diff)
+			}
+
+			if got.String() != tt.want.String() {
+				t.Errorf("NewVersionFromVersionString() = %v, want %v", got, tt.want)
 			}
 		})
 	}

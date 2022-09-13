@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -328,7 +329,20 @@ func newStatusCommand(u *updater) *cli.Command {
 
 			fmt.Println("Last Update Check:", lastCheckStr)
 			if !disabled {
-				fmt.Println("")
+				fmt.Println()
+				fmt.Println("Remote Information:")
+				v, err := resolver.Resolve(c.Context, u.ghToken, &resolver.Criteria{
+					URL:     u.repoURL,
+					Channel: u.channel,
+				})
+				if err != nil {
+					return errors.Wrap(err, "failed to resolve latest version")
+				}
+				fmt.Println("  Latest Version:", v.String())
+				shouldUpdate, reason := u.shouldUpdate(v)
+				fmt.Printf("  Update Reason: %s (should: %s)\n", reason, strconv.FormatBool(shouldUpdate))
+
+				fmt.Println()
 				fmt.Printf("Checking for updates again at %s\n", color.New(color.Bold).Sprint(nextCheck.Format(time.RFC1123)))
 			}
 
