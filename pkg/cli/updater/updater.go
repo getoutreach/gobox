@@ -303,19 +303,8 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		u.log.WithError(err).Warn("failed to save updater cache")
 	}
 
-	curV, err := semver.NewVersion(u.version)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to parse current version")
-	}
-
-	newV, err := semver.NewVersion(v.String())
-	if err != nil {
-		return false, errors.Wrap(err, "failed to parse new version")
-	}
-
-	// if the newer version is less than, or equal to the current version, then
-	// we don't need to update
-	if newV.LessThan(curV) || newV.Equal(curV) {
+	if should, reason := u.shouldUpdate(v); !should {
+		u.log.WithField("reason", reason).Debug("no update available")
 		return false, nil
 	}
 
@@ -349,15 +338,32 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// shouldUpdate returns true if the updater should update and the reason
+// why it should, or shouldn't as a string.
+func (u *updater) shouldUpdate(v *resolver.Version) (bool, string) {
+	curV, err := resolver.NewVersionFromVersionString(u.version)
+	if err != nil {
+		return false, fmt.Sprintf("failed to parse current version: %s", err)
+	}
+
+	if v.LessThan(curV) {
+		return false, "newer version is less than current version"
+	}
+
+	if v.Equal(curV) {
+		return false, "newer version is equal to current version"
+	}
+
+	return true, "version is newer than current version"
+}
+
 // installVersion installs a specific version of the application
 func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error {
 	u.log.WithField("version", v.String()).Info("Installing update")
 	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
-		RepoURL: u.repoURL,
-		Tag:     v.Tag,
-		// Note: If we're ever supporting azure devops or some other setup we might
-		// need to change this logic and pull it into release?
-		AssetNames: generatePossibleAssetNames(filepath.Base(u.repoURL), v.Tag),
+		RepoURL:   u.repoURL,
+		Tag:       v.Tag,
+		AssetName: u.executableName + "_*_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.*",
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch release")
@@ -414,27 +420,4 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 	}
 
 	return update.Apply(r, update.Options{})
-}
-
-// generatePossibleAssetNames generates a list of possible asset names for the
-// given version. This is used to find the right asset to download.
-func generatePossibleAssetNames(name, version string) []string {
-	seperators := []string{"_", "-"}
-	extensions := []string{".tar.xz", ".tar.gz", ".tar.bz2", ".zip"}
-	versions := []string{version}
-	if strings.HasPrefix(version, "v") {
-		versions = append(versions, strings.TrimPrefix(version, "v"))
-	}
-
-	names := []string{}
-	for _, v := range versions {
-		for _, sep := range seperators {
-			for _, ext := range extensions {
-				// name[_-]version[_-]linux[_-]arm64[ext]
-				names = append(names, name+sep+v+sep+runtime.GOOS+sep+runtime.GOARCH+ext)
-			}
-		}
-	}
-
-	return names
 }
