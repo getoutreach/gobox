@@ -107,9 +107,15 @@ func WithSkipInstall(skipInstall bool) Option {
 	}
 }
 
-// WithExecutableName overrides the name of the executable. See u.executableName.
+// Deprecated: Use WithExecutablePath
+// WithExecutableName overrides the name of the executable. See u.executablePath.
 func WithExecutableName(execName string) Option {
+	return WithExecutablePath(execName)
+}
+
+// WithExecutablePath overrides the path of the executable. See u.executablePath.
+func WithExecutablePath(execPath string) Option {
 	return func(u *updater) {
-		u.executableName = execName
+		u.executablePath = execPath
 	}
 }
