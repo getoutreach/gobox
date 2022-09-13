@@ -1,6 +1,6 @@
 # Updater
 
-This package implements an updater in Golang that automatically updates binaries.
+This package implements an updater in Golang that automatically updates binaries from releases on GitHub.
 
 ## Usage
 
@@ -29,7 +29,7 @@ commands on the `updater` sub-command, such as:
   * `updater set-channel <channel>` - set the current channel (release channel) this application is using
   * `updater get-channels` - list all available release channels for the current application
   * `updater use <version>` - replaces the current binary with a specific version of the application
-  * `updater rollback` - rollback to the previous version of the application used before the last update
+  * `updater rollback` - roll back to the previous version of the application used before the last update
   * `updater status` - get information on the updater
 
 ### Other Places
@@ -66,22 +66,25 @@ channel is `stable`.
 
 ### Mutable Tags
 
-Another concept supported by the updater is a concept called "mutable tags", this allows you to release
-code with binaries while not increase the version number. This is useful for HEAD based development where
-you don't want to release a new version every time you make a change, but you do want it to still be testable.
+Another concept supported by the updater is "mutable tags", which allow you to release
+code from a non-semantic-version tag that is moved between commits. This is
+useful for HEAD-based development where you don't want to release a new version
+every time you make a change, but you do want it to be released, like for testing.
 
-For example, and this is how Outreach does CLI tooling releasing, you could use mutable tags to create a flow
-like this:
+### Example (taken from Outreach)
 
-  * Merges into `main` go to `unstable`
-  * Merges into `rc` branch go to `rc`
-  * Merges into `release` go to `stable`
+For example (and this is how Outreach does CLI tooling releases), you could use
+mutable tags to create a flow like this:
 
-This would be done by doing the following via CI:
+  * Commits to `main` go to the `unstable` release. This happens automatically.
+  * Commits to the `rc` branch go to the `rc` release. This happens manually, when a release candidate is identified.
+  * Commits to the `release` breanch go to `stable` release. This happens manually, when a release candidate is ready to be promoted.
 
-  * main: Create a Github Release (or tag) named `unstable` on the latest commit
-  * rc: Force-push `rc` with the contents of `main`, then create a Github Release (or tag) with a `rc` pre-release version (`v1.0.0-rc.1` for example)
-  * release: Force-push `release` with the contents of `rc`, then create a Github Release (or tag) without a pre-release version (`v1.0.0` for example)
+This would be done by doing the following, e.g. in CI:
+
+  * main: Create a tag (or GitHub Release) named `unstable` on the latest commit, for every commit.
+  * rc: When ready to publish a release candidate, force-push to `rc` with the contents of `main`, then create a tag (or GitHub Release) with an `rc` pre-release version (`v1.0.0-rc.1` for example).
+  * release: When ready to publish a release, force-push `release` with the contents of `rc`, then create a tag (or GitHub Release) without a pre-release version (`v1.0.0` for example).
 
 The updater would then consider the list of channels to be `stable`, `unstable`, and `rc` respectively
 

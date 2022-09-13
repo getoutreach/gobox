@@ -110,7 +110,7 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 			copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
 		}
 
-		//nolint:gosec // Why: What other option do I have
+		//nolint:gosec // Why: This is perfectly safe.
 		cmd := exec.CommandContext(ctx, "saml2aws", "login", "--profile", copts.Profile, "--role", copts.Role, "--force")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout

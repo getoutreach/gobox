@@ -20,7 +20,7 @@ var (
 	// ConfigVersion is the current version of the configuration schema.
 	ConfigVersion = 1
 
-	// ConfigFile is the non-HOME containing path to the config file for the updater
+	// ConfigFile is the HOME-relative path to the config file for the updater.
 	ConfigFile = filepath.Join(".outreach", ".config", "updater", "config.yaml")
 )
 
@@ -34,7 +34,8 @@ type config struct {
 	// PerRepositoryConfiguration is configuration for each repository
 	PerRepositoryConfiguration map[string]*updateConfiguration `yaml:"perRepository"`
 
-	// UpdaterCache contains the cache for the updater
+	// UpdaterCache is the cache for the updater, mapping repository URL to last
+	// checked info.
 	UpdaterCache map[string]updateCache `yaml:"cache,omitempty"`
 }
 

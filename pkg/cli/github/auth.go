@@ -25,7 +25,7 @@ const githubKey = "github.com"
 // available via this method.
 type authAccessor func() (cfg.SecretData, error)
 
-// GetToken returns a github access token from the machine
+// GetToken returns a github access token from the machine.
 func GetToken() (cfg.SecretData, error) {
 	accessors := []authAccessor{
 		envToken,

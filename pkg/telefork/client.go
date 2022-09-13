@@ -14,11 +14,17 @@ import (
 type Event map[string]interface{}
 
 type Client interface {
+	// Enqueues an event with the given attributes for later sending.
 	SendEvent(attributes []attribute.KeyValue)
 
+	// Add a common property that will be sent with all traces. These will be
+	// overridden by event attributes with the same name (they are treated as
+	// default values).
 	AddField(key string, val interface{})
 	AddInfo(args ...log.Marshaler)
 
+	// Send all events that have been enqueued and close the client. The client
+	// should be discarded after calling this method.
 	Close()
 }
 
@@ -49,6 +55,7 @@ type client struct {
 	baseURL string
 	events  []Event
 
+	// Properties that are sent with every trace.
 	commonProps map[string]interface{}
 }
 
@@ -84,9 +91,9 @@ func (c *client) Close() {
 		return
 	}
 
-	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("X-OUTREACH-CLIENT-LOGGING", c.apiKey)
-	r.Header.Set("X-OUTREACH-CLIENT-APP-ID", c.appName)
+	r.Header.Set("content-type", "application/json")
+	r.Header.Set("x-outreach-client-logging", c.apiKey)
+	r.Header.Set("x-outreach-client-app-id", c.appName)
 
 	res, err := c.http.Do(r)
 	if err != nil {

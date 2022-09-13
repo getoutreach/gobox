@@ -245,7 +245,7 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string, allowBra
 	return channels, nil
 }
 
-// Resolve returns the latest version that satisfies the criteria
+// Resolve returns the latest version that satisfies the criteria.
 //
 // Note: token is _optional_, if you do not wish to authenticate with your VCS
 // provider you can pass an empty string.

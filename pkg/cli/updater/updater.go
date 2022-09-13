@@ -117,8 +117,7 @@ func (u *updater) defaultOptions() error {
 	}
 
 	if u.log == nil {
-		// create a null output logger, we're not going to use it
-		// if a logger wasn't passed in. This is to prevent panics.
+		// Create a discarding output logger to avoid nil interface panics.
 		log := logrus.New()
 		log.Out = io.Discard
 		u.log = log
@@ -146,7 +145,7 @@ func (u *updater) defaultOptions() error {
 		}
 	}
 
-	// if repo isn't set, then we attempt to load it from the
+	// If repo isn't set, then we attempt to load it from the
 	// go module debug information.
 	if u.repoURL == "" {
 		r, err := getRepoFromBuild()
@@ -164,13 +163,13 @@ func (u *updater) defaultOptions() error {
 		u.ghToken = token
 	}
 
-	// setup the updater
+	// Configure the urfave CLI integration.
 	if u.app != nil {
 		u.hookIntoCLI()
 	}
 
-	// read the user's config and mutate the options based on that
-	// if certain values are present
+	// Read the user's config and mutate the options based on that
+	// if certain values are present.
 	if conf, err := readConfig(); err == nil {
 		// If we don't have a channel, use the one from the config
 		if u.channel == "" {

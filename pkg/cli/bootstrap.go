@@ -234,18 +234,18 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	urfaveRegisterShutdownHandler(cancel)
 
-	c := telefork.NewClient(a.Name, teleforkAPIKey)
-
-	trace.SetSpanProcessorHook(func(e []attribute.KeyValue) {
-		c.SendEvent(e)
-	})
-
 	props := commonProps()
-	c.AddInfo(props)
 
+	// Create a tracer with a span initialized.
 	ctx = setupTracer(ctx, a.Name)
 	trace.AddInfo(ctx, props)
 
+	// Configure tracing to talk to a telefork client.
+	c := telefork.NewClient(a.Name, teleforkAPIKey)
+	c.AddInfo(props)
+	trace.SetSpanProcessorHook(func(e []attribute.KeyValue) {
+		c.SendEvent(e)
+	})
 	exitCode, exit := setupExitHandler(ctx)
 	defer func() {
 		c.Close()
