@@ -21,7 +21,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 		forceCheck     bool
 		repoURL        string
 		version        string
-		executableName string
+		executablePath string
 		skipInstall    bool
 		checkInterval  *time.Duration
 		app            *cli.App
@@ -38,13 +38,13 @@ func Test_updater_defaultOptions(t *testing.T) {
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.14-23-gfe7ad99",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 			},
 			want: fields{
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.14-23-gfe7ad99",
 				disabled:       true,
-				executableName: "gobox",
+				executablePath: "gobox",
 				skipInstall:    false,
 				checkInterval:  &defaultCheckInterval,
 				channel:        "rc",
@@ -56,13 +56,13 @@ func Test_updater_defaultOptions(t *testing.T) {
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-unstable+adadafafafafafaf",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 			},
 			want: fields{
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-unstable+adadafafafafafaf",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 				skipInstall:    false,
 				checkInterval:  &defaultCheckInterval,
 				channel:        "unstable",
@@ -74,13 +74,13 @@ func Test_updater_defaultOptions(t *testing.T) {
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 			},
 			want: fields{
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 				skipInstall:    false,
 				checkInterval:  &defaultCheckInterval,
 				channel:        "stable",
@@ -91,13 +91,13 @@ func Test_updater_defaultOptions(t *testing.T) {
 			fields: fields{
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.15",
-				executableName: "gobox",
+				executablePath: "gobox",
 			},
 			want: fields{
 				repoURL:        "https://github.com/getoutreach/gobox",
 				version:        "v10.3.0-rc.15",
 				disabled:       false,
-				executableName: "gobox",
+				executablePath: "gobox",
 				skipInstall:    false,
 				checkInterval:  &defaultCheckInterval,
 				channel:        "rc",
@@ -115,7 +115,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 				forceCheck:     tt.fields.forceCheck,
 				repoURL:        tt.fields.repoURL,
 				version:        tt.fields.version,
-				executableName: tt.fields.executableName,
+				executablePath: tt.fields.executablePath,
 				skipInstall:    tt.fields.skipInstall,
 				checkInterval:  tt.fields.checkInterval,
 				app:            tt.fields.app,
@@ -134,7 +134,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 				forceCheck:     u.forceCheck,
 				repoURL:        u.repoURL,
 				version:        u.version,
-				executableName: u.executableName,
+				executablePath: u.executablePath,
 				skipInstall:    u.skipInstall,
 				checkInterval:  u.checkInterval,
 				app:            u.app,
@@ -150,7 +150,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 func Test_updater_installVersion(t *testing.T) {
 	type fields struct {
 		repoURL        string
-		executableName string
+		executablePath string
 	}
 	type args struct {
 		version *resolver.Version
@@ -165,7 +165,7 @@ func Test_updater_installVersion(t *testing.T) {
 			name: "should fetch a version",
 			fields: fields{
 				repoURL:        "https://github.com/getoutreach/stencil",
-				executableName: "stencil",
+				executablePath: "stencil",
 			},
 			args: args{
 				version: &resolver.Version{
@@ -179,7 +179,7 @@ func Test_updater_installVersion(t *testing.T) {
 			u := &updater{
 				repoURL:        tt.fields.repoURL,
 				version:        "v0.0.0",
-				executableName: tt.fields.executableName,
+				executablePath: tt.fields.executablePath,
 				skipInstall:    true,
 				noProgressBar:  true,
 			}
