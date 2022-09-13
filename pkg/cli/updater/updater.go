@@ -340,7 +340,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 
 // shouldUpdate returns true if the updater should update and the reason
 // why it should, or shouldn't as a string.
-func (u *updater) shouldUpdate(v *resolver.Version) (bool, string) {
+func (u *updater) shouldUpdate(v *resolver.Version) (bool, string) { //nolint:gocritic // Why: doc'd above
 	curV, err := resolver.NewVersionFromVersionString(u.version)
 	if err != nil {
 		return false, fmt.Sprintf("failed to parse current version: %s", err)
