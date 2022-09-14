@@ -149,16 +149,18 @@ func waitForWorkers(t *testing.T, num int) bool {
 	return false
 }
 
+// Test that an empty pool with a zero-length buffer rejects all tasks.
 func TestPoolWithZeroBuffer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	poolSize := 5
 	jobs := 10
 
-	p := pool.New(ctx, pool.BufferLength(0), pool.ConstantSize(poolSize), pool.RejectWhenFull)
+	p := pool.New(
+		ctx, pool.BufferLength(0), pool.ConstantSize(0), pool.RejectWhenFull,
+	)
 
 	var wg sync.WaitGroup
-	var passed, rejected int32
+	var passed, cancelled, rejected int32
 
 	wg.Add(jobs)
 	// schedule 10 jobs, only 5 should pass
@@ -172,11 +174,11 @@ func TestPoolWithZeroBuffer(t *testing.T) {
 					return nil
 				}
 
-				// Fall through. Since we cancel the context to force
-				// concurrency, we want to ignore cancellations.
+				atomic.AddInt32(&cancelled, 1)
+				return nil
 			}
 
-			<-ctx.Done() // simulating blocking job until context is cancelled
+			<-ctx.Done()
 			atomic.AddInt32(&passed, 1)
 			return nil
 		}))
@@ -185,8 +187,9 @@ func TestPoolWithZeroBuffer(t *testing.T) {
 	go cancel()
 	wg.Wait() // wait till all jobs are processed/rejected
 
-	assert.Equal(t, poolSize, int(atomic.LoadInt32(&passed)), "should process %d jobs", poolSize)
-	assert.Equal(t, jobs-poolSize, int(atomic.LoadInt32(&rejected)), "should reject %d jobs", jobs-poolSize)
+	assert.Equal(t, 0, int(atomic.LoadInt32(&passed)), "should process 0 jobs", 0)
+	assert.Equal(t, jobs, int(atomic.LoadInt32(&rejected)), "should reject %d jobs", jobs)
+	assert.Equal(t, 0, int(atomic.LoadInt32(&cancelled)), "should cancel 0 jobs", 0)
 }
 
 func runPool(ctx context.Context, s *testState) *testState {
