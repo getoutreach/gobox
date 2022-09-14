@@ -8,8 +8,6 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/async"
 	"github.com/getoutreach/gobox/pkg/shuffler"
-	"github.com/getoutreach/gobox/pkg/trace"
-	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 )
@@ -26,7 +24,7 @@ type runWithCloser struct {
 
 func (r *runWithCloser) Run(c context.Context) error {
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 20)
 		if c.Err() != nil {
 			return c.Err()
 		}
@@ -50,22 +48,17 @@ func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 }
 
 func (suite) TestRunCancelPropagation(t *testing.T) {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	async.Run(ctx, async.Func(func(ctx context.Context) error {
 		<-ctx.Done()
 		return nil
 	}))
+
 	cancel()
 	async.Default.Wait()
 }
 
 func (suite) TestRunDeadlinePropagation(t *testing.T) {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	async.Run(ctx, async.Func(func(ctx context.Context) error {
 		if _, ok := ctx.Deadline(); !ok {
@@ -80,11 +73,9 @@ func (suite) TestRunDeadlinePropagation(t *testing.T) {
 
 func (suite) TestSleepUntil(t *testing.T) {
 	now := time.Now()
-	async.SleepUntil(context.Background(), time.Now().Add(-time.Second))
-	assert.Assert(t, time.Since(now) <= time.Millisecond, "slept too long")
-
-	async.SleepUntil(context.Background(), time.Now().Add(time.Millisecond))
-	assert.Assert(t, time.Since(now) <= 5*time.Millisecond, "slept too long")
+	sleepTime := 50 * time.Millisecond
+	async.SleepUntil(context.Background(), time.Now().Add(sleepTime))
+	assert.Assert(t, time.Since(now) >= sleepTime, "slept too short")
 }
 
 func (suite) TestMutexWithContext_EarlyCancel(t *testing.T) {
@@ -141,17 +132,11 @@ func (suite) TestMutexWithContext_ExtraUnlock(t *testing.T) {
 }
 
 func ExampleTasks_run() {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	tasks := async.Tasks{Name: "example"}
 	tasks.Run(ctx, async.Func(func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, "example")
-		defer trace.EndCall(ctx)
-
 		fmt.Println("Run example")
 
 		return nil
@@ -164,9 +149,6 @@ func ExampleTasks_run() {
 }
 
 func ExampleTasks_runBackground() {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctxMain, cancel := context.WithCancel(context.Background())
 
 	async.RunBackground(ctxMain, async.Func(func(ctx context.Context) error {
@@ -174,9 +156,6 @@ func ExampleTasks_runBackground() {
 		// cancel the context passed into RunBackground() function should not
 		// propagate to the context used by async.Func()
 		cancel()
-		ctx = trace.StartCall(ctx, "example")
-		defer trace.EndCall(ctx)
-
 		fmt.Println(ctx.Err())
 		fmt.Println("Run example")
 		return nil
@@ -190,17 +169,11 @@ func ExampleTasks_runBackground() {
 }
 
 func ExampleLoop() {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	count := 0
 	async.Loop(ctx, async.Func(func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, "example")
-		defer trace.EndCall(ctx)
-
 		if count < 3 {
 			count++
 			fmt.Println("count", count)
@@ -221,18 +194,12 @@ func ExampleLoop() {
 }
 
 func ExampleTasks_loop() {
-	recorder := tracetest.NewSpanRecorder()
-	defer recorder.Close()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	count := 0
 	tasks := async.Tasks{Name: "example"}
 	tasks.Loop(ctx, async.Func(func(ctx context.Context) error {
-		ctx = trace.StartCall(ctx, "example")
-		defer trace.EndCall(ctx)
-
 		if count < 3 {
 			count++
 			fmt.Println("count", count)
