@@ -86,10 +86,10 @@ type updater struct {
 	// this requires go module to be used.
 	version string
 
-	// executableName is the name of the executable to update, defaults
+	// executablePath is the path of the executable to update, defaults
 	// to the current executable name. This is also used to determine the
 	// binary to retrieve out of an archive.
-	executableName string
+	executablePath string
 
 	// skipInstall skips the installation of the update if set
 	skipInstall bool
@@ -138,9 +138,9 @@ func (u *updater) defaultOptions() error {
 		return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
 	}
 
-	if u.executableName == "" {
+	if u.executablePath == "" {
 		var err error
-		u.executableName, err = exec.ResolveExecuable(os.Args[0])
+		u.executablePath, err = exec.ResolveExecuable(os.Args[0])
 		if err != nil {
 			return err
 		}
@@ -363,7 +363,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
 		RepoURL:   u.repoURL,
 		Tag:       v.Tag,
-		AssetName: u.executableName + "_*_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.*",
+		AssetName: filepath.Base(u.executablePath) + "_*_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.*",
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch release")
@@ -398,7 +398,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 	}
 
 	bin, header, err := archive.Extract(ctx, aName, tmpF,
-		archive.WithFilePath(filepath.Base(u.executableName)),
+		archive.WithFilePath(filepath.Base(u.executablePath)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract release")
