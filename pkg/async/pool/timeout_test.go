@@ -16,8 +16,6 @@ func TestTimeout(t *testing.T) {
 
 	p := pool.New(ctx, pool.ConstantSize(1))
 
-	startedAt := time.Now()
-
 	timeout := 5 * time.Millisecond
 	scheduler := pool.WithTimeout(timeout, p)
 
@@ -50,5 +48,4 @@ func TestTimeout(t *testing.T) {
 	wait()
 
 	assert.Equal(t, context.DeadlineExceeded, err)
-	assert.Assert(t, WithinDuration(time.Now(), startedAt, 20*time.Millisecond))
 }
