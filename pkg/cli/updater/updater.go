@@ -133,11 +133,6 @@ func (u *updater) defaultOptions() error {
 		u.version = app.Info().Version
 	}
 
-	curVersion, err := semver.NewVersion(u.version)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse current version %q as semver", u.version)
-	}
-
 	if u.executablePath == "" {
 		var err error
 		u.executablePath, err = exec.ResolveExecuable(os.Args[0])
@@ -188,16 +183,24 @@ func (u *updater) defaultOptions() error {
 		}
 	}
 
-	curChannel, curLocalBuild := u.getVersionInfo(curVersion)
-	if curLocalBuild {
+	curVersion, err := semver.NewVersion(u.version)
+	if err != nil {
 		u.disabled = true
-		u.disabledReason = "using locally built version"
+		u.disabledReason = fmt.Sprintf("failed to parse current version as semver: %v", err)
 	}
 
-	// determine channel from version string if not set
-	if u.channel == "" {
-		u.channel = curChannel
-		u.channelReason = fmt.Sprintf("using %s version", curChannel)
+	if curVersion != nil {
+		curChannel, curLocalBuild := u.getVersionInfo(curVersion)
+		if curLocalBuild {
+			u.disabled = true
+			u.disabledReason = "using locally built version"
+		}
+
+		// determine channel from version string if not set
+		if u.channel == "" {
+			u.channel = curChannel
+			u.channelReason = fmt.Sprintf("using %s version", curChannel)
+		}
 	}
 
 	return nil

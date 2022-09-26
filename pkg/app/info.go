@@ -9,13 +9,21 @@ import (
 	"sync"
 )
 
-// Version needs to be set at build time using -ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=something"
-// nolint:gochecknoglobals
-var Version = "Please see http://github.com/getoutreach/gobox/blob/master/docs/version.md"
+// defaultVersion is the default version string
+const defaultVersion = "Please see http://github.com/getoutreach/gobox/blob/main/docs/version.md"
 
-// nolint:gochecknoglobals
+// Version needs to be set at build time using
+// -ldflags "-X github.com/getoutreach/gobox/pkg/app.Version=something"
+//
+//nolint:gochecknoglobals // Why: For linking
+var Version = defaultVersion
+
+// appName is the name of the app
+//
+//nolint:gochecknoglobals // Why: For linking
 var appName = "unknown"
 
+// appInfo contains information about the app
 var appInfo struct {
 	mu sync.Mutex // guarding Data to be set initialized concurrently
 	*Data
@@ -36,6 +44,8 @@ func Info() *Data {
 	return appInfo.Data
 }
 
+// info returns the static app info
+//
 //nolint:funlen
 func info() *Data {
 	const unknown = "unknown"
@@ -44,9 +54,15 @@ func info() *Data {
 	serviceAccount := ""
 	bento := ""
 
+	ver := Version
 	buildInfo, ok := debug.ReadBuildInfo()
 	if ok {
 		mainModule = buildInfo.Main.Path
+
+		// allow people to still link the version
+		if ver == defaultVersion {
+			ver = buildInfo.Main.Version
+		}
 	}
 
 	// The namespace and service account env vars are set by bootstrap
@@ -104,7 +120,7 @@ func info() *Data {
 
 	return &Data{
 		Name:    appName,
-		Version: Version,
+		Version: ver,
 
 		MainModule: mainModule,
 
