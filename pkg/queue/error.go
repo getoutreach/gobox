@@ -14,6 +14,7 @@ func NewMaxCapacityError(capacity int) *MaxCapacityError {
 	}
 }
 
+// _ ensures that MaxCapactityError implements the error interface
 var _ error = new(MaxCapacityError)
 
 // MaxCapacityError
