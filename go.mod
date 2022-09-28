@@ -22,7 +22,6 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.1
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.34.0
@@ -81,7 +80,6 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.9.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.33.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
