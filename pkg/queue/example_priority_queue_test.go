@@ -28,7 +28,7 @@ func ExamplePriorityQueue() {
 	item2 := pushItem(2, 2)
 	item3 := pushItem(3, 3)
 
-	// List items
+	// List items.
 	list := func(msg string) {
 		fmt.Println(msg)
 		for _, item := range pq.List() {
@@ -46,7 +46,7 @@ func ExamplePriorityQueue() {
 	pq.Update(item3)
 	list("list items after update")
 
-	// Remove an item
+	// Remove an item.
 	pq.Remove(item3)
 	list("list items after remove")
 

@@ -4,10 +4,10 @@
 //
 // Priority Queue
 //
-// PriorityQueue implements conatiner/heap and enriches it with additional features,
-// such as Peek, Update, Remove, Contains, List, Clean and etc.
+// PriorityQueue implements container/heap and enriches it with additional features,
+// such as Peek, Update, Remove, Contains, List, Clear, etc.
 //
-// PriorityQueue provides standard priority queue feature.
+// PriorityQueue provides a standard priority queue feature.
 //
 // 	// create priority queue.
 // 	pq, _ := queue.NewPriorityQueue()
@@ -16,7 +16,7 @@
 // 	peekItem := pq.Peek() 	// peek
 // 	popItem := pq.Pop() 	// pop
 //
-// Item priroity can be updated after it is pushed.
+// Item priority can be updated after it is pushed.
 //
 // 	// change item priority
 //	pushItem := pq.Push(1, 1)
@@ -25,7 +25,7 @@
 // 	// update item priority in queue
 // 	pq.Update(pushItem)
 //
-// Remove an item in queue without pop.
+// Remove an item in the queue without pop.
 //
 // 	// change item priority
 //	pushItem := pq.Push(1, 1)
@@ -34,7 +34,7 @@
 // 	pq.Remove(pushItem)
 //
 // Default priority uses min heap, smaller value means higher priority. You can
-// change the heap type to max heap via option. With max heap, smaller value means
+// change the heap type to max heap via option. With max heap, a smaller value means
 // lower priority.
 //
 // 	pq, _ := queue.NewPriorityQueue()
@@ -72,16 +72,16 @@ func WithCapacity(v int) PriorityQueueOption {
 	}
 }
 
-// WithMinHeap sets the priority queue to use min heap. A smaller value means
-// higher priority with min heap.
+// WithMinHeap sets the priority queue to use min heap. A smaller value means higher priority
+// with min heap.
 func WithMinHeap() PriorityQueueOption {
 	return func(q *PriorityQueue) {
 		q.queue.isMinHeap = true
 	}
 }
 
-// WithMaxHeap sets the priority queue to use max heap. A smaller value means
-// lower priority with max heap.
+// WithMaxHeap sets the priority queue to use max heap. A smaller value means lower priority
+// with max heap.
 func WithMaxHeap() PriorityQueueOption {
 	return func(q *PriorityQueue) {
 		q.queue.isMinHeap = false
@@ -103,7 +103,7 @@ func NewPriorityQueue(opts ...PriorityQueueOption) (*PriorityQueue, error) {
 	return q, nil
 }
 
-// PriorityQueue implements priority queue with heap. By default, min heap is used with a
+// PriorityQueue implements a priority queue with a heap. By default, min heap is used with a
 // default queue capacity. Items are sorted by priority, smaller value means higher priority.
 // Queue capacity and heap type can be changed via options.
 type PriorityQueue struct {
@@ -112,9 +112,9 @@ type PriorityQueue struct {
 	queue    *priorityQueueInternal
 }
 
-// Push an item into the queue. Item in queue will be sorted by priority. Push returns
-// an PriorityQueueItem that can be used for other operations, such as updating
-// item priority or removing item from the queue.
+// Push an item into the queue. Items in the queue will be sorted by priority. Push returns
+// a PriorityQueueItem that can be used for other operations, such as updating item priority
+// or removing the item from the queue.
 func (q *PriorityQueue) Push(data interface{}, priority int64) (*PriorityQueueItem, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -126,7 +126,7 @@ func (q *PriorityQueue) Push(data interface{}, priority int64) (*PriorityQueueIt
 	return item, nil
 }
 
-// Pop removes and returns the first item in queue. Pop returns nil if queue is empty.
+// Pop removes and returns the first item in the queue. Pop returns nil if the queue is empty.
 func (q *PriorityQueue) Pop() *PriorityQueueItem {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -137,7 +137,7 @@ func (q *PriorityQueue) Pop() *PriorityQueueItem {
 	return item.(*PriorityQueueItem)
 }
 
-// Peek returns the first item in queue. Peek returns nil if queue is empty.
+// Peek returns the first item in the queue. Peek returns nil if the queue is empty.
 func (q *PriorityQueue) Peek() *PriorityQueueItem {
 	q.lock.RLock()
 	defer q.lock.RUnlock()
@@ -147,8 +147,8 @@ func (q *PriorityQueue) Peek() *PriorityQueueItem {
 	return q.queue.Peek()
 }
 
-// Update the item priority in queue. Call this function when the item priority is
-// changed. Return error if item is not updated sucessfully.
+// Update the item priority in the queue. Call this function when the item priority is
+// changed. Return error if the item is not updated successfully.
 func (q *PriorityQueue) Update(item *PriorityQueueItem) error {
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -159,7 +159,7 @@ func (q *PriorityQueue) Update(item *PriorityQueueItem) error {
 	return nil
 }
 
-// Remove an item from queue and return the removed item. If item does not exist in
+// Remove an item from the queue and return the removed item. If the item does not exist in
 // queue, return nil.
 func (q *PriorityQueue) Remove(item *PriorityQueueItem) *PriorityQueueItem {
 	q.lock.Lock()
@@ -176,7 +176,7 @@ func (q *PriorityQueue) Remove(item *PriorityQueueItem) *PriorityQueueItem {
 	return removedItem
 }
 
-// Contains returns true if item is in queue.
+// Contains returns true if the item is in the queue.
 func (q *PriorityQueue) Contains(item *PriorityQueueItem) bool {
 	q.lock.RLock()
 	defer q.lock.RUnlock()
@@ -195,21 +195,21 @@ func (q *PriorityQueue) contains(item *PriorityQueueItem) bool {
 	return item == q.queue.Get(index)
 }
 
-// Clean removes all items in queue.
-func (q *PriorityQueue) Clean() {
+// Clear removes all items in the queue.
+func (q *PriorityQueue) Clear() {
 	q.lock.Lock()
 	defer q.lock.Unlock()
-	q.queue.Clean()
+	q.queue.Clear()
 }
 
-// List returns a list of items sorted by priority.
+// List returns a list of items, sorted by priority.
 func (q *PriorityQueue) List() []*PriorityQueueItem {
 	q.lock.RLock()
 	defer q.lock.RUnlock()
 	return q.queue.List()
 }
 
-// Len returns the number of items in queue.
+// Len returns the number of items in the queue.
 func (q *PriorityQueue) Len() int {
 	q.lock.RLock()
 	defer q.lock.RUnlock()
@@ -300,12 +300,12 @@ func (q *priorityQueueInternal) Push(x interface{}) {
 	q.items = append(q.items, item)
 }
 
-// Pop removes and returns the last item in queue.
+// Pop removes and returns the last item in the queue.
 func (q *priorityQueueInternal) Pop() interface{} {
 	return q.Remove(q.Len() - 1)
 }
 
-// Peek returns the first item in queue.
+// Peek returns the first item in the queue.
 func (q priorityQueueInternal) Peek() *PriorityQueueItem {
 	return q.items[0]
 }
@@ -321,8 +321,8 @@ func (q *priorityQueueInternal) Remove(i int) *PriorityQueueItem {
 	return item
 }
 
-// Clean emptys the queue.
-func (q *priorityQueueInternal) Clean() {
+// Clear emptys the queue.
+func (q *priorityQueueInternal) Clear() {
 	q.items = []*PriorityQueueItem{}
 }
 
@@ -331,7 +331,7 @@ func (q *priorityQueueInternal) Get(i int) *PriorityQueueItem {
 	return q.items[i]
 }
 
-// List all items sorted by priority.
+// List all items, sorted by priority.
 func (q *priorityQueueInternal) List() []*PriorityQueueItem {
 	items := make([]*PriorityQueueItem, q.Len())
 	copy(items, q.items)

@@ -20,7 +20,7 @@ func TestPriorityQueue_MaxHeap(t *testing.T) {
 	repeat := 3
 	for i := 0; i < repeat; i++ {
 		// push numbers in random order
-		pushRandNumbersToPiroirtyQueue(t, queue, n)
+		pushRandNumbersToPriorityQueue(t, queue, n)
 
 		// list
 		items := queue.List()
@@ -53,7 +53,7 @@ func TestPriorityQueue_Push_Pop_Peek(t *testing.T) {
 	repeat := 3
 	for i := 0; i < repeat; i++ {
 		// push numbers in random order
-		pushRandNumbersToPiroirtyQueue(t, queue, n)
+		pushRandNumbersToPriorityQueue(t, queue, n)
 
 		// list
 		items := queue.List()
@@ -83,7 +83,7 @@ func TestPriorityQueue_Update(t *testing.T) {
 	repeat := 3
 	for i := 0; i < repeat; i++ {
 		// push numbers in random order
-		items := pushRandNumbersToPiroirtyQueue(t, queue, n)
+		items := pushRandNumbersToPriorityQueue(t, queue, n)
 
 		// update priority
 		for _, item := range items {
@@ -115,7 +115,7 @@ func TestPriorityQueue_Remove(t *testing.T) {
 	repeat := 3
 	for i := 0; i < repeat; i++ {
 		// push numbers in random order
-		items := pushRandNumbersToPiroirtyQueue(t, queue, n)
+		items := pushRandNumbersToPriorityQueue(t, queue, n)
 		itemMap := make(map[int64]*PriorityQueueItem)
 		for _, item := range items {
 			itemMap[item.GetPriority()] = item
@@ -164,7 +164,7 @@ func TestPriorityQueue_Remove(t *testing.T) {
 	}
 }
 
-func TestPriorityQueue_Contain(t *testing.T) {
+func TestPriorityQueue_Contains(t *testing.T) {
 	queue1, err1 := NewPriorityQueue()
 	queue2, err2 := NewPriorityQueue()
 	assert.Assert(t, err1 == nil)
@@ -181,10 +181,10 @@ func TestPriorityQueue_Contain(t *testing.T) {
 	repeat := 3
 	for i := 0; i < repeat; i++ {
 		// push numbers in random order
-		items1 := pushRandNumbersToPiroirtyQueue(t, queue1, n)
-		items2 := pushRandNumbersToPiroirtyQueue(t, queue2, n)
+		items1 := pushRandNumbersToPriorityQueue(t, queue1, n)
+		items2 := pushRandNumbersToPriorityQueue(t, queue2, n)
 
-		// test contain
+		// test contains
 		testContain(items1, true, false)
 		testContain(items2, false, true)
 
@@ -194,22 +194,22 @@ func TestPriorityQueue_Contain(t *testing.T) {
 		for queue2.Pop() != nil {
 		}
 
-		// test ontain
+		// test contains
 		testContain(items1, false, false)
 		testContain(items2, false, false)
 	}
 }
 
-func TestPriorityQueue_Clean(t *testing.T) {
+func TestPriorityQueue_Clear(t *testing.T) {
 	queue, err := NewPriorityQueue()
 	assert.Assert(t, err == nil)
 	assert.Assert(t, queue.Len() == 0)
 
 	n := 100
-	pushRandNumbersToPiroirtyQueue(t, queue, n)
+	pushRandNumbersToPriorityQueue(t, queue, n)
 	assert.Assert(t, queue.Len() == n)
 
-	queue.Clean()
+	queue.Clear()
 	assert.Assert(t, queue.Len() == 0)
 }
 
@@ -219,7 +219,7 @@ func TestPriorityQueue_List(t *testing.T) {
 	assert.Assert(t, queue.Len() == 0)
 
 	n := 100
-	pushRandNumbersToPiroirtyQueue(t, queue, n)
+	pushRandNumbersToPriorityQueue(t, queue, n)
 	items := queue.List()
 	assert.Assert(t, len(items) == n)
 	for i := 0; i < n; i++ {
@@ -322,7 +322,7 @@ func TestPriorityQueue_Remove_Invalid_Item(t *testing.T) {
 }
 
 // push N numbers into queue in random push order.
-func pushRandNumbersToPiroirtyQueue(t *testing.T, queue *PriorityQueue, n int) []*PriorityQueueItem {
+func pushRandNumbersToPriorityQueue(t *testing.T, queue *PriorityQueue, n int) []*PriorityQueueItem {
 	nums := make([]int64, n)
 	for i := 0; i < n; i++ {
 		nums[i] = int64(i)
