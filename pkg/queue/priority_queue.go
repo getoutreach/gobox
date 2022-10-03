@@ -56,7 +56,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// const
+// This section defines default configuration.
 const (
 	// DefaultPriorityQueueCapacity is the default priority queue capacity.
 	DefaultPriorityQueueCapacity = math.MaxInt32
