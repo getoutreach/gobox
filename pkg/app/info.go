@@ -98,9 +98,11 @@ func info() *Data {
 	}
 
 	region := unknown
-	// e.g. production.us-west-2
-	if regionParts := strings.Split(clusterName, "."); len(regionParts) == 2 {
-		region = regionParts[1]
+	if r := os.Getenv("MY_REGION"); r != "" {
+		region = r
+	} else if rps := strings.Split(clusterName, "."); len(rps) == 2 {
+		// e.g. production.us-west-2
+		region = rps[1]
 	}
 
 	podID := unknown
