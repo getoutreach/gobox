@@ -26,11 +26,11 @@ func main() {
 This will automatically update your application if there's an update available, as well as expose
 commands on the `updater` sub-command, such as:
 
-  * `updater set-channel <channel>` - set the current channel (release channel) this application is using
-  * `updater get-channels` - list all available release channels for the current application
-  * `updater use <version>` - replaces the current binary with a specific version of the application
-  * `updater rollback` - rollback to the previous version of the application used before the last update
-  * `updater status` - get information on the updater
+- `updater set-channel <channel>` - set the current channel (release channel) this application is using
+- `updater get-channels` - list all available release channels for the current application
+- `updater use <version>` - replaces the current binary with a specific version of the application
+- `updater rollback` - rollback to the previous version of the application used before the last update
+- `updater status` - get information on the updater
 
 ### Other Places
 
@@ -73,15 +73,15 @@ you don't want to release a new version every time you make a change, but you do
 For example, and this is how Outreach does CLI tooling releasing, you could use mutable tags to create a flow
 like this:
 
-  * Merges into `main` go to `unstable`
-  * Merges into `rc` branch go to `rc`
-  * Merges into `release` go to `stable`
+- Merges into `main` go to `unstable`
+- Merges into `rc` branch go to `rc`
+- Merges into `release` go to `stable`
 
 This would be done by doing the following via CI:
 
-  * main: Create a Github Release (or tag) named `unstable` on the latest commit
-  * rc: Force-push `rc` with the contents of `main`, then create a Github Release (or tag) with a `rc` pre-release version (`v1.0.0-rc.1` for example)
-  * release: Force-push `release` with the contents of `rc`, then create a Github Release (or tag) without a pre-release version (`v1.0.0` for example)
+- main: Create a Github Release (or tag) named `unstable` on the latest commit
+- rc: Force-push `rc` with the contents of `main`, then create a Github Release (or tag) with a `rc` pre-release version (`v1.0.0-rc.1` for example)
+- release: Force-push `release` with the contents of `rc`, then create a Github Release (or tag) without a pre-release version (`v1.0.0` for example)
 
 The updater would then consider the list of channels to be `stable`, `unstable`, and `rc` respectively
 
