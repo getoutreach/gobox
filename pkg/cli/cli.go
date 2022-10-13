@@ -57,7 +57,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	// Cancel the context on ^C and other signals
 	urfaveRegisterShutdownHandler(cancel)
 
-	exitCode, exit := setupExitHandler(ctx)
+	exitCode, exit := setupExitHandler()
 	defer exit()
 
 	if _, err := updater.UseUpdater(ctx, updater.WithApp(a), updater.WithLogger(logger)); err != nil {
