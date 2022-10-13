@@ -364,9 +364,15 @@ func (u *updater) shouldUpdate(v *resolver.Version) (bool, string) { //nolint:go
 func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error {
 	u.log.WithField("version", v.String()).Info("Installing update")
 	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
-		RepoURL:   u.repoURL,
-		Tag:       v.Tag,
-		AssetName: filepath.Base(u.executablePath) + "_*_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.*",
+		RepoURL: u.repoURL,
+		Tag:     v.Tag,
+
+		// Assets are uploaded starting with `repoName`.
+		// Don't use filepath.Base(u.executableName),
+		// because if the executable is not named the same as the repo
+		// (and there is no restriction for it be so)
+		// then the installer won't be able to find the asset.
+		AssetName: filepath.Base(u.repoURL) + "_*_" + runtime.GOOS + "_" + runtime.GOARCH + ".tar.*",
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch release")
