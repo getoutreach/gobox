@@ -38,12 +38,12 @@ type recorder struct {
 
 // newRecorder creates a new recorder using a os.File as
 // the underlying writer
-func newRecoder(logFile *os.File) *recorder {
+func newRecoder(logFile *os.File, cmd string, args []string) *recorder {
 	enc := jsoniter.NewEncoder(logFile)
 	startedAt := time.Now()
 
 	//nolint:errcheck // Why: Best effort
-	enc.Encode(Metadata{startedAt})
+	enc.Encode(NewMetadataEntry(startedAt, cmd, args))
 
 	return &recorder{
 		enc:       enc,
@@ -72,9 +72,6 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 	}
 
 	//nolint:errcheck // Why: Best effort
-	r.enc.Encode(Frame{
-		Delay: diff,
-		Bytes: b,
-	})
+	r.enc.Encode(NewFrameEntry(diff, b))
 	return len(b), nil
 }

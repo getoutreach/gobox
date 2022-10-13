@@ -7,58 +7,38 @@ package logfile
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"time"
 
 	// jsoniter is used to speed up json encoding for the log
 	// paths, but not for playing
-	jsoniter "github.com/json-iterator/go"
+
 	"github.com/pkg/errors"
 )
-
-// FrameOrMetadata is a type that can be either a Frame or a Metadata
-type FrameOrMetadata struct {
-	Frame    *Frame
-	Metadata *Metadata
-}
-
-// MarshalJSON implements json.Marshaler
-func (f *FrameOrMetadata) MarshalJSON() ([]byte, error) {
-	if f.Frame != nil {
-		return jsoniter.Marshal(f.Frame)
-	}
-	return jsoniter.Marshal(f.Metadata)
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (f *FrameOrMetadata) UnmarshalJSON(data []byte) error {
-	var frame Frame
-	if err := jsoniter.Unmarshal(data, &frame); err == nil {
-		f.Frame = &frame
-		return nil
-	}
-
-	var metadata Metadata
-	if err := jsoniter.Unmarshal(data, &metadata); err == nil {
-		f.Metadata = &metadata
-		return nil
-	}
-
-	return fmt.Errorf("unknown entry: %q", string(data))
-}
 
 // Metadata is the first entry in a log file that contains
 // information about the log file.
 type Metadata struct {
+	// EntryMetadata implements a entry
+	EntryMetadata `json:",inline"`
+
 	// StartedAt is the time that the process was started.
 	StartedAt time.Time `json:"started_at"`
+
+	// Command is the binary that was executed.
+	Command string `json:"command"`
+
+	// Args is the arguments that were passed to the binary.
+	Args []string `json:"args"`
 }
 
 // Frame is a frame in a log file that contains the frames
 // written to a terminal and the time between them.
 type Frame struct {
+	// EntryMetadata implements a entry
+	EntryMetadata `json:",inline"`
+
 	// Delay is the delay since the last frame.
 	Delay time.Duration `json:"d"`
 
@@ -67,7 +47,7 @@ type Frame struct {
 }
 
 // ReadFile reads a log file and returns the frames and metadata.
-func ReadFile(path string) ([]FrameOrMetadata, error) {
+func ReadFile(path string) ([]Entry, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -78,19 +58,19 @@ func ReadFile(path string) ([]FrameOrMetadata, error) {
 }
 
 // read reads frames from a io.reader
-func read(r io.Reader) ([]FrameOrMetadata, error) {
-	var frames []FrameOrMetadata
+func read(r io.Reader) ([]Entry, error) {
+	var entries []Entry
 	dec := json.NewDecoder(r)
 	for {
-		var frame FrameOrMetadata
-		if err := dec.Decode(&frame); err != nil {
+		var fm Entry
+		if err := dec.Decode(&fm); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
 		}
-		frames = append(frames, frame)
+		entries = append(entries, fm)
 	}
 
-	return frames, nil
+	return entries, nil
 }

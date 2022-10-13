@@ -26,7 +26,7 @@ func Test_recorder(t *testing.T) {
 		{
 			name: "should write frames",
 			data: []string{"abc", "def"},
-			want: `{"d":1,"b":"YWJj"}` + "\n" + `{"d":1,"b":"ZGVm"}` + "\n",
+			want: `{"t":1,"d":1,"b":"YWJj"}` + "\n" + `{"t":1,"d":1,"b":"ZGVm"}` + "\n",
 		},
 	}
 
@@ -45,8 +45,8 @@ func Test_recorder(t *testing.T) {
 			}
 
 			contents := buf.String()
-			if diff := cmp.Diff(contents, tt.want); diff != "" {
-				t.Errorf("recorder.Write() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.want, contents); diff != "" {
+				t.Errorf("recorder contents mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
