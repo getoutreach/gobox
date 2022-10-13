@@ -69,7 +69,7 @@ func Hook() error {
 
 	// hook into the PTY's stdout/stderr and forward it to the log file
 	// and stdout, as well as forward stdin to the PTY
-	exited, err := ptyOutputHook(ptmx, logFile)
+	exited, err := ptyOutputHook(cmd, ptmx, logFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to hook into pty output")
 	}
@@ -132,7 +132,7 @@ func forwardSignals(exited <-chan struct{}, ptmx *os.File, cmd *exec.Cmd) {
 
 // ptyOutputHook reads the data from the PTY and writes it to the log file
 // and stdout while also handling forwarding os.Stdin to the PTY.
-func ptyOutputHook(ptmx, logFile *os.File) (<-chan struct{}, error) {
+func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, error) {
 	// Set stdin in raw mode.
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -148,7 +148,7 @@ func ptyOutputHook(ptmx, logFile *os.File) (<-chan struct{}, error) {
 	// forward the PTY to the log file and stdout
 	//nolint:errcheck // Why: Best effort
 	go func() {
-		io.Copy(io.MultiWriter(newRecoder(logFile), os.Stdout), ptmx)
+		io.Copy(io.MultiWriter(newRecoder(logFile, cmd.Path, cmd.Args), os.Stdout), ptmx)
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		close(exitChan)
 	}()
