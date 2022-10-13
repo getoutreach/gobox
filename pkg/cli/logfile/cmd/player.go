@@ -14,18 +14,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	frames, err := logfile.ReadFile(os.Args[1])
+	entries, err := logfile.ReadFile(os.Args[1])
 	if err != nil {
 		panic(err)
 	}
 
-	for _, fm := range frames {
-		if fm.Metadata != nil || fm.Frame == nil {
+	for _, e := range entries {
+		if e.IsMetadata() || !e.IsFrame() {
 			continue
 		}
 
-		f := fm.Frame
-
+		f := e.AsFrame()
 		time.Sleep(f.Delay)
 		os.Stdout.Write(f.Bytes)
 	}
