@@ -36,6 +36,9 @@ const InProgressSuffix = "_inprog"
 // LogDirectoryBase is the directory where logs are stored
 const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
+// LogExtension is the extension for log files
+const LogExtension = "json"
+
 // Hook re-runs the current process with a PTY attached to it, and then
 // hooks into the PTY's stdout/stderr to record logs.
 func Hook() error {
@@ -63,7 +66,7 @@ func Hook() error {
 
 	// logFile is the new file descriptor that we will write to
 	// and replace the old one with
-	logFile, err := os.Create(filepath.Join(logDir, fmt.Sprintf("%s_inprog.log", uuid.New())))
+	logFile, err := os.Create(filepath.Join(logDir, fmt.Sprintf("%s_inprog.%s", uuid.New(), LogExtension)))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log file")
 	}
@@ -99,8 +102,9 @@ func Hook() error {
 		ptmx.Close()
 		<-exited
 	} else {
-		cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
-		cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+		rec := newRecoder(logFile, 0, 0, cmd.Path, cmd.Args)
+		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
+		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
 	}
 
@@ -109,7 +113,7 @@ func Hook() error {
 
 	// Rename the log file to be completed
 	logPath := logFile.Name()
-	if err := os.Rename(logPath, strings.TrimSuffix(logPath, InProgressSuffix+".log")+".log"); err != nil {
+	if err := os.Rename(logPath, strings.TrimSuffix(logPath, InProgressSuffix+"."+LogExtension)+"."+LogExtension); err != nil {
 		return errors.Wrap(err, "failed to rename log file to be completed")
 	}
 
@@ -191,10 +195,17 @@ func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, erro
 
 	finishedChan := make(chan struct{})
 
+	w, h, err := term.GetSize(int(os.Stdin.Fd()))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get terminal size")
+	}
+
+	rec := newRecoder(logFile, w, h, cmd.Path, cmd.Args[1:])
+
 	// forward the PTY to the log file and stdout
 	go func() {
 		//nolint:errcheck // Why: Best effort
-		io.Copy(io.MultiWriter(newRecoder(logFile, cmd.Path, cmd.Args[1:]), os.Stdout), ptmx)
+		io.Copy(io.MultiWriter(rec, os.Stdout), ptmx)
 		detachStdin()
 		close(finishedChan)
 	}()

@@ -38,10 +38,12 @@ func Test_read(t *testing.T) {
 		{
 			name: "should read metadata",
 			args: args{
-				r: bytes.NewBufferString(`{"t":0,"started_at":"2022-10-13T00:00:00Z","command":"player","args":["arg1","arg2"]}` + "\n"),
+				r: bytes.NewBufferString(
+					`{"t":0,"started_at":"2022-10-13T00:00:00Z","version":1,"frame_version":1,"command":"player","args":["arg1","arg2"]}` + "\n",
+				),
 			},
 			want: []Entry{
-				NewMetadataEntry(time.Date(2022, 10, 13, 0, 0, 0, 0, time.UTC), "player", []string{"arg1", "arg2"}),
+				NewMetadataEntry(time.Date(2022, 10, 13, 0, 0, 0, 0, time.UTC), 0, 0, "player", []string{"arg1", "arg2"}),
 			},
 		},
 	}

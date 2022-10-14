@@ -56,14 +56,18 @@ func NewFrameEntry(delay time.Duration, bytes []byte) Entry {
 }
 
 // NewMetadata creates a new metadata entry
-func NewMetadataEntry(startedAt time.Time, command string, args []string) Entry {
+func NewMetadataEntry(startedAt time.Time, width, height int, command string, args []string) Entry {
 	return NewEntryFromMetadata(&Metadata{
 		EntryMetadata: EntryMetadata{
 			Type: EntryTypeMetadata,
 		},
-		StartedAt: startedAt,
-		Command:   command,
-		Args:      args,
+		Version:      MetadataVersion,
+		FrameVersion: FrameVersion,
+		StartedAt:    startedAt,
+		Width:        width,
+		Height:       height,
+		Command:      command,
+		Args:         args,
 	})
 }
 
