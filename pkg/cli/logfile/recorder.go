@@ -40,7 +40,7 @@ type recorder struct {
 // the underlying writer
 func newRecoder(logFile *os.File, cmd string, args []string) *recorder {
 	enc := jsoniter.NewEncoder(logFile)
-	startedAt := time.Now().Local()
+	startedAt := time.Now()
 
 	//nolint:errcheck // Why: Best effort
 	enc.Encode(NewMetadataEntry(startedAt, cmd, args))
