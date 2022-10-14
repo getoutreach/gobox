@@ -13,9 +13,12 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/creack/pty"
+	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/term"
 )
@@ -24,6 +27,11 @@ import (
 // the process is being re-ran with a PTY attached to it and it's logs
 // are being recorded.
 const EnvironmentVariable = "OUTREACH_LOGGING_TO_FILE"
+
+// InProgressSuffix is the suffix to denote that a log file is for an
+// in-progress command. Meaning that it is not complete, or that the
+// wrapper has crashed.
+const InProgressSuffix = "_inprog"
 
 // logDir is the directory where logs are stored
 const logDir = ".outreach" + string(filepath.Separator) + "logs"
@@ -40,18 +48,20 @@ func Hook() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get user's home directory")
 	}
-	homeLogDir := filepath.Join(homeDir, logDir)
+
+	// $HOME/.outreach/logs/appName
+	logDir := filepath.Join(homeDir, logDir, app.Info().Name)
 
 	// ensure that the log directory exists
-	if _, err := os.Stat(homeLogDir); errors.Is(err, os.ErrNotExist) {
-		if err := os.MkdirAll(homeLogDir, 0o755); err != nil {
+	if _, err := os.Stat(logDir); errors.Is(err, os.ErrNotExist) {
+		if err := os.MkdirAll(logDir, 0o755); err != nil {
 			return errors.Wrap(err, "failed to create log directory")
 		}
 	}
 
 	// logFile is the new file descriptor that we will write to
 	// and replace the old one with
-	logFile, err := os.Create(filepath.Join(homeLogDir, "devenv.log"))
+	logFile, err := os.Create(filepath.Join(logDir, fmt.Sprintf("%s_inprog.log", uuid.New())))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log file")
 	}
@@ -85,6 +95,12 @@ func Hook() error {
 	// Wait for the logs to flush then close the log file
 	<-exited
 	logFile.Close()
+
+	// Rename the log file to be completed
+	logPath := logFile.Name()
+	if err := os.Rename(logPath, strings.TrimSuffix(logPath, InProgressSuffix+".log")+".log"); err != nil {
+		return errors.Wrap(err, "failed to rename log file to be completed")
+	}
 
 	if err != nil {
 		// use the exit code from the command
