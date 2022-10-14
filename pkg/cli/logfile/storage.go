@@ -11,9 +11,6 @@ import (
 	"os"
 	"time"
 
-	// jsoniter is used to speed up json encoding for the log
-	// paths, but not for playing
-
 	"github.com/pkg/errors"
 )
 

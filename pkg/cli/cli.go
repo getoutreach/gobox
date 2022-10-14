@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/getoutreach/gobox/pkg/cli/logfile"
 	"github.com/getoutreach/gobox/pkg/cli/updater"
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/log"
@@ -49,6 +50,8 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	// Ensure that we don't use the standard outreach logger
 	log.SetOutput(io.Discard)
+
+	logfile.Hook()
 
 	// Support loading compiled in keys from the binary through the
 	// config framework

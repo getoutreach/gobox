@@ -15,6 +15,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-github/v47 v47.0.0
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/honeycombio/beeline-go v1.4.1
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
