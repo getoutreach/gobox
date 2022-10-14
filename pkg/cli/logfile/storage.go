@@ -14,11 +14,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+// MetadataVersion is the version of the metadata format this
+// package supports.
+const MetadataVersion = 1
+
+// FrameVersion is the version of frames this package supports
+const FrameVersion = 1
+
 // Metadata is the first entry in a log file that contains
 // information about the log file.
 type Metadata struct {
 	// EntryMetadata implements a entry
 	EntryMetadata `json:",inline"`
+
+	// Version is the version of the metadata format
+	Version int `json:"version"`
+
+	// FrameVersion is the version of the frame format used
+	FrameVersion int `json:"frame_version"`
+
+	// Width is the width of the terminal
+	Width int `json:"width"`
+
+	// Height is the height of the terminal
+	Height int `json:"height"`
 
 	// StartedAt is the time that the process was started.
 	StartedAt time.Time `json:"started_at"`
@@ -43,7 +62,12 @@ type Frame struct {
 	Bytes []byte `json:"b"`
 }
 
-// ReadFile reads a log file and returns the frames and metadata.
+// ReadFromReader reads entires from a io.reader
+func ReadFromReader(r io.Reader) ([]Entry, error) {
+	return read(r)
+}
+
+// ReadFile reads a log file and returns the entries in it.
 func ReadFile(path string) ([]Entry, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -54,7 +78,7 @@ func ReadFile(path string) ([]Entry, error) {
 	return read(f)
 }
 
-// read reads frames from a io.reader
+// read reads entries from a io.reader
 func read(r io.Reader) ([]Entry, error) {
 	var entries []Entry
 	dec := json.NewDecoder(r)
