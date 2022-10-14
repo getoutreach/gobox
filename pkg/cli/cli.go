@@ -51,7 +51,9 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	// Ensure that we don't use the standard outreach logger
 	log.SetOutput(io.Discard)
 
-	logfile.Hook()
+	if err := logfile.Hook(); err != nil {
+		logger.WithError(err).Warn("Failed to capture logs, continuing without logging to file")
+	}
 
 	// Support loading compiled in keys from the binary through the
 	// config framework
