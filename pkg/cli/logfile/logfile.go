@@ -33,8 +33,8 @@ const EnvironmentVariable = "OUTREACH_LOGGING_TO_FILE"
 // wrapper has crashed.
 const InProgressSuffix = "_inprog"
 
-// logDir is the directory where logs are stored
-const logDir = ".outreach" + string(filepath.Separator) + "logs"
+// LogDirectoryBase is the directory where logs are stored
+const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
 // Hook re-runs the current process with a PTY attached to it, and then
 // hooks into the PTY's stdout/stderr to record logs.
@@ -50,7 +50,7 @@ func Hook() error {
 	}
 
 	// $HOME/.outreach/logs/appName
-	logDir := filepath.Join(homeDir, logDir, app.Info().Name)
+	logDir := filepath.Join(homeDir, LogDirectoryBase, app.Info().Name)
 
 	// ensure that the log directory exists
 	if _, err := os.Stat(logDir); errors.Is(err, os.ErrNotExist) {
@@ -146,28 +146,46 @@ func forwardSignals(exited <-chan struct{}, ptmx *os.File, cmd *exec.Cmd) {
 	c <- syscall.SIGWINCH
 }
 
-// ptyOutputHook reads the data from the PTY and writes it to the log file
-// and stdout while also handling forwarding os.Stdin to the PTY.
-func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, error) {
+// attachStdinToPty attaches the current os.Stdin to the
+// provided PTY if running in a terminal
+func attachStdinToPty() (func(), error) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return func() {}, nil
+	}
+
 	// Set stdin in raw mode.
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, err
 	}
 
+	return func() {
+		//nolint:errcheck // Why: Best effort
+		term.Restore(int(os.Stdin.Fd()), oldState)
+	}, nil
+}
+
+// ptyOutputHook reads the data from the PTY and writes it to the log file
+// and stdout while also handling forwarding os.Stdin to the PTY.
+func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, error) {
+	detachStdin, err := attachStdinToPty()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to attach stdin to pty")
+	}
+
 	// forward os.Stdin to the PTY
 	//nolint:errcheck // Why: Best effort
 	go io.Copy(ptmx, os.Stdin)
 
-	exitChan := make(chan struct{})
+	finishedChan := make(chan struct{})
 
 	// forward the PTY to the log file and stdout
-	//nolint:errcheck // Why: Best effort
 	go func() {
+		//nolint:errcheck // Why: Best effort
 		io.Copy(io.MultiWriter(newRecoder(logFile, cmd.Path, cmd.Args), os.Stdout), ptmx)
-		term.Restore(int(os.Stdin.Fd()), oldState)
-		close(exitChan)
+		detachStdin()
+		close(finishedChan)
 	}()
 
-	return exitChan, nil
+	return finishedChan, nil
 }
