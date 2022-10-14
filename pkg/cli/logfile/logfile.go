@@ -99,8 +99,8 @@ func Hook() error {
 		ptmx.Close()
 		<-exited
 	} else {
-		cmd.Stdout = logFile
-		cmd.Stderr = logFile
+		cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+		cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
 		cmdErr = cmd.Run()
 	}
 
