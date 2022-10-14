@@ -44,6 +44,8 @@ func Hook() error {
 		return nil
 	}
 
+	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return errors.Wrap(err, "failed to get user's home directory")
@@ -72,28 +74,37 @@ func Hook() error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=1", EnvironmentVariable))
 
-	ptmx, err := pty.Start(cmd)
-	if err != nil {
-		return errors.Wrap(err, "failed to start pty")
+	var cmdErr error
+	if isTerminal {
+		ptmx, err := pty.Start(cmd)
+		if err != nil {
+			return errors.Wrap(err, "failed to start pty")
+		}
+
+		// hook into the PTY's stdout/stderr and forward it to the log file
+		// and stdout, as well as forward stdin to the PTY
+		exited, err := ptyOutputHook(cmd, ptmx, logFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to hook into pty output")
+		}
+
+		// Forward all signals to the PTY
+		forwardSignals(exited, ptmx, cmd)
+
+		// Handle the error after the logs have flushed
+		cmdErr = cmd.Wait()
+
+		// Close the PTY and wait for the output hook to flush
+		//nolint:errcheck // Why: Best effort
+		ptmx.Close()
+		<-exited
+	} else {
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		cmdErr = cmd.Run()
 	}
 
-	// hook into the PTY's stdout/stderr and forward it to the log file
-	// and stdout, as well as forward stdin to the PTY
-	exited, err := ptyOutputHook(cmd, ptmx, logFile)
-	if err != nil {
-		return errors.Wrap(err, "failed to hook into pty output")
-	}
-
-	forwardSignals(exited, ptmx, cmd)
-
-	// Handle the error after the logs have flushed
-	err = cmd.Wait()
-
-	// Clean up the PTY + log file
-	ptmx.Close()
-
-	// Wait for the logs to flush then close the log file
-	<-exited
+	// Close the log file, since we're done writing to it
 	logFile.Close()
 
 	// Rename the log file to be completed
@@ -102,10 +113,11 @@ func Hook() error {
 		return errors.Wrap(err, "failed to rename log file to be completed")
 	}
 
-	if err != nil {
+	// Proxy the error from the command we ran
+	if cmdErr != nil {
 		// use the exit code from the command
 		var execErr *exec.ExitError
-		if errors.As(err, &execErr) {
+		if errors.As(cmdErr, &execErr) {
 			os.Exit(execErr.ExitCode())
 		}
 
