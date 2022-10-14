@@ -194,7 +194,7 @@ func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, erro
 	// forward the PTY to the log file and stdout
 	go func() {
 		//nolint:errcheck // Why: Best effort
-		io.Copy(io.MultiWriter(newRecoder(logFile, cmd.Path, cmd.Args), os.Stdout), ptmx)
+		io.Copy(io.MultiWriter(newRecoder(logFile, cmd.Path, cmd.Args[1:]), os.Stdout), ptmx)
 		detachStdin()
 		close(finishedChan)
 	}()
