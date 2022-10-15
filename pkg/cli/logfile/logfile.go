@@ -2,7 +2,7 @@
 
 // Description: See package comment
 
-// Package logfile this file contains code for intercepting CLI output
+// Package logfile contains code for intercepting CLI output
 // and dropping it into a logfile.
 package logfile
 
