@@ -24,16 +24,20 @@ import (
 )
 
 // EnvironmentVariable is the environment variable that is set when
-// the process is being re-ran with a PTY attached to it and it's logs
+// the process is being re-ran with a PTY attached to it and its logs
 // are being recorded.
 const EnvironmentVariable = "OUTREACH_LOGGING_TO_FILE"
 
 // InProgressSuffix is the suffix to denote that a log file is for an
 // in-progress command. Meaning that it is not complete, or that the
 // wrapper has crashed.
+//
+// Note: This does not include the file extension, which can be grabbed
+// from LogExtension.
 const InProgressSuffix = "_inprog"
 
 // LogDirectoryBase is the directory where logs are stored
+// relative to the user's home directory.
 const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
 // LogExtension is the extension for log files
@@ -102,7 +106,7 @@ func Hook() error {
 		ptmx.Close()
 		<-exited
 	} else {
-		rec := newRecoder(logFile, 0, 0, cmd.Path, cmd.Args)
+		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args)
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
@@ -200,12 +204,12 @@ func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, erro
 		return nil, errors.Wrap(err, "failed to get terminal size")
 	}
 
-	rec := newRecoder(logFile, w, h, cmd.Path, cmd.Args[1:])
+	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:])
 
 	// forward the PTY to the log file and stdout
 	go func() {
 		//nolint:errcheck // Why: Best effort
-		io.Copy(io.MultiWriter(rec, os.Stdout), ptmx)
+		io.Copy(io.MultiWriter(os.Stdout, rec), ptmx)
 		detachStdin()
 		close(finishedChan)
 	}()
