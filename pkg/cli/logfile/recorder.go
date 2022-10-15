@@ -56,14 +56,12 @@ func newRecorder(logFile *os.File, width, height int, cmd string, args []string)
 // Write implements io.Writer by writing the data to the recorder
 // in the form of frames
 func (r *recorder) Write(b []byte) (n int, err error) {
-	var lastWriteTime time.Time
-
-	// Capture the last write time under the lock and release
-	// the lock as soon as possible
+	// Ensure that we only write one frame at a time
 	r.mu.Lock()
-	lastWriteTime = r.lastWrite
+	defer r.mu.Unlock()
+
+	lastWriteTime := r.lastWrite
 	r.lastWrite = time.Now()
-	r.mu.Unlock()
 
 	// use the time difference from the lastWriteTime, or use a
 	// fixed diff if provided
@@ -72,7 +70,7 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 		diff = r.fixedDiff
 	}
 
-	//nolint:errcheck // Why: Best effort
+	//nolint:errcheck // Why: We don't want failure to write to the log to cause the command to fail
 	r.enc.Encode(NewFrameEntry(diff, b))
 	return len(b), nil
 }
