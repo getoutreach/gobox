@@ -21,11 +21,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// intPtr turns an int into a *int
-func intPtr(i int) *int {
-	return &i
-}
-
 // HookInUrfaveCLI sets up an app.Before that automatically traces command runs
 // and automatically updates itself.
 //
