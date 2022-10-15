@@ -1,7 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: This file implements the serialization logic for
-// logs.
+// Description: This file implements a recorder which records
+// all writes to it as frames in a log file. This also includes
+// metadata about it.
 
 package logfile
 
