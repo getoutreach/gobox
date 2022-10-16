@@ -2,8 +2,10 @@
 
 // Description: See package comment
 
-// Package logfile contains code for intercepting CLI output
-// and dropping it into a logfile.
+// Package logfile implements a hook that will re-run the current process
+// with a PTY attached to it, and then hook into the PTY's stdout/stderr
+// to record logs. Also exposed is the lower level functions (recorder, storage)
+// that are used to implement the hook.
 package logfile
 
 import (
