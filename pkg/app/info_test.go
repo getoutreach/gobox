@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"os"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -15,4 +16,19 @@ func TestAppInfo(t *testing.T) {
 	appInfo := app.Info()
 	assert.Equal(t, appInfo.Name, "appname")
 	assert.Equal(t, appInfo.ServiceID, "appname@outreach.cloud")
+}
+
+func TestAppInfoRegion(t *testing.T) {
+	defer func() {
+		os.Unsetenv("MY_CLUSTER")
+		os.Unsetenv("MY_REGION")
+		app.SetName(app.Info().Name)
+	}()
+	os.Setenv("MY_CLUSTER", "test.r1")
+	app.SetName("appname")
+	assert.Equal(t, app.Info().Region, "r1")
+
+	os.Setenv("MY_REGION", "r2")
+	app.SetName("appname")
+	assert.Equal(t, app.Info().Region, "r2")
 }
