@@ -94,7 +94,7 @@ func Hook() error {
 		return errors.Wrap(err, "failed to start trace server")
 	}
 
-	// Set the TracePortEnvironmentVariablet to the port selected by the listnere.
+	// Set the TracePortEnvironmentVariable to the port selected by the listener
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%d", TracePortEnvironmentVariable,
 		l.Addr().(*net.TCPAddr).Port))
 
