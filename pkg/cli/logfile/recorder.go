@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -41,11 +42,18 @@ type recorder struct {
 
 	// finish is a channel to signal when the recorder has should finish its work
 	finish chan struct{}
+
+	// listener is the network listener for the trace server
+	listener net.Listener
+
+	// finished is a channel to signal when all writing is complete
+	finished chan struct{}
 }
 
 // newRecorder creates a new recorder using a os.File as
 // the underlying writer
-func newRecorder(logFile *os.File, width, height int, cmd string, args []string) *recorder {
+func newRecorder(logFile *os.File, width, height int, cmd string, args []string,
+	l net.Listener) *recorder {
 	enc := jsoniter.NewEncoder(logFile)
 	startedAt := time.Now()
 
@@ -53,12 +61,19 @@ func newRecorder(logFile *os.File, width, height int, cmd string, args []string)
 	enc.Encode(NewMetadataEntry(startedAt, width, height, cmd, args))
 
 	finish := make(chan struct{})
-	return &recorder{
+	finished := make(chan struct{})
+	rec := &recorder{
 		enc:       enc,
 		startedAt: startedAt,
 		lastWrite: startedAt,
 		finish:    finish,
+		listener:  l,
+		finished:  finished,
 	}
+
+	rec.startTraceServer()
+
+	return rec
 }
 
 // Write implements io.Writer by writing the data to the recorder
@@ -103,4 +118,44 @@ func (r *recorder) WriteTrace(reader io.Reader) error {
 	//nolint:errcheck // Why: We don't want failure to write to the log to cause the command to fail
 	r.enc.Encode(NewTraceEntry(spans))
 	return nil
+}
+
+func (r *recorder) Shutdown() {
+	// Signal the recorder that it needs to finish
+	close(r.finish)
+
+	// Wait for traces to flush
+	<-r.finished
+}
+
+// startTraceServer creates a server that listens for traces on the default socket tand writes them to
+// the provided recorder.
+func (r *recorder) startTraceServer() {
+	// terminate the listener when the command exits
+	go func() {
+		<-r.finish
+		r.listener.Close()
+	}()
+
+	// start a server to listen for traces, closing finishedChan when the server exits
+	go func() {
+		defer close(r.finished)
+		for {
+			c, err := r.listener.Accept()
+			// if the listener was closed, we're done and can return
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			r.handleConnection(c)
+		}
+	}()
+}
+
+// handleConnection reads from a connection and writes out
+// to the traces to the provided recorder.
+func (r *recorder) handleConnection(c net.Conn) {
+	defer c.Close()
+	if err := r.WriteTrace(c); err != nil {
+		return
+	}
 }

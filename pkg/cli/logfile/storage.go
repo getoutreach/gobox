@@ -67,6 +67,7 @@ type Frame struct {
 	Bytes []byte `json:"b"`
 }
 
+// Trace is an entry in the logfile representing an otel trace.
 type Trace struct {
 	// EntryMetadata implements a entry
 	EntryMetadata `json:",inline"`
@@ -109,23 +110,24 @@ func read(r io.Reader) ([]Entry, error) {
 	return entries, nil
 }
 
-// Span is a type similar to otel's SpanStum, but with the correc types needed
-// for handle marshaling and unmarshaling.
+// Span is a type similar to otel's SpanStub, but with the correct types needed
+// for handle marshalling and unmarshalling.
 type Span struct {
-	Name                   string
-	SpanContext            trace.SpanContext
-	Parent                 trace.SpanContext
-	SpanKind               trace.SpanKind
-	StartTime              time.Time
-	EndTime                time.Time
-	Attributes             []attribute.KeyValue
-	Events                 []tracesdk.Event
-	Links                  []tracesdk.Link
-	Status                 tracesdk.Status
-	DroppedAttributes      int
-	DroppedEvents          int
-	DroppedLinks           int
-	ChildSpanCount         int
+	Name              string
+	SpanContext       trace.SpanContext
+	Parent            trace.SpanContext
+	SpanKind          trace.SpanKind
+	StartTime         time.Time
+	EndTime           time.Time
+	Attributes        []attribute.KeyValue
+	Events            []tracesdk.Event
+	Links             []tracesdk.Link
+	Status            tracesdk.Status
+	DroppedAttributes int
+	DroppedEvents     int
+	DroppedLinks      int
+	ChildSpanCount    int
+	// We have to change this type from the otel type in order to make this struct marshallable
 	Resource               []attribute.KeyValue
 	InstrumentationLibrary instrumentation.Library
 }

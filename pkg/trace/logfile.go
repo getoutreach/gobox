@@ -1,3 +1,9 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: This file contains the implementation of a logfile tracer.
+// The logfile tracer is an internal tracer, based on the otel tracer, that
+// exports traces to an app sepcific log file.
+
 package trace
 
 import (

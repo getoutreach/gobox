@@ -6,11 +6,13 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"strconv"
 
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/logfile"
+	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"gopkg.in/yaml.v3"
 )
@@ -21,7 +23,7 @@ func overrideConfigLoaders() {
 	portStr, _ := os.LookupEnv(logfile.TracePortEnvironmentVariable)
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		panic("invalid tracing port provided")
+		log.Warn(context.Background(), "unable to record trace information")
 	}
 
 	fallbackConfigReader := cfg.DefaultReader()

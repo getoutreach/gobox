@@ -1,3 +1,8 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: This file implements configuration types and helpers for
+// configuring tracing.
+
 package trace
 
 import (
@@ -45,7 +50,7 @@ type Otel struct {
 
 // LogFile is the configuration for log file based tracing
 type LogFile struct {
-	//
+	// Port is the port used by the the logfile trace server
 	Port int `yaml:"Port"`
 }
 

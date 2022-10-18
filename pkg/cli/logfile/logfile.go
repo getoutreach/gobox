@@ -123,18 +123,14 @@ func Hook() error {
 		ptmx.Close()
 		<-exited
 	} else {
-		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args)
-		finishedTraceChan := newTraceServer(rec, l)
+		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args, l)
 
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
 
-		// Signal the recorder that it needs to finish
-		close(rec.finish)
-
-		// Wait for traces to flush
-		<-finishedTraceChan
+		// Tell the trace server to shutdown
+		rec.Shutdown()
 	}
 
 	// Close the log file, since we're done writing to it
@@ -230,10 +226,7 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 		return nil, errors.Wrap(err, "failed to get terminal size")
 	}
 
-	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:])
-
-	// start a trace server to listen to listen to trace info
-	finishedTraceServer := newTraceServer(rec, l)
+	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:], l)
 
 	// forward the PTY to the log file and stdout
 	go func() {
@@ -242,50 +235,11 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 		detachStdin()
 
 		// tell the tracer server to stop
-		close(rec.finish)
-
-		// wait for the tracer server to finish (flush)
-		<-finishedTraceServer
+		rec.Shutdown()
 
 		// tell the caller we're done flushing all logs+traces to disk
 		close(finishedChan)
 	}()
 
 	return finishedChan, nil
-}
-
-// newTraceServer creates a server that listens for traces on the default socket tand writes them to
-// the provided recorder.
-func newTraceServer(rec *recorder, l net.Listener) <-chan struct{} {
-	finishedChan := make(chan struct{})
-
-	// terminate the listener when the command exits
-	go func() {
-		<-rec.finish
-		l.Close()
-	}()
-
-	// start a server to listen for traces, closing finishedChan when the server exits
-	go func() {
-		defer close(finishedChan)
-		for {
-			c, err := l.Accept()
-			// if the listener was closed, we're done and can return
-			if errors.Is(err, net.ErrClosed) {
-				return
-			}
-			handleConnection(rec, c)
-		}
-	}()
-
-	return finishedChan
-}
-
-// handleConnection reads from a connection and writes out
-// to the traces to the provided recorder.
-func handleConnection(rec *recorder, c net.Conn) {
-	defer c.Close()
-	if err := rec.WriteTrace(c); err != nil {
-		return
-	}
 }
