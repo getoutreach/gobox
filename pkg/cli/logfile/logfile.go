@@ -285,9 +285,7 @@ func newTraceServer(rec *recorder, l net.Listener) <-chan struct{} {
 // to the traces to the provided recorder.
 func handleConnection(rec *recorder, c net.Conn) {
 	defer c.Close()
-
 	if err := rec.WriteTrace(c); err != nil {
-		fmt.Printf("write trace err: %v\n", err)
 		return
 	}
 }

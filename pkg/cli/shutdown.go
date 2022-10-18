@@ -7,11 +7,12 @@ package cli
 import (
 	"context"
 	"fmt"
-	"github.com/getoutreach/gobox/pkg/trace"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+
+	"github.com/getoutreach/gobox/pkg/trace"
 )
 
 // urfaveRegisterShutdownHandler registers a signal notifier that translates various term

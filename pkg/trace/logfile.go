@@ -25,8 +25,8 @@ import (
 )
 
 // NewLogFileTracer initializes a tracer that sends traces to a log file.
-func NewLogFileTracer(ctx context.Context, serviceName string, config Config) (tracer, error) {
-	tracer := &otelTracer{Config: config}
+func NewLogFileTracer(ctx context.Context, serviceName string, config *Config) (tracer, error) {
+	tracer := &otelTracer{Config: *config}
 
 	mp := metric.NewNoopMeterProvider()
 	global.SetMeterProvider(mp)

@@ -37,8 +37,8 @@ type Annotator struct {
 	sampleRate int64
 }
 
-func NewOtelTracer(ctx context.Context, serviceName string, config Config) (tracer, error) {
-	tracer := &otelTracer{Config: config}
+func NewOtelTracer(ctx context.Context, serviceName string, config *Config) (tracer, error) {
+	tracer := &otelTracer{Config: *config}
 	if err := tracer.initTracer(ctx, serviceName); err != nil {
 		return nil, fmt.Errorf("unable to init tracer %w", err)
 	}

@@ -86,14 +86,12 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 // WriteTrace writes a trace to the recorder in the form of a frame
 func (r *recorder) WriteTrace(reader io.Reader) error {
 	// Decode the provided bytes into spans
-	fmt.Println("writetrace")
 	var spans []Span
 	for {
 		if err := json.NewDecoder(reader).Decode(&spans); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			fmt.Printf("unmarshal failed: %v\n", err)
 			return fmt.Errorf("unable to unmarshal trace data: %w", err)
 		}
 	}

@@ -145,14 +145,11 @@ func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
 }
 
 func setDefaultTracer(serviceName string) error {
-	fmt.Println("in set default tracer")
-	config := Config{}
+	config := &Config{}
 	err := config.Load()
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-
-	fmt.Printf("config: %#v\n", config)
 
 	if config.Otel.Enabled {
 		defaultTracer, err = NewOtelTracer(context.Background(), serviceName, config)
