@@ -15,6 +15,7 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 )
 
 // _ is a type assertion to ensure that recorder implements io.Writer
@@ -81,25 +82,16 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 func (r *recorder) WriteTrace(reader io.Reader) error {
 	// Decode the provided bytes into spans
 	fmt.Println("writetrace")
-	// var b bytes.Buffer
-	// coppied, err := io.Copy(&b, reader)
-	// if err != nil {
-	// 	fmt.Printf("copy error: %v", err)
-	// }
-	// fmt.Printf("coppied: %d", coppied)
-	// fmt.Printf("buffer: %s\n", b.Bytes())
 	var spans []Span
 	for {
 		if err := json.NewDecoder(reader).Decode(&spans); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			fmt.Printf("unmarshal failed: %v\n", err)
 			return fmt.Errorf("unable to unmarshal trace data: %w", err)
 		}
-
 	}
-	// fmt.Printf("\ntraceData: %#v\n", spans)
 
 	// Ensure that we only write one frame at a time
 	r.mu.Lock()

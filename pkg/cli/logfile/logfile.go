@@ -125,13 +125,16 @@ func Hook() error {
 	} else {
 		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args)
 		finishedChan := make(chan struct{})
-		newTraceServer(rec, l, finishedChan)
+		finishedTraceChan := newTraceServer(rec, l, finishedChan)
 
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
 
 		close(finishedChan)
+
+		// wait for traces to flush
+		<-finishedTraceChan
 	}
 
 	// Close the log file, since we're done writing to it
@@ -229,14 +232,23 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 
 	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:])
 
-	// start a trace server to listen to listen to trace informatoin.
-	newTraceServer(rec, l, finishedChan)
+	// start a trace server to listen to listen to trace info
+	stopTracerChan := make(chan struct{})
+	finishedTraceServer := newTraceServer(rec, l, stopTracerChan)
 
 	// forward the PTY to the log file and stdout
 	go func() {
 		//nolint:errcheck // Why: Best effort
 		io.Copy(io.MultiWriter(os.Stdout, rec), ptmx)
 		detachStdin()
+
+		// tell the tracer server to stop
+		close(stopTracerChan)
+
+		// wait for the tracer server to finish (flush)
+		<-finishedTraceServer
+
+		// tell the caller we're done flushing all logs+traces to disk
 		close(finishedChan)
 	}()
 
@@ -245,34 +257,44 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 
 // newTraceServer creates a server that listens for traces on the default socket tand writes them to
 // the provided recorder.
-func newTraceServer(rec *recorder, l net.Listener, exited <-chan struct{}) {
+func newTraceServer(rec *recorder, l net.Listener, exited <-chan struct{}) <-chan struct{} {
+	finishedChan := make(chan struct{})
+
+	// terminate the listener when the command exits
 	go func() {
+		<-exited
+		l.Close()
+	}()
+
+	// start a server to listen for traces, closing finishedChan when the server exits
+	go func() {
+		defer close(finishedChan)
+
 		for {
-			select {
-			case <-exited:
-				fmt.Println("exited")
-				l.Close()
-				return
-			default:
-				c, err := l.Accept()
-				if err != nil {
-					fmt.Println("accept error")
+			c, err := l.Accept()
+			if err != nil {
+				// if the listener was closed, we're done and can return
+				if errors.Is(err, net.ErrClosed) {
 					return
 				}
-				handleConnection(rec, c)
+
+				fmt.Printf("accept error: %v\n", err)
+				return
 			}
+			handleConnection(rec, c)
 		}
 	}()
+
+	return finishedChan
 }
 
 // handleConnection reads from a connection and writes out
 // to the results to the provided writer.
 func handleConnection(rec *recorder, c net.Conn) {
-	fmt.Println("handleConnection")
 	defer c.Close()
+
 	if err := rec.WriteTrace(c); err != nil {
 		fmt.Printf("write trace err: %v\n", err)
-		c.Close()
 		return
 	}
 }

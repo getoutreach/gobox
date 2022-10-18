@@ -130,6 +130,11 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 		if err := jsoniter.Unmarshal(data, e.f); err != nil {
 			return errors.Wrap(err, "unmarshaling frame")
 		}
+	case EntryTypeTrace:
+		e.t = &Trace{}
+		if err := jsoniter.Unmarshal(data, e.t); err != nil {
+			return errors.Wrap(err, "unmarshaling trace")
+		}
 	default:
 		return fmt.Errorf("unknown entry type %v: '%s'", em.Type, string(data))
 	}
