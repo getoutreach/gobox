@@ -8,13 +8,8 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
-	osexec "os/exec"
-	"os/user"
-	"runtime"
-	"strings"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cli/logfile"
@@ -62,9 +57,9 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	// Cancel the context on ^C and other signals
 	urfaveRegisterShutdownHandler(cancel)
 
-	ctx = setupTracer(ctx, a.Name)
-
-	props := commonProps()
+	// Setup the logfile tracer and add common props to the top level span
+	ctx = trace.SetupLogFileTracer(ctx, a.Name)
+	props := trace.CommonProps()
 	trace.AddInfo(ctx, props)
 
 	exitCode, exit := setupExitHandler()
@@ -87,44 +82,4 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 		return
 	}
-}
-
-// commonProps sets up common properties for traces in cli apps
-func commonProps() log.Marshaler {
-	commonProps := log.F{
-		"os.name": runtime.GOOS,
-		"os.arch": runtime.GOARCH,
-	}
-	if b, err := osexec.Command("git", "config", "user.email").Output(); err == nil {
-		email := strings.TrimSuffix(string(b), "\n")
-
-		// TODO: Turn the check into an config option
-		// In case of @outreach.io email, we want to add PII for easier debugging with devs
-		if strings.HasSuffix(email, "@outreach.io") {
-			commonProps["dev.email"] = email
-
-			if u, err := user.Current(); err == nil {
-				commonProps["os.user"] = u.Username
-			}
-
-			if hostname, err := os.Hostname(); err == nil {
-				commonProps["os.hostname"] = hostname
-			}
-			path, err := os.Getwd()
-			if err == nil {
-				commonProps["os.workDir"] = path
-			}
-		}
-	}
-
-	return commonProps
-}
-
-// setupTracer initializes tracing for clis
-func setupTracer(ctx context.Context, name string) context.Context {
-	if err := trace.InitTracer(ctx, name); err != nil {
-		fmt.Println(err)
-		return ctx
-	}
-	return trace.StartSpan(ctx, name)
 }
