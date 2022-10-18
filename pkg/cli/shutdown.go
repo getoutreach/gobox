@@ -7,6 +7,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"github.com/getoutreach/gobox/pkg/trace"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -42,9 +43,9 @@ func setupPanicHandler(exitCode *int) {
 func setupExitHandler() (exitCode *int, exit func()) {
 	exitCodeInt := 0
 	exitCode = &exitCodeInt
-
 	// exit runs all shutdown hooks and then calls os.Exit with the exit code
 	exit = func() {
+		trace.ForceFlush(context.Background())
 		os.Exit(*exitCode)
 	}
 	return

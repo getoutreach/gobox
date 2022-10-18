@@ -12,6 +12,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // MetadataVersion is the version of the metadata format this
@@ -62,6 +66,14 @@ type Frame struct {
 	Bytes []byte `json:"b"`
 }
 
+type Trace struct {
+	// EntryMetadata implements a entry
+	EntryMetadata `json:",inline"`
+
+	// Spans is a list of spans
+	Spans []Span `json:"spans"`
+}
+
 // ReadFromReader reads entires from a io.reader
 func ReadFromReader(r io.Reader) ([]Entry, error) {
 	return read(r)
@@ -94,4 +106,23 @@ func read(r io.Reader) ([]Entry, error) {
 	}
 
 	return entries, nil
+}
+
+type Span struct {
+	Name                   string
+	SpanContext            trace.SpanContext
+	Parent                 trace.SpanContext
+	SpanKind               trace.SpanKind
+	StartTime              time.Time
+	EndTime                time.Time
+	Attributes             []attribute.KeyValue
+	Events                 []tracesdk.Event
+	Links                  []tracesdk.Link
+	Status                 tracesdk.Status
+	DroppedAttributes      int
+	DroppedEvents          int
+	DroppedLinks           int
+	ChildSpanCount         int
+	Resource               interface{}
+	InstrumentationLibrary instrumentation.Library
 }

@@ -7,6 +7,8 @@
 package logfile
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -73,4 +75,38 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 	//nolint:errcheck // Why: We don't want failure to write to the log to cause the command to fail
 	r.enc.Encode(NewFrameEntry(diff, b))
 	return len(b), nil
+}
+
+// WriteTrace writes a trace to the recorder in the form of a frame
+func (r *recorder) WriteTrace(reader io.Reader) error {
+	// Decode the provided bytes into spans
+	fmt.Println("writetrace")
+	// var b bytes.Buffer
+	// coppied, err := io.Copy(&b, reader)
+	// if err != nil {
+	// 	fmt.Printf("copy error: %v", err)
+	// }
+	// fmt.Printf("coppied: %d", coppied)
+	// fmt.Printf("buffer: %s\n", b.Bytes())
+	var spans []Span
+	for {
+		if err := json.NewDecoder(reader).Decode(&spans); err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Printf("unmarshal failed: %v\n", err)
+			return fmt.Errorf("unable to unmarshal trace data: %w", err)
+		}
+
+	}
+	// fmt.Printf("\ntraceData: %#v\n", spans)
+
+	// Ensure that we only write one frame at a time
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	//nolint:errcheck // Why: We don't want failure to write to the log to cause the command to fail
+	r.enc.Encode(NewTraceEntry(spans))
+	fmt.Println("finished encoding")
+	return nil
 }

@@ -9,6 +9,7 @@ package logfile
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -42,6 +43,13 @@ const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
 // LogExtension is the extension for log files
 const LogExtension = "json"
+
+// TracePortEnvironmentVariable is the environment variable for the socket port
+// used to communicate traces between the child app and the logging wrapper.
+const TracePortEnvironmentVariable = "OUTREACH_LOGGING_PORT"
+
+// SocketType is the type of socket for the log file.
+const TraceSocketType = "tcp"
 
 // Hook re-runs the current process with a PTY attached to it, and then
 // hooks into the PTY's stdout/stderr to record logs.
@@ -81,6 +89,15 @@ func Hook() error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=1", EnvironmentVariable))
 
+	l, err := net.Listen(TraceSocketType, "localhost:0")
+	if err != nil {
+		return errors.Wrap(err, "failed to start trace server")
+	}
+
+	// Set the TracePortEnvironmentVariablet to the port selected by the listnere.
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%d", TracePortEnvironmentVariable,
+		l.Addr().(*net.TCPAddr).Port))
+
 	var cmdErr error
 	if isTerminal {
 		ptmx, err := pty.Start(cmd)
@@ -90,7 +107,7 @@ func Hook() error {
 
 		// hook into the PTY's stdout/stderr and forward it to the log file
 		// and stdout, as well as forward stdin to the PTY
-		exited, err := ptyOutputHook(cmd, ptmx, logFile)
+		exited, err := ptyOutputHook(l, cmd, ptmx, logFile)
 		if err != nil {
 			return errors.Wrap(err, "failed to hook into pty output")
 		}
@@ -107,9 +124,14 @@ func Hook() error {
 		<-exited
 	} else {
 		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args)
+		finishedChan := make(chan struct{})
+		newTraceServer(rec, l, finishedChan)
+
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
+
+		close(finishedChan)
 	}
 
 	// Close the log file, since we're done writing to it
@@ -187,7 +209,8 @@ func attachStdinToPty() (func(), error) {
 
 // ptyOutputHook reads the data from the PTY and writes it to the log file
 // and stdout while also handling forwarding os.Stdin to the PTY.
-func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, error) {
+func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
+	logFile *os.File) (<-chan struct{}, error) {
 	detachStdin, err := attachStdinToPty()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to attach stdin to pty")
@@ -206,6 +229,9 @@ func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, erro
 
 	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:])
 
+	// start a trace server to listen to listen to trace informatoin.
+	newTraceServer(rec, l, finishedChan)
+
 	// forward the PTY to the log file and stdout
 	go func() {
 		//nolint:errcheck // Why: Best effort
@@ -215,4 +241,38 @@ func ptyOutputHook(cmd *exec.Cmd, ptmx, logFile *os.File) (<-chan struct{}, erro
 	}()
 
 	return finishedChan, nil
+}
+
+// newTraceServer creates a server that listens for traces on the default socket tand writes them to
+// the provided recorder.
+func newTraceServer(rec *recorder, l net.Listener, exited <-chan struct{}) {
+	go func() {
+		for {
+			select {
+			case <-exited:
+				fmt.Println("exited")
+				l.Close()
+				return
+			default:
+				c, err := l.Accept()
+				if err != nil {
+					fmt.Println("accept error")
+					return
+				}
+				handleConnection(rec, c)
+			}
+		}
+	}()
+}
+
+// handleConnection reads from a connection and writes out
+// to the results to the provided writer.
+func handleConnection(rec *recorder, c net.Conn) {
+	fmt.Println("handleConnection")
+	defer c.Close()
+	if err := rec.WriteTrace(c); err != nil {
+		fmt.Printf("write trace err: %v\n", err)
+		c.Close()
+		return
+	}
 }

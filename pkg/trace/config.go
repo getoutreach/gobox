@@ -7,6 +7,7 @@ import (
 // tracing config goes into trace.yaml
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
+	LogFile    `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
@@ -20,6 +21,7 @@ func (g *GlobalTags) MarshalLog(addField func(key string, v interface{})) {
 	}
 }
 
+// Otel is the configuration for OpenTelemetry based tracing
 type Otel struct {
 	// Enabled determines whether to turn on tracing
 	Enabled bool `yaml:"Enabled"`
@@ -39,6 +41,12 @@ type Otel struct {
 	APIKey cfg.Secret `yaml:"APIKey"`
 	// AdditionalAPIKey used for authentication with the backend at AdditionalEndpoint
 	AdditionalAPIKey cfg.Secret `yaml:"AdditionalAPIKey"`
+}
+
+// LogFile is the configuration for log file based tracing
+type LogFile struct {
+	//
+	Port int `yaml:"Port"`
 }
 
 func (c *Config) Load() error {

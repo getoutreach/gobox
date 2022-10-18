@@ -37,6 +37,15 @@ type Annotator struct {
 	sampleRate int64
 }
 
+func NewOtelTracer(ctx context.Context, serviceName string, config Config) (tracer, error) {
+	tracer := &otelTracer{Config: config}
+	if err := tracer.initTracer(ctx, serviceName); err != nil {
+		return nil, fmt.Errorf("unable to init tracer %w", err)
+	}
+
+	return tracer, nil
+}
+
 func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 	setf := func(key string, value interface{}) {
 		s.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
@@ -253,4 +262,9 @@ func (t *otelTracer) setForce(force bool) {
 
 func (t *otelTracer) isForce() bool {
 	return t.force
+}
+
+// forceFlush exports all spans that have not yet been exported.
+func (t *otelTracer) forceFlush(ctx context.Context) error {
+	return t.tracerProvider.ForceFlush(ctx)
 }
