@@ -72,7 +72,7 @@ type Trace struct {
 	EntryMetadata `json:",inline"`
 
 	// Spans is a list of spans
-	Spans []Span `json:"spans"`
+	Spans []*Span `json:"spans"`
 }
 
 // ReadFromReader reads entires from a io.reader
@@ -131,7 +131,7 @@ type Span struct {
 }
 
 // Snapshot turns a Span into a ReadOnlySpan which is exportable by otel.
-func (s Span) Snapshot() tracesdk.ReadOnlySpan {
+func (s *Span) Snapshot() tracesdk.ReadOnlySpan {
 	return spanSnapshot{
 		name:                 s.Name,
 		spanContext:          s.SpanContext,

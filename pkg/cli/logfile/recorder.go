@@ -86,7 +86,7 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 // WriteTrace writes a trace to the recorder in the form of a frame
 func (r *recorder) WriteTrace(reader io.Reader) error {
 	// Decode the provided bytes into spans
-	var spans []Span
+	var spans []*Span
 	for {
 		if err := json.NewDecoder(reader).Decode(&spans); err != nil {
 			if errors.Is(err, io.EOF) {
@@ -102,6 +102,5 @@ func (r *recorder) WriteTrace(reader io.Reader) error {
 
 	//nolint:errcheck // Why: We don't want failure to write to the log to cause the command to fail
 	r.enc.Encode(NewTraceEntry(spans))
-	fmt.Println("finished encoding")
 	return nil
 }

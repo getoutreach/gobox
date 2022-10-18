@@ -93,7 +93,6 @@ type LogFileSpanExporter struct {
 
 // ExportSpans exports all the provided spans.
 func (se *LogFileSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
-	fmt.Println("export spans")
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

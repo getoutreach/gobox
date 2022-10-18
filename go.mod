@@ -29,7 +29,6 @@ require (
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.34.0
 	github.com/zalando/go-keyring v0.2.1
-	go.opencensus.io v0.22.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.32.0
 	go.opentelemetry.io/otel v1.9.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.9.0

@@ -23,7 +23,7 @@ const (
 	// EntryTypeFrame is a frame entry which is equal to a Frame struct
 	EntryTypeFrame
 
-	// EntryTypeTrace is a frame entry representing a trace
+	// EntryTypeTrace is a trace entry representing a full or partial otel trace
 	EntryTypeTrace
 )
 
@@ -50,7 +50,6 @@ func NewEntryFromMetadata(m *Metadata) Entry {
 
 // NewEntryFromTrace creates an entry from a trace
 func NewEntryFromTrace(t *Trace) Entry {
-	fmt.Printf("trace entry: %#v\n", t)
 	return Entry{
 		t: t,
 	}
@@ -84,7 +83,7 @@ func NewMetadataEntry(startedAt time.Time, width, height int, command string, ar
 }
 
 // NewTraceEntry creates a new trace entry
-func NewTraceEntry(spans []Span) Entry {
+func NewTraceEntry(spans []*Span) Entry {
 	return NewEntryFromTrace(&Trace{
 		EntryMetadata: EntryMetadata{
 			Type: EntryTypeTrace,
@@ -104,7 +103,6 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 	}
 
 	if e.IsTrace() {
-		fmt.Println("marshalling trace")
 		return jsoniter.Marshal(e.AsTrace())
 	}
 

@@ -6,7 +6,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -19,8 +18,6 @@ import (
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
 func overrideConfigLoaders() {
-	fmt.Println("in override config loaders")
-
 	portStr, _ := os.LookupEnv(logfile.TracePortEnvironmentVariable)
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
@@ -28,9 +25,7 @@ func overrideConfigLoaders() {
 	}
 
 	fallbackConfigReader := cfg.DefaultReader()
-	fmt.Println("created fallbackConfigReader")
 	cfg.SetDefaultReader(func(fileName string) ([]byte, error) {
-		fmt.Printf("overriding config: %s/n", fileName)
 		if fileName == "trace.yaml" {
 			traceConfig := &trace.Config{
 				LogFile: trace.LogFile{
