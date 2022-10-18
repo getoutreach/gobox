@@ -105,7 +105,7 @@ func Hook() error {
 			return errors.Wrap(err, "failed to start pty")
 		}
 
-		// hook into the PTY's stdout/stderr and forward it to the log file
+		// Hook into the PTY's stdout/stderr and forward it to the log file
 		// and stdout, as well as forward stdin to the PTY
 		exited, err := ptyOutputHook(l, cmd, ptmx, logFile)
 		if err != nil {
@@ -124,16 +124,16 @@ func Hook() error {
 		<-exited
 	} else {
 		rec := newRecorder(logFile, 0, 0, cmd.Path, cmd.Args)
-		finishedChan := make(chan struct{})
-		finishedTraceChan := newTraceServer(rec, l, finishedChan)
+		finishedTraceChan := newTraceServer(rec, l)
 
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
 		cmdErr = cmd.Run()
 
-		close(finishedChan)
+		// Signal the recorder that it needs to finish
+		close(rec.finish)
 
-		// wait for traces to flush
+		// Wait for traces to flush
 		<-finishedTraceChan
 	}
 
@@ -233,8 +233,7 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:])
 
 	// start a trace server to listen to listen to trace info
-	stopTracerChan := make(chan struct{})
-	finishedTraceServer := newTraceServer(rec, l, stopTracerChan)
+	finishedTraceServer := newTraceServer(rec, l)
 
 	// forward the PTY to the log file and stdout
 	go func() {
@@ -243,7 +242,7 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 		detachStdin()
 
 		// tell the tracer server to stop
-		close(stopTracerChan)
+		close(rec.finish)
 
 		// wait for the tracer server to finish (flush)
 		<-finishedTraceServer
@@ -257,28 +256,22 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 
 // newTraceServer creates a server that listens for traces on the default socket tand writes them to
 // the provided recorder.
-func newTraceServer(rec *recorder, l net.Listener, exited <-chan struct{}) <-chan struct{} {
+func newTraceServer(rec *recorder, l net.Listener) <-chan struct{} {
 	finishedChan := make(chan struct{})
 
 	// terminate the listener when the command exits
 	go func() {
-		<-exited
+		<-rec.finish
 		l.Close()
 	}()
 
 	// start a server to listen for traces, closing finishedChan when the server exits
 	go func() {
 		defer close(finishedChan)
-
 		for {
 			c, err := l.Accept()
-			if err != nil {
-				// if the listener was closed, we're done and can return
-				if errors.Is(err, net.ErrClosed) {
-					return
-				}
-
-				fmt.Printf("accept error: %v\n", err)
+			// if the listener was closed, we're done and can return
+			if errors.Is(err, net.ErrClosed) {
 				return
 			}
 			handleConnection(rec, c)
@@ -289,7 +282,7 @@ func newTraceServer(rec *recorder, l net.Listener, exited <-chan struct{}) <-cha
 }
 
 // handleConnection reads from a connection and writes out
-// to the results to the provided writer.
+// to the traces to the provided recorder.
 func handleConnection(rec *recorder, c net.Conn) {
 	defer c.Close()
 

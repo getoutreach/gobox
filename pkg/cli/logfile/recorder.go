@@ -38,6 +38,9 @@ type recorder struct {
 
 	// fixedDiff is a fixed time difference to use for testing
 	fixedDiff time.Duration
+
+	// finish is a channel to signal when the recorder has should finish its work
+	finish chan struct{}
 }
 
 // newRecorder creates a new recorder using a os.File as
@@ -49,10 +52,12 @@ func newRecorder(logFile *os.File, width, height int, cmd string, args []string)
 	//nolint:errcheck // Why: Best effort
 	enc.Encode(NewMetadataEntry(startedAt, width, height, cmd, args))
 
+	finish := make(chan struct{})
 	return &recorder{
 		enc:       enc,
 		startedAt: startedAt,
 		lastWrite: startedAt,
+		finish:    finish,
 	}
 }
 
