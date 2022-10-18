@@ -23,7 +23,7 @@ const (
 	// EntryTypeFrame is a frame entry which is equal to a Frame struct
 	EntryTypeFrame
 
-	// EtnryTypeTrace is a frame entry representing a trace
+	// EntryTypeTrace is a frame entry representing a trace
 	EntryTypeTrace
 )
 
