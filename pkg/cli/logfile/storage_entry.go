@@ -22,12 +22,16 @@ const (
 
 	// EntryTypeFrame is a frame entry which is equal to a Frame struct
 	EntryTypeFrame
+
+	// EntryTypeTrace is a trace entry representing a full or partial otel trace
+	EntryTypeTrace
 )
 
 // Entry is an entry in the log file
 type Entry struct {
 	f *Frame
 	m *Metadata
+	t *Trace
 }
 
 // NewEntryFromFrame creates an entry from a frame
@@ -44,7 +48,14 @@ func NewEntryFromMetadata(m *Metadata) Entry {
 	}
 }
 
-// NewFrame creates a new frame entry
+// NewEntryFromTrace creates an entry from a trace
+func NewEntryFromTrace(t *Trace) Entry {
+	return Entry{
+		t: t,
+	}
+}
+
+// NewFrameEntry creates a new frame entry
 func NewFrameEntry(delay time.Duration, bytes []byte) Entry {
 	return NewEntryFromFrame(&Frame{
 		EntryMetadata: EntryMetadata{
@@ -71,6 +82,16 @@ func NewMetadataEntry(startedAt time.Time, width, height int, command string, ar
 	})
 }
 
+// NewTraceEntry creates a new trace entry
+func NewTraceEntry(spans []*Span) Entry {
+	return NewEntryFromTrace(&Trace{
+		EntryMetadata: EntryMetadata{
+			Type: EntryTypeTrace,
+		},
+		Spans: spans,
+	})
+}
+
 // MarshalJSON implements json.Marshaler for an entry
 func (e Entry) MarshalJSON() ([]byte, error) {
 	if e.IsFrame() {
@@ -79,6 +100,10 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 
 	if e.IsMetadata() {
 		return jsoniter.Marshal(e.AsMetadata())
+	}
+
+	if e.IsTrace() {
+		return jsoniter.Marshal(e.AsTrace())
 	}
 
 	return nil, fmt.Errorf("unknown entry type: %v", e)
@@ -103,6 +128,11 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 		if err := jsoniter.Unmarshal(data, e.f); err != nil {
 			return errors.Wrap(err, "unmarshaling frame")
 		}
+	case EntryTypeTrace:
+		e.t = &Trace{}
+		if err := jsoniter.Unmarshal(data, e.t); err != nil {
+			return errors.Wrap(err, "unmarshaling trace")
+		}
 	default:
 		return fmt.Errorf("unknown entry type %v: '%s'", em.Type, string(data))
 	}
@@ -120,6 +150,11 @@ func (e Entry) IsMetadata() bool {
 	return e.m != nil
 }
 
+// IsTrace returns true if the entry is a trace
+func (e Entry) IsTrace() bool {
+	return e.t != nil
+}
+
 // AsMetadata returns the metadata from the current entry, or nil
 // if it's not metadata
 func (e Entry) AsMetadata() *Metadata {
@@ -129,6 +164,11 @@ func (e Entry) AsMetadata() *Metadata {
 // AsFrame returns the current frame or nil if it's not a frame
 func (e Entry) AsFrame() *Frame {
 	return e.f
+}
+
+// AsFrame returns the current frame or nil if it's not a frame
+func (e Entry) AsTrace() *Trace {
+	return e.t
 }
 
 // EntryMetadata is the basic metadata for an entry that must

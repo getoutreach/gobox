@@ -52,10 +52,15 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	// Support loading compiled in keys from the binary through the
 	// config framework
-	overrideConfigLoaders(honeycombAPIKey, dataset, false)
+	overrideConfigLoaders()
 
 	// Cancel the context on ^C and other signals
 	urfaveRegisterShutdownHandler(cancel)
+
+	// Setup the logfile tracer and add common props to the top level span
+	ctx = trace.SetupLogFileTracer(ctx, a.Name)
+	props := trace.CommonProps()
+	trace.AddInfo(ctx, props)
 
 	exitCode, exit := setupExitHandler()
 	defer exit()

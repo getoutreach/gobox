@@ -11,6 +11,8 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+
+	"github.com/getoutreach/gobox/pkg/trace"
 )
 
 // urfaveRegisterShutdownHandler registers a signal notifier that translates various term
@@ -42,9 +44,9 @@ func setupPanicHandler(exitCode *int) {
 func setupExitHandler() (exitCode *int, exit func()) {
 	exitCodeInt := 0
 	exitCode = &exitCodeInt
-
 	// exit runs all shutdown hooks and then calls os.Exit with the exit code
 	exit = func() {
+		trace.ForceFlush(context.Background())
 		os.Exit(*exitCode)
 	}
 	return
