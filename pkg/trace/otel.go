@@ -1,3 +1,9 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: this file contains the implementation of a otel tracer.
+// The logfile tracer is a general purpose tracer that allows sending traces
+// to multiple tracing backends.
+
 package trace
 
 import (
@@ -29,6 +35,16 @@ type otelTracer struct {
 	serviceName    string
 	tracerProvider *sdktrace.TracerProvider
 	force          bool
+}
+
+// NewOtelTracer creates and initializes a new otel tracer
+func NewOtelTracer(ctx context.Context, serviceName string, config *Config) (tracer, error) {
+	tracer := &otelTracer{Config: *config}
+	if err := tracer.initTracer(ctx, serviceName); err != nil {
+		return nil, fmt.Errorf("unable to init tracer %w", err)
+	}
+
+	return tracer, nil
 }
 
 // Annotator is a SpanProcessor that adds service-level tags on every span
@@ -253,4 +269,9 @@ func (t *otelTracer) setForce(force bool) {
 
 func (t *otelTracer) isForce() bool {
 	return t.force
+}
+
+// forceFlush exports all spans that have not yet been exported.
+func (t *otelTracer) forceFlush(ctx context.Context) error {
+	return t.tracerProvider.ForceFlush(ctx)
 }

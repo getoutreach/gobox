@@ -100,6 +100,7 @@ package trace
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/log"
@@ -114,11 +115,11 @@ var defaultTracer tracer
 //
 // This should be called at the start of the application.
 func StartTracing(serviceName string) error {
-	if err := setDefaultTracer(); err != nil {
+	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}
 
-	return defaultTracer.startTracing(serviceName)
+	return nil
 }
 
 // InitTracer starts all tracing infrastructure.
@@ -126,7 +127,7 @@ func StartTracing(serviceName string) error {
 // This needs to be called before sending any traces
 // otherwise they will not be published.
 func InitTracer(ctx context.Context, serviceName string) error {
-	if err := setDefaultTracer(); err != nil {
+	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}
 
@@ -136,22 +137,32 @@ func InitTracer(ctx context.Context, serviceName string) error {
   - add 'tracing: opentelemetry' to your service.yaml`)
 	}
 
-	return defaultTracer.initTracer(ctx, serviceName)
+	return nil
 }
 
 func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
 	defaultTracer.registerSpanProcessor(s)
 }
 
-func setDefaultTracer() error {
-	config := Config{}
+func setDefaultTracer(serviceName string) error {
+	config := &Config{}
 	err := config.Load()
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	if config.Otel.Enabled {
-		defaultTracer = &otelTracer{Config: config}
+		defaultTracer, err = NewOtelTracer(context.Background(), serviceName, config)
+		if err != nil {
+			return fmt.Errorf("unable to start otel tracer: %w", err)
+		}
+	}
+
+	if config.LogFile.Port != 0 {
+		defaultTracer, err = NewLogFileTracer(context.Background(), serviceName, config)
+		if err != nil {
+			return fmt.Errorf("unable to start log file tracer: %w", err)
+		}
 	}
 
 	return nil
@@ -329,4 +340,12 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 		return ctx
 	}
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
+}
+
+// ForceFlush immediately exports all the spans that have been buffered to this point
+func ForceFlush(ctx context.Context) error {
+	if defaultTracer == nil {
+		return nil
+	}
+	return defaultTracer.forceFlush(ctx)
 }
