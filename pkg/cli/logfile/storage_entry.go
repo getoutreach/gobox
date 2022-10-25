@@ -189,22 +189,39 @@ type EntryMetadata struct {
 // Span is a type similar to otel's SpanStub, but with the correct types needed
 // for handle marshalling and unmarshalling.
 type Span struct {
-	Name              string
-	SpanContext       trace.SpanContext
-	Parent            trace.SpanContext
-	SpanKind          trace.SpanKind
-	StartTime         time.Time
-	EndTime           time.Time
-	Attributes        []attribute.KeyValue
-	Events            []tracesdk.Event
-	Links             []tracesdk.Link
-	Status            tracesdk.Status
+	// Name is the name of a the specific span
+	Name string
+	// SpanContext is the unique SpanContext that identifies the span
+	SpanContext trace.SpanContext
+	// Parten is the unique SpanContext that identifies the parent of the span.
+	// If the span has no parent, this span context will be invalid.
+	Parent trace.SpanContext
+	// SpanKind is the role the span plays in a Trace
+	SpanKind trace.SpanKind
+	// StartTime is the time the span started recording
+	StartTime time.Time
+	// EndTime returns the time the span stopped recording
+	EndTime time.Time
+	// Attributes are the defining attributes of a span
+	Attributes []attribute.KeyValue
+	// Events are all the events that occurred within the span
+	Events []tracesdk.Event
+	// Links are all the links the span has to other spans
+	Links []tracesdk.Link
+	// Status is that span status
+	Status tracesdk.Status
+	// DroppedAttributes is the number of attributes dropped by the span due to a limit being reached
 	DroppedAttributes int
-	DroppedEvents     int
-	DroppedLinks      int
-	ChildSpanCount    int
+	// DroppedEvents is the number of attributes dropped by the span due to a limit being reached
+	DroppedEvents int
+	// DroppedLinks is the number of links dropped by the span due to a limit being reached
+	DroppedLinks int
+	// ChildSpanCount is the count of spans that consider the span a direct parent
+	ChildSpanCount int
+	// Resource is the information about the entity that produced the span
 	// We have to change this type from the otel type in order to make this struct marshallable
-	Resource               []attribute.KeyValue
+	Resource []attribute.KeyValue
+	// InstrumentationLibrary is information about the library that produced the span
 	InstrumentationLibrary instrumentation.Library
 }
 
