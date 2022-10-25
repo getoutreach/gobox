@@ -54,7 +54,4 @@ type tracer interface {
 
 	// fromHeaders is similar to contextFromHeaders + it starts a new span
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
-
-	// forceFlush exports all spans that have not yet been exported
-	forceFlush(ctx context.Context) error
 }

@@ -41,12 +41,13 @@ func setupPanicHandler(exitCode *int) {
 
 // setupExitHandler sets up an exit handler that will call os.Exit() with
 // the set exit code, ensuring that all log/trace data is flushed.
-func setupExitHandler() (exitCode *int, exit func()) {
+func setupExitHandler(ctx context.Context) (exitCode *int, exit func()) {
 	exitCodeInt := 0
 	exitCode = &exitCodeInt
 	// exit runs all shutdown hooks and then calls os.Exit with the exit code
 	exit = func() {
-		trace.ForceFlush(context.Background())
+		trace.End(ctx)
+		trace.CloseTracer(ctx)
 		os.Exit(*exitCode)
 	}
 	return

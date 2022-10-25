@@ -341,11 +341,3 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 	}
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
-
-// ForceFlush immediately exports all the spans that have been buffered to this point
-func ForceFlush(ctx context.Context) error {
-	if defaultTracer == nil {
-		return nil
-	}
-	return defaultTracer.forceFlush(ctx)
-}

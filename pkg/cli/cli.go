@@ -10,6 +10,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cli/logfile"
@@ -62,7 +63,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	props := trace.CommonProps()
 	trace.AddInfo(ctx, props)
 
-	exitCode, exit := setupExitHandler()
+	exitCode, exit := setupExitHandler(ctx)
 	defer exit()
 
 	if _, err := updater.UseUpdater(ctx, updater.WithApp(a), updater.WithLogger(logger)); err != nil {
@@ -73,6 +74,18 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 	// Print a stack trace when a panic occurs and set the exit code
 	defer setupPanicHandler(exitCode)
+	ctx = trace.StartCall(ctx, "main")
+	defer trace.EndCall(ctx)
+
+	oldBefore := a.Before
+	a.Before = func(c *cli.Context) error {
+		if oldBefore != nil {
+			if err := oldBefore(c); err != nil {
+				return err
+			}
+		}
+		return urfaveBefore(c)
+	}
 
 	if err := a.RunContext(ctx, os.Args); err != nil {
 		logger.Errorf("failed to run: %v", err)
@@ -82,4 +95,17 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 		return
 	}
+}
+
+// urfaveBefore is a cli.BeforeFunc that implements tracing
+func urfaveBefore(c *cli.Context) error {
+	props := trace.CommonProps()
+	trace.AddInfo(c.Context, props)
+
+	trace.AddInfo(c.Context, log.F{
+		"cli.subcommand": c.Args().First(),
+		"cli.args":       strings.Join(c.Args().Tail(), " "),
+	})
+
+	return nil
 }
