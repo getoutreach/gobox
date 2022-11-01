@@ -1,4 +1,6 @@
-// Package orio implements IO utilities.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package orio implements IO utilities.
 package orio
 
 import "io"

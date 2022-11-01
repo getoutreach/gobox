@@ -1,4 +1,6 @@
-// Package metrics implements the outreach metrics API
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package metrics implements the outreach metrics API
 //
 // This consists of the Count and Latency functions
 package metrics

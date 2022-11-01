@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides helpers for creating a shuffler test suite
 package shuffler
 
 import (

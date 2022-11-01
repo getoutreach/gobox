@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides capabilities for forcing sampling on traces, including propagation of forced traces
+
 package trace
 
 import (
@@ -12,6 +16,7 @@ const (
 	fieldForceTrace = "force_trace"
 )
 
+// forceTracing turn on forceTracing starting with the next span
 func forceTracing(ctx context.Context) context.Context {
 	defaultTracer.setForce(true)
 
@@ -24,10 +29,13 @@ type otelForceSampler struct {
 	sampleRate uint
 }
 
+// Description provides a description for the sampler
 func (s *otelForceSampler) Description() string {
 	return "Samples at the specified rate or forces sampling based on the `force_trace` attribute."
 }
 
+// ShouldSample makes a determination whether the current trace should be sampled
+//
 //nolint:gocritic // Why: Required to pass SamplingParameters as a copy
 func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
 	psc := trace.SpanContextFromContext(p.ParentContext)
@@ -71,6 +79,7 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 	}
 }
 
+// forceSample creates a new force sampler with the provided sampleRate
 func forceSample(sampleRate uint) sdktrace.Sampler {
 	return &otelForceSampler{
 		sampleRate: sampleRate,

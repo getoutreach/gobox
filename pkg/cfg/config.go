@@ -1,4 +1,6 @@
-// Package cfg manages config for outreach go services
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package cfg manages config for outreach go services
 //
 // Every go app or package that needs config should define a strongly
 // typed struct for it

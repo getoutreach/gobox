@@ -1,4 +1,6 @@
-// Package box implements the definitions of a box configuration file
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package box implements the definitions of a box configuration file
 // and tools to access it. This is used to configure the suite of tools
 // that outreach provides, aka "startup in a box"
 package box

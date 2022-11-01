@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements custom error wrappers for context errors
+
 package orerr
 
 import (

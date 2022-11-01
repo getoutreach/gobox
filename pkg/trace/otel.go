@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements the trace interface for OpenTelemetry based tracing
+
 package trace
 
 import (

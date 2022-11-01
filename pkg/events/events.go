@@ -1,4 +1,6 @@
-// Package events defines the standard logging event structures
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package events defines the standard logging event structures
 //
 // This is based on
 // https://docs.google.com/document/d/1V1py1iXX9B9NAb30veHYNGOuymZ9o_C2pYSU9E6qmsg/edit#

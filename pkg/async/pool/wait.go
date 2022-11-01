@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides wait capabilities for the async pool which allow delaying processing
+
 package pool
 
 import (

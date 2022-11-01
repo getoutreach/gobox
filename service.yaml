@@ -11,7 +11,7 @@ arguments:
   grpcClients: []
   kubernetes:
     groups: []
-  lintroller: bronze
+  lintroller: silver
   metrics: datadog
   opslevel:
     confluenceSpaceKey: ""

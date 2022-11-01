@@ -1,4 +1,6 @@
-// Package cleanup provides helpers to make it easy to do cleanups.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package cleanup provides helpers to make it easy to do cleanups.
 //
 // For example, if a function involves a few separate sub-calls with
 // their own cleanups, a typical code would have to do something like

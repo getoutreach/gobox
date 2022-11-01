@@ -1,4 +1,7 @@
-// Package sshhelper is a toolkit for common ssh-related operations.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package sshhelper is a toolkit for common ssh-related operations.
+
 package sshhelper
 
 import (

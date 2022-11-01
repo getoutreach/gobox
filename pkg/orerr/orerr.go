@@ -1,4 +1,7 @@
-// Package orerr implements outreach specific error utilities.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package orerr implements outreach specific error utilities.
+
 package orerr
 
 import (

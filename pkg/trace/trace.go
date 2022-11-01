@@ -1,4 +1,6 @@
-// Package trace wraps standard tracing for outreach.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package trace wraps standard tracing for outreach.
 //
 // # This package wraps honeycomb tracing
 //

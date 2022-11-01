@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides a logger that captures the marshaler arguemtns
+
 package log
 
 import "context"

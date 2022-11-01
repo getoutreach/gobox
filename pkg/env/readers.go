@@ -1,5 +1,9 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
 //go:build or_dev || or_test || or_e2e
 // +build or_dev or_test or_e2e
+
+// Description: Provides configuration readers for various environments
 
 package env
 

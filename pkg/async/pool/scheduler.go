@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides a scheduler for the async pool
+
 package pool
 
 import (

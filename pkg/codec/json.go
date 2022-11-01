@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides utilitities for encoding/decoding JSON
+
 package codec
 
 import (

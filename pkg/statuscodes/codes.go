@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides custom status types and helpers
+
 package statuscodes
 
 import "fmt"

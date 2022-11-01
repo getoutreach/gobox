@@ -1,4 +1,7 @@
-// Package app has the static app info
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package app has the static app info
+
 package app
 
 import (

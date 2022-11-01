@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides call functionality for tracing which enables passing additional context
+
 package trace
 
 import (

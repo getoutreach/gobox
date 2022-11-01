@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides timeout capabilities for the async pool
+
 package pool
 
 import (

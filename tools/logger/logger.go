@@ -1,3 +1,5 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
 // main
 //
 // The logger cmd can be used to generate log marshalers for structs.

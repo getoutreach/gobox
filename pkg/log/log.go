@@ -1,4 +1,6 @@
-// Package log implements standard go logging
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package log implements standard go logging
 //
 // For logging:
 //

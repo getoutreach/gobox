@@ -1,4 +1,6 @@
-// Package secrets manages secrets config for outreach applications
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Package secrets manages secrets config for outreach applications
 //
 // All secrets are assumed to be stored securely in the filesystem.
 // This is compatible with the k8s approach of fetch and mounting

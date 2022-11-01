@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides miscellaneous helpers for the updater
 package updater
 
 import (
