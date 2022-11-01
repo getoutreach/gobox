@@ -45,10 +45,10 @@ func testLookup(ctx context.Context, filePath string) ([]byte, error) {
 //
 // Usage:
 //
-//      func TestXYZ(t *testing.T) {
-//           defer secretstest.Fake("/etc/.honeycomb_api_key", "SOME KEY")()
-//           ... regular tests ..
-//      }
+//	func TestXYZ(t *testing.T) {
+//	     defer secretstest.Fake("/etc/.honeycomb_api_key", "SOME KEY")()
+//	     ... regular tests ..
+//	}
 func Fake(key, value string) func() {
 	cleanup, err := setTestOverride(key, value)
 	if err != nil {

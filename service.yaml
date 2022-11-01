@@ -1,20 +1,4 @@
 name: gobox
-reportingTeam: fnd-dt
-description: A collection of libraries that are useful for implementing Go services, libraries, and more.
-oss: true
-slack: dev-tooling-notifications
-library: true
-circleAPIKey: ""
-lintroller: bronze
-tracing: honeycomb
-metrics: datadog
-releaseType: semver
-releaseOptions:
-  allowPrereleases: false
-  prereleasesBranch: ""
-  allowMajorVersions: true
-deployTo:
-  environments: []
 arguments:
   circleAPIKey: ""
   commands: []
@@ -23,6 +7,7 @@ arguments:
     optional: []
     required: []
   description: A collection of libraries that are useful for implementing Go services, libraries, and more.
+  go-protoc-imports: []
   grpcClients: []
   kubernetes:
     groups: []
@@ -71,25 +56,19 @@ arguments:
       pods:
         thresholds:
           availableLowCount: 0
-  tracing: honeycomb
+  tracing: opentelemetry
   tutorial: false
+  validation: false
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
     - deploy/mint/%(environment)s/validation/mint-validator-payload
     - deploy/flagship-shared-secret/%(environment)s/authn-flagship-payload
 modules:
-  - name: github.com/getoutreach/stencil-actions
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
   - name: github.com/getoutreach/stencil-outreach
   - name: github.com/getoutreach/stencil-circleci
-opsLevel:
-  serviceTier: 0
-  lifecycle: ""
-  confluenceSpaceKey: ""
-  pagerDutyLink: ""
-  datadogDashboards:
-    mainLink: ""
-    custom: []
-  designDocumentLink: ""
+  - name: github.com/getoutreach/stencil-actions
+  - name: github.com/getoutreach/stencil-discovery
+migrated: true

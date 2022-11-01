@@ -2,9 +2,9 @@
 //
 // Usage:
 //
-//     t := tester.New()
-//     tester.Run(t, "testA", func(t *tester.T) { ... })
-//     results := tester.Results(t)
+//	t := tester.New()
+//	tester.Run(t, "testA", func(t *tester.T) { ... })
+//	results := tester.Results(t)
 //
 // This package implements a subset of the testing.T type. In
 // particular, it implements the testing.TB interface and also
@@ -26,15 +26,15 @@
 // type compatible with this..  Instead, the suggested approach
 // is for test suites to be written against tester.T like so:
 //
-//      func TestXYZ(t *tester.T) { .... }
+//	func TestXYZ(t *tester.T) { .... }
 //
 // And then, a TestAll function can be written that will work properly
 // with testing.T:
 //
-//      func TestAll(t *testing.T) {
-//          tester.Run("TestXYZ", TestXYZ)
-//          ...
-//      }
+//	func TestAll(t *testing.T) {
+//	    tester.Run("TestXYZ", TestXYZ)
+//	    ...
+//	}
 //
 // When tester.Run is used in a `go test` type situation, it simply
 // maps it to t.Run. But when it is used with a `tester.New()`

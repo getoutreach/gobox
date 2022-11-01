@@ -1,8 +1,10 @@
 # gobox
-
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/getoutreach/gobox)
 [![Generated via Bootstrap](https://img.shields.io/badge/Outreach-Bootstrap-%235951ff)](https://github.com/getoutreach/bootstrap)
 [![Coverage Status](https://coveralls.io/repos/github/getoutreach/gobox/badge.svg?branch=main)](https://coveralls.io/github//getoutreach/gobox?branch=main)
+<!-- <<Stencil::Block(extraBadges)>> -->
+
+<!-- <</Stencil::Block>> -->
 
 A collection of libraries that are useful for implementing Go services, libraries, and more.
 
@@ -12,7 +14,7 @@ Please read the [CONTRIBUTING.md](CONTRIBUTING.md) document for guidelines on de
 
 ## High-level Overview
 
-<!--- Block(overview) -->
+<!-- <<Stencil::Block(overview)>> -->
 
 Please see individual packages in the generated documentation for overviews on each.
 
@@ -115,4 +117,4 @@ Now `Model` can be used in logs like so:
 
 Better still is to [generate the MarshalLog function using struct tags](https://github.com/getoutreach/gobox/blob/main/tools/logger/generating.md)
 
-<!--- EndBlock(overview) -->
+<!-- <</Stencil::Block>> -->

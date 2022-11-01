@@ -24,7 +24,7 @@ const (
 	UnknownError        StatusCode = 803
 )
 
-//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.0 -type=StatusCode
+//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.12 -type=StatusCode
 
 type StatusCategory int
 
@@ -34,7 +34,7 @@ const (
 	CategoryServerError StatusCategory = 3
 )
 
-//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.0 -type=StatusCategory
+//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.12 -type=StatusCategory
 
 func (re StatusCode) Category() StatusCategory {
 	if re >= 600 && re <= 699 {

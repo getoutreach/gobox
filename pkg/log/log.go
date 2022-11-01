@@ -1,22 +1,20 @@
 // Package log implements standard go logging
 //
-//
 // For logging:
 //
-//    log.Info(ctx, "message", log.F{field: 42})
-//    log.Error(...)
-//    log.Debug(...)
-//    log.Fatal(...)
+//	log.Info(ctx, "message", log.F{field: 42})
+//	log.Error(...)
+//	log.Debug(...)
+//	log.Fatal(...)
 //
 // By default, log.Debug is not emitted but instead it is cached. If
 // a higher event arrives within a couple of minutes of the debug log,
 // the cached debug log is emitted (with the correct older timestamp).
 //
-// Guidance on what type of log to use
+// # Guidance on what type of log to use
 //
 // Please see the confluence page for logging guidance:
 // https://outreach-io.atlassian.net/wiki/spaces/EN/pages/699695766/Logging+Tracing+and+Metrics
-//
 package log
 
 import (
@@ -92,10 +90,12 @@ func Write(s string) {
 }
 
 // F is a map of fields used for logging:
-//     log.Info(ctx, "request started", log.F{"start_time": time.Now()})
+//
+//	log.Info(ctx, "request started", log.F{"start_time": time.Now()})
 //
 // When logging errors, use events.Err:
-//     log.Error(ctx, "some failure", events.Err(err))
+//
+//	log.Error(ctx, "some failure", events.Err(err))
 type F = logf.F
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens

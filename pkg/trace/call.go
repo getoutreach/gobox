@@ -21,10 +21,10 @@ var callTracker = &call.Tracker{}
 //
 // Typical usage:
 //
-//     ctx = trace.StartCall(ctx, "sql", SQLEvent{Query: ...})
-//     defer trace.EndCall(ctx)
+//	ctx = trace.StartCall(ctx, "sql", SQLEvent{Query: ...})
+//	defer trace.EndCall(ctx)
 //
-//     return trace.SetCallStatus(ctx, sqlCall(...));
+//	return trace.SetCallStatus(ctx, sqlCall(...));
 //
 // The callType should be broad category (such as "sql", "redis" etc) as
 // as these are used for metrics and cardinality issues come into play.
@@ -136,7 +136,7 @@ func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
 	return false
 }
 
-//IDs returns a log-compatible tracing scope (IDs) data built from the context suitable for logging.
+// IDs returns a log-compatible tracing scope (IDs) data built from the context suitable for logging.
 func IDs(ctx context.Context) log.Marshaler {
 	return traceInfo{ctx}
 }
