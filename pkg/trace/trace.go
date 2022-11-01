@@ -1,24 +1,22 @@
 // Package trace wraps standard tracing for outreach.
 //
-// This package wraps honeycomb tracing
+// # This package wraps honeycomb tracing
 //
-// Trace Initialization
+// # Trace Initialization
 //
 // Applications should call `trace.StartTracing(serviceName)` and
 // `trace.StopTracing()` in their `main` like so:
 //
-//     func main() {
-//          trace.StartTracing("example")
-//          defer trace.StopTracing()
+//	func main() {
+//	     trace.StartTracing("example")
+//	     defer trace.StopTracing()
 //
-//          ... main app logic ...
-//     }
-//
+//	     ... main app logic ...
+//	}
 //
 // See https://github.com/getoutreach/gobox/blob/master/cmd/example/main.go.
 //
-//
-// Servers and incoming requests
+// # Servers and incoming requests
 //
 // The httpx/pkg/handlers package wraps the required trace
 // header parsing logic and so applications that use
@@ -26,41 +24,39 @@
 //
 // Custom http servers should wrap their request handling code like so:
 //
-// 		trace.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) *roundtripperState {
-// 		  trace.StartSpan(r.Context(), "my endpoint")
-// 		  defer trace.End(r.Context())
-// 		  ... do actual request handling ...
-//      }), "my endpoint")
+//			trace.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) *roundtripperState {
+//			  trace.StartSpan(r.Context(), "my endpoint")
+//			  defer trace.End(r.Context())
+//			  ... do actual request handling ...
+//	     }), "my endpoint")
 //
 // Non-HTTP servers should wrap their request handling like so:
 //
-//      ctx = trace.StartSpan(ctx, "my endpoint")
-//      defer trace.End(ctx)
-//      ... do actual request handling ...
-//
+//	ctx = trace.StartSpan(ctx, "my endpoint")
+//	defer trace.End(ctx)
+//	... do actual request handling ...
 //
 // Clients should use a Client with the provided transport like so:
 //
-//      ctx = trace.StartSpan(ctx, "my call")
-//      defer trace.End(ctx)
-//      client := http.Client{Transport: trace.NewTransport(nil)}
-//      ... do actual call using the new client ...
+//	ctx = trace.StartSpan(ctx, "my call")
+//	defer trace.End(ctx)
+//	client := http.Client{Transport: trace.NewTransport(nil)}
+//	... do actual call using the new client ...
 //
-// Tracing calls
+// # Tracing calls
 //
 // Any interesting function (such as model fetches or redis fetches)
 // should use the following pattern:
 //
-//     func MyInterestingRedisFunction(ctx context.Context, ...) error {
-//         ctx = trace.StartCall(ctx, "redis", RedisInfo{...})
-//         defer trace.EndCall(ctx)
+//	func MyInterestingRedisFunction(ctx context.Context, ...) error {
+//	    ctx = trace.StartCall(ctx, "redis", RedisInfo{...})
+//	    defer trace.EndCall(ctx)
 //
-//         .... actual work ...
-//         trace.AddInfo(ctx, xyzInfo)
+//	    .... actual work ...
+//	    trace.AddInfo(ctx, xyzInfo)
 //
-//         return trace.SetCallStatus(ctx, err)
-//     }
-//
+//	    return trace.SetCallStatus(ctx, err)
+//	}
 //
 // This automatically updates metrics ("call_request_secconds" is the
 // counter with "redis" as the name label), writes to debug/error logs
@@ -68,7 +64,7 @@
 //
 // Trace calls can be nested.
 //
-// Creating spans
+// # Creating spans
 //
 // Spans should rarely be needed but are available for when the metrics or
 // default logging is not sufficient.
@@ -77,25 +73,22 @@
 // or span (based on the `context`).  The redis example above would
 // look like so:
 //
-//     ctx = trace.StartSpan(ctx, "redis")
-//     defer trace.End(ctx)
-//     .... do actual redis call...
+//	ctx = trace.StartSpan(ctx, "redis")
+//	defer trace.End(ctx)
+//	.... do actual redis call...
 //
-//
-// Adding tags
+// # Adding tags
 //
 // Tags can be added to the `current` span (or trace or call) by simply
 // calling `trace.AddInfo`.   Note that this accepts the same types that
 // logging accepts.  For instance, to record an error with redis:
 //
-//     result, err := redis.Call(....)
-//     if err != nil {
-//        // if you are using trace.Call, then do trace.SetCallStatus
-//        // instead.
-//        trace.AddInfo(ctx, events.NewErrorInfo(err))
-//     }
-//
-//
+//	result, err := redis.Call(....)
+//	if err != nil {
+//	   // if you are using trace.Call, then do trace.SetCallStatus
+//	   // instead.
+//	   trace.AddInfo(ctx, events.NewErrorInfo(err))
+//	}
 package trace
 
 import (

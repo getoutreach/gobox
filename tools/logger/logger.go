@@ -2,7 +2,7 @@
 //
 // The logger cmd can be used to generate log marshalers for structs.
 //
-// See generating.md for generating log marshalers
+// # See generating.md for generating log marshalers
 //
 // Usage: logger [flag] [files]
 //

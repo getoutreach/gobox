@@ -2,49 +2,48 @@
 
 // Package queue provides queue data struct.
 //
-// Priority Queue
+// # Priority Queue
 //
 // PriorityQueue implements container/heap and enriches it with additional features,
 // such as Peek, Update, Remove, Contains, List, Clear, etc.
 //
 // PriorityQueue provides a standard priority queue feature.
 //
-// 	// create priority queue.
-// 	pq, _ := queue.NewPriorityQueue()
+//	// create priority queue.
+//	pq, _ := queue.NewPriorityQueue()
 //
-// 	pq.Push(1, 1) 		// push
-// 	peekItem := pq.Peek() 	// peek
-// 	popItem := pq.Pop() 	// pop
+//	pq.Push(1, 1) 		// push
+//	peekItem := pq.Peek() 	// peek
+//	popItem := pq.Pop() 	// pop
 //
 // Item priority can be updated after it is pushed.
 //
-// 	// change item priority
+//	// change item priority
 //	pushItem := pq.Push(1, 1)
 //	pushItem.SetPriority(2)
 //
-// 	// update item priority in queue
-// 	pq.Update(pushItem)
+//	// update item priority in queue
+//	pq.Update(pushItem)
 //
 // Remove an item in the queue without pop.
 //
-// 	// change item priority
+//	// change item priority
 //	pushItem := pq.Push(1, 1)
 //
-// 	// remove item in queue
-// 	pq.Remove(pushItem)
+//	// remove item in queue
+//	pq.Remove(pushItem)
 //
 // Default priority uses min heap, smaller value means higher priority. You can
 // change the heap type to max heap via option. With max heap, a smaller value means
 // lower priority.
 //
-// 	pq, _ := queue.NewPriorityQueue()
-// 	pq.Push(1, 1)	// higher priority
-// 	pq.Push(2, 2)	// lower priority
+//	pq, _ := queue.NewPriorityQueue()
+//	pq.Push(1, 1)	// higher priority
+//	pq.Push(2, 2)	// lower priority
 //
-// 	pq, _ = queue.NewPriorityQueue(queue.WithMaxHeap())
-// 	pq.Push(1, 1)	// lower priority
-// 	pq.Push(2, 2)	// higher priority
-//
+//	pq, _ = queue.NewPriorityQueue(queue.WithMaxHeap())
+//	pq.Push(1, 1)	// lower priority
+//	pq.Push(2, 2)	// higher priority
 package queue
 
 import (

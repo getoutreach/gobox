@@ -275,6 +275,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 
 		// if we're not past the last update threshold
 		// then we don't check for updates.
+		//nolint:gocritic // Why: should not replace After with Before
 		if !time.Now().After(repoCache.LastChecked.Add(checkAmount)) {
 			return false, nil
 		}

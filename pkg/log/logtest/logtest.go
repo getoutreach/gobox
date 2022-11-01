@@ -2,14 +2,14 @@
 //
 // Usage:
 //
-//     func MyTestFunc(t *testing.T) {
-//         logs := logTest.NewLogRecorder(t)
-//         defer logs.Close()
-//         .....
-//         if diff := logs.Diff(expected); diff != "" {
-//             t.Fatal("logs unexpected", diff);
-//         }
-//     }
+//	func MyTestFunc(t *testing.T) {
+//	    logs := logTest.NewLogRecorder(t)
+//	    defer logs.Close()
+//	    .....
+//	    if diff := logs.Diff(expected); diff != "" {
+//	        t.Fatal("logs unexpected", diff);
+//	    }
+//	}
 package logtest
 
 import (

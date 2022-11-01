@@ -14,17 +14,17 @@ service:
   framework: stencil
   description: >
     A collection of libraries that are useful for implementing Go services, libraries, and more.
-  ###Block(extraServiceMetadata)
-  ###EndBlock(extraServiceMetadata)
+  ## <<Stencil::Block(extraServiceMetadata)>>
+  ## <</Stencil::Block>>
   aliases:
-    ###Block(extraAliases)
+    ## <<Stencil::Block(extraAliases)>>
 
-    ###EndBlock(extraAliases)
+    ## <</Stencil::Block>>
     - gobox
   tags:
-    ###Block(extraTags)
+    ## <<Stencil::Block(extraTags)>>
 
-    ###EndBlock(extraTags)
+    ## <</Stencil::Block>>
     - key: repo
       value: "https://github.com/getoutreach/gobox"
     - key: reporting_team
@@ -34,7 +34,7 @@ service:
     - key: name
       value: "gobox"
     - key: stencil_version
-      value: "v1.21.1"
+      value: "v1.28.1"
     - key: golang_version
       value: "1.17.9"
     - key: tutorial

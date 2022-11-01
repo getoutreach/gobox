@@ -3,24 +3,24 @@
 //
 // When starting go routines, use async.Run:
 //
-//     // this starts a go routine
-//     async.Run(ctx, async.Func(func(ctx context.Context) error {
-//        ctx = trace.StartCall(ctx, "...")
-//        defer trace.EndCall(ctx)
-//        .... do whatever needs to be done ...
-//        .... just return error to abort loop ....
-//     }))
+//	// this starts a go routine
+//	async.Run(ctx, async.Func(func(ctx context.Context) error {
+//	   ctx = trace.StartCall(ctx, "...")
+//	   defer trace.EndCall(ctx)
+//	   .... do whatever needs to be done ...
+//	   .... just return error to abort loop ....
+//	}))
 //
 // If the long running activity involves fetching from a reader or
 // some other iterative pattern, use async.Loop
 //
-//    // this starts a go routine
-//    async.Loop(ctx, async.Func(func(ctx context.Context) error {
-//        ctx = trace.StartCall(ctx, "...")
-//        defer trace.EndCall(ctx)
-//       .... do whatever... return errors to abort loop
-//       ... maybe async.Sleep(ctx, time.Minute)
-//    }))
+//	// this starts a go routine
+//	async.Loop(ctx, async.Func(func(ctx context.Context) error {
+//	    ctx = trace.StartCall(ctx, "...")
+//	    defer trace.EndCall(ctx)
+//	   .... do whatever... return errors to abort loop
+//	   ... maybe async.Sleep(ctx, time.Minute)
+//	}))
 //
 // Note:  async.Loop terminates the loop when the inner function
 // returns an error or the context is canceled.
