@@ -61,7 +61,7 @@ func assumedToRole(assumedRole string) string {
 // EnsureValidCredentials ensures that the current AWS credentials are valid
 // and if they can expire it is attempted to rotate them when they are expired
 // via saml2aws
-func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error { //nolint:funlen
+func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error { //nolint:funlen,lll // Why: cleaner to keep everything together
 	if _, ok := os.LookupEnv("CI"); ok {
 		return nil
 	}

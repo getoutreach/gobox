@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package exec implements os/exec stdlib helpers
+// Description: Provides helpers for os/exec
+
+// Package exec implements os/exec stdlib helpers
 package exec
 
 import (

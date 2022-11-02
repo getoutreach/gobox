@@ -2,6 +2,8 @@
 
 // Description: This file contains region specific type definitions
 // and region logic.
+
+// Package region Implements region specific helpers
 package region
 
 import (

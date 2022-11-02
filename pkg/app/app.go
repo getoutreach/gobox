@@ -1,7 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package app has the static app info
+// Description: Provides static app info
 
+// Package app has the static app info
 package app
 
 import (
@@ -49,7 +50,7 @@ func Info() *Data {
 
 // info returns the static app info
 //
-//nolint:funlen
+//nolint:funlen // Why: cleaner to keep everything together
 func info() *Data {
 	const unknown = "unknown"
 	mainModule := ""

@@ -2,7 +2,7 @@
 
 // Description: This file contains the helper utilities for marshaling log fields.
 
-// package logf has the log.F implementation
+// Package logf has the log.F implementation
 package logf
 
 import "strings"

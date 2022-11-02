@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package trace wraps standard tracing for outreach.
+// Description: Provides a generic wrapper for Go tracing libraries
+
+// Package trace wraps standard tracing for outreach.
 //
 // # This package wraps honeycomb tracing
 //
@@ -101,7 +103,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: need to allow overriding
 var defaultTracer tracer
 
 // Deprecated: Use InitTracer() instead.

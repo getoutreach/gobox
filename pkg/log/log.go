@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package log implements standard go logging
+// Description: Provides a standard means for go logging
+
+// Package log implements standard go logging
 //
 // For logging:
 //
@@ -37,7 +39,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: sets up overwritable writers
 var (
 	// wrap stdout and stderr in sync writers to ensure that writes exceeding
 	// PAGE_SIZE (4KB) are not interleaved.

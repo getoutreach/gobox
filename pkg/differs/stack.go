@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: regex used in multiple places
 var stripNumbersRe = regexp.MustCompile(`:(\d*)`)
 
 // StackLike allows a stacktrace to be matched against it

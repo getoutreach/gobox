@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package shuffler primarily provides the Suite struct that functions as a
+// Description: Provide capabilities to shuffle tests during a run.
+
+// Package shuffler primarily provides the Suite struct that functions as a
 // test runner and randomizer when embedded in your test struct. Methods
 // defined on your suite struct will be resolved at runtime, and all tests
 // that start with Test will be run. However, the key thing is that the test

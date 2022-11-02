@@ -1,7 +1,6 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-//go:build !or_test && !or_dev && !or_e2e
-// +build !or_test,!or_dev,!or_e2e
+// Description: provides environment specific overrides based on build tags
 
 // Package env provides environment specific overrides
 //
@@ -14,7 +13,3 @@
 // some package in the dependency chain uses the same build tag to
 // change their own behavior
 package env
-
-func ApplyOverrides() {
-	// no overrides for non-dev & non-test environments
-}

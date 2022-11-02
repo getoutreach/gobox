@@ -2,6 +2,7 @@
 
 // Description: Provides an interface to work with Entries
 
+// Package entries provides an interface to work with Entries
 package entries
 
 import (
@@ -9,10 +10,10 @@ import (
 	"time"
 )
 
-// maxItems is the maximum number of debug entries cached
+// MaxItems is the maximum number of debug entries cached
 const MaxItems = 200
 
-// maxduration is the age past which a debug entry is considered stale.
+// MaxDuration is the age past which a debug entry is considered stale.
 const MaxDuration = time.Minute * 2
 
 // New returns a new collection of log entries

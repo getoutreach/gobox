@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package caller provides info on the caller
+// Description: Provides info on the caller
+
+// Package caller provides info on the caller
 package caller
 
 import (
@@ -10,7 +12,7 @@ import (
 	"strings"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: re-usable regex
 var trimPathsRe = regexp.MustCompile(`(github\.com(/getoutreach?)|golang\.org|go/src)/?`)
 
 // FileLine returns the caller file:line, skipping the specified number of frames.

@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package tester implements a test runner compatible with testing.T
+// Description: Provides a custom test runner compatible with testing.T
+
+// Package tester implements a test runner compatible with testing.T
 //
 // Usage:
 //

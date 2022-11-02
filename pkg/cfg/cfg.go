@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package cfg manages config for outreach go services
+// Description: Provides configuration management helpers for go services
+
+// Package cfg manages config for outreach go services
 //
 // Every go app or package that needs config should define a strongly
 // typed struct for it
@@ -79,7 +81,7 @@ import (
 
 // the default read is a prod reader which looks for
 // config files in /run/config/outreach.io/<filename>
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: global default
 var defaultReader = Reader(func(fileName string) ([]byte, error) {
 	name := "/run/config/outreach.io/" + fileName
 	if runtime.GOOS == "windows" {

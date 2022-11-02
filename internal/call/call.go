@@ -2,7 +2,7 @@
 
 // Description: This file contains the call tracker implementation used by trace.
 
-// The call package helps support tracking latency and other metrics for calls.
+// Package call helps support tracking latency and other metrics for calls.
 package call
 
 import (

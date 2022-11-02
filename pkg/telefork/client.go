@@ -98,7 +98,6 @@ func (c *client) Close() {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		// TODO: Retry? If necessary.
 		return
 	}
 }

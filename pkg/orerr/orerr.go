@@ -1,7 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package orerr implements outreach specific error utilities.
+// Description: Implements outreach specific error utilities.
 
+// Package orerr implements outreach specific error utilities.
 package orerr
 
 import (
@@ -131,7 +132,7 @@ type retryable struct {
 }
 
 // Retryable wraps err in a type which denotes that the originating process is retryable.
-func Retryable(err error) *retryable { // nolint
+func Retryable(err error) *retryable { //nolint: revive // Why: retryable is meant to be hidden
 	return &retryable{err}
 }
 

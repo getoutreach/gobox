@@ -2,6 +2,7 @@
 
 // Description: Provides custom status types and helpers
 
+// Package statuscodes provides custom status types and helpers
 package statuscodes
 
 import "fmt"

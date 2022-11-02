@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package events defines the standard logging event structures
+// Description: Defines standard logging event structures
+
+// Package events defines the standard logging event structures
 //
 // This is based on
 // https://docs.google.com/document/d/1V1py1iXX9B9NAb30veHYNGOuymZ9o_C2pYSU9E6qmsg/edit#
@@ -90,7 +92,7 @@ func (h *HTTPRequest) FillFieldsFromRequest(r *http.Request) {
 	h.URI = r.RequestURI
 	h.Referer = r.Referer()
 	h.RequestID = r.Header.Get("X-Request-ID")
-	h.BytesRead, _ = strconv.Atoi(r.Header.Get("Content-Length")) //nolint: errcheck
+	h.BytesRead, _ = strconv.Atoi(r.Header.Get("Content-Length")) //nolint: errcheck // Why: best effort
 	h.RemoteAddr = h.getRemoteAddr(r)
 	h.Times.Scheduled = h.getXRequestStart(r)
 	h.Times.Started = time.Now()

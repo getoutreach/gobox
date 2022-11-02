@@ -17,7 +17,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: flag used in multiple places
 var shuffleSeed = flag.Int64("shuffler.seed", 0, "Specify a seed for the randomization of test methods")
 
 type TestSuite interface{}

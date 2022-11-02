@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package async has helper utilities for running async code with
+// Description: Provides utilities for writing async code
+
+// Package async has helper utilities for running async code with
 // proper tracing.
 //
 // When starting go routines, use async.Run:

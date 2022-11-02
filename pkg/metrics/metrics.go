@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Package metrics implements the outreach metrics API
+// Description: Implements the outreach metrics API
+
+// Package metrics implements the outreach metrics API
 //
 // This consists of the Count and Latency functions
 package metrics
@@ -42,7 +44,7 @@ func WithCallKind(ck CallKind) ReportLatencyOption {
 
 // httpCallLatency registers the http_request_handled metric for reporting latency of
 // HTTP requests, in seconds.
-var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Why: cleaner to use everywhere
 	prometheus.HistogramOpts{
 		Name:    "http_request_handled",
 		Help:    "The latency of the HTTP request, in seconds",
@@ -73,7 +75,7 @@ func ReportHTTPLatency(appName, callName string, latencySeconds float64, err err
 
 // grpcCallLatency registers the grpc_request_handled metric for reporting latency of
 // gRPC requests, in seconds.
-var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Why: cleaner to use everywhere
 	prometheus.HistogramOpts{
 		Name:    "grpc_request_handled",
 		Help:    "The latency of the gRPC request, in seconds",
@@ -104,7 +106,7 @@ func ReportGRPCLatency(appName, callName string, latencySeconds float64, err err
 
 // outboundCallLatency registers the outbound_call_seconds metric for reporting latency
 // of outbound requests, in seconds.
-var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals
+var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Why: cleaner to use everywhre
 	prometheus.HistogramOpts{
 		Name:    "outbound_call_seconds",
 		Help:    "The latency of the outbound request, in seconds",
