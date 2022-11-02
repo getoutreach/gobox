@@ -7,11 +7,16 @@ package logfile
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func Test_read(t *testing.T) {
@@ -58,5 +63,36 @@ func Test_read(t *testing.T) {
 				t.Errorf("read mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestTraceRoundtripJSON(t *testing.T) {
+	testFilePath := "testdata/trace.json"
+	originalJSON, err := os.ReadFile(testFilePath)
+	if err != nil {
+		t.Fatalf("unable to read %s: %v", testFilePath, err)
+	}
+
+	var spans []Span
+	if err := json.NewDecoder(bytes.NewReader(originalJSON)).Decode(&spans); err != nil {
+		t.Fatalf("unable to decode %s: %v", testFilePath, err)
+	}
+
+	fmt.Printf("TraceID: %s\n", spans[0].SpanContext.TraceID())
+
+	var readOnlySpans []tracesdk.ReadOnlySpan
+	for _, span := range spans {
+		readOnlySpans = append(readOnlySpans, span.Snapshot())
+	}
+
+	stubs := tracetest.SpanStubsFromReadOnlySpans(readOnlySpans)
+
+	var newJSON bytes.Buffer
+	if err := json.NewEncoder(&newJSON).Encode(stubs); err != nil {
+		t.Fatalf("unable to encode %s: %v", testFilePath, err)
+	}
+
+	if !bytes.Equal(originalJSON, newJSON.Bytes()) {
+		t.Fatalf("expectd: %s, to equal: %s", originalJSON, newJSON.String())
 	}
 }

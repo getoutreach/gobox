@@ -39,7 +39,7 @@ type otelTracer struct {
 	force          bool
 }
 
-// NewOtelTracer creates and initializes a new otel tracer
+// NewOtelTracer creates and initializes a new otel tracer.
 func NewOtelTracer(ctx context.Context, serviceName string, config *Config) (tracer, error) {
 	tracer := &otelTracer{Config: *config}
 	if err := tracer.initTracer(ctx, serviceName); err != nil {
@@ -404,9 +404,4 @@ func (t *otelTracer) setForce(force bool) {
 
 func (t *otelTracer) isForce() bool {
 	return t.force
-}
-
-// forceFlush exports all spans that have not yet been exported.
-func (t *otelTracer) forceFlush(ctx context.Context) error {
-	return t.tracerProvider.ForceFlush(ctx)
 }

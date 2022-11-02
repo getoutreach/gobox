@@ -12,11 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/sdk/instrumentation"
-	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // MetadataVersion is the version of the metadata format this
@@ -108,73 +104,6 @@ func read(r io.Reader) ([]Entry, error) {
 	}
 
 	return entries, nil
-}
-
-// Span is a type similar to otel's SpanStub, but with the correct types needed
-// for handle marshalling and unmarshalling.
-type Span struct {
-	Name              string
-	SpanContext       trace.SpanContext
-	Parent            trace.SpanContext
-	SpanKind          trace.SpanKind
-	StartTime         time.Time
-	EndTime           time.Time
-	Attributes        []attribute.KeyValue
-	Events            []tracesdk.Event
-	Links             []tracesdk.Link
-	Status            tracesdk.Status
-	DroppedAttributes int
-	DroppedEvents     int
-	DroppedLinks      int
-	ChildSpanCount    int
-	// We have to change this type from the otel type in order to make this struct marshallable
-	Resource               []attribute.KeyValue
-	InstrumentationLibrary instrumentation.Library
-}
-
-// Snapshot turns a Span into a ReadOnlySpan which is exportable by otel.
-func (s *Span) Snapshot() tracesdk.ReadOnlySpan {
-	return spanSnapshot{
-		name:                 s.Name,
-		spanContext:          s.SpanContext,
-		parent:               s.Parent,
-		spanKind:             s.SpanKind,
-		startTime:            s.StartTime,
-		endTime:              s.EndTime,
-		attributes:           s.Attributes,
-		events:               s.Events,
-		links:                s.Links,
-		status:               s.Status,
-		droppedAttributes:    s.DroppedAttributes,
-		droppedEvents:        s.DroppedEvents,
-		droppedLinks:         s.DroppedLinks,
-		childSpanCount:       s.ChildSpanCount,
-		resource:             resource.NewSchemaless(s.Resource...),
-		instrumentationScope: s.InstrumentationLibrary,
-	}
-}
-
-// spanSnapshot is a helper type for transforming a Span into a ReadOnlySpan.
-type spanSnapshot struct {
-	// Embed the interface to implement the private method.
-	tracesdk.ReadOnlySpan
-
-	name                 string
-	spanContext          trace.SpanContext
-	parent               trace.SpanContext
-	spanKind             trace.SpanKind
-	startTime            time.Time
-	endTime              time.Time
-	attributes           []attribute.KeyValue
-	events               []tracesdk.Event
-	links                []tracesdk.Link
-	status               tracesdk.Status
-	droppedAttributes    int
-	droppedEvents        int
-	droppedLinks         int
-	childSpanCount       int
-	resource             *resource.Resource
-	instrumentationScope instrumentation.Scope
 }
 
 // Snapshots returns a slice of ReadOnlySpans exportable by otle.
