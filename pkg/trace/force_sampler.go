@@ -78,6 +78,7 @@ func (s *otelForceSampler) isSampled(traceID string) bool {
 	return s.sampler.Sample(traceID)
 }
 
+// newSampler creates a new deterministic sampler for the given rate or panics if the rate is 0.
 func newSampler(sampleRate uint) *otelForceSampler {
 	sampler, err := sample.NewDeterministicSampler(sampleRate)
 	if err != nil {

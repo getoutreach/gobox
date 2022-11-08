@@ -258,6 +258,8 @@ func (t *otelTracer) isForce() bool {
 	return t.force
 }
 
+// isSampled is used to determine if the given trace ID should be sampled based on the
+// current sample rate.
 func (t *otelTracer) isSampled(traceID string) bool {
 	return t.sampler.isSampled(traceID)
 }
