@@ -323,12 +323,3 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 	}
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
-
-// IsSampled returns true if the given trace ID is sampled based on the current sampling rate.
-// This API is mostly for remote trace ID correlation.
-func IsSampled(traceID string) bool {
-	if defaultTracer == nil {
-		return false
-	}
-	return defaultTracer.isSampled(traceID)
-}

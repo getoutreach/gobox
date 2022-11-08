@@ -48,6 +48,19 @@ func (l Link) SpanID() string {
 	return SpanID(l.linkContext)
 }
 
+// IsSampledIfLocal returns true if the linked trace would have been sampled if declared
+// as the local trace with the same ID.
+//
+// This method can be used to significanylu reduce 'dead link URLs', assuming the sampling rate of
+// the producing app is same as the current one and also the hash used to calculate the sampling is
+// deterministic and same on both sides.
+func (l Link) IsSampledIfLocal() bool {
+	if defaultTracer == nil {
+		return false
+	}
+	return defaultTracer.isSampled(l.TraceID())
+}
+
 // _ makes sure Link conforms with the SpanStartOption interface
 var _ SpanStartOption = Link{}
 
