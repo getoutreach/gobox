@@ -54,4 +54,6 @@ type tracer interface {
 
 	// fromHeaders is similar to contextFromHeaders + it starts a new span
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
+
+	isSampled(traceID string) bool
 }

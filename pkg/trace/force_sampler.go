@@ -38,11 +38,6 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 		}
 	}
 
-	sampler, err := sample.NewDeterministicSampler(s.sampleRate)
-	if err != nil {
-		panic(err)
-	}
-
 	var forceTrace string
 	for _, a := range p.Attributes {
 		if string(a.Key) == fieldForceTrace {
@@ -57,8 +52,8 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 		}
 	}
 
-	traceID := p.TraceID.String()
-	if sampler.Sample(traceID) {
+	// if not forced, use deterministic hash of the trace ID and the current rate to decide
+	if s.isSampled(p.TraceID.String()) {
 		return sdktrace.SamplingResult{
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: psc.TraceState(),
@@ -71,8 +66,27 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 	}
 }
 
-func forceSample(sampleRate uint) sdktrace.Sampler {
+// isSampled is used to determine if the given trace ID should be sampled based on the
+// current sample rate.
+//
+// Please keep the sampling logic deterministic because this method is used to correlate sampling between different
+// services at Outreach. For example, if a producer of the trace headers generates traceID1 and a remote service
+// wants to link the traceID1 to its own trace (!= traceID1), then it should only do so if traceID1 was sampled.
+// Failure to do so causes honeycomb to show a trace link to a 'dead trace' - and it is not possible to filter those
+// out, rendering the the cross-trace linking experience useless.
+func (s *otelForceSampler) isSampled(traceID string) bool {
+	sampler, err := sample.NewDeterministicSampler(s.sampleRate)
+	if err != nil {
+		panic(err)
+	}
+
+	return sampler.Sample(traceID)
+}
+
+func newSampler(sampleRate uint) *otelForceSampler {
 	return &otelForceSampler{
 		sampleRate: sampleRate,
 	}
 }
+
+var _ sdktrace.Sampler = &otelForceSampler{}

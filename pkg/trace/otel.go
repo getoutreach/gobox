@@ -29,6 +29,7 @@ type otelTracer struct {
 	serviceName    string
 	tracerProvider *sdktrace.TracerProvider
 	force          bool
+	sampler        *otelForceSampler
 }
 
 // Annotator is a SpanProcessor that adds service-level tags on every span
@@ -109,11 +110,13 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		log.Error(ctx, "Unable to configure trace provider", events.NewErrorInfo(err))
 	}
 
+	t.sampler = newSampler(uint(100 / t.Otel.SamplePercent))
+
 	tpOptions := []sdktrace.TracerProviderOption{
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(r),
 		// accepts sample rates as number of requests seen per request sampled
-		sdktrace.WithSampler(forceSample(uint(100 / t.Otel.SamplePercent))),
+		sdktrace.WithSampler(t.sampler),
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: t.GlobalTags,
 			sampleRate: int64(100 / t.Otel.SamplePercent),
@@ -253,4 +256,8 @@ func (t *otelTracer) setForce(force bool) {
 
 func (t *otelTracer) isForce() bool {
 	return t.force
+}
+
+func (t *otelTracer) isSampled(traceID string) bool {
+	return t.sampler.isSampled(traceID)
 }
