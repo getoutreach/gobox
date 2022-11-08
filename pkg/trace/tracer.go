@@ -55,5 +55,7 @@ type tracer interface {
 	// fromHeaders is similar to contextFromHeaders + it starts a new span
 	fromHeaders(ctx context.Context, hdrs map[string][]string, name string) context.Context
 
+	// isSampled is used to determine if the given trace ID should be sampled based on the
+	// current sample rate
 	isSampled(traceID string) bool
 }

@@ -21,7 +21,7 @@ func forceTracing(ctx context.Context) context.Context {
 // forceSampler allows force sample rate to 100% when trace context contains field force_trace
 // and sample at a rate of 1/<given rate> when context contains field sample_trace.
 type otelForceSampler struct {
-	sampleRate uint
+	sampler *sample.DeterministicSampler
 }
 
 func (s *otelForceSampler) Description() string {
@@ -75,17 +75,17 @@ func (s *otelForceSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.
 // Failure to do so causes honeycomb to show a trace link to a 'dead trace' - and it is not possible to filter those
 // out, rendering the the cross-trace linking experience useless.
 func (s *otelForceSampler) isSampled(traceID string) bool {
-	sampler, err := sample.NewDeterministicSampler(s.sampleRate)
+	return s.sampler.Sample(traceID)
+}
+
+func newSampler(sampleRate uint) *otelForceSampler {
+	sampler, err := sample.NewDeterministicSampler(sampleRate)
 	if err != nil {
 		panic(err)
 	}
 
-	return sampler.Sample(traceID)
-}
-
-func newSampler(sampleRate uint) *otelForceSampler {
 	return &otelForceSampler{
-		sampleRate: sampleRate,
+		sampler: sampler,
 	}
 }
 
