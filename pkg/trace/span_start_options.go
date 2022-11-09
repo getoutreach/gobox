@@ -53,7 +53,10 @@ func (l Link) SpanID() string {
 //
 // This method can be used to significanylu reduce 'dead link URLs', assuming the sampling rate of
 // the producing app is same as the current one and also the hash used to calculate the sampling is
-// deterministic and same on both sides.
+// deterministic and same on both sides. However, it does not completely solve the issue, hence the
+// Jira item below to complete the picture.
+//
+// TODO[DT-3105]: introduce new trace header and method to pass the `is_sampled` state from the producer
 func (l Link) IsSampledIfLocal() bool {
 	if defaultTracer == nil {
 		return false
