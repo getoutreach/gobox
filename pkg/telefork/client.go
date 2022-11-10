@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a telefork client
 package telefork
 
 import (
@@ -95,7 +98,6 @@ func (c *client) Close() {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		// TODO: Retry? If necessary.
 		return
 	}
 }

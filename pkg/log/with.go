@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides a logger that captures the marshaler arguemtns
+
 package log
 
 import "context"
@@ -5,7 +9,7 @@ import "context"
 // With creates a logger that captures the marshaler arguments.
 //
 // All methods exposed by the logger automatically add the provided marshalers.
-func With(m ...Marshaler) logger { //nolint: revive // logger is intentionally hidden.
+func With(m ...Marshaler) logger { //nolint: revive // Why: logger is intentionally hidden.
 	return logger{m}
 }
 

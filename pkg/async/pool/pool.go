@@ -1,3 +1,8 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides an async pool implementation
+
+// Package pool implements an async pool
 package pool
 
 import (
@@ -210,7 +215,7 @@ func (p *Pool) worker(ctx context.Context) {
 	for {
 		select {
 		case u = <-p.queue:
-			//nolint:errcheck
+			//nolint:errcheck // Why: best effort
 			_ = u.Runner.Run(u.Context)
 		case <-p.closed:
 			return

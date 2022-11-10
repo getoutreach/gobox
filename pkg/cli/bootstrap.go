@@ -1,4 +1,4 @@
-// Copyright 2021 Outreach Corporation. All Rights Reserved.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains cli functions used in bootstrap
 // and eventually in stencil.
@@ -109,8 +109,6 @@ func commonProps() log.Marshaler {
 	if b, err := osexec.Command("git", "config", "user.email").Output(); err == nil {
 		email := strings.TrimSuffix(string(b), "\n")
 
-		// TODO: Turn the check into an config option
-		// In case of @outreach.io email, we want to add PII for easier debugging with devs
 		if strings.HasSuffix(email, "@outreach.io") {
 			commonProps["dev.email"] = email
 

@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a custom Comperer that turns an a function into a Comparer
 package differs
 
 import "github.com/google/go-cmp/cmp"

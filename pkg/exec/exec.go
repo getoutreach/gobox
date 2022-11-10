@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides helpers for os/exec
+
 // Package exec implements os/exec stdlib helpers
 package exec
 

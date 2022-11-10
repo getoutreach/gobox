@@ -1,5 +1,9 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
 //go:build or_dev || or_test || or_e2e
 // +build or_dev or_test or_e2e
+
+// Description: Provides configuration readers for various environments
 
 package env
 
@@ -14,11 +18,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: needs to be overridable
 var testOverrides = make(map[string]interface{})
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
-func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
+func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
 		if err != nil {

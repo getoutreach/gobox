@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides various call options functions
+
 package trace
 
 import (

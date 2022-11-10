@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides utilities for retrieving box configuration
+
 package box
 
 import (

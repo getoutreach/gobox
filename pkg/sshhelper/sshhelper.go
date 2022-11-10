@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides helpers for working with ssh.
+
 // Package sshhelper is a toolkit for common ssh-related operations.
 package sshhelper
 
@@ -65,7 +69,7 @@ func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string,
 }
 
 func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
-	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubByts) //nolint:dogsled
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubByts) //nolint:dogsled // Why: external function
 	if err != nil {
 		return false, errors.Wrap(err, "failed to parse public key")
 	}
@@ -86,7 +90,7 @@ func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
 // AddKeyToAgent adds a key to the internal ssh-key agent. If a public key can
 // be found at the same path as the private key, it will first check the agent
 // and return nil if the key is already present
-func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { // nolint:funlen
+func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { //nolint:funlen,lll // Why: cleaner to keep everything together
 	b, err := os.ReadFile(keyPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to read private key")
@@ -123,7 +127,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 				}
 				fmt.Println("")
 
-				// nolint:govet
+				// nolint:govet // Why: this is cleaner
 				if err := keyring.Set(serviceName, user, pass); err != nil {
 					log.WithError(err).Warn("Failed to save key in keyring, will have to type this again.")
 				}
@@ -133,7 +137,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 			if err != nil {
 				// Delete the passphrase from the keyring.
 				if _, err2 := keyring.Get(serviceName, user); err2 != nil {
-					keyring.Delete(serviceName, user) //nolint:errcheck
+					keyring.Delete(serviceName, user) //nolint:errcheck // Why: best effort
 				}
 
 				log.WithError(err).Error("Failed to decrypt private key with provided passphrase")

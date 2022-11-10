@@ -1,25 +1,32 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides various call options functions
+
 package trace
 
 import (
 	"github.com/getoutreach/gobox/pkg/cfg"
 )
 
-// tracing config goes into trace.yaml
+// Config is the tracing config that gets read from trace.yaml
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
+// GlobalTags arre tags that get included with every span
 type GlobalTags struct {
 	DevEmail string `yaml:"DevEmail,omitempty"`
 }
 
+// MarshalLog ensures that GlobalTags have a valid value included
 func (g *GlobalTags) MarshalLog(addField func(key string, v interface{})) {
 	if g.DevEmail != "" {
 		addField("dev.email", g.DevEmail)
 	}
 }
 
+// Otel is the configuration for OpenTelemetry based tracing
 type Otel struct {
 	// Enabled determines whether to turn on tracing
 	Enabled bool `yaml:"Enabled"`
@@ -41,6 +48,7 @@ type Otel struct {
 	AdditionalAPIKey cfg.Secret `yaml:"AdditionalAPIKey"`
 }
 
+// Load loads the configuration from trace.yaml
 func (c *Config) Load() error {
 	return cfg.Load("trace.yaml", c)
 }

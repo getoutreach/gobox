@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides Comparers related to stack traces
 package differs
 
 import (
@@ -7,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: regex used in multiple places
 var stripNumbersRe = regexp.MustCompile(`:(\d*)`)
 
 // StackLike allows a stacktrace to be matched against it

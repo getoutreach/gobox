@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a RoundTripper which adds tracing
+
 package trace
 
 import (

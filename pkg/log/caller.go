@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides log entry generation for Caller
+
 package log
 
 import "github.com/getoutreach/gobox/pkg/caller"

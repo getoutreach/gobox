@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements IO utilities.
+
 // Package orio implements IO utilities.
 package orio
 

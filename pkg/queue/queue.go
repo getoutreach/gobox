@@ -1,6 +1,8 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Package queue provides queue data struct.
+// Description: Provides queue data structure.
+
+// Package queue provides queue data structure.
 //
 // # Priority Queue
 //

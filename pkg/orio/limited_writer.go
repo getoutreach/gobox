@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a writer that is limited to a specified number of bytes
 package orio
 
 import "errors"

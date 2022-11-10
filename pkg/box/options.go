@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides options for loading box configs
+
 package box
 
 import "github.com/sirupsen/logrus"

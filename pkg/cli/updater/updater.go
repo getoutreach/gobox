@@ -1,3 +1,8 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements an updater for CLIs that support multiple channels and version checks
+
+// Package updater implements an updater for CLIs that support multiple channels and version checks
 package updater
 
 import (

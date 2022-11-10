@@ -1,6 +1,8 @@
-// Copyright 2021 Outreach Corporation. All Rights Reserved.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file integrates the logger with go-logr/logr
+
+// Package adapters integrates the logger with go-logr/logr
 package adapters
 
 import (

@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a small ssh config parser
+
 // Package sshconfig implements a small ssh config parser
 // based on the output of `ssh -G`.
 package sshconfig

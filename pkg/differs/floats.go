@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Provides Comparers related to floats
 package differs
 
 // FloatRange allows a float value between the start and end

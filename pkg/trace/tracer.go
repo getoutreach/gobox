@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Declares a generic interface for a tracer with full tracing capabilities
+
 package trace
 
 import (

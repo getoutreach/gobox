@@ -1,8 +1,8 @@
-// Copyright 2021 Outreach Corporation. All Rights Reserved.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains the call tracker implementation used by trace.
 
-// The call package helps support tracking latency and other metrics for calls.
+// Package call helps support tracking latency and other metrics for calls.
 package call
 
 import (

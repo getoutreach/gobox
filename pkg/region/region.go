@@ -1,7 +1,9 @@
-// Copyright 2021 Outreach Corporation. All Rights Reserved.
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains region specific type definitions
 // and region logic.
+
+// Package region Implements region specific helpers
 package region
 
 import (

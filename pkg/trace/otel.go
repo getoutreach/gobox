@@ -1,3 +1,7 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements the trace interface for OpenTelemetry based tracing
+
 package trace
 
 import (
@@ -57,7 +61,7 @@ func (a Annotator) Shutdown(context.Context) error { return nil }
 
 func (a Annotator) ForceFlush(context.Context) error { return nil }
 
-// nolint:gochecknoglobals
+// nolint:gochecknoglobals // Why: need to allow overriding
 var spanProcessorHook func([]attribute.KeyValue)
 
 // SetSpanProcessorHook sets a hook to run when a span ends

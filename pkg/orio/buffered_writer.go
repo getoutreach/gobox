@@ -1,3 +1,6 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements a buffered writer that writes the last N bytes written to it
 package orio
 
 // BufferedWriter buffers the last N bytes written to it.

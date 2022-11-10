@@ -1,5 +1,9 @@
+// Copyright 2022 Outreach Corporation. All Rights Reserved.
+
 //go:build or_e2e
 // +build or_e2e
+
+// Description: Provides environment overrides for e2e tests
 
 package env
 
