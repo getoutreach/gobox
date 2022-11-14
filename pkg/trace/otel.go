@@ -47,8 +47,8 @@ func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 	}
 
 	s.SetAttributes(attribute.Int64("SampleRate", a.sampleRate))
-	logf.Marshal("", app.Info(), setf)
-	logf.Marshal("", a.globalTags, setf)
+	app.Info().MarshalLog(setf)
+	a.globalTags.MarshalLog(setf)
 }
 
 func (a Annotator) OnEnd(s sdktrace.ReadOnlySpan) {

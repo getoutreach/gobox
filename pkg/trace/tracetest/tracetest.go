@@ -14,6 +14,7 @@ import (
 
 type Options struct {
 	SamplePercent float32
+	DevEmail      string
 }
 
 type SpanRecorder struct {
@@ -25,6 +26,7 @@ func NewSpanRecorder() *SpanRecorder {
 	return NewSpanRecorderWithOptions(
 		Options{
 			SamplePercent: 100.0,
+			DevEmail:      "",
 		},
 	)
 }
@@ -34,14 +36,22 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 
-	restoreConfig := env.FakeTestConfig("trace.yaml", map[string]interface{}{
+	fakeConfig := map[string]interface{}{
 		"OpenTelemetry": map[string]interface{}{
 			"SamplePercent": options.SamplePercent,
 			"Endpoint":      "localhost",
 			"Enabled":       true,
 			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
 		},
-	})
+	}
+
+	if options.DevEmail != "" {
+		fakeConfig["GlobalTags"] = map[string]interface{}{
+			"DevEmail": "test@test.com",
+		}
+	}
+
+	restoreConfig := env.FakeTestConfig("trace.yaml", fakeConfig)
 
 	ctx := context.Background()
 	name := "log-testing"
