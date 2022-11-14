@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
@@ -232,7 +233,43 @@ func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
 		for _, f := range args {
 			logf.Marshal("", f, func(key string, value interface{}) {
-				span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
+				switch v := value.(type) {
+				case []bool:
+					span.SetAttributes(attribute.BoolSlice(key, v))
+				case []int:
+					span.SetAttributes(attribute.IntSlice(key, v))
+				case []int64:
+					span.SetAttributes(attribute.Int64Slice(key, v))
+				case []float64:
+					span.SetAttributes(attribute.Float64Slice(key, v))
+				case []string:
+					span.SetAttributes(attribute.StringSlice(key, v))
+				case bool:
+					span.SetAttributes(attribute.Bool(key, v))
+				case int:
+					span.SetAttributes(attribute.Int(key, v))
+				case int64:
+					span.SetAttributes(attribute.Int64(key, v))
+				case float64:
+					span.SetAttributes(attribute.Float64(key, v))
+				case string:
+					span.SetAttributes(attribute.String(key, v))
+				case time.Time:
+					// This is a compromise.  OTel seems to
+					// prefer UNIX epoch milliseconds, while
+					// Honeycomb says it accepts UNIX epoch
+					// seconds.  Honeycomb also has a function to
+					// convert RFC3339 timestmaps to epoch.
+					//
+					// We figure RFC3339 is unambiguously a
+					// timestamp and expect most systems can
+					// deal with it accordingly.  Magic ints
+					// or floats without units attached would
+					// be harder to interpret.
+					span.SetAttributes(attribute.String(key, v.Format(time.RFC3339Nano)))
+				default:
+					span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", v)))
+				}
 			})
 		}
 	}
