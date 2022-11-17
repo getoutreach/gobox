@@ -8,6 +8,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/env"
 	"github.com/getoutreach/gobox/pkg/secrets/secretstest"
 	"github.com/getoutreach/gobox/pkg/trace"
+	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
@@ -106,7 +107,27 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 			}
 
 			key := fmt.Sprintf("attributes.%s", a.Key)
-			spanInfo[key] = a.Value.AsString()
+
+			switch a.Value.Type() {
+			case attribute.INVALID:
+				spanInfo[key] = nil
+			case attribute.BOOL:
+				spanInfo[key] = a.Value.AsBool()
+			case attribute.INT64:
+				spanInfo[key] = a.Value.AsInt64()
+			case attribute.FLOAT64:
+				spanInfo[key] = a.Value.AsFloat64()
+			case attribute.STRING:
+				spanInfo[key] = a.Value.AsString()
+			case attribute.BOOLSLICE:
+				spanInfo[key] = a.Value.AsBoolSlice()
+			case attribute.INT64SLICE:
+				spanInfo[key] = a.Value.AsInt64Slice()
+			case attribute.FLOAT64SLICE:
+				spanInfo[key] = a.Value.AsFloat64Slice()
+			case attribute.STRINGSLICE:
+				spanInfo[key] = a.Value.AsStringSlice()
+			}
 		}
 
 		links := s.Links()

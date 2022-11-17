@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
@@ -230,12 +231,129 @@ func (t *otelTracer) end(ctx context.Context) {
 
 func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
-		for _, f := range args {
-			logf.Marshal("", f, func(key string, value interface{}) {
-				span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
-			})
+		for _, arg := range args {
+			kvs := marshalToKeyValue(arg)
+			span.SetAttributes(kvs...)
 		}
 	}
+}
+
+// nolint:gocyclo // Why: It's a big case statement that's hard to split.
+func marshalToKeyValue(arg log.Marshaler) []attribute.KeyValue {
+	res := []attribute.KeyValue{}
+
+	logf.Marshal("", arg, func(key string, value interface{}) {
+		switch v := value.(type) {
+		case []bool:
+			res = append(res, attribute.BoolSlice(key, v))
+		case []int:
+			res = append(res, attribute.IntSlice(key, v))
+		case []int8:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		case []int16:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		case []int32:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		case []int64:
+			res = append(res, attribute.Int64Slice(key, v))
+		case []uint8:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		case []uint16:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		case []uint32:
+			int64s := make([]int64, len(v))
+			for i, elem := range v {
+				int64s[i] = int64(elem)
+			}
+			res = append(res, attribute.Int64Slice(key, int64s))
+		// []uint and []uint64 aren't safe to cast.  We stringify them.
+		case []uint:
+			strs := make([]string, len(v))
+			for i, elem := range v {
+				strs[i] = fmt.Sprintf("%d", elem)
+			}
+			res = append(res, attribute.StringSlice(key, strs))
+		case []uint64:
+			strs := make([]string, len(v))
+			for i, elem := range v {
+				strs[i] = fmt.Sprintf("%d", elem)
+			}
+			res = append(res, attribute.StringSlice(key, strs))
+		case []float32:
+			float64s := make([]float64, len(v))
+			for i, elem := range v {
+				float64s[i] = float64(elem)
+			}
+			res = append(res, attribute.Float64Slice(key, float64s))
+		case []float64:
+			res = append(res, attribute.Float64Slice(key, v))
+		case []string:
+			res = append(res, attribute.StringSlice(key, v))
+		case bool:
+			res = append(res, attribute.Bool(key, v))
+		case int:
+			res = append(res, attribute.Int(key, v))
+		case int8:
+			res = append(res, attribute.Int64(key, int64(v)))
+		case int16:
+			res = append(res, attribute.Int64(key, int64(v)))
+		case int32:
+			res = append(res, attribute.Int64(key, int64(v)))
+		case int64:
+			res = append(res, attribute.Int64(key, v))
+		case uint8:
+			res = append(res, attribute.Int64(key, int64(v)))
+		case uint16:
+			res = append(res, attribute.Int64(key, int64(v)))
+		case uint32:
+			res = append(res, attribute.Int64(key, int64(v)))
+			// We can't guarantee that uint64 or uint can be safely casted
+			// to int64.  We let them fall through to be strings.  :/
+		case float32:
+			res = append(res, attribute.Float64(key, float64(v)))
+		case float64:
+			res = append(res, attribute.Float64(key, v))
+		case string:
+			res = append(res, attribute.String(key, v))
+		case time.Time:
+			// This is a compromise.  OTel seems to
+			// prefer UNIX epoch milliseconds, while
+			// Honeycomb says it accepts UNIX epoch
+			// seconds.  Honeycomb also has a function to
+			// convert RFC3339 timestamps to epoch.
+			//
+			// We figure RFC3339 is unambiguously a
+			// timestamp and expect most systems can
+			// deal with it accordingly.  Magic ints
+			// or floats without units attached would
+			// be harder to interpret.
+			res = append(res, attribute.String(key, v.Format(time.RFC3339Nano)))
+		default:
+			res = append(res, attribute.String(key, fmt.Sprintf("%v", v)))
+		}
+	})
+
+	return res
 }
 
 func (t *otelTracer) spanID(ctx context.Context) string {
