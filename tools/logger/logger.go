@@ -65,7 +65,7 @@ func main() {
 		args = []string{"."}
 	}
 
-	mode := packages.NeedName | packages.NeedImports | packages.NeedTypesInfo | packages.NeedDeps
+	mode := packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports
 	cfg := &packages.Config{Mode: mode, Tests: false}
 	pkgs, err := packages.Load(cfg, args...)
 	if err != nil || len(pkgs) != 1 {
