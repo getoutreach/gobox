@@ -12,14 +12,52 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"gopkg.in/yaml.v3"
 )
 
+type testOverrides struct {
+	data map[string]interface{}
+	mu   sync.Mutex
+}
+
+func (to *testOverrides) add(k string, v interface{}) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	to.data[k] = v
+}
+
+func (to *testOverrides) load(k string) (interface{}, bool) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	// Apparently you cannot pull the bool out of this access implicitly in the return
+	// statement.
+	v, ok := to.data[k]
+
+	return v, ok
+}
+
+func (to *testOverrides) delete(k string) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	delete(to.data, k)
+}
+
 // nolint:gochecknoglobals // Why: needs to be overridable
-var testOverrides = make(map[string]interface{})
+var overrides testOverrides
+
+//nolint:gochecknoinits // Why: Tech debt on testOverrides being a thread-unsafe global (used to just be a map w/no mutex).
+func init() {
+	overrides = testOverrides{
+		data: make(map[string]interface{}),
+	}
+}
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
 func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
@@ -58,9 +96,9 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 	})
 }
 
-func testReader(fallback cfg.Reader, overrides map[string]interface{}) cfg.Reader {
+func testReader(fallback cfg.Reader, overrides *testOverrides) cfg.Reader {
 	return cfg.Reader(func(fileName string) ([]byte, error) {
-		if override, ok := overrides[fileName]; ok {
+		if override, ok := overrides.load(fileName); ok {
 			return yaml.Marshal(override)
 		}
 		return fallback(fileName)
@@ -71,7 +109,7 @@ func testReader(fallback cfg.Reader, overrides map[string]interface{}) cfg.Reade
 //
 // The provided value is serialized to yaml and so can be structured data.
 func FakeTestConfig(fName string, ptr interface{}) func() {
-	if _, ok := testOverrides[fName]; ok {
+	if _, ok := overrides.load(fName); ok {
 		// This is not ideal.  We would prefer to return an error.
 		// However, this function's signature does not support it and we
 		// don't want to incur the backwards-incompatibility of changing
@@ -79,8 +117,8 @@ func FakeTestConfig(fName string, ptr interface{}) func() {
 		panic(fmt.Errorf("repeated test override of '%s'", fName))
 	}
 
-	testOverrides[fName] = ptr
+	overrides.add(fName, ptr)
 	return func() {
-		delete(testOverrides, fName)
+		overrides.delete(fName)
 	}
 }

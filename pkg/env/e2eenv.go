@@ -11,7 +11,7 @@ import "github.com/getoutreach/gobox/pkg/cfg"
 
 func ApplyOverrides() {
 	old := cfg.DefaultReader()
-	cfg.SetDefaultReader(testReader(devReader(old), testOverrides))
+	cfg.SetDefaultReader(testReader(devReader(old), &overrides))
 }
 
 func init() { //nolint:gochecknoinits // Why: On purpose.
