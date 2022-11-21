@@ -128,6 +128,9 @@ type Config struct {
 
 	// CI is the configuration for the CI environment
 	CI CI `yaml:"ci"`
+
+	// CD is the configuration
+	CD CD `yaml:"cd"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
