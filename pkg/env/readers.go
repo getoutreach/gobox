@@ -28,6 +28,14 @@ func (to *testOverrides) add(k string, v interface{}) {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
+	if _, exists := to.data[k]; exists {
+		// This is not ideal.  We would prefer to return an error. However
+		// the caller function's signature does not support it and we don't
+		// want to incur the backwards-incompatibility of changing it right
+		// now.
+		panic(fmt.Errorf("repeated test override of '%s'", k))
+	}
+
 	to.data[k] = v
 }
 
@@ -50,13 +58,8 @@ func (to *testOverrides) delete(k string) {
 }
 
 // nolint:gochecknoglobals // Why: needs to be overridable
-var overrides testOverrides
-
-//nolint:gochecknoinits // Why: Tech debt on testOverrides being a thread-unsafe global (used to just be a map w/no mutex).
-func init() {
-	overrides = testOverrides{
-		data: make(map[string]interface{}),
-	}
+var overrides = testOverrides{
+	data: make(map[string]interface{}),
 }
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
@@ -96,9 +99,9 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 	})
 }
 
-func testReader(fallback cfg.Reader, overrides *testOverrides) cfg.Reader {
+func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 	return cfg.Reader(func(fileName string) ([]byte, error) {
-		if override, ok := overrides.load(fileName); ok {
+		if override, ok := overrider.load(fileName); ok {
 			return yaml.Marshal(override)
 		}
 		return fallback(fileName)
@@ -109,15 +112,10 @@ func testReader(fallback cfg.Reader, overrides *testOverrides) cfg.Reader {
 //
 // The provided value is serialized to yaml and so can be structured data.
 func FakeTestConfig(fName string, ptr interface{}) func() {
-	if _, ok := overrides.load(fName); ok {
-		// This is not ideal.  We would prefer to return an error.
-		// However, this function's signature does not support it and we
-		// don't want to incur the backwards-incompatibility of changing
-		// it right now.
-		panic(fmt.Errorf("repeated test override of '%s'", fName))
-	}
-
+	// add ensures that it doesn't already exist to prevent two tests running
+	// concurrently colliding on fName.
 	overrides.add(fName, ptr)
+
 	return func() {
 		overrides.delete(fName)
 	}
