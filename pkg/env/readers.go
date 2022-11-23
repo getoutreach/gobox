@@ -111,6 +111,12 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 // FakeTestConfig allows you to fake the test config with a specific value.
 //
 // The provided value is serialized to yaml and so can be structured data.
+//
+// Be extra careful when using this function in parallelized tests - do not
+// use the fName across two tests running in parallel. This will cause the
+// function to potentially panic.
+//
+// TODO[DT-3185]: Related work item to make the safety of this function better
 func FakeTestConfig(fName string, ptr interface{}) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
