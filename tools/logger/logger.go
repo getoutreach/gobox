@@ -65,11 +65,11 @@ func main() {
 		args = []string{"."}
 	}
 
-	mode := packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo
+	mode := packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports | packages.NeedDeps
 	cfg := &packages.Config{Mode: mode, Tests: false}
 	pkgs, err := packages.Load(cfg, args...)
 	if err != nil || len(pkgs) != 1 {
-		log.Fatal(err)
+		log.Fatalf("generation failed %v", err)
 	}
 	scanPackage(pkgs[0])
 }
