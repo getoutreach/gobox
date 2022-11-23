@@ -9,7 +9,7 @@ import (
 
 func ApplyOverrides() {
 	old := cfg.DefaultReader()
-	cfg.SetDefaultReader(testReader(old, testOverrides))
+	cfg.SetDefaultReader(testReader(old, &overrides))
 }
 
 func init() { //nolint: gochecknoinits
