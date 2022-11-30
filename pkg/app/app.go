@@ -96,6 +96,16 @@ func info() *Data {
 		environment = env
 	}
 
+	var domain string
+	switch environment {
+	case "development":
+		domain = "outreach-dev.com"
+	case "staging":
+		domain = "outreach-staging.com"
+	default: // production
+		domain = "outreach.io"
+	}
+
 	clusterName := unknown
 	if cn := os.Getenv("MY_CLUSTER"); cn != "" {
 		clusterName = cn
@@ -141,7 +151,8 @@ func info() *Data {
 
 		ServiceID: serviceID,
 
-		Bento: bento,
+		Bento:  bento,
+		Domain: domain,
 	}
 }
 
@@ -178,7 +189,8 @@ type Data struct {
 	// within the `authn` framework.
 	ServiceID string
 
-	Bento string
+	Bento  string
+	Domain string
 }
 
 // MarshalLog marshals the struct for logging
