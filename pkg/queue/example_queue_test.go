@@ -11,10 +11,7 @@ import (
 
 func ExamplePriorityQueue() {
 	// Create priority queue.
-	pq, err := queue.NewPriorityQueue()
-	if err != nil {
-		panic(err)
-	}
+	pq := queue.NewPriorityQueue()
 
 	// Push items.
 	pushItem := func(data interface{}, priority int64) *queue.PriorityQueueItem {
