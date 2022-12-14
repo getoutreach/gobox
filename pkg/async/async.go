@@ -122,7 +122,7 @@ func Run(ctx context.Context, r Runner) {
 //
 // It creates a new trace for the task and passes through deadlines.
 //
-// deprecated: Please only use Run - you should always be aware of and control your context.
+// Deprecated: Please only use Run - you should always be aware of and control your context.
 func RunBackground(ctx context.Context, r Runner) {
 	Run(context.Background(), r)
 }
