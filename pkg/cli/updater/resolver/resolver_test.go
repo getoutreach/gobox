@@ -242,7 +242,7 @@ func TestResolve(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var token cfg.SecretData = ""
+			var token cfg.SecretData
 			if tt.o == nil || !tt.o.UseRealResolver {
 				// mock the version resolver
 				oldGetVersions := GetVersions
