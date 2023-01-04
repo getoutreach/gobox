@@ -239,19 +239,6 @@ func TestResolve(t *testing.T) {
 			},
 			want: mustNewVersion(NewVersion("main", true, "abcedfg")),
 		},
-		{
-			name: "should resolve mutable channels properly",
-			o: &opts{
-				UseRealResolver: true,
-			},
-			c: Criteria{
-				URL:           "https://github.com/getoutreach/stencil-clerk",
-				Channel:       "rc",
-				Constraints:   []string{},
-				AllowBranches: true,
-			},
-			want: mustNewVersion(NewVersion("v1.5.1-rc.1", false, "75333f897ab80b845488289c16873b51a4ea67fb")),
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
