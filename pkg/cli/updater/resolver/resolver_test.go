@@ -34,8 +34,13 @@ func mustNewVersion(v *Version, err error) Version {
 }
 
 func TestResolve(t *testing.T) {
+	type opts struct {
+		UseRealResolver bool
+	}
+
 	tests := []struct {
 		name     string
+		o        *opts
 		c        Criteria
 		want     Version
 		versions map[string][]Version
@@ -234,17 +239,39 @@ func TestResolve(t *testing.T) {
 			},
 			want: mustNewVersion(NewVersion("main", true, "abcedfg")),
 		},
+		{
+			name: "should resolve mutable channels properly",
+			o: &opts{
+				UseRealResolver: true,
+			},
+			c: Criteria{
+				URL:           "https://github.com/getoutreach/stencil-clerk",
+				Channel:       "rc",
+				Constraints:   []string{},
+				AllowBranches: true,
+			},
+			want: mustNewVersion(NewVersion("v1.5.1-rc.1", false, "75333f897ab80b845488289c16873b51a4ea67fb")),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// mock the version resolver
-			oldGetVersions := GetVersions
-			GetVersions = func(ctx context.Context, token cfg.SecretData, url string, allowBranches bool) (map[string][]Version, error) {
-				return tt.versions, nil
+			var token cfg.SecretData = ""
+			if tt.o == nil || !tt.o.UseRealResolver {
+				// mock the version resolver
+				oldGetVersions := GetVersions
+				GetVersions = func(ctx context.Context, token cfg.SecretData, url string, allowBranches bool) (map[string][]Version, error) {
+					return tt.versions, nil
+				}
+				defer func() { GetVersions = oldGetVersions }()
+			} else {
+				var err error
+				token, err = github.GetToken()
+				if err != nil {
+					t.Fatalf("failed to get github token: %v", err)
+				}
 			}
-			defer func() { GetVersions = oldGetVersions }()
 
-			gotPtr, err := Resolve(context.Background(), "", &tt.c)
+			gotPtr, err := Resolve(context.Background(), token, &tt.c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
 				return
