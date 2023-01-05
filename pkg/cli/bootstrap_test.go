@@ -133,7 +133,7 @@ func TestOverrideConfigLoaders(t *testing.T) {
 	})
 
 	t.Run("if trace.yaml can't be loaded from /var/run/outreach.io; use argument overrides", func(t *testing.T) {
-		// don't need to any set up in tests, should fail just fine 
+		// don't need to any set up in tests, should fail just fine
 		overrideConfigLoaders("honeycomb", "dataset", true)
 
 		var target trace.Config
