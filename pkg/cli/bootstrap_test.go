@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/secrets"
+	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/urfave/cli/v2"
 )
 
@@ -95,4 +98,57 @@ func TestGenerateShellCompletion(t *testing.T) {
 			t.Errorf("expected string %s; got '%s' for lastArg=%s", fixture.expectedOutputRegex, sb.String(), lastArg)
 		}
 	}
+}
+
+func TestOverrideConfigLoaders(t *testing.T) {
+	// we need to override these first so we don't try to load from /run/...
+	t.Run("can load trace.yaml if it doesn't error", func(t *testing.T) {
+		var oldLookup func(context.Context, string) ([]byte, error)
+		oldReader := cfg.DefaultReader()
+
+		t.Cleanup(func() {
+			secrets.SetDevLookup(oldLookup)
+			cfg.SetDefaultReader(oldReader)
+		})
+
+		oldLookup = secrets.SetDevLookup(func(_ context.Context, s string) ([]byte, error) {
+			panic("oh no")
+		})
+
+		cfg.SetDefaultReader(func(s string) ([]byte, error) {
+			return []byte(s), nil
+		})
+
+		overrideConfigLoaders("honeycomb", "dataset", false)
+
+		var target string
+		err := cfg.Load("trace.yaml", &target)
+
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if target != "trace.yaml" {
+			t.Fatal("expected trace.yaml, got", target)
+		}
+	})
+
+	t.Run("if trace.yaml can't be loaded from /var/run/outreach.io; use argument overrides", func(t *testing.T) {
+		// don't need to any set up in tests, should fail just fine
+		overrideConfigLoaders("honeycomb", "dataset", true)
+
+		var target trace.Config
+		err := cfg.Load("trace.yaml", &target)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+
+		secret, err := target.APIKey.Data(context.Background())
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+
+		if secret != "honeycomb" {
+			t.Fatal("expected honeycomb, got", target.APIKey)
+		}
+	})
 }
