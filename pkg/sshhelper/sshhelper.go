@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/getoutreach/gobox/pkg/sshconfig"
@@ -93,7 +94,15 @@ func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
 func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { //nolint:funlen,lll // Why: cleaner to keep everything together
 	b, err := os.ReadFile(keyPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to read private key")
+		// return an error if the key isn't found, we don't want to blow up entirely here
+		// but we want to let the user know that they may not have auth
+		if log != nil {
+			log.WithField("key", keyPath).WithError(err).Warn("Failed to load SSH key from config, will not attempt to add to agent")
+		} else {
+			return errors.Wrapf(err, "failed to load SSH key from config: %s", keyPath)
+		}
+
+		return nil
 	}
 	// If a public key exists use it to check if the key-to-add already
 	// exists in the agent. If we can't find a public key we'll go ahead
@@ -113,7 +122,6 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 	if err != nil {
 		serviceName := "outreach-ssh"
 		user := "default"
-
 		pass := ""
 
 		for {
@@ -148,11 +156,25 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 		}
 	}
 
-	return a.Add(agent.AddedKey{
+	if err := a.Add(agent.AddedKey{
 		PrivateKey:       pk,
 		LifetimeSecs:     uint32(60 * 60), // 1 hour
 		ConfirmBeforeUse: false,
-	})
+	}); err != nil {
+		// check if the agent is likely read-only
+		// 1password returns only "failure" as the error message
+		if strings.Contains(err.Error(), "failure") {
+			if log != nil {
+				log.WithError(err).Warn("Failed to add key to agent, agent appears to be read-only")
+			} else {
+				return errors.Wrap(err, "failed to add key to agent, agent may be read-only")
+			}
+		}
+
+		return errors.Wrap(err, "failed to add key to agent")
+	}
+
+	return nil
 }
 
 // ExistingSSHAgentCallback is based on gogit's transport ssh public key callback, but allows
