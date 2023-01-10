@@ -75,9 +75,20 @@ import (
 // will work with both `go test` and production scenarios (which use
 // tester.T).
 func Run(t T, name string, f interface{}) bool {
+	if _, ok := t.(*testing.T); ok {
+		f = wrapTestFunc(f)
+	}
 	args := []reflect.Value{reflect.ValueOf(name), reflect.ValueOf(f)}
 	results := reflect.ValueOf(t).MethodByName("Run").Call(args)
 	return results[0].Bool()
+}
+
+// wrapTestFunc invokes f with t *testing.T
+func wrapTestFunc(f interface{}) func(t *testing.T) {
+	return func(t *testing.T) {
+		values := []reflect.Value{reflect.ValueOf(t)}
+		reflect.ValueOf(f).Call(values)
+	}
 }
 
 // RunTest executes a single test.
