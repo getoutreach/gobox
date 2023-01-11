@@ -17,6 +17,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/metric"
@@ -234,6 +235,17 @@ func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 		for _, arg := range args {
 			kvs := marshalToKeyValue(arg)
 			span.SetAttributes(kvs...)
+			
+			// setting the code will cause error spans to be called out specifically
+			// in the trace, and will make the "errors" default view in honeycomb useful
+			switch v := arg.(type) {
+				case *events.ErrorInfo:
+					span.SetStatus(codes.Error, v.Error)
+				case error:
+					span.SetStatus(codes.Error, v.Error())
+				default:
+					// do nothing
+			}
 		}
 	}
 }

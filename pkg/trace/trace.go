@@ -99,6 +99,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -254,6 +255,17 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 		addDefaultTracerInfo(ctx, args...)
 	}
 }
+
+// Error is a convenience for attaching an error to a span.
+func Error(ctx context.Context, err error) error {
+	if err == nil {
+		return err
+	}
+	AddInfo(ctx, events.LoggableError(err))
+	return err
+
+}
+
 
 // ID returns an ID for use with external services to propagate
 // tracing context.  The ID returned will be the honeycomb trace ID
