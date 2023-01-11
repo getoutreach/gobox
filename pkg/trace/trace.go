@@ -91,7 +91,7 @@
 //	if err != nil {
 //	   // if you are using trace.Call, then do trace.SetCallStatus
 //	   // instead.
-//	   trace.AddInfo(ctx, events.NewErrorInfo(err))
+//	   return trace.Error(ctx, err)
 //	}
 package trace
 
@@ -99,7 +99,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -261,11 +260,19 @@ func Error(ctx context.Context, err error) error {
 	if err == nil {
 		return err
 	}
-	AddInfo(ctx, events.LoggableError(err))
+	AddInfo(ctx, &loggableError{err})
 	return err
-
 }
 
+// loggableError is a thin wrapper around an error that provides a custom MarshalLog
+type loggableError struct {
+	error
+}
+
+// MarshalLog implements log.Marshaler
+func (l *loggableError) MarshalLog(addField func(field string, value interface{})) {
+	addField("error", l.Error())
+}
 
 // ID returns an ID for use with external services to propagate
 // tracing context.  The ID returned will be the honeycomb trace ID

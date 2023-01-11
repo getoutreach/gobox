@@ -2,6 +2,7 @@ package trace_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -144,6 +145,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 	opts := []trace.SpanStartOption{trace.WithLink(linkHeaders)}
 	inner2 := trace.StartSpanWithOptions(inner, "inner2", opts)
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
+	trace.Error(inner2, fmt.Errorf("error"))
 
 	trace.End(inner2)
 	trace.End(inner)

@@ -27,21 +27,6 @@ type ErrorInfo struct {
 	Custom   log.Marshaler
 }
 
-// LoggableError is the minimum required to make an error loggable.
-func LoggableError(err error) log.Marshaler {
-	return &loggableError{error: err}
-}
-
-// loggableError is a wrapper around an error that provides a custom MarshalLog
-type loggableError struct {
-	error
-}
-
-// MarshalLog implements log.Marshaler
-func (l *loggableError) MarshalLog(addField func(field string, value interface{})) {
-	addField("error", l.Error())
-}
-
 func (e *ErrorInfo) MarshalLog(addField func(key string, value interface{})) {
 	if e == nil {
 		return
