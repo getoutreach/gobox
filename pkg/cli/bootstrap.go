@@ -58,8 +58,12 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 	})
 
 	fallbackConfigReader := cfg.DefaultReader()
+
 	cfg.SetDefaultReader(func(fileName string) ([]byte, error) {
-		if fileName == "trace.yaml" {
+		// first try to read the config as though we are in a production like environment
+		bytes, err := fallbackConfigReader(fileName)
+		// then if we fail, check if we know how to override it
+		if err != nil && fileName == "trace.yaml" {
 			traceConfig := &trace.Config{
 				Otel: trace.Otel{
 					Enabled:  true,
@@ -78,8 +82,8 @@ func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
 			}
 			return b, nil
 		}
-
-		return fallbackConfigReader(fileName)
+		// if we haven't returned or panicked, return the original bytes/error pair
+		return bytes, err
 	})
 }
 

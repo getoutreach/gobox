@@ -60,14 +60,14 @@ import (
 // This section defines default configuration.
 const (
 	// DefaultPriorityQueueCapacity is the default priority queue capacity.
-	DefaultPriorityQueueCapacity = math.MaxInt32
+	DefaultPriorityQueueCapacity = math.MaxUint
 )
 
 // PriorityQueueOption is used to change priority default configuration.
 type PriorityQueueOption func(q *PriorityQueue)
 
 // WithCapacity sets the queue capacity.
-func WithCapacity(v int) PriorityQueueOption {
+func WithCapacity(v uint) PriorityQueueOption {
 	return func(q *PriorityQueue) {
 		q.capacity = v
 	}
@@ -90,7 +90,7 @@ func WithMaxHeap() PriorityQueueOption {
 }
 
 // NewPriorityQueue creates a new priority queue.
-func NewPriorityQueue(opts ...PriorityQueueOption) (*PriorityQueue, error) {
+func NewPriorityQueue(opts ...PriorityQueueOption) *PriorityQueue {
 	q := &PriorityQueue{
 		capacity: DefaultPriorityQueueCapacity,
 		queue:    newPriorityQueueInternal(true),
@@ -98,10 +98,7 @@ func NewPriorityQueue(opts ...PriorityQueueOption) (*PriorityQueue, error) {
 	for _, opt := range opts {
 		opt(q)
 	}
-	if q.capacity <= 0 {
-		return nil, errors.Errorf("invalid capacity: %v", q.capacity)
-	}
-	return q, nil
+	return q
 }
 
 // PriorityQueue implements a priority queue with a heap. By default, min heap is used with a
@@ -109,7 +106,7 @@ func NewPriorityQueue(opts ...PriorityQueueOption) (*PriorityQueue, error) {
 // Queue capacity and heap type can be changed via options.
 type PriorityQueue struct {
 	lock     sync.RWMutex
-	capacity int
+	capacity uint
 	queue    *priorityQueueInternal
 }
 
@@ -119,7 +116,7 @@ type PriorityQueue struct {
 func (q *PriorityQueue) Push(data interface{}, priority int64) (*PriorityQueueItem, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
-	if q.queue.Len() >= q.capacity {
+	if uint(q.queue.Len()) >= q.capacity {
 		return nil, errors.New("queue is full")
 	}
 	item := newPriorityQueueItem(data, priority)

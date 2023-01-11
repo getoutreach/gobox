@@ -242,6 +242,30 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string, allowBra
 		Sort(channels[k])
 	}
 
+	// If we allowed branches, ensure that a channel doesn't contain a mutable
+	// version for the branch when the channel also contains tags. When a channel
+	// (or in this case "branch") contains tags, the tags should always be used over
+	// the latest commit on the branch.
+	if allowBranches {
+		for k, v := range channels {
+			// Only process channels that have more or equal to 2 versions
+			if len(v) < 2 {
+				continue
+			}
+
+			// If the latest version is mutable, and the second to last version
+			// is not, then we remove the latest version.
+			//
+			// This is added by the reference processing code above. This is required
+			// because, when AllowBranches is true, we will add a mutable version for
+			// the branch, but we don't want to include that in the channel list
+			// if there are tags for that channel (branch).
+			if v[len(v)-1].Mutable && !v[len(v)-2].Mutable {
+				channels[k] = v[:len(v)-1]
+			}
+		}
+	}
+
 	return channels, nil
 }
 
