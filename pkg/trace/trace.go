@@ -99,6 +99,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -258,20 +259,10 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 // Error is a convenience for attaching an error to a span.
 func Error(ctx context.Context, err error) error {
 	if err == nil {
-		return err
+		return nil
 	}
-	AddInfo(ctx, &loggableError{err})
+	AddInfo(ctx, events.NewErrorInfo(err))
 	return err
-}
-
-// loggableError is a thin wrapper around an error that provides a custom MarshalLog
-type loggableError struct {
-	error
-}
-
-// MarshalLog implements log.Marshaler
-func (l *loggableError) MarshalLog(addField func(field string, value interface{})) {
-	addField("error", l.Error())
 }
 
 // ID returns an ID for use with external services to propagate
