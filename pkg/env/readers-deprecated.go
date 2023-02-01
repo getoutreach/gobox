@@ -19,24 +19,28 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type testOverridesHandler struct {
+// Deprecated: Please use the testOverridesHandler struct
+type testOverrides struct {
 	data map[string]interface{}
 	mu   sync.Mutex
 }
 
-func (to *testOverridesHandler) addHandler(k string, v interface{}) error {
+func (to *testOverrides) add(k string, v interface{}) {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
 	if _, exists := to.data[k]; exists {
-		return fmt.Errorf("repeated test override of '%s'", k)
+		// This is not ideal.  We would prefer to return an error. However
+		// the caller function's signature does not support it and we don't
+		// want to incur the backwards-incompatibility of changing it right
+		// now.
+		panic(fmt.Errorf("repeated test override of '%s'", k))
 	}
 
 	to.data[k] = v
-	return nil
 }
 
-func (to *testOverridesHandler) loadHandler(k string) (interface{}, bool) {
+func (to *testOverrides) load(k string) (interface{}, bool) {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
@@ -47,7 +51,7 @@ func (to *testOverridesHandler) loadHandler(k string) (interface{}, bool) {
 	return v, ok
 }
 
-func (to *testOverridesHandler) deleteHandler(k string) {
+func (to *testOverrides) delete(k string) {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
@@ -55,12 +59,12 @@ func (to *testOverridesHandler) deleteHandler(k string) {
 }
 
 // nolint:gochecknoglobals // Why: needs to be overridable
-var overridesHandler = testOverridesHandler{
+var overrides = testOverrides{
 	data: make(map[string]interface{}),
 }
 
 // linter is not aware of or_dev tags, so it falsely considers this deadcode.
-func devReaderHandler(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
+func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
 		if err != nil {
@@ -96,23 +100,23 @@ func devReaderHandler(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
 	})
 }
 
-func testReaderHandler(fallback cfg.Reader, overrider *testOverridesHandler) cfg.Reader {
+func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 	return cfg.Reader(func(fileName string) ([]byte, error) {
-		if override, ok := overrider.loadHandler(fileName); ok {
+		if override, ok := overrider.load(fileName); ok {
 			return yaml.Marshal(override)
 		}
 		return fallback(fileName)
 	})
 }
 
-// FakeTestConfigHandler allows you to fake the test config with a specific value.
-func FakeTestConfigHandler(fName string, ptr interface{}) (func(), error) {
-	err := overridesHandler.addHandler(fName, ptr)
-	if err != nil {
-		return nil, err
-	}
+// FakeTestConfig allows you to fake the test config with a specific value.
+// Deprecated: Please use `FakeTestConfigHandler` within the testOverridesHandler struct
+func FakeTestConfig(fName string, ptr interface{}) func() {
+	// add ensures that it doesn't already exist to prevent two tests running
+	// concurrently colliding on fName.
+	overrides.add(fName, ptr)
 
 	return func() {
-		overridesHandler.deleteHandler(fName)
-	}, nil
+		overrides.delete(fName)
+	}
 }
