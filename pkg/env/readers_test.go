@@ -8,20 +8,35 @@
 package env
 
 import (
-	"reflect"
+	"context"
 	"testing"
+
+	requirepkg "github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
-const example string = `
-BentoNamespace: bento1a
-HTTPPort: 81
-GRPCPort: 5001
-`
+type TestConfig struct {
+	ListenHost string `yaml:"ListenHost"`
+	HTTPPort   int    `yaml:"HTTPPort"`
+	GRPCPort   int    `yaml:"GRPCPort"`
+}
+
+// LoadTestConfig returns a new Config type that has been loaded in accordance to the environment
+func LoadTestConfig(ctx context.Context, input TestConfig) (*TestConfig, error) {
+	c := TestConfig{
+		ListenHost: input.ListenHost,
+		HTTPPort:   input.HTTPPort,
+		GRPCPort:   input.GRPCPort,
+	}
+
+	return &c, nil
+}
 
 func TestFakeTestConfigHandler(t *testing.T) {
 	type args struct {
-		fName string
-		ptr   interface{}
+		fName  string
+		config TestConfig
+		ptr    interface{}
 	}
 	tests := []struct {
 		name    string
@@ -29,18 +44,50 @@ func TestFakeTestConfigHandler(t *testing.T) {
 		want    func()
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "another successful single config file",
+			args: args{
+				fName: "test1.yaml",
+				config: TestConfig{
+					ListenHost: "another-url",
+					HTTPPort:   8000,
+					GRPCPort:   9000,
+				},
+			},
+			want:    func() {},
+			wantErr: false,
+		},
+		{
+			name: "successful single test config file",
+			args: args{
+				fName: "test.yaml",
+				config: TestConfig{
+					ListenHost: "someURL",
+					HTTPPort:   8080,
+					GRPCPort:   9090,
+				},
+			},
+			want:    func() {},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FakeTestConfigHandler(tt.args.fName, tt.args.ptr)
+			t.Parallel()
+			require := requirepkg.New(t)
+
+			var deserializedExample TestConfig
+			configInputMarshal, _ := yaml.Marshal(tt.args.config)
+			err := yaml.Unmarshal(configInputMarshal, &deserializedExample)
+			require.NoError(err, "converting hard-coded example to YAML not fail")
+
+			deleteFunc, err := FakeTestConfigHandler(tt.args.fName, deserializedExample)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FakeTestConfigHandler() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("FakeTestConfigHandler() = %v, want %v", got, tt.want)
-			}
+
+			deleteFunc()
 		})
 	}
 }
