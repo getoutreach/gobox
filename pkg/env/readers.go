@@ -16,7 +16,6 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
-	"gopkg.in/yaml.v3"
 )
 
 type testOverridesHandler struct {
@@ -34,17 +33,6 @@ func (to *testOverridesHandler) addHandler(k string, v interface{}) error {
 
 	to.data[k] = v
 	return nil
-}
-
-func (to *testOverridesHandler) loadHandler(k string) (interface{}, bool) {
-	to.mu.Lock()
-	defer to.mu.Unlock()
-
-	// Apparently you cannot pull the bool out of this access implicitly in the return
-	// statement.
-	v, ok := to.data[k]
-
-	return v, ok
 }
 
 func (to *testOverridesHandler) deleteHandler(k string) {
@@ -93,15 +81,6 @@ func devReaderHandler(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused
 		}
 
 		return b, nil
-	})
-}
-
-func testReaderHandler(fallback cfg.Reader, overrider *testOverridesHandler) cfg.Reader {
-	return cfg.Reader(func(fileName string) ([]byte, error) {
-		if override, ok := overrider.loadHandler(fileName); ok {
-			return yaml.Marshal(override)
-		}
-		return fallback(fileName)
 	})
 }
 
