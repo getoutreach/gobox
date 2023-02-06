@@ -42,10 +42,7 @@ require (
 	gotest.tools/v3 v3.1.0
 )
 
-require (
-	github.com/lithammer/dedent v1.1.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-)
+require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
@@ -91,7 +88,6 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/stretchr/testify v1.8.1
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/yuin/goldmark v1.4.4 // indirect
