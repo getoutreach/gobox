@@ -10,8 +10,7 @@ import (
 )
 
 func TestPriorityQueue_MaxHeap(t *testing.T) {
-	queue, err := NewPriorityQueue(WithMaxHeap())
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue(WithMaxHeap())
 	assert.Assert(t, queue.Len() == 0)
 	assert.Assert(t, queue.Peek() == nil)
 	assert.Assert(t, queue.Pop() == nil)
@@ -43,8 +42,7 @@ func TestPriorityQueue_MaxHeap(t *testing.T) {
 }
 
 func TestPriorityQueue_Push_Pop_Peek(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 	assert.Assert(t, queue.Len() == 0)
 	assert.Assert(t, queue.Peek() == nil)
 	assert.Assert(t, queue.Pop() == nil)
@@ -76,8 +74,7 @@ func TestPriorityQueue_Push_Pop_Peek(t *testing.T) {
 }
 
 func TestPriorityQueue_Update(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 
 	n := 1000
 	repeat := 3
@@ -107,8 +104,7 @@ func TestPriorityQueue_Update(t *testing.T) {
 }
 
 func TestPriorityQueue_Remove(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 
 	n := 1000
 	m := n / 2
@@ -165,10 +161,8 @@ func TestPriorityQueue_Remove(t *testing.T) {
 }
 
 func TestPriorityQueue_Contains(t *testing.T) {
-	queue1, err1 := NewPriorityQueue()
-	queue2, err2 := NewPriorityQueue()
-	assert.Assert(t, err1 == nil)
-	assert.Assert(t, err2 == nil)
+	queue1 := NewPriorityQueue()
+	queue2 := NewPriorityQueue()
 
 	testContain := func(items []*PriorityQueueItem, inQueue1, inQueue2 bool) {
 		for _, item := range items {
@@ -201,8 +195,7 @@ func TestPriorityQueue_Contains(t *testing.T) {
 }
 
 func TestPriorityQueue_Clear(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 	assert.Assert(t, queue.Len() == 0)
 
 	n := 100
@@ -214,8 +207,7 @@ func TestPriorityQueue_Clear(t *testing.T) {
 }
 
 func TestPriorityQueue_List(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 	assert.Assert(t, queue.Len() == 0)
 
 	n := 100
@@ -229,26 +221,9 @@ func TestPriorityQueue_List(t *testing.T) {
 	assert.Assert(t, queue.Len() == n)
 }
 
-func TestPriorityQueue_InvalidSize(t *testing.T) {
-	test := func(size, exp int, hasErr bool) {
-		queue, err := NewPriorityQueue(WithCapacity(size))
-		if hasErr {
-			assert.Assert(t, queue == nil)
-			assert.Assert(t, err != nil)
-			return
-		}
-		assert.Assert(t, err == nil)
-		assert.Assert(t, queue.capacity == exp)
-	}
-	test(-1, DefaultPriorityQueueCapacity, true)
-	test(0, DefaultPriorityQueueCapacity, true)
-	test(1, 1, false)
-}
-
 func TestPriorityQueue_Push_Error(t *testing.T) {
 	size := 3
-	queue, err := NewPriorityQueue(WithCapacity(size))
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue(WithCapacity(uint(size)))
 
 	// push
 	n := size * 2
@@ -274,8 +249,7 @@ func TestPriorityQueue_Push_Error(t *testing.T) {
 }
 
 func TestPriorityQueue_Update_Error(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 
 	// push
 	item, err := queue.Push(1, 1)
@@ -297,8 +271,7 @@ func TestPriorityQueue_Update_Error(t *testing.T) {
 }
 
 func TestPriorityQueue_Remove_Invalid_Item(t *testing.T) {
-	queue, err := NewPriorityQueue()
-	assert.Assert(t, err == nil)
+	queue := NewPriorityQueue()
 
 	// push
 	item, err := queue.Push(1, 1)

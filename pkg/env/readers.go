@@ -12,14 +12,55 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"gopkg.in/yaml.v3"
 )
 
+type testOverrides struct {
+	data map[string]interface{}
+	mu   sync.Mutex
+}
+
+func (to *testOverrides) add(k string, v interface{}) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	if _, exists := to.data[k]; exists {
+		// This is not ideal.  We would prefer to return an error. However
+		// the caller function's signature does not support it and we don't
+		// want to incur the backwards-incompatibility of changing it right
+		// now.
+		panic(fmt.Errorf("repeated test override of '%s'", k))
+	}
+
+	to.data[k] = v
+}
+
+func (to *testOverrides) load(k string) (interface{}, bool) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	// Apparently you cannot pull the bool out of this access implicitly in the return
+	// statement.
+	v, ok := to.data[k]
+
+	return v, ok
+}
+
+func (to *testOverrides) delete(k string) {
+	to.mu.Lock()
+	defer to.mu.Unlock()
+
+	delete(to.data, k)
+}
+
 // nolint:gochecknoglobals // Why: needs to be overridable
-var testOverrides = make(map[string]interface{})
+var overrides = testOverrides{
+	data: make(map[string]interface{}),
+}
 
 // devReader creates a config reader specific to the dev environment.
 func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
@@ -58,9 +99,9 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 	})
 }
 
-func testReader(fallback cfg.Reader, overrides map[string]interface{}) cfg.Reader {
+func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 	return cfg.Reader(func(fileName string) ([]byte, error) {
-		if override, ok := overrides[fileName]; ok {
+		if override, ok := overrider.load(fileName); ok {
 			return yaml.Marshal(override)
 		}
 		return fallback(fileName)
@@ -70,17 +111,18 @@ func testReader(fallback cfg.Reader, overrides map[string]interface{}) cfg.Reade
 // FakeTestConfig allows you to fake the test config with a specific value.
 //
 // The provided value is serialized to yaml and so can be structured data.
+//
+// Be extra careful when using this function in parallelized tests - do not
+// use the fName across two tests running in parallel. This will cause the
+// function to potentially panic.
+//
+// TODO[DT-3185]: Related work item to make the safety of this function better
 func FakeTestConfig(fName string, ptr interface{}) func() {
-	if _, ok := testOverrides[fName]; ok {
-		// This is not ideal.  We would prefer to return an error.
-		// However, this function's signature does not support it and we
-		// don't want to incur the backwards-incompatibility of changing
-		// it right now.
-		panic(fmt.Errorf("repeated test override of '%s'", fName))
-	}
+	// add ensures that it doesn't already exist to prevent two tests running
+	// concurrently colliding on fName.
+	overrides.add(fName, ptr)
 
-	testOverrides[fName] = ptr
 	return func() {
-		delete(testOverrides, fName)
+		overrides.delete(fName)
 	}
 }
