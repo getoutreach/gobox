@@ -1,6 +1,6 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Provides custom test utilities for diffing.
+// Description: Provides custom test utilities for diffing
 
 // Package differs contains custom diffing test utilities
 //

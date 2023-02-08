@@ -62,7 +62,7 @@ var overrides = testOverrides{
 	data: make(map[string]interface{}),
 }
 
-// linter is not aware of or_dev tags, so it falsely considers this deadcode.
+// devReader creates a config reader specific to the dev environment.
 func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
