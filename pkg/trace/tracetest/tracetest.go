@@ -52,7 +52,7 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 		}
 	}
 
-	restoreConfig := env.FakeTestConfig("trace.yaml", fakeConfig)
+	restoreConfig, _ := env.FakeTestConfigHandler("trace.yaml", fakeConfig)
 
 	ctx := context.Background()
 	name := "log-testing"
@@ -153,7 +153,7 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 // The cleanup function resets the tracing secrets and configuration.
 func Disabled() (cleanup func()) {
 	cleanupSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
-	cleanupCfg := env.FakeTestConfig("trace.yaml", map[string]interface{}{
+	cleanupCfg, _ := env.FakeTestConfigHandler("trace.yaml", map[string]interface{}{
 		"Otel": map[string]interface{}{
 			"Enabled": false,
 		},
