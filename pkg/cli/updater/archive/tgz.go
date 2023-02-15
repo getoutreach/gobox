@@ -1,7 +1,7 @@
 // Copyright 2023 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains an implementation of the Extractor
-// and Archive interfaces for extracting a zip file.
+// and Archive interfaces for extracting a tgz file.
 // converts to gzip then read as tar
 // ref: https://stackoverflow.com/questions/57639648/how-to-decompress-tar-gz-file-in-go
 package archive
