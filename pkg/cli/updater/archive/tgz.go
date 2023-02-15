@@ -14,20 +14,16 @@ import (
 	"io"
 )
 
-// _ ensures that the zipExtractor type implements the Extractor interface
+// _ ensures that the tgsExtractor type implements the Extractor interface
 var _ Extractor = &tgzExtractor{}
 
-// zipExtractor is an extractor for zip files
+// tgzExtractor is an extractor for tgz files
 type tgzExtractor struct{}
 
 // _ ensures that the tgzArchive type implements the Archive interface
 var _ Archive = &tgzArchive{}
 
 // Open returns a reader for the archive file.
-//
-// Note: Due to how zip files work, this function has to read the entire
-// zip into memory before returning the Archive. It is recommended that gz/xz
-// with tar be used instead when dealing with large zip files.
 func (z *tgzExtractor) Open(ctx context.Context, name string, r io.Reader) (Archive, error) {
 	byt, err := io.ReadAll(r)
 	if err != nil {
@@ -50,7 +46,7 @@ func (z *tgzExtractor) Close() error {
 	return nil
 }
 
-// tgzArchive implements the Archive interface for zip files.
+// tgzArchive implements the Archive interface for tgz files.
 type tgzArchive struct {
 	r *tar.Reader
 }
