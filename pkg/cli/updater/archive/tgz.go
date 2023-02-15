@@ -2,13 +2,14 @@
 
 // Description: This file contains an implementation of the Extractor
 // and Archive interfaces for extracting a zip file.
-
+// converts to gzip then read as tar
+// ref: https://stackoverflow.com/questions/57639648/how-to-decompress-tar-gz-file-in-go
 package archive
 
 import (
 	"archive/tar"
-	"archive/zip"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"io"
 )
@@ -33,12 +34,14 @@ func (z *tgzExtractor) Open(ctx context.Context, name string, r io.Reader) (Arch
 		return nil, err
 	}
 
-	zr, err := zip.NewReader(bytes.NewReader(byt), int64(len(byt)))
+	uncompressedStream, err := gzip.NewReader(bytes.NewReader(byt))
 	if err != nil {
 		return nil, err
 	}
 
-	return &tgzArchive{tr}, nil
+	tarReader := tar.NewReader(uncompressedStream)
+
+	return &tgzArchive{tarReader}, nil
 }
 
 // Close is a noop for the tgzArchive type, implementing
