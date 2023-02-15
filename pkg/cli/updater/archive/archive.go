@@ -45,7 +45,7 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 	} else if filepath.Ext(archiveName) == ".zip" {
 		extractor = &zipExtractor{}
 	} else if filepath.Ext(archiveName) == ".tgz" {
-		extractor = &tgzExtractor{}
+		extractor = &tarExtractor{}
 	}
 	if extractor == nil {
 		return nil, nil, fmt.Errorf("unsupported archive type: %v", archiveName)

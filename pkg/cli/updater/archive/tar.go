@@ -44,6 +44,8 @@ func (t *tarExtractor) Open(ctx context.Context, name string, r io.Reader) (Arch
 		return &tarArchive{tr}, nil
 	case ".gz":
 		container = &gzipCompressedReader{}
+	case ".tgz":
+		container = &gzipCompressedReader{}
 	case ".xz":
 		container = &xzCompressedReader{}
 	case ".bz2":
