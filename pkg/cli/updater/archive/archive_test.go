@@ -188,6 +188,20 @@ func TestExtract(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "should support support tgz",
+			args: args{
+				ctx:         context.Background(),
+				archiveName: "tar.tgz",
+				r:           bytes.NewReader(testdataTarGz),
+				optFns: []ExtractOptionFunc{
+					WithFilePath("abc.txt"),
+				},
+			},
+			want:    "xyz\n",
+			want1:   basicHeader,
+			wantErr: false,
+		},
+		{
 			name: "should support support tar xz",
 			args: args{
 				ctx:         context.Background(),
