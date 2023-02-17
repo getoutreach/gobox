@@ -24,20 +24,20 @@ type testOverrides struct {
 	mu   sync.Mutex
 }
 
-func (to *testOverrides) add(k string, v interface{}) {
-	to.mu.Lock()
-	defer to.mu.Unlock()
+// func (to *testOverrides) add(k string, v interface{}) {
+// 	to.mu.Lock()
+// 	defer to.mu.Unlock()
 
-	if _, exists := to.data[k]; exists {
-		// This is not ideal.  We would prefer to return an error. However
-		// the caller function's signature does not support it and we don't
-		// want to incur the backwards-incompatibility of changing it right
-		// now.
-		panic(fmt.Errorf("repeated test override of '%s'", k))
-	}
+// 	if _, exists := to.data[k]; exists {
+// 		// This is not ideal.  We would prefer to return an error. However
+// 		// the caller function's signature does not support it and we don't
+// 		// want to incur the backwards-incompatibility of changing it right
+// 		// now.
+// 		panic(fmt.Errorf("repeated test override of '%s'", k))
+// 	}
 
-	to.data[k] = v
-}
+// 	to.data[k] = v
+// }
 
 func (to *testOverrides) addHandler(k string, v interface{}) error {
 	to.mu.Lock()
@@ -132,7 +132,10 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 func FakeTestConfig(fName string, ptr interface{}) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
-	overrides.add(fName, ptr)
+	err := overrides.addHandler(fName, ptr)
+	if err != nil {
+		panic(fmt.Errorf("failed to addHandler '%v'. Please use the function 'FakeTestConfigHandler()' instead", err.Error()))
+	}
 
 	return func() {
 		overrides.delete(fName)

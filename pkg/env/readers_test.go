@@ -3,7 +3,7 @@
 //go:build or_dev || or_test || or_e2e
 // +build or_dev or_test or_e2e
 
-// Description: Provides configuration readers for various environments
+// Description: Unit tests for configuration readers
 
 package env
 
@@ -44,11 +44,10 @@ func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    func()
 		wantErr bool
 	}{
 		{
-			name: "another successful single config file",
+			name: "successful single config file",
 			args: args{
 				fName: "test1.yaml",
 				config: TestConfig{
@@ -57,11 +56,10 @@ func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
 					GRPCPort:   9000,
 				},
 			},
-			want:    func() {},
 			wantErr: false,
 		},
 		{
-			name: "successful single test config file",
+			name: "second successful single test config file",
 			args: args{
 				fName: "test.yaml",
 				config: TestConfig{
@@ -70,8 +68,19 @@ func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
 					GRPCPort:   9090,
 				},
 			},
-			want:    func() {},
 			wantErr: false,
+		},
+		{
+			name: "unsuccessful test config file",
+			args: args{
+				fName: "test.yaml",
+				config: TestConfig{
+					ListenHost: "someURL",
+					HTTPPort:   8080,
+					GRPCPort:   9090,
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -82,13 +91,11 @@ func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
 			err := yaml.Unmarshal(configInputMarshal, &deserializedExample)
 			require.NoError(err, "converting hard-coded example to YAML not fail")
 
-			deleteFunc, err := FakeTestConfigHandler(tt.args.fName, deserializedExample)
+			_, err = FakeTestConfigHandler(tt.args.fName, deserializedExample)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TestFakeTestConfigHandlerMultipleConfigs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-
-			defer deleteFunc()
 		})
 	}
 }
@@ -103,7 +110,6 @@ func TestFakeTestConfigHandlerRepeatedTestOverride(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    func()
 		wantErr bool
 	}{
 		{
@@ -116,7 +122,6 @@ func TestFakeTestConfigHandlerRepeatedTestOverride(t *testing.T) {
 					GRPCPort:   9000,
 				},
 			},
-			want:    func() {},
 			wantErr: true,
 		},
 	}
