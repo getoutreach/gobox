@@ -134,9 +134,8 @@ func FakeTestConfig(fName string, ptr interface{}) func() {
 	// concurrently colliding on fName.
 	err := overrides.addHandler(fName, ptr)
 	if err != nil {
-		panic(fmt.Errorf("failed to addHandler '%w'. Please use the function 'FakeTestConfigHandler()' instead", err.Error()))
+		panic(fmt.Sprintf("failed to addHandler '%v'. Please use the function 'FakeTestConfigHandler()' instead", err.Error()))
 	}
-
 	return func() {
 		overrides.delete(fName)
 	}
