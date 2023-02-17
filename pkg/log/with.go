@@ -1,6 +1,6 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Provides a logger that captures the marshaler arguemtns
+// Description: Provides a logger that captures the marshaler arguments
 
 package log
 

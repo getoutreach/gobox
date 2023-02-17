@@ -92,7 +92,6 @@ func (h *HTTPRequest) FillFieldsFromRequest(r *http.Request) {
 	h.URI = r.RequestURI
 	h.Referer = r.Referer()
 	h.RequestID = r.Header.Get("X-Request-ID")
-	h.BytesRead, _ = strconv.Atoi(r.Header.Get("Content-Length")) //nolint: errcheck // Why: best effort
 	h.RemoteAddr = h.getRemoteAddr(r)
 	h.Times.Scheduled = h.getXRequestStart(r)
 	h.Times.Started = time.Now()
