@@ -125,24 +125,15 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		}),
 	}
 
-	if t.Otel.AdditionalEndpoint != "" {
-		key, err := t.Otel.AdditionalAPIKey.Data(ctx)
-		if err != nil {
-			log.Error(ctx, "Unable to fetch additional otel API key", events.NewErrorInfo(err))
-		}
-
-		headers := map[string]string{
-			"lightstep-access-token": strings.TrimSpace(string(key)),
-		}
+	if t.Otel.CollectorEndpoint != "" {
 
 		client := otlptracegrpc.NewClient(
-			otlptracegrpc.WithEndpoint(t.Otel.AdditionalEndpoint),
-			otlptracegrpc.WithHeaders(headers),
+			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
 		)
 
 		exp, err := otlptrace.New(ctx, client)
 		if err != nil {
-			log.Error(ctx, "Unable to start additional trace exporter", events.NewErrorInfo(err))
+			log.Error(ctx, "Unable to start open telemetry collector trace exporter", events.NewErrorInfo(err))
 		}
 
 		tpOptions = append(tpOptions, sdktrace.WithBatcher(exp))
