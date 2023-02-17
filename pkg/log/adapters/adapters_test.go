@@ -47,11 +47,11 @@ func ExampleNewLogrLogger() {
 	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","b":"hello, world!","c":1,"error.error":"bad thing","error.kind":"error","error.message":"bad thing","level":"ERROR","message":"end of the world!"}
 }
 
-func ExampleNewLeveledLogger() {
+func ExampleNewRetryableHTTPLogger() {
 	logs := logtest.NewLogRecorder(nil)
 	defer logs.Close()
 
-	logger := adapters.NewLeveledLogger(context.Background())
+	logger := adapters.NewRetryableHTTPLogger(context.Background())
 
 	logger.Info("hello, info", "a", 1)
 	logger.Debug("hello, debug", "a", 1)
