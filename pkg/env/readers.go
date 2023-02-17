@@ -139,8 +139,9 @@ func FakeTestConfig(fName string, ptr interface{}) func() {
 	}
 }
 
-// FakeTestConfigHandler allows you to fake the test config with a specific value.
-// and returns an error if a config with the same name exists already
+// FakeTestConfigHandler allows you to fake the test config with a specific value
+// and returns an error if a config with the same name exists already. If callers get an error,
+// they should switch to running tests in serial.
 func FakeTestConfigHandler(fName string, ptr interface{}) (func(), error) {
 	err := overrides.addHandler(fName, ptr)
 	if err != nil {
