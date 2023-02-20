@@ -24,21 +24,6 @@ type testOverrides struct {
 	mu   sync.Mutex
 }
 
-// func (to *testOverrides) add(k string, v interface{}) {
-// 	to.mu.Lock()
-// 	defer to.mu.Unlock()
-
-// 	if _, exists := to.data[k]; exists {
-// 		// This is not ideal.  We would prefer to return an error. However
-// 		// the caller function's signature does not support it and we don't
-// 		// want to incur the backwards-incompatibility of changing it right
-// 		// now.
-// 		panic(fmt.Errorf("repeated test override of '%s'", k))
-// 	}
-
-// 	to.data[k] = v
-// }
-
 func (to *testOverrides) addHandler(k string, v interface{}) error {
 	to.mu.Lock()
 	defer to.mu.Unlock()
