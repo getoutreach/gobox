@@ -24,7 +24,7 @@ type testOverrides struct {
 	mu   sync.Mutex
 }
 
-func (to *testOverrides) addHandler(k string, v interface{}) error {
+func (to *testOverrides) addWithError(k string, v interface{}) error {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
@@ -113,24 +113,22 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 // use the fName across two tests running in parallel. This will cause the
 // function to potentially panic.
 //
-// Deprecated: Please use `FakeTestConfigHandler`
+// Deprecated: Please use `FakeTestConfigWithError`
 func FakeTestConfig(fName string, ptr interface{}) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
-	err := overrides.addHandler(fName, ptr)
+	f, err := FakeTestConfigWithError(fName, ptr)
 	if err != nil {
-		panic(fmt.Sprintf("failed to addHandler '%v'. Please use the function 'FakeTestConfigHandler()' instead", err.Error()))
+		panic(fmt.Sprintf("failed to addHandler '%v'. Please use the function 'FakeTestConfigWithError()' instead", err.Error()))
 	}
-	return func() {
-		overrides.delete(fName)
-	}
+	return f
 }
 
-// FakeTestConfigHandler allows you to fake the test config with a specific value
+// FakeTestConfigWithError allows you to fake the test config with a specific value
 // and returns an error if a config with the same name exists already. If callers get an error,
 // they should switch to running tests in serial.
-func FakeTestConfigHandler(fName string, ptr interface{}) (func(), error) {
-	err := overrides.addHandler(fName, ptr)
+func FakeTestConfigWithError(fName string, ptr interface{}) (func(), error) {
+	err := overrides.addWithError(fName, ptr)
 	if err != nil {
 		return nil, err
 	}

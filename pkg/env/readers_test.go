@@ -34,9 +34,9 @@ func LoadTestConfig(ctx context.Context, input TestConfig) (*TestConfig, error) 
 	return &c, nil
 }
 
-// TestFakeTestConfigHandlerMultipleConfigs tests multiple config files that
+// TestFakeTestConfigWithErrorMultipleConfigs tests multiple config files that
 // are created with different names
-func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
+func TestFakeTestConfigWithErrorMultipleConfigs(t *testing.T) {
 	type args struct {
 		fName  string
 		config TestConfig
@@ -91,18 +91,18 @@ func TestFakeTestConfigHandlerMultipleConfigs(t *testing.T) {
 			err := yaml.Unmarshal(configInputMarshal, &deserializedExample)
 			require.NoError(err, "converting hard-coded example to YAML not fail")
 
-			_, err = FakeTestConfigHandler(tt.args.fName, deserializedExample)
+			_, err = FakeTestConfigWithError(tt.args.fName, deserializedExample)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TestFakeTestConfigHandlerMultipleConfigs() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("TestFakeTestConfigWithErrorMultipleConfigs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
 	}
 }
 
-// TestFakeTestConfigHandlerRepeatedTestOverride tests when multiple config files
+// TestFakeTestConfigWithErrorRepeatedTestOverride tests when multiple config files
 // with the same name are created
-func TestFakeTestConfigHandlerRepeatedTestOverride(t *testing.T) {
+func TestFakeTestConfigWithErrorRepeatedTestOverride(t *testing.T) {
 	type args struct {
 		fName  string
 		config TestConfig
@@ -134,17 +134,17 @@ func TestFakeTestConfigHandlerRepeatedTestOverride(t *testing.T) {
 			require.NoError(err, "converting hard-coded example to YAML not fail")
 
 			// first config call should be successful
-			deleteFunc, err := FakeTestConfigHandler(tt.args.fName, deserializedExample)
+			deleteFunc, err := FakeTestConfigWithError(tt.args.fName, deserializedExample)
 			assert.NilError(t, err)
 
 			// second config call should be unsuccessful and throw an error
-			_, err = FakeTestConfigHandler(tt.args.fName, deserializedExample)
+			_, err = FakeTestConfigWithError(tt.args.fName, deserializedExample)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TestFakeTestConfigHandlerParallel1() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("TestFakeTestConfigWithErrorRepeatedTestOverride error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			// expect an error as the second FakeTestConfigHandler call should fail
+			// expect an error as the second FakeTestConfigWithError call should fail
 			assert.Error(t, err, fmt.Sprintf("repeated test override of '%s'", tt.args.fName))
 
 			defer deleteFunc()

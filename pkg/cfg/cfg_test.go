@@ -26,7 +26,7 @@ func Example() {
 		Key:        cfg.Secret{Path: "someSecretPath"},
 	}
 
-	deleteFunc, _ := env.FakeTestConfigHandler("trace.yaml", expected)
+	deleteFunc, _ := env.FakeTestConfigWithError("trace.yaml", expected)
 	defer deleteFunc()
 	defer secretstest.Fake("someSecretPath", "someSecretData")()
 

@@ -1,3 +1,5 @@
+//go:build !or_e2e
+
 package async_test
 
 import (
