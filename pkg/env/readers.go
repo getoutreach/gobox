@@ -119,7 +119,7 @@ func FakeTestConfig(fName string, ptr interface{}) func() {
 	// concurrently colliding on fName.
 	f, err := FakeTestConfigWithError(fName, ptr)
 	if err != nil {
-		panic(fmt.Sprintf("failed to addHandler '%v'. Please use the function 'FakeTestConfigWithError()' instead", err.Error()))
+		panic(fmt.Sprintf("failed to addHandler '%v'. Please use the function 'FakeTestConfigWithError()' if you want to capture the error message", err.Error()))
 	}
 	return f
 }
