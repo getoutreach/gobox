@@ -113,7 +113,7 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 // use the fName across two tests running in parallel. This will cause the
 // function to potentially panic.
 //
-// Deprecated: Please use `FakeTestConfigWithError`
+// Please use `FakeTestConfigWithError` if you want an error returned rather than panicking
 func FakeTestConfig(fName string, ptr interface{}) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
