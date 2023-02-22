@@ -32,8 +32,8 @@ type Otel struct {
 	Enabled bool `yaml:"Enabled"`
 	// Endpoint for the tracing backend
 	Endpoint string `yaml:"Endpoint"`
-	// AdditionalEndpoint another backend for tracing
-	AdditionalEndpoint string `yaml:"AdditionalEndpoint"`
+	// CollectorEndpoint endpoint for the opentelemetry collector for tracing
+	CollectorEndpoint string `yaml:"AdditionalEndpoint"`
 	// Dataset the honeycomb grouping of traces
 	Dataset string `yaml:"Dataset"`
 	// SamplePercent the rate at which to sample
@@ -44,8 +44,6 @@ type Otel struct {
 	Stdout bool `yaml:"Stdout"`
 	// APIKey used for authentication with the backend at Endpoint
 	APIKey cfg.Secret `yaml:"APIKey"`
-	// AdditionalAPIKey used for authentication with the backend at AdditionalEndpoint
-	AdditionalAPIKey cfg.Secret `yaml:"AdditionalAPIKey"`
 }
 
 // Load loads the configuration from trace.yaml
