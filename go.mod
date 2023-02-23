@@ -40,7 +40,7 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/tools v0.1.10
 	gopkg.in/yaml.v3 v3.0.1
-	gotest.tools/v3 v3.1.0
+	gotest.tools/v3 v3.4.0
 )
 
 require github.com/pmezard/go-difflib v1.0.0 // indirect
