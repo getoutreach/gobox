@@ -1,3 +1,5 @@
+//go:build !or_e2e
+
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Provides helpers for creating a shuffler test suite

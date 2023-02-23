@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"gotest.tools/v3/assert"
 )
 
 type Options struct {
@@ -52,7 +53,8 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 		}
 	}
 
-	restoreConfig := env.FakeTestConfig("trace.yaml", fakeConfig)
+	restoreConfig, err := env.FakeTestConfigWithError("trace.yaml", fakeConfig)
+	assert.NilError(nil, err)
 
 	ctx := context.Background()
 	name := "log-testing"
@@ -153,11 +155,13 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 // The cleanup function resets the tracing secrets and configuration.
 func Disabled() (cleanup func()) {
 	cleanupSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
-	cleanupCfg := env.FakeTestConfig("trace.yaml", map[string]interface{}{
+	cleanupCfg, err := env.FakeTestConfigWithError("trace.yaml", map[string]interface{}{
 		"Otel": map[string]interface{}{
 			"Enabled": false,
 		},
 	})
+
+	assert.NilError(nil, err)
 
 	if err := trace.InitTracer(context.Background(), "log-testing"); err != nil {
 		panic(err.Error())

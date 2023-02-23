@@ -1,3 +1,5 @@
+//go:build !or_e2e
+
 package trace_test
 
 import (
