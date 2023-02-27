@@ -166,7 +166,7 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 }
 
 func addSource(entry F) {
-	// Attempt to map the caller of the log function into the "source" field for identifying if a service or a module
+	// Attempt to map the caller of the log function into the "module" field for identifying if a service or a module
 	// that the service is using is sending logs (costing money).
 	// Skip 3 levels:
 	// 1. addSource
@@ -175,11 +175,11 @@ func addSource(entry F) {
 	ci, err := callerinfo.GetCallerInfo(3)
 	switch {
 	case err != nil:
-		entry["source"] = "error"
+		entry["module"] = "error"
 	case ci.Module != "":
-		entry["source"] = ci.Module
+		entry["module"] = ci.Module
 		if ci.ModuleVersion != "" {
-			entry["sourcever"] = ci.ModuleVersion
+			entry["modulever"] = ci.ModuleVersion
 		}
 	}
 }

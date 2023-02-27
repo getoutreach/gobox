@@ -43,10 +43,10 @@ func ExampleNewLogrLogger() {
 
 	//nolint:lll // Why: testing output
 	// Output:
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","level":"INFO","message":"true","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"INFO","message":"hello, world","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","b":"hello, world!","c":1,"level":"INFO","message":"info!!","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","b":"hello, world!","c":1,"error.error":"bad thing","error.kind":"error","error.message":"bad thing","level":"ERROR","message":"end of the world!","source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","level":"INFO","message":"true","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"INFO","message":"hello, world","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","b":"hello, world!","c":1,"level":"INFO","message":"info!!","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","app.version":"testing","b":"hello, world!","c":1,"error.error":"bad thing","error.kind":"error","error.message":"bad thing","level":"ERROR","message":"end of the world!","module":"github.com/getoutreach/gobox"}
 }
 
 func ExampleNewRetryableHTTPLogger() {
@@ -64,8 +64,8 @@ func ExampleNewRetryableHTTPLogger() {
 
 	//nolint:lll // Why: testing output
 	// Output:
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"INFO","message":"hello, info","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"DEBUG","message":"hello, debug","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"ERROR","message":"hello, error","source":"github.com/getoutreach/gobox"}
-	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"WARN","message":"hello, warn","source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"INFO","message":"hello, info","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"DEBUG","message":"hello, debug","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"ERROR","message":"hello, error","module":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2021-12-21T14:19:20.0424249-08:00","a":1,"app.version":"testing","level":"WARN","message":"hello, warn","module":"github.com/getoutreach/gobox"}
 }
