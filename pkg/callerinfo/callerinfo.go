@@ -14,6 +14,14 @@ import (
 	"sync"
 )
 
+// CallerInfo holds basic information about a call site:
+// Function is a long form module+function name that looks like:
+// * main.main for your own main function
+// * github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers for a module function
+// File is the file path of the call site
+// LineNum is the line number inside that File of the call site
+// Module is a best-effort attempt to get the module name for the call site (i.e. github.com/getoutreach/gobox)
+// ModuleVersion will be the version of the Module used at the call site
 type CallerInfo struct {
 	Function      string
 	File          string
@@ -73,28 +81,16 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 			}
 		}
 
-		// If we can't find it in the dep list, it must be from the main app
+		// If we can't find it in the dep list, it must be from the main app (at least as far as all my experimenting
+		// has so far shown -- function name looks like "main.main" for example, it doesn't have a module path prefix).
 		if ci.Module == "" {
 			ci.Module = buildInfo.Main.Path
 			ci.ModuleVersion = buildInfo.Main.Version
 		}
 
-		// In unit tests (https://github.com/golang/go/issues/33976) or in apps without module info compiled in,
-		// module info will be blank.  Fall back to parsing out what we can from the function name with some
-		// heuristics to do the best we can.
+		// If we still can't find it, attempt to calculate it with a heuristic
 		if ci.Module == "" {
-			splits := strings.Split(ci.Function, "/")
-			// Pull off the function name/module
-			splits = splits[0 : len(splits)-1]
-			// Heuristic to pull off pkg/internal dirs to try to get to the root module where we can
-			for i := len(splits) - 1; i > 1; i-- {
-				switch splits[i] {
-				case "pkg", "internal":
-					splits = splits[0:i]
-				}
-			}
-			// Put it back together and close your eyes
-			ci.Module = strings.Join(splits, "/")
+			ci.Module = calculateModule(ci.Function)
 		}
 	}
 
@@ -105,4 +101,22 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	moduleLookupLock.Unlock()
 
 	return ci, nil
+}
+
+// In unit tests (https://github.com/golang/go/issues/33976) or in apps without module info compiled in,
+// module info will be blank.  Fall back to parsing out what we can from the function name with some
+// heuristics to do the best we can.
+func calculateModule(funcName string) string {
+	splits := strings.Split(funcName, "/")
+	// Pull off the function name/module
+	splits = splits[0 : len(splits)-1]
+	// Heuristic to pull off pkg/internal dirs to try to get to the root module where we can
+	for i := len(splits) - 1; i > 1; i-- {
+		switch splits[i] {
+		case "pkg", "internal":
+			splits = splits[0:i]
+		}
+	}
+	// Put it back together and close your eyes
+	return strings.Join(splits, "/")
 }
