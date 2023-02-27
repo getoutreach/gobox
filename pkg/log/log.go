@@ -36,6 +36,7 @@ import (
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
 )
 
@@ -148,6 +149,23 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 
 	if entry["level"] == "FATAL" {
 		generateFatalFields(entry)
+	}
+
+	// Attempt to map the caller of the log function into the "source" field for identifying if a service or a module
+	// that the service is using is sending logs (costing money).
+	caller, err := callerinfo.GetCallerFunction(2)
+	switch {
+	case err != nil:
+		entry["source"] = "error"
+	case strings.HasPrefix(caller, "github.com/getoutreach"):
+		// Example response: github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers
+		splits := strings.Split(caller, "/")
+		// We're going for extracting "gobox" in the above example
+		entry["source"] = splits[2]
+	case strings.HasPrefix(caller, "main"):
+		entry["source"] = app.Info().Name
+	default:
+		entry["source"] = "unknown:" + caller
 	}
 
 	if len(entry) == 0 {

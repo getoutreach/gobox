@@ -34,6 +34,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"level":       "INFO",
 			"message":     "Info message",
 			"some":        "thing",
+			"source":      "gobox",
 			"with":        "hey",
 		},
 		{
@@ -42,6 +43,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"level":       "WARN",
 			"message":     "Warn message",
 			"some":        "thing",
+			"source":      "gobox",
 			"with":        "hey",
 		},
 		{
@@ -50,6 +52,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"level":       "DEBUG",
 			"message":     "Debug message",
 			"some":        "thing",
+			"source":      "gobox",
 			"with":        "hey",
 		},
 		{
@@ -58,6 +61,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"level":       "ERROR",
 			"message":     "Warn message",
 			"some":        "thing",
+			"source":      "gobox",
 			"with":        "hey",
 		},
 	}
