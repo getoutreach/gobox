@@ -157,12 +157,18 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 	switch {
 	case err != nil:
 		entry["source"] = "error"
-	case strings.HasPrefix(caller, "github.com/getoutreach"):
+	case strings.HasPrefix(caller, "github.com/"):
 		// Example response: github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers
 		splits := strings.Split(caller, "/")
-		// We're going for extracting "gobox" in the above example
-		entry["source"] = splits[2]
+		// We're going for extracting "getoutreach/gobox" in the above example
+		if len(splits) >= 3 {
+			entry["source"] = splits[1] + "/" + splits[2]
+		} else {
+			entry["source"] = splits[1]
+		}
 	case strings.HasPrefix(caller, "main"):
+		// Main entry point for the app shows up as "main.[funcname]", so just use the app name since we unfortunately
+		// don't have a full package name
 		entry["source"] = app.Info().Name
 	default:
 		entry["source"] = "unknown:" + caller
