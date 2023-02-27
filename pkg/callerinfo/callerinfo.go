@@ -9,14 +9,35 @@ package callerinfo
 import (
 	"fmt"
 	"runtime"
+	"runtime/debug"
+	"strings"
+	"sync"
 )
 
-var moduleLookupByPC = make(map[uintptr]string)
+type CallerInfo struct {
+	Function      string
+	File          string
+	LineNum       uint
+	Module        string
+	ModuleVersion string
+}
 
-// Returns the name of the function, including module if applicable, that called GetCallerFunction.
-// skipFrames determines how many frames above that to skip.  If you want to know who is calling your
+var moduleLookupByPC = make(map[uintptr]CallerInfo)
+var moduleLookupLock = sync.RWMutex{}
+
+var buildInfo *debug.BuildInfo
+
+//nolint:gochecknoinits // Why: Because we need it and the side effects are self-contained and non-mutating
+func init() {
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		buildInfo = bi
+	}
+}
+
+// GetCallerInfo returns various types of info about the caller of the function.
+// skipFrames determines how many frames above the caller to skip.  If you want to know who is calling your
 // function, you would pass in skipFrames of 1.  skipFrames of 0 will return yourself.
-func GetCallerFunction(skipFrames uint16) (string, error) {
+func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	// We only care about the one stack frame above the caller, so skip at least two:
 	// 1. runtime.Callers
 	// 2. GetCallerModule
@@ -24,7 +45,7 @@ func GetCallerFunction(skipFrames uint16) (string, error) {
 	skipTotal := 2 + int(skipFrames)
 	num := runtime.Callers(skipTotal, pc)
 	if num == 0 {
-		return "", fmt.Errorf("no frames returned from skip %d", skipTotal)
+		return CallerInfo{}, fmt.Errorf("no frames returned from skip %d", skipTotal)
 	}
 
 	if mod, valid := moduleLookupByPC[pc[0]]; valid {
@@ -36,7 +57,52 @@ func GetCallerFunction(skipFrames uint16) (string, error) {
 	frames := runtime.CallersFrames(pc)
 	frame, _ := frames.Next()
 
-	// Cache for later
-	moduleLookupByPC[pc[0]] = frame.Function
-	return frame.Function, nil
+	ci := CallerInfo{
+		Function: frame.Function,
+		File:     frame.File,
+		LineNum:  uint(frame.Line),
+	}
+
+	// Attempt to back-calc module name by searching through deps
+	if buildInfo != nil {
+		for _, mod := range buildInfo.Deps {
+			if strings.HasPrefix(ci.Function, mod.Path) {
+				ci.Module = mod.Path
+				ci.ModuleVersion = mod.Version
+				break
+			}
+		}
+
+		// If we can't find it in the dep list, it must be from the main app
+		if ci.Module == "" {
+			ci.Module = buildInfo.Main.Path
+			ci.ModuleVersion = buildInfo.Main.Version
+		}
+
+		// In unit tests (https://github.com/golang/go/issues/33976) or in apps without module info compiled in,
+		// module info will be blank.  Fall back to parsing out what we can from the function name with some
+		// heuristics to do the best we can.
+		if ci.Module == "" {
+			splits := strings.Split(ci.Function, "/")
+			// Pull off the function name/module
+			splits = splits[0 : len(splits)-1]
+			// Heuristic to pull off pkg/internal dirs to try to get to the root module where we can
+			for i := len(splits) - 1; i > 1; i-- {
+				switch splits[i] {
+				case "pkg", "internal":
+					splits = splits[0:i]
+				}
+			}
+			// Put it back together and close your eyes
+			ci.Module = strings.Join(splits, "/")
+		}
+	}
+
+	// Cache for later, under a brief write lock -- don't use the defer style here in case we add more logic after this someday
+	// and hold the lock for too long.
+	moduleLookupLock.Lock()
+	moduleLookupByPC[pc[0]] = ci
+	moduleLookupLock.Unlock()
+
+	return ci, nil
 }

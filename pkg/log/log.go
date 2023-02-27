@@ -147,31 +147,10 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 	appInfo.MarshalLog(entry.Set)
 	mm.MarshalLog(entry.Set)
 
+	addSource(entry)
+
 	if entry["level"] == "FATAL" {
 		generateFatalFields(entry)
-	}
-
-	// Attempt to map the caller of the log function into the "source" field for identifying if a service or a module
-	// that the service is using is sending logs (costing money).
-	caller, err := callerinfo.GetCallerFunction(2)
-	switch {
-	case err != nil:
-		entry["source"] = "error"
-	case strings.HasPrefix(caller, "github.com/"):
-		// Example response: github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers
-		splits := strings.Split(caller, "/")
-		// We're going for extracting "getoutreach/gobox" in the above example
-		if len(splits) >= 3 {
-			entry["source"] = splits[1] + "/" + splits[2]
-		} else {
-			entry["source"] = splits[1]
-		}
-	case strings.HasPrefix(caller, "main"):
-		// Main entry point for the app shows up as "main.[funcname]", so just use the app name since we unfortunately
-		// don't have a full package name
-		entry["source"] = app.Info().Name
-	default:
-		entry["source"] = "unknown:" + caller
 	}
 
 	if len(entry) == 0 {
@@ -184,6 +163,25 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 	}
 
 	return strings.TrimSpace(b.String())
+}
+
+func addSource(entry F) {
+	// Attempt to map the caller of the log function into the "source" field for identifying if a service or a module
+	// that the service is using is sending logs (costing money).
+	// Skip 3 levels:
+	// 1. addSource
+	// 2. format
+	// 3. log[Info/Error/etc.]
+	ci, err := callerinfo.GetCallerInfo(3)
+	switch {
+	case err != nil:
+		entry["source"] = "error"
+	case ci.Module != "":
+		entry["source"] = ci.Module
+		if ci.ModuleVersion != "" {
+			entry["sourcever"] = ci.ModuleVersion
+		}
+	}
 }
 
 // Flush writes out all debug logs

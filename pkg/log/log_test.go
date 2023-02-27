@@ -23,9 +23,9 @@ func Example() {
 	printEntries(logs.Entries())
 
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"example","myField":42,"source":"getoutreach/gobox"}
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"WARN","message":"example","myField":42,"source":"getoutreach/gobox"}
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"ERROR","message":"example","myField":42,"source":"getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"example","myField":42,"source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"WARN","message":"example","myField":42,"source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"ERROR","message":"example","myField":42,"source":"github.com/getoutreach/gobox"}
 }
 
 func Example_with_custom_event() {
@@ -37,7 +37,7 @@ func Example_with_custom_event() {
 	printEntries(logs.Entries())
 
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"example","myevent_field":"boo","source":"getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"example","myevent_field":"boo","source":"github.com/getoutreach/gobox"}
 }
 
 func ExampleDebug_with_error() {
@@ -49,8 +49,8 @@ func ExampleDebug_with_error() {
 
 	printEntries(logs.Entries())
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"DEBUG","message":"msg1","myField":42,"source":"getoutreach/gobox"}
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"ERROR","message":"msg2","myField":42,"source":"getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"DEBUG","message":"msg1","myField":42,"source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"ERROR","message":"msg2","myField":42,"source":"github.com/getoutreach/gobox"}
 }
 
 func Example_with_nested_custom_event() {
@@ -68,7 +68,7 @@ func Example_with_nested_custom_event() {
 
 	//nolint:lll // Why: Output
 	// Output:
-	//{"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","error.cause":" error","error.data.myevent_field":"boo","level":"INFO","message":"example","rootfield":"value","source":"getoutreach/gobox"}
+	//{"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","error.cause":" error","error.data.myevent_field":"boo","level":"INFO","message":"example","rootfield":"value","source":"github.com/getoutreach/gobox"}
 }
 
 func ExampleDebug_without_error() {
@@ -84,8 +84,8 @@ func ExampleDebug_without_error() {
 	printEntries(entries[:len(entries)-1])
 
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"debug","myField":42,"source":"getoutreach/gobox"}
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"DEBUG","message":"debug","myField":42,"source":"getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"INFO","message":"debug","myField":42,"source":"github.com/getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.version":"testing","level":"DEBUG","message":"debug","myField":42,"source":"github.com/getoutreach/gobox"}
 }
 
 func Example_appName() {
@@ -100,7 +100,7 @@ func Example_appName() {
 	printEntries(logs.Entries())
 	//nolint:lll // Why: Output
 	// Output:
-	// {"@timestamp":"2019-09-05T14:27:40Z","app.name":"app_name","app.version":"testing","level":"INFO","message":"orgful","myField":42,"service_name":"app_name","source":"getoutreach/gobox"}
+	// {"@timestamp":"2019-09-05T14:27:40Z","app.name":"app_name","app.version":"testing","level":"INFO","message":"orgful","myField":42,"service_name":"app_name","source":"github.com/getoutreach/gobox"}
 }
 
 func printEntries(entries []log.F) {
