@@ -27,15 +27,19 @@
       "substitutePath": [
         {
           "from": "${workspaceRoot}",
-          "to": "/home/dev/app"
+          "to": "github.com/getoutreach/gobox"
         },
         {
-          "from": "${env:HOME}/.asdf/installs/golang/1.19/packages/pkg/mod",
+          "from": "${env:HOME}/.asdf/installs/golang/1.19.5/packages/pkg/mod",
+          "to": ""
+        },
+        {
+          "from": "${env:HOME}/.asdf/installs/golang/1.19.5/packages/pkg/mod",
           "to": "/tmp/cache/go/mod/"
         },
         {
-          "from": "${env:HOME}/.asdf/installs/golang/1.19/go/src",
-          "to": "/home/dev/.asdf/installs/golang/1.19/go/src"
+          "from": "${env:HOME}/.asdf/installs/golang/1.19.5/go/src",
+          "to": "/home/dev/.asdf/installs/golang/1.19.5/go/src"
         }
       ]
     }
