@@ -118,10 +118,3 @@ workflows:
           ## <<Stencil::Block(circleE2EExtra)>>
 
           ## <</Stencil::Block>>
-      - shared/docker:
-          context: *contexts
-          filters:
-            branches:
-              ignore: *release_branches
-            tags:
-              only: /v\d+(\.\d+)*(-.*)*/

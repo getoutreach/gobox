@@ -4,6 +4,8 @@ arguments:
   lintroller: silver
   metrics: datadog
   oss: true
+  ciOptions:
+    skipDocker: true
   releaseOptions:
     allowMajorVersions: true
   reportingTeam: fnd-dt
