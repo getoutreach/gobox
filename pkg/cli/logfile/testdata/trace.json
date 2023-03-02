@@ -1,1 +1,247 @@
-[{"Name":"discovery","SpanContext":{"TraceID":"a94fdd826835543cb1e194d7dd0290ee","SpanID":"29b8a2f2620e40ff","TraceFlags":"01","TraceState":"","Remote":false},"Parent":{"TraceID":"a94fdd826835543cb1e194d7dd0290ee","SpanID":"ab11c4a697144b5d","TraceFlags":"01","TraceState":"","Remote":false},"SpanKind":1,"StartTime":"2022-10-21T15:52:53.812203-05:00","EndTime":"2022-10-21T15:52:54.132095-05:00","Attributes":[{"Key":"SampleRate","Value":{"Type":"INT64","Value":1}},{"Key":"app.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"service_name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"app.version","Value":{"Type":"STRING","Value":"v1.91.1-rc.1-14-gc7b6c4f"}},{"Key":"network.bytes_read","Value":{"Type":"STRING","Value":"-1"}},{"Key":"network.bytes_written","Value":{"Type":"STRING","Value":"0"}},{"Key":"network.client.ip","Value":{"Type":"STRING","Value":""}},{"Key":"network.destination.ip","Value":{"Type":"STRING","Value":""}},{"Key":"timing.scheduled_at","Value":{"Type":"STRING","Value":"2022-10-21T20:52:53.812191Z"}},{"Key":"timing.dequeued_at","Value":{"Type":"STRING","Value":"2022-10-21T20:52:53.812191Z"}},{"Key":"timing.finished_at","Value":{"Type":"STRING","Value":"2022-10-21T20:52:54.131895Z"}},{"Key":"timing.service_time","Value":{"Type":"STRING","Value":"0.319704625"}},{"Key":"timing.wait_time","Value":{"Type":"STRING","Value":"4.1e-08"}},{"Key":"timing.total_time","Value":{"Type":"STRING","Value":"0.319704666"}},{"Key":"duration","Value":{"Type":"STRING","Value":"0.319704625"}},{"Key":"http.method","Value":{"Type":"STRING","Value":"GET"}},{"Key":"http.referer","Value":{"Type":"STRING","Value":""}},{"Key":"http.request_id","Value":{"Type":"STRING","Value":""}},{"Key":"http.status_code","Value":{"Type":"STRING","Value":"200"}},{"Key":"http.url_details.path","Value":{"Type":"STRING","Value":"/v1/bentos"}},{"Key":"http.url_details.uri","Value":{"Type":"STRING","Value":""}},{"Key":"http.url_details.endpoint","Value":{"Type":"STRING","Value":"discovery"}}],"Events":null,"Links":null,"Status":{"Code":"Unset","Description":""},"DroppedAttributes":1,"DroppedEvents":0,"DroppedLinks":0,"ChildSpanCount":1,"Resource":[{"Key":"service.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"telemetry.sdk.language","Value":{"Type":"STRING","Value":"go"}},{"Key":"telemetry.sdk.name","Value":{"Type":"STRING","Value":"opentelemetry"}},{"Key":"telemetry.sdk.version","Value":{"Type":"STRING","Value":"1.9.0"}}],"InstrumentationLibrary":{"Name":"orc","Version":"","SchemaURL":""}},{"Name":"HTTP GET","SpanContext":{"TraceID":"a94fdd826835543cb1e194d7dd0290ee","SpanID":"b234a1db55570412","TraceFlags":"01","TraceState":"","Remote":false},"Parent":{"TraceID":"a94fdd826835543cb1e194d7dd0290ee","SpanID":"29b8a2f2620e40ff","TraceFlags":"01","TraceState":"","Remote":false},"SpanKind":3,"StartTime":"2022-10-21T15:52:53.812218-05:00","EndTime":"2022-10-21T15:52:54.199926-05:00","Attributes":[{"Key":"SampleRate","Value":{"Type":"INT64","Value":1}},{"Key":"app.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"service_name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"app.version","Value":{"Type":"STRING","Value":"v1.91.1-rc.1-14-gc7b6c4f"}},{"Key":"http.url","Value":{"Type":"STRING","Value":"https://discovery.outreach.cloud/v1/bentos"}},{"Key":"http.scheme","Value":{"Type":"STRING","Value":"http"}},{"Key":"http.host","Value":{"Type":"STRING","Value":"discovery.outreach.cloud"}},{"Key":"http.flavor","Value":{"Type":"STRING","Value":"1.1"}},{"Key":"http.method","Value":{"Type":"STRING","Value":"GET"}},{"Key":"http.status_code","Value":{"Type":"INT64","Value":200}}],"Events":null,"Links":null,"Status":{"Code":"Unset","Description":""},"DroppedAttributes":1,"DroppedEvents":0,"DroppedLinks":0,"ChildSpanCount":0,"Resource":[{"Key":"service.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"telemetry.sdk.language","Value":{"Type":"STRING","Value":"go"}},{"Key":"telemetry.sdk.name","Value":{"Type":"STRING","Value":"opentelemetry"}},{"Key":"telemetry.sdk.version","Value":{"Type":"STRING","Value":"1.9.0"}}],"InstrumentationLibrary":{"Name":"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp","Version":"semver:0.32.0","SchemaURL":""}},{"Name":"discovery.request","SpanContext":{"TraceID":"a94fdd826835543cb1e194d7dd0290ee","SpanID":"ab11c4a697144b5d","TraceFlags":"01","TraceState":"","Remote":false},"Parent":{"TraceID":"00000000000000000000000000000000","SpanID":"0000000000000000","TraceFlags":"00","TraceState":"","Remote":false},"SpanKind":1,"StartTime":"2022-10-21T15:52:53.812132-05:00","EndTime":"2022-10-21T15:52:54.200019584-05:00","Attributes":[{"Key":"SampleRate","Value":{"Type":"INT64","Value":1}},{"Key":"app.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"service_name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"app.version","Value":{"Type":"STRING","Value":"v1.91.1-rc.1-14-gc7b6c4f"}},{"Key":"timing.scheduled_at","Value":{"Type":"STRING","Value":"0001-01-01T00:00:00Z"}},{"Key":"timing.dequeued_at","Value":{"Type":"STRING","Value":"2022-10-21T20:52:53.812126Z"}},{"Key":"timing.finished_at","Value":{"Type":"STRING","Value":"2022-10-21T20:52:54.199944Z"}},{"Key":"timing.service_time","Value":{"Type":"STRING","Value":"0.3878185"}},{"Key":"timing.wait_time","Value":{"Type":"STRING","Value":"0"}},{"Key":"timing.total_time","Value":{"Type":"STRING","Value":"0.3878185"}},{"Key":"endpoint","Value":{"Type":"STRING","Value":"/v1/bentos"}}],"Events":null,"Links":null,"Status":{"Code":"Unset","Description":""},"DroppedAttributes":1,"DroppedEvents":0,"DroppedLinks":0,"ChildSpanCount":1,"Resource":[{"Key":"service.name","Value":{"Type":"STRING","Value":"orc"}},{"Key":"telemetry.sdk.language","Value":{"Type":"STRING","Value":"go"}},{"Key":"telemetry.sdk.name","Value":{"Type":"STRING","Value":"opentelemetry"}},{"Key":"telemetry.sdk.version","Value":{"Type":"STRING","Value":"1.9.0"}}],"InstrumentationLibrary":{"Name":"orc","Version":"","SchemaURL":""}}]
+[
+  {
+    "Name": "discovery",
+    "SpanContext": {
+      "TraceID": "a94fdd826835543cb1e194d7dd0290ee",
+      "SpanID": "29b8a2f2620e40ff",
+      "TraceFlags": "01",
+      "TraceState": "",
+      "Remote": false
+    },
+    "Parent": {
+      "TraceID": "a94fdd826835543cb1e194d7dd0290ee",
+      "SpanID": "ab11c4a697144b5d",
+      "TraceFlags": "01",
+      "TraceState": "",
+      "Remote": false
+    },
+    "SpanKind": 1,
+    "StartTime": "2022-10-21T15:52:53.812203-05:00",
+    "EndTime": "2022-10-21T15:52:54.132095-05:00",
+    "Attributes": [
+      {"Key": "SampleRate", "Value": {"Type": "INT64", "Value": 1}},
+      {"Key": "app.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {"Key": "service_name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "app.version",
+        "Value": {"Type": "STRING", "Value": "v1.91.1-rc.1-14-gc7b6c4f"}
+      },
+      {"Key": "network.bytes_read", "Value": {"Type": "STRING", "Value": "-1"}},
+      {
+        "Key": "network.bytes_written",
+        "Value": {"Type": "STRING", "Value": "0"}
+      },
+      {"Key": "network.client.ip", "Value": {"Type": "STRING", "Value": ""}},
+      {
+        "Key": "network.destination.ip",
+        "Value": {"Type": "STRING", "Value": ""}
+      },
+      {
+        "Key": "timing.scheduled_at",
+        "Value": {"Type": "STRING", "Value": "2022-10-21T20:52:53.812191Z"}
+      },
+      {
+        "Key": "timing.dequeued_at",
+        "Value": {"Type": "STRING", "Value": "2022-10-21T20:52:53.812191Z"}
+      },
+      {
+        "Key": "timing.finished_at",
+        "Value": {"Type": "STRING", "Value": "2022-10-21T20:52:54.131895Z"}
+      },
+      {
+        "Key": "timing.service_time",
+        "Value": {"Type": "STRING", "Value": "0.319704625"}
+      },
+      {
+        "Key": "timing.wait_time",
+        "Value": {"Type": "STRING", "Value": "4.1e-08"}
+      },
+      {
+        "Key": "timing.total_time",
+        "Value": {"Type": "STRING", "Value": "0.319704666"}
+      },
+      {"Key": "duration", "Value": {"Type": "STRING", "Value": "0.319704625"}},
+      {"Key": "http.method", "Value": {"Type": "STRING", "Value": "GET"}},
+      {"Key": "http.referer", "Value": {"Type": "STRING", "Value": ""}},
+      {"Key": "http.request_id", "Value": {"Type": "STRING", "Value": ""}},
+      {"Key": "http.status_code", "Value": {"Type": "STRING", "Value": "200"}},
+      {
+        "Key": "http.url_details.path",
+        "Value": {"Type": "STRING", "Value": "/v1/bentos"}
+      },
+      {"Key": "http.url_details.uri", "Value": {"Type": "STRING", "Value": ""}},
+      {
+        "Key": "http.url_details.endpoint",
+        "Value": {"Type": "STRING", "Value": "discovery"}
+      }
+    ],
+    "Events": null,
+    "Links": null,
+    "Status": {"Code": "Unset", "Description": ""},
+    "DroppedAttributes": 1,
+    "DroppedEvents": 0,
+    "DroppedLinks": 0,
+    "ChildSpanCount": 1,
+    "Resource": [
+      {"Key": "service.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "telemetry.sdk.language",
+        "Value": {"Type": "STRING", "Value": "go"}
+      },
+      {
+        "Key": "telemetry.sdk.name",
+        "Value": {"Type": "STRING", "Value": "opentelemetry"}
+      },
+      {
+        "Key": "telemetry.sdk.version",
+        "Value": {"Type": "STRING", "Value": "1.9.0"}
+      }
+    ],
+    "InstrumentationLibrary": {"Name": "orc", "Version": "", "SchemaURL": ""}
+  },
+  {
+    "Name": "HTTP GET",
+    "SpanContext": {
+      "TraceID": "a94fdd826835543cb1e194d7dd0290ee",
+      "SpanID": "b234a1db55570412",
+      "TraceFlags": "01",
+      "TraceState": "",
+      "Remote": false
+    },
+    "Parent": {
+      "TraceID": "a94fdd826835543cb1e194d7dd0290ee",
+      "SpanID": "29b8a2f2620e40ff",
+      "TraceFlags": "01",
+      "TraceState": "",
+      "Remote": false
+    },
+    "SpanKind": 3,
+    "StartTime": "2022-10-21T15:52:53.812218-05:00",
+    "EndTime": "2022-10-21T15:52:54.199926-05:00",
+    "Attributes": [
+      {"Key": "SampleRate", "Value": {"Type": "INT64", "Value": 1}},
+      {"Key": "app.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {"Key": "service_name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "app.version",
+        "Value": {"Type": "STRING", "Value": "v1.91.1-rc.1-14-gc7b6c4f"}
+      },
+      {
+        "Key": "http.url",
+        "Value": {
+          "Type": "STRING",
+          "Value": "https://discovery.outreach.cloud/v1/bentos"
+        }
+      },
+      {"Key": "http.scheme", "Value": {"Type": "STRING", "Value": "http"}},
+      {
+        "Key": "http.host",
+        "Value": {"Type": "STRING", "Value": "discovery.outreach.cloud"}
+      },
+      {"Key": "http.flavor", "Value": {"Type": "STRING", "Value": "1.1"}},
+      {"Key": "http.method", "Value": {"Type": "STRING", "Value": "GET"}},
+      {"Key": "http.status_code", "Value": {"Type": "INT64", "Value": 200}}
+    ],
+    "Events": null,
+    "Links": null,
+    "Status": {"Code": "Unset", "Description": ""},
+    "DroppedAttributes": 1,
+    "DroppedEvents": 0,
+    "DroppedLinks": 0,
+    "ChildSpanCount": 0,
+    "Resource": [
+      {"Key": "service.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "telemetry.sdk.language",
+        "Value": {"Type": "STRING", "Value": "go"}
+      },
+      {
+        "Key": "telemetry.sdk.name",
+        "Value": {"Type": "STRING", "Value": "opentelemetry"}
+      },
+      {
+        "Key": "telemetry.sdk.version",
+        "Value": {"Type": "STRING", "Value": "1.9.0"}
+      }
+    ],
+    "InstrumentationLibrary": {
+      "Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+      "Version": "semver:0.32.0",
+      "SchemaURL": ""
+    }
+  },
+  {
+    "Name": "discovery.request",
+    "SpanContext": {
+      "TraceID": "a94fdd826835543cb1e194d7dd0290ee",
+      "SpanID": "ab11c4a697144b5d",
+      "TraceFlags": "01",
+      "TraceState": "",
+      "Remote": false
+    },
+    "Parent": {
+      "TraceID": "00000000000000000000000000000000",
+      "SpanID": "0000000000000000",
+      "TraceFlags": "00",
+      "TraceState": "",
+      "Remote": false
+    },
+    "SpanKind": 1,
+    "StartTime": "2022-10-21T15:52:53.812132-05:00",
+    "EndTime": "2022-10-21T15:52:54.200019584-05:00",
+    "Attributes": [
+      {"Key": "SampleRate", "Value": {"Type": "INT64", "Value": 1}},
+      {"Key": "app.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {"Key": "service_name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "app.version",
+        "Value": {"Type": "STRING", "Value": "v1.91.1-rc.1-14-gc7b6c4f"}
+      },
+      {
+        "Key": "timing.scheduled_at",
+        "Value": {"Type": "STRING", "Value": "0001-01-01T00:00:00Z"}
+      },
+      {
+        "Key": "timing.dequeued_at",
+        "Value": {"Type": "STRING", "Value": "2022-10-21T20:52:53.812126Z"}
+      },
+      {
+        "Key": "timing.finished_at",
+        "Value": {"Type": "STRING", "Value": "2022-10-21T20:52:54.199944Z"}
+      },
+      {
+        "Key": "timing.service_time",
+        "Value": {"Type": "STRING", "Value": "0.3878185"}
+      },
+      {"Key": "timing.wait_time", "Value": {"Type": "STRING", "Value": "0"}},
+      {
+        "Key": "timing.total_time",
+        "Value": {"Type": "STRING", "Value": "0.3878185"}
+      },
+      {"Key": "endpoint", "Value": {"Type": "STRING", "Value": "/v1/bentos"}}
+    ],
+    "Events": null,
+    "Links": null,
+    "Status": {"Code": "Unset", "Description": ""},
+    "DroppedAttributes": 1,
+    "DroppedEvents": 0,
+    "DroppedLinks": 0,
+    "ChildSpanCount": 1,
+    "Resource": [
+      {"Key": "service.name", "Value": {"Type": "STRING", "Value": "orc"}},
+      {
+        "Key": "telemetry.sdk.language",
+        "Value": {"Type": "STRING", "Value": "go"}
+      },
+      {
+        "Key": "telemetry.sdk.name",
+        "Value": {"Type": "STRING", "Value": "opentelemetry"}
+      },
+      {
+        "Key": "telemetry.sdk.version",
+        "Value": {"Type": "STRING", "Value": "1.9.0"}
+      }
+    ],
+    "InstrumentationLibrary": {"Name": "orc", "Version": "", "SchemaURL": ""}
+  }
+]

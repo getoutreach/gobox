@@ -488,72 +488,89 @@ type spanSnapshot struct {
 }
 
 // Name returns the Name of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Name() string { return s.name }
 
 // SpanContext returns the SpanContext of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) SpanContext() trace.SpanContext { return s.spanContext }
 
 // Parent returns the Parent of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Parent() trace.SpanContext { return s.parent }
 
 // SpanKind returns the SpanKind of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) SpanKind() trace.SpanKind { return s.spanKind }
 
 // StartTime returns the StartTime of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) StartTime() time.Time { return s.startTime }
 
 // EndTime returns the EndTime of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) EndTime() time.Time { return s.endTime }
 
 // Attributes returns the Attributes of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Attributes() []attribute.KeyValue { return s.attributes }
 
 // Links returns the Links of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Links() []tracesdk.Link { return s.links }
 
 // Events returns the Events of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Events() []tracesdk.Event { return s.events }
 
 // Status returns the Status of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Status() tracesdk.Status { return s.status }
 
 // DroppedAttributes returns the DroppedAttributes of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) DroppedAttributes() int { return s.droppedAttributes }
 
 // DroppedLinks returns the DroppedLinks of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) DroppedLinks() int { return s.droppedLinks }
 
 // DroppedEvents returns the DroppedEvents of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) DroppedEvents() int { return s.droppedEvents }
 
 // ChildSpanCount returns the ChildSpanCount of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) ChildSpanCount() int { return s.childSpanCount }
 
 // Resource returns the Resource of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) Resource() *resource.Resource { return s.resource }
 
 // InstrumentationScope returns the InstrumentationScope of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) InstrumentationScope() instrumentation.Scope {
 	return s.instrumentationScope
 }
 
 // InstrumentationLibrary returns the InstrumentationLibrary of the snapshot
+//
 //nolint:gocritic // Why: required by otel
 func (s spanSnapshot) InstrumentationLibrary() instrumentation.Library {
 	return s.instrumentationScope

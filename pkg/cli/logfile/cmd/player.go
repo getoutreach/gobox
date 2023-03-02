@@ -1,3 +1,7 @@
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
+
+// Description: This file contains a logfile player that can be used to replay
+// logfiles.
 package main
 
 import (

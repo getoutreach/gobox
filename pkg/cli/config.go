@@ -7,31 +7,54 @@ package cli
 
 import (
 	"context"
-	"os"
-	"strconv"
+	"fmt"
 
 	"github.com/getoutreach/gobox/pkg/cfg"
-	"github.com/getoutreach/gobox/pkg/cli/logfile"
-	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/secrets"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"gopkg.in/yaml.v3"
 )
 
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
-func overrideConfigLoaders() {
-	portStr, _ := os.LookupEnv(logfile.TracePortEnvironmentVariable)
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		log.Warn(context.Background(), "unable to record trace information")
-	}
+func overrideConfigLoaders(honeycombAPIKey, dataset string, tracingDebug bool) {
+	// override the secret loader so that we can read specific keys from variables
+	// otherwise fallback to the original secret loader, if it was set.
+	var fallbackSecretLookup func(context.Context, string) ([]byte, error)
+	fallbackSecretLookup = secrets.SetDevLookup(func(ctx context.Context, path string) ([]byte, error) {
+		// use the embedded in value
+		if path == "APIKey" {
+			return []byte(honeycombAPIKey), nil
+		}
+
+		// if no fallback, return an error, failed to find :(
+		// note: as of this time the secrets logic looks for
+		// the path before falling back to the devlookup so this
+		// is safe to assume all attempts have failed
+		if fallbackSecretLookup == nil {
+			return nil, fmt.Errorf("failed to find secret at path '%s', or compiled into binary", path)
+		}
+
+		return fallbackSecretLookup(ctx, path)
+	})
 
 	fallbackConfigReader := cfg.DefaultReader()
+
 	cfg.SetDefaultReader(func(fileName string) ([]byte, error) {
-		if fileName == "trace.yaml" {
+		// first try to read the config as though we are in a production like environment
+		bytes, err := fallbackConfigReader(fileName)
+		// then if we fail, check if we know how to override it
+		if err != nil && fileName == "trace.yaml" {
 			traceConfig := &trace.Config{
-				LogFile: trace.LogFile{
-					Port: port,
+				Otel: trace.Otel{
+					Enabled:  true,
+					Endpoint: "api.honeycomb.io",
+					APIKey: cfg.Secret{
+						Path: "APIKey",
+					},
+					Debug:         tracingDebug,
+					Dataset:       dataset,
+					SamplePercent: 100,
 				},
 			}
 			b, err := yaml.Marshal(&traceConfig)
@@ -40,7 +63,7 @@ func overrideConfigLoaders() {
 			}
 			return b, nil
 		}
-
-		return fallbackConfigReader(fileName)
+		// if we haven't returned or panicked, return the original bytes/error pair
+		return bytes, err
 	})
 }

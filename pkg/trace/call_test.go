@@ -300,7 +300,6 @@ func TestReportLatencyMetrics(t *testing.T) {
 		}
 	}()
 
-	// TODO: convert this to a recorder pattern as well
 	metricsInfo := getMetricsInfo(t)
 	expectedMetrics := []map[string]interface{}{
 		{
