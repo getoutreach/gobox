@@ -1,5 +1,3 @@
-//go:build !or_e2e
-
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Provides helpers for creating a shuffler test suite
@@ -22,6 +20,10 @@ import (
 // nolint:gochecknoglobals // Why: flag used in multiple places
 var shuffleSeed = flag.Int64("shuffler.seed", 0, "Specify a seed for the randomization of test methods")
 
+// Type TestSuite is an interface that all test suites must implement
+//
+// Deprecated: TestSuites are no longer required. See Run for
+// more information.
 type TestSuite interface{}
 
 // failOnPanic exists to ensure we capture the specific test context
@@ -38,6 +40,10 @@ func failOnPanic(t *testing.T, finished *bool) {
 
 // Run takes test suites and runs all the exported Test* methods in
 // random order.
+//
+// Deprecated: Go now has native support for shuffling tests and is
+// enabled out-of-the-box thanks to the -shuffle flag. Use native
+// go test functionality instead of this package.
 func Run(t *testing.T, suites ...TestSuite) {
 	var finished bool
 	defer failOnPanic(t, &finished)
