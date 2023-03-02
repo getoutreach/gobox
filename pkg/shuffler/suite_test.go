@@ -1,5 +1,3 @@
-//go:build !or_e2e
-
 package shuffler
 
 import (

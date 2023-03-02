@@ -46,4 +46,8 @@
 //	func TestCapacitorSuite(t *testing.T) {
 //	    shuffler.Run(t, new(YourTestSuite))
 //	}
+//
+// Deprecated: Test shuffling is supported of the box in Go 1.17 and later
+// via the -shuffle flag. Use native go test functionality instead of this
+// package.
 package shuffler
