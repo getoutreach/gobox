@@ -142,14 +142,15 @@ func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
 	defaultTracer.registerSpanProcessor(s)
 }
 
+// setDefaultTracer sets the default tracer to use
 func setDefaultTracer(serviceName string) error {
 	config := &Config{}
-	err := config.Load()
-	if err != nil && !os.IsNotExist(err) {
+	if err := config.Load(); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	if config.Otel.Enabled {
+		var err error
 		defaultTracer, err = NewOtelTracer(context.Background(), serviceName, config)
 		if err != nil {
 			return fmt.Errorf("unable to start otel tracer: %w", err)
@@ -157,6 +158,7 @@ func setDefaultTracer(serviceName string) error {
 	}
 
 	if config.LogFile.Port != 0 {
+		var err error
 		defaultTracer, err = NewLogFileTracer(context.Background(), serviceName, config)
 		if err != nil {
 			return fmt.Errorf("unable to start log file tracer: %w", err)
