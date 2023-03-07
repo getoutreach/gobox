@@ -33,7 +33,7 @@ type Otel struct {
 	// Endpoint for the tracing backend
 	Endpoint string `yaml:"Endpoint"`
 	// CollectorEndpoint endpoint for the opentelemetry collector for tracing
-	CollectorEndpoint string `yaml:"AdditionalEndpoint"`
+	CollectorEndpoint string `yaml:"CollectorEndpoint"`
 	// Dataset the honeycomb grouping of traces
 	Dataset string `yaml:"Dataset"`
 	// SamplePercent the rate at which to sample
