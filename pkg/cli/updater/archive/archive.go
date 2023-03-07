@@ -40,7 +40,8 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 	}
 
 	var extractor Extractor
-	if strings.Contains(archiveName, ".tar") {
+	//nolint:gocritic // Why: we are checking if file extension contains a substring
+	if strings.Contains(archiveName, ".tar") || filepath.Ext(archiveName) == ".tgz" {
 		extractor = &tarExtractor{}
 	} else if filepath.Ext(archiveName) == ".zip" {
 		extractor = &zipExtractor{}

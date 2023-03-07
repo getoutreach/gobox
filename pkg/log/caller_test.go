@@ -1,3 +1,5 @@
+//go:build !or_e2e
+
 package log_test
 
 import (
@@ -23,9 +25,10 @@ func (callerSuite) TestCaller(t *testing.T) {
 	expected := []log.F{{
 		"@timestamp":  differs.RFC3339NanoTime(),
 		"app.version": "testing",
-		"caller":      "gobox/pkg/log/caller_test.go:21",
+		"caller":      "gobox/pkg/log/caller_test.go:23",
 		"level":       "INFO",
 		"message":     "caller test",
+		"module":      "github.com/getoutreach/gobox",
 	}}
 
 	assert.DeepEqual(t, expected, logs.Entries(), differs.Custom())

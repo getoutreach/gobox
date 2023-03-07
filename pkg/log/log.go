@@ -36,6 +36,7 @@ import (
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
 )
 
@@ -146,6 +147,8 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 	appInfo.MarshalLog(entry.Set)
 	mm.MarshalLog(entry.Set)
 
+	addSource(entry)
+
 	if entry["level"] == "FATAL" {
 		generateFatalFields(entry)
 	}
@@ -160,6 +163,25 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 	}
 
 	return strings.TrimSpace(b.String())
+}
+
+func addSource(entry F) {
+	// Attempt to map the caller of the log function into the "module" field for identifying if a service or a module
+	// that the service is using is sending logs (costing money).
+	// Skip 3 levels:
+	// 1. addSource
+	// 2. format
+	// 3. log[Info/Error/etc.]
+	ci, err := callerinfo.GetCallerInfo(3)
+	switch {
+	case err != nil:
+		entry["module"] = "error"
+	case ci.Module != "":
+		entry["module"] = ci.Module
+		if ci.ModuleVersion != "" {
+			entry["modulever"] = ci.ModuleVersion
+		}
+	}
 }
 
 // Flush writes out all debug logs

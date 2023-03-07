@@ -24,19 +24,16 @@ type testOverrides struct {
 	mu   sync.Mutex
 }
 
-func (to *testOverrides) add(k string, v interface{}) {
+func (to *testOverrides) addWithError(k string, v interface{}) error {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
 	if _, exists := to.data[k]; exists {
-		// This is not ideal.  We would prefer to return an error. However
-		// the caller function's signature does not support it and we don't
-		// want to incur the backwards-incompatibility of changing it right
-		// now.
-		panic(fmt.Errorf("repeated test override of '%s'", k))
+		return fmt.Errorf("repeated test override of '%s'", k)
 	}
 
 	to.data[k] = v
+	return nil
 }
 
 func (to *testOverrides) load(k string) (interface{}, bool) {
@@ -62,7 +59,7 @@ var overrides = testOverrides{
 	data: make(map[string]interface{}),
 }
 
-// linter is not aware of or_dev tags, so it falsely considers this deadcode.
+// devReader creates a config reader specific to the dev environment.
 func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
@@ -116,13 +113,27 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 // use the fName across two tests running in parallel. This will cause the
 // function to potentially panic.
 //
-// TODO[DT-3185]: Related work item to make the safety of this function better
+// Please use `FakeTestConfigWithError` if you want an error returned rather than panicking
 func FakeTestConfig(fName string, ptr interface{}) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
-	overrides.add(fName, ptr)
+	f, err := FakeTestConfigWithError(fName, ptr)
+	if err != nil {
+		panic(fmt.Sprintf("failed to addHandler '%v'. Use the function 'FakeTestConfigWithError()' to capture the err message", err.Error()))
+	}
+	return f
+}
+
+// FakeTestConfigWithError allows you to fake the test config with a specific value
+// and returns an error if a config with the same name exists already. If callers get an error,
+// they should switch to running tests in serial.
+func FakeTestConfigWithError(fName string, ptr interface{}) (func(), error) {
+	err := overrides.addWithError(fName, ptr)
+	if err != nil {
+		return nil, err
+	}
 
 	return func() {
 		overrides.delete(fName)
-	}
+	}, nil
 }

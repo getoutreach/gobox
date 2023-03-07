@@ -1,3 +1,5 @@
+//go:build !or_e2e
+
 package log_test
 
 import (
@@ -35,6 +37,7 @@ func (fatalSuite) TestFatal(t *testing.T) {
 		"error.stack": differs.StackLike("goroutine\nruntime/debug.Stack\ndebug/stack.go\nlog.generateFatalFields\nlog/log.go\nlog.format\nlog/log.go\nlog.Error\nlog/log.go\nlog_test.fatalSuite.TestFatal"),
 		"level":       "FATAL",
 		"message":     "example",
+		"module":      "github.com/getoutreach/gobox",
 	}}
 
 	if diff := cmp.Diff(want, got, differs.Custom()); diff != "" {
@@ -67,6 +70,7 @@ func (fatalSuite) TestFatalWithError(t *testing.T) {
 		"error.cause.message": "my error",
 		"message":             "example",
 		"level":               "FATAL",
+		"module":              "github.com/getoutreach/gobox",
 	}}
 
 	if diff := cmp.Diff(want, got, differs.Custom()); diff != "" {
