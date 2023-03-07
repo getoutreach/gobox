@@ -61,6 +61,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 
 	moduleLookupLock.RLock()
 	if mod, valid := moduleLookupByPC[pc[0]]; valid {
+		moduleLookupLock.RUnlock()
 		// Found it in the cache
 		return mod, nil
 	}
