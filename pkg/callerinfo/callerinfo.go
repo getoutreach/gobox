@@ -60,12 +60,12 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	}
 
 	moduleLookupLock.RLock()
-	if mod, valid := moduleLookupByPC[pc[0]]; valid {
-		moduleLookupLock.RUnlock()
+	mod, valid := moduleLookupByPC[pc[0]]
+	moduleLookupLock.RUnlock()
+	if valid {
 		// Found it in the cache
 		return mod, nil
 	}
-	moduleLookupLock.RUnlock()
 
 	// Not cached -- have to do the slow lookup
 	frames := runtime.CallersFrames(pc)
