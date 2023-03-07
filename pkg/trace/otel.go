@@ -129,6 +129,8 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		log.Info(ctx, fmt.Sprintf("Using OTEL Collector Endpoint: %s", t.Otel.CollectorEndpoint))
 		client := otlptracegrpc.NewClient(
 			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
+			// There is no need for TLS because we're sending traffic to a kubernetes service
+			otlptracegrpc.WithInsecure(),
 		)
 
 		exp, err := otlptrace.New(ctx, client)
