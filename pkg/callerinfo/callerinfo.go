@@ -30,7 +30,10 @@ type CallerInfo struct {
 	ModuleVersion string
 }
 
+// moduleLookupByPC is a cache of CallerInfo objects keyed by the PC of the function that called us
 var moduleLookupByPC = make(map[uintptr]CallerInfo)
+
+// moduleLookupLock is a lock to protect the moduleLookupByPC map from concurrent access issues
 var moduleLookupLock = sync.RWMutex{}
 
 var buildInfo *debug.BuildInfo
@@ -56,7 +59,10 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 		return CallerInfo{}, fmt.Errorf("no frames returned from skip %d", skipTotal)
 	}
 
-	if mod, valid := moduleLookupByPC[pc[0]]; valid {
+	moduleLookupLock.RLock()
+	mod, valid := moduleLookupByPC[pc[0]]
+	moduleLookupLock.RUnlock()
+	if valid {
 		// Found it in the cache
 		return mod, nil
 	}
