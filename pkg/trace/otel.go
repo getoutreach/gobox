@@ -126,6 +126,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	}
 
 	if t.Otel.CollectorEndpoint != "" {
+		log.Info(ctx, fmt.Sprintf("Using OTEL Collector Endpoint: %s", t.Otel.CollectorEndpoint))
 		client := otlptracegrpc.NewClient(
 			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
 		)
