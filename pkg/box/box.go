@@ -58,6 +58,8 @@ type DeveloperEnvironmentConfig struct {
 	// RuntimeConfig stores configuration specific to different devenv
 	// runtimes.
 	RuntimeConfig DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
+
+	VersionResolvers VersionResolvers `yaml:"versionResolvers"`
 }
 
 // DeveloperEnvironmentRuntimeConfig stores configuration specific to
@@ -88,6 +90,25 @@ type VaultConfig struct {
 	// AddressCI is the URL to use to talk to Vault in CI
 	// Defaults to Address
 	AddressCI string `yaml:"addressCI"`
+}
+
+type VersionResolvers struct {
+	// enabled is a list of image resolvers to use. If none are specified Maestro will be used
+	// ordered based on priority
+	Enabled []string `yaml:"enabled"`
+
+	Config VersionResolverConfig `yaml:"config"`
+}
+
+type VersionResolverConfig struct {
+	Maestro MaestroConfig `yaml:"maestro"`
+}
+
+type MaestroConfig struct {
+	VaultSecretPath string   `yaml:"vaultSecretPath"`
+	VaultSecretKey  string   `yaml:"vaultSecretKey"`
+	BaseURL         string   `yaml:"baseURL"`
+	Channels        []string `yaml:"channels"`
 }
 
 // SnapshotConfig stores configuration for generated and accessing
