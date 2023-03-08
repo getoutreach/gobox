@@ -4,6 +4,7 @@ package trace_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -31,22 +32,25 @@ func (suite) TestNestedSpan(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"name":                    "inner2",
-			"spanContext.traceID":     traceID,
-			"spanContext.spanID":      differs.AnyString(),
-			"spanContext.traceFlags":  "01",
-			"parent.traceID":          traceID,
-			"parent.spanID":           middleID,
-			"parent.traceFlags":       "01",
-			"parent.remote":           false,
-			"spanKind":                "internal",
-			"startTime":               differs.AnyString(),
-			"endTime":                 differs.AnyString(),
-			"attributes.app.name":     "gobox",
-			"attributes.service_name": "gobox",
-			"attributes.app.version":  "testing",
-			"attributes.trace":        "inner2",
-			"SampleRate":              int64(1),
+			"name":                     "inner2",
+			"spanContext.traceID":      traceID,
+			"spanContext.spanID":       differs.AnyString(),
+			"spanContext.traceFlags":   "01",
+			"parent.traceID":           traceID,
+			"parent.spanID":            middleID,
+			"parent.traceFlags":        "01",
+			"parent.remote":            false,
+			"spanKind":                 "internal",
+			"startTime":                differs.AnyString(),
+			"endTime":                  differs.AnyString(),
+			"attributes.app.name":      "gobox",
+			"attributes.service_name":  "gobox",
+			"attributes.app.version":   "testing",
+			"attributes.error.error":   "error",
+			"attributes.error.kind":    "error",
+			"attributes.error.message": "error",
+			"attributes.trace":         "inner2",
+			"SampleRate":               int64(1),
 			"links": []map[string]interface{}{
 				{
 					"spanContext.traceID": linkTraceID,
@@ -146,6 +150,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 	opts := []trace.SpanStartOption{trace.WithLink(linkHeaders)}
 	inner2 := trace.StartSpanWithOptions(inner, "inner2", opts)
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
+	trace.Error(inner2, fmt.Errorf("error"))
 
 	trace.End(inner2)
 	trace.End(inner)
