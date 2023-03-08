@@ -116,9 +116,6 @@ type MaestroConfig struct {
 	// VaultSecretKey the key within the VaultSecretPath that contains the API token
 	VaultSecretKey string `yaml:"vaultSecretKey"`
 
-	// BaseURL the base URL for maestro
-	BaseURL string `yaml:"baseURL"`
-
 	// Channels list of channels that maestro should retrieve version from
 	Channels []string `yaml:"channels"`
 }
