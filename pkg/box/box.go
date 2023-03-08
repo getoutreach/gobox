@@ -92,23 +92,35 @@ type VaultConfig struct {
 	AddressCI string `yaml:"addressCI"`
 }
 
+// VersionResolvers is the configurations used to get the latest version
 type VersionResolvers struct {
 	// enabled is a list of image resolvers to use. If none are specified Maestro will be used
 	// ordered based on priority
 	Enabled []string `yaml:"enabled"`
 
+	// Config is the configuration information for all versionResolvers
 	Config VersionResolverConfig `yaml:"config"`
 }
 
+// VersionResolverConfig list of versionResolver configurations
 type VersionResolverConfig struct {
+	// Maestro configuration used by maestro image resolver
 	Maestro MaestroConfig `yaml:"maestro"`
 }
 
+// MaestroConfig configuration used by the maestro imageResolver
 type MaestroConfig struct {
-	VaultSecretPath string   `yaml:"vaultSecretPath"`
-	VaultSecretKey  string   `yaml:"vaultSecretKey"`
-	BaseURL         string   `yaml:"baseURL"`
-	Channels        []string `yaml:"channels"`
+	// VaultSecretPath vault path that contains the auth secret to access maestro API
+	VaultSecretPath string `yaml:"vaultSecretPath"`
+
+	// VaultSecretKey the key within the VaultSecretPath that contains the API token
+	VaultSecretKey string `yaml:"vaultSecretKey"`
+
+	// BaseURL the base URL for maestro
+	BaseURL string `yaml:"baseURL"`
+
+	// Channels list of channels that maestro should retrieve version from
+	Channels []string `yaml:"channels"`
 }
 
 // SnapshotConfig stores configuration for generated and accessing
