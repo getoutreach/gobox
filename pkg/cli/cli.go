@@ -111,10 +111,7 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 // urfaveBefore is a cli.BeforeFunc that implements tracing
 func urfaveBefore(c *cli.Context) error {
-	props := trace.CommonProps()
-	trace.AddInfo(c.Context, props)
-
-	trace.AddInfo(c.Context, log.F{
+	trace.AddInfo(c.Context, trace.CommonProps(), log.F{
 		"cli.subcommand": c.Args().First(),
 		"cli.args":       strings.Join(c.Args().Tail(), " "),
 	})

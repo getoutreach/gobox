@@ -113,11 +113,7 @@ var defaultTracer tracer
 //
 // This should be called at the start of the application.
 func StartTracing(serviceName string) error {
-	if err := setDefaultTracer(serviceName); err != nil {
-		return err
-	}
-
-	return nil
+	return InitTracer(context.Background(), serviceName)
 }
 
 // InitTracer starts all tracing infrastructure.
