@@ -16,7 +16,7 @@ type Config struct {
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
-// GlobalTags arre tags that get included with every span
+// GlobalTags are tags that get included with every span
 type GlobalTags struct {
 	DevEmail string `yaml:"DevEmail,omitempty"`
 }
@@ -50,6 +50,9 @@ type Otel struct {
 
 // LogFile is the configuration for log file based tracing
 type LogFile struct {
+	// Enabled determines whether to turn on tracing to a log file
+	Enabled bool `yaml:"Enabled"`
+
 	// Port is the port used by the the logfile trace server
 	Port int `yaml:"Port"`
 }

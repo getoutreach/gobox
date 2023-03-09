@@ -143,11 +143,3 @@ func CommonProps() log.Marshaler {
 
 	return commonProps
 }
-
-// SetupLogFileTracer initializes tracing for clis
-func SetupLogFileTracer(ctx context.Context, name string) context.Context {
-	if err := InitTracer(ctx, name); err != nil {
-		return ctx
-	}
-	return StartSpan(ctx, name)
-}

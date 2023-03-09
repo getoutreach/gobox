@@ -128,14 +128,11 @@ func InitTracer(ctx context.Context, serviceName string) error {
 	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}
-
 	if defaultTracer == nil {
-		panic(`It looks like you upgraded gobox without upgrading bootstrap. To correct the issue:
-  - Update bootstrap to v10.2.0-rc.3 or later
-  - add 'tracing: opentelemetry' to your service.yaml`)
+		return fmt.Errorf("No tracer configured, please check your 'trace.yaml' config")
 	}
 
-	return nil
+	return defaultTracer.initTracer(ctx, serviceName)
 }
 
 func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
@@ -149,6 +146,11 @@ func setDefaultTracer(serviceName string) error {
 		return err
 	}
 
+	// Ensure only one tracer is enabled
+	if config.Otel.Enabled && config.LogFile.Enabled {
+		return fmt.Errorf("more than one tracer enabled, please check your 'trace.yaml' config")
+	}
+
 	if config.Otel.Enabled {
 		var err error
 		defaultTracer, err = NewOtelTracer(context.Background(), serviceName, config)
@@ -157,7 +159,7 @@ func setDefaultTracer(serviceName string) error {
 		}
 	}
 
-	if config.LogFile.Port != 0 {
+	if config.LogFile.Enabled {
 		var err error
 		defaultTracer, err = NewLogFileTracer(context.Background(), serviceName, config)
 		if err != nil {

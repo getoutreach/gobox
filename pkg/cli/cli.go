@@ -26,8 +26,15 @@ import (
 // and automatically updates itself.
 //
 //nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
-func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
-	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
+func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, conf *Config) {
+	// If no logger is provided, use a discard logger.
+	logger := conf.Logger
+	if logger == nil {
+		_logger := logrus.New()
+		_logger.SetOutput(io.Discard)
+		logger = _logger
+	}
+
 	// Quick exit if this is asking for a shell completion. We do this before
 	// setting up any hooks or checking for updates to keep things speedy.
 	lastArg := os.Args[len(os.Args)-1]
@@ -47,21 +54,26 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 	// Ensure that we don't use the standard outreach logger
 	log.SetOutput(io.Discard)
 
-	if err := logfile.Hook(); err != nil {
-		logger.WithError(err).Warn("Failed to capture logs, continuing without logging to file")
+	if conf.Telemetry.UseDelibird {
+		logger.Debug("Using delibird for telemetry")
+		if err := logfile.Hook(); err != nil {
+			logger.WithError(err).Warn("Failed to capture logs, continuing without logging to file")
+		}
 	}
 
 	// Support loading compiled in keys from the binary through the
 	// config framework
-	overrideConfigLoaders()
+	overrideConfigLoaders(conf)
 
 	// Cancel the context on ^C and other signals
 	urfaveRegisterShutdownHandler(cancel)
 
-	// Setup the logfile tracer and add common props to the top level span
-	ctx = trace.SetupLogFileTracer(ctx, a.Name)
-	props := trace.CommonProps()
-	trace.AddInfo(ctx, props)
+	// Setup tracing, with a top-level span being the name of the application
+	if err := trace.InitTracer(ctx, app.Info().Name); err != nil {
+		logger.WithError(err).Warn("Failed to initialize tracer")
+	}
+	ctx = trace.StartSpan(ctx, app.Info().Name, trace.CommonProps())
+	defer trace.End(ctx)
 
 	exitCode, exit := setupExitHandler(ctx)
 	defer exit()
