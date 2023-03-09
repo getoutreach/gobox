@@ -91,7 +91,7 @@
 //	if err != nil {
 //	   // if you are using trace.Call, then do trace.SetCallStatus
 //	   // instead.
-//	   trace.AddInfo(ctx, events.NewErrorInfo(err))
+//	   return trace.Error(ctx, err)
 //	}
 package trace
 
@@ -99,6 +99,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -253,6 +254,15 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 	if callExists := addArgsToCallInfo(ctx, args...); !callExists {
 		addDefaultTracerInfo(ctx, args...)
 	}
+}
+
+// Error is a convenience for attaching an error to a span.
+func Error(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	AddInfo(ctx, events.NewErrorInfo(err))
+	return err
 }
 
 // ID returns an ID for use with external services to propagate

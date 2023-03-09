@@ -17,6 +17,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/metric"
@@ -227,8 +228,31 @@ func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 		for _, arg := range args {
 			kvs := marshalToKeyValue(arg)
 			span.SetAttributes(kvs...)
+
+			switch v := arg.(type) {
+			case *events.ErrorInfo:
+				// In this case we use the raw error-- the other attributes of
+				// *events.ErrorInfo will be sent along via the above call to
+				// span.SetAttributes
+				setError(span, v.RawError)
+			case error:
+				// Any log.Marshaler could also implement error, in which case we want
+				// to respect that the client intended to send an error, and set the
+				// appropriate attributes on the span
+				setError(span, v)
+			default:
+				// do nothing
+			}
 		}
 	}
+}
+
+// setError sets the error code and sends an error event. setting the code
+// will cause error spans to be called out specifically in the trace, and
+// will make the "errors" default view in honeycomb useful
+func setError(span trace.Span, err error) {
+	span.SetStatus(codes.Error, err.Error())
+	span.RecordError(err)
 }
 
 // nolint:gocyclo // Why: It's a big case statement that's hard to split.
