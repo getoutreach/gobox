@@ -73,7 +73,10 @@ func Run(ctx context.Context, cancel context.CancelFunc, a *cli.App, conf *Confi
 	ctx = trace.StartSpan(ctx, app.Info().Name, trace.CommonProps())
 
 	exitCode, exit := setupExitHandler(ctx)
+	// Note: All defers before this point will not be ran because this will
+	// call os.Exit()
 	defer exit()
+	defer trace.End(ctx)
 
 	if _, err := updater.UseUpdater(ctx, updater.WithApp(a), updater.WithLogger(logger)); err != nil {
 		logger.WithError(err).Warn("Failed to setup automatic updater")
