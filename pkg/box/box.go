@@ -94,7 +94,7 @@ type VaultConfig struct {
 
 // VersionResolvers is the configurations used to get the latest version
 type VersionResolvers struct {
-	// enabled is a list of image resolvers to use. If none are specified Maestro will be used
+	// Enabled is a list of image resolvers to use. If none are specified Maestro will be used
 	// ordered based on priority
 	Enabled []string `yaml:"enabled"`
 
