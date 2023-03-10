@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/app"
+	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/logfile"
 	"github.com/getoutreach/gobox/pkg/cli/updater"
 	"github.com/getoutreach/gobox/pkg/env"
@@ -22,11 +23,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// HookInUrfaveCLI sets up an app.Before that automatically traces command runs
-// and automatically updates itself.
-//
-//nolint:funlen // Why: Also not worth doing at the moment, we split a lot of this out already.
-func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App, conf *Config) {
+// Run runs a urface/cli application.
+func Run(ctx context.Context, cancel context.CancelFunc, a *cli.App, conf *Config) {
 	// If no logger is provided, use a discard logger.
 	logger := conf.Logger
 	if logger == nil {
@@ -106,6 +104,25 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 
 		return
 	}
+}
+
+// HookInUrfaveCLI sets up an app.Before that automatically traces command runs
+// and automatically updates itself.
+//
+// TODO(jaredallard): Deprecate this after templates have been updated and released
+// for a few weeks.
+func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
+	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
+	Run(ctx, cancel, a, &Config{
+		Telemetry: TelemetryConfig{
+			Otel: TelemetryOtelConfig{
+				HoneycombAPIKey: cfg.SecretData(honeycombAPIKey),
+				Dataset:         dataset,
+				Debug:           false,
+			},
+		},
+		Logger: logger,
+	})
 }
 
 // urfaveBefore is a cli.BeforeFunc that implements tracing
