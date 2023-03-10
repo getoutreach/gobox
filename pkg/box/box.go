@@ -108,7 +108,7 @@ type VersionResolverConfig struct {
 	Maestro MaestroConfig `yaml:"maestro"`
 }
 
-// MaestroConfig configuration used by the maestro imageResolver
+// MaestroConfig contains configuration used by the maestro version resolver
 type MaestroConfig struct {
 	// VaultSecretPath vault path that contains the auth secret to access maestro API
 	VaultSecretPath string `yaml:"vaultSecretPath"`
