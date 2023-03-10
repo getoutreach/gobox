@@ -102,7 +102,7 @@ type VersionResolvers struct {
 	Config VersionResolverConfig `yaml:"config"`
 }
 
-// VersionResolverConfig list of versionResolver configurations
+// VersionResolverConfig contains configuration for version resolvers
 type VersionResolverConfig struct {
 	// Maestro configuration used by maestro image resolver
 	Maestro MaestroConfig `yaml:"maestro"`
