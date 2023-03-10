@@ -73,7 +73,6 @@ func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
 		logger.WithError(err).Warn("Failed to initialize tracer")
 	}
 	ctx = trace.StartSpan(ctx, app.Info().Name, trace.CommonProps())
-	defer trace.End(ctx)
 
 	exitCode, exit := setupExitHandler(ctx)
 	defer exit()

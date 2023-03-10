@@ -125,10 +125,10 @@ func InitTracer(ctx context.Context, serviceName string) error {
 		return err
 	}
 	if defaultTracer == nil {
-		return fmt.Errorf("No tracer configured, please check your 'trace.yaml' config")
+		return fmt.Errorf("no tracer configured, please check your 'trace.yaml' config")
 	}
 
-	return defaultTracer.initTracer(ctx, serviceName)
+	return nil
 }
 
 func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
@@ -157,6 +157,8 @@ func setDefaultTracer(serviceName string) error {
 
 	if config.LogFile.Enabled {
 		var err error
+		// Note: NewLogFileTracer doesn't call tracer.initTracer to prevent otelTracer
+		// from being initialized twice and overwriting itself.
 		defaultTracer, err = NewLogFileTracer(context.Background(), serviceName, config)
 		if err != nil {
 			return fmt.Errorf("unable to start log file tracer: %w", err)
