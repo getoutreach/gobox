@@ -59,7 +59,7 @@ type DeveloperEnvironmentConfig struct {
 	// runtimes.
 	RuntimeConfig DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
 
-	VersionResolvers VersionResolvers `yaml:"versionResolvers"`
+	VersionResolvers DevenvVersionResolvers `yaml:"versionResolvers"`
 }
 
 // DeveloperEnvironmentRuntimeConfig stores configuration specific to
@@ -92,8 +92,8 @@ type VaultConfig struct {
 	AddressCI string `yaml:"addressCI"`
 }
 
-// VersionResolvers is the configurations used to get the latest version
-type VersionResolvers struct {
+// DevenvVersionResolvers is the configurations used to get the latest version
+type DevenvVersionResolvers struct {
 	// Enabled is a list of image resolvers to use. If none are specified Maestro will be used
 	// ordered based on priority
 	Enabled []string `yaml:"enabled"`
