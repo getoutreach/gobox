@@ -98,7 +98,7 @@ type DevenvVersionResolvers struct {
 	// ordered based on priority
 	Enabled []string `yaml:"enabled"`
 
-	// Config is the configuration information for all versionResolvers
+	// Config is the configuration information for all version resolvers
 	Config VersionResolverConfig `yaml:"config"`
 }
 
