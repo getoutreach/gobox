@@ -26,26 +26,26 @@ type Violation struct {
 }
 
 // NewViolation creates a new intance of Violation
-func NewViolation(reason string) *Violation {
-	return &Violation{
+func NewViolation(reason string) Violation {
+	return Violation{
 		Reason: reason,
 	}
 }
 
 // WithField allows to specify field path of the field that violation belongs to
-func (v *Violation) WithField(field string) *Violation {
+func (v Violation) WithField(field string) Violation {
 	v.Field = &field
 	return v
 }
 
 // WithField allows to specify domain name of the field that violation belongs to
-func (v *Violation) WithDomain(domain string) *Violation {
+func (v Violation) WithDomain(domain string) Violation {
 	v.Domain = &domain
 	return v
 }
 
 // WithField allows to specify violation meta data
-func (v *Violation) WithMeta(m map[string]string) *Violation {
+func (v Violation) WithMeta(m map[string]string) Violation {
 	v.Metadata = m
 	return v
 }
@@ -56,12 +56,12 @@ type BadRequestError struct {
 	Err error
 
 	// Violations particular violations
-	Violations []*Violation
+	Violations []Violation
 }
 
 // NewBadRequestError return ready made intance of the BadRequestError error.
 // It wraps given error with the BadRequest status
-func NewBadRequestError(err error, violations ...*Violation) error {
+func NewBadRequestError(err error, violations ...Violation) error {
 	err = New(err, WithStatus(statuscodes.BadRequest))
 	return &BadRequestError{
 		Err:        err,
@@ -80,7 +80,7 @@ func (e BadRequestError) Unwrap() error {
 }
 
 // WithViolations adds more violations into the error
-func (e *BadRequestError) WithViolations(violations ...*Violation) *BadRequestError {
+func (e *BadRequestError) WithViolations(violations ...Violation) *BadRequestError {
 	e.Violations = append(e.Violations, violations...)
 	return e
 }

@@ -131,7 +131,9 @@ func (suite) TestExtractMetadataErrorEmpty(t *testing.T) {
 
 func TestBadRequestError(t *testing.T) {
 	err := errors.New("some input is wrong")
-	badRequest := &orerr.BadRequestError{Err: err}
+	badRequest := orerr.NewBadRequestError(err,
+		orerr.NewViolation("length").WithDomain("prospect"),
+	)
 	assert.Assert(t, errors.Is(badRequest, err))
-	assert.Equal(t, badRequest.Error(), "bad request: some input is wrong")
+	assert.Equal(t, badRequest.Error(), "bad request: StatusCode: BadRequest, Wrapped: some input is wrong")
 }
