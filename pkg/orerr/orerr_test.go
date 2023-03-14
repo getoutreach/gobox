@@ -128,3 +128,10 @@ func (suite) TestExtractMetadataErrorEmpty(t *testing.T) {
 	err := errors.New("something went wrong")
 	assert.Equal(t, len(orerr.ExtractErrorMetadata(err)), 0)
 }
+
+func TestBadRequestError(t *testing.T) {
+	err := errors.New("some input is wrong")
+	badRequest := &orerr.BadRequestError{Err: err}
+	assert.Assert(t, errors.Is(badRequest, err))
+	assert.Equal(t, badRequest.Error(), "bad request: some input is wrong")
+}
