@@ -59,6 +59,7 @@ type DeveloperEnvironmentConfig struct {
 	// runtimes.
 	RuntimeConfig DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
 
+	// VersionResolvers stores the configuration for version resolvers
 	VersionResolvers DevenvVersionResolvers `yaml:"versionResolvers"`
 }
 
@@ -95,7 +96,7 @@ type VaultConfig struct {
 // DevenvVersionResolvers is the configurations used to get the latest version
 type DevenvVersionResolvers struct {
 	// Enabled is a list of image resolvers to use. If none are specified Maestro will be used
-	// ordered based on priority
+	// ordered based on priority. External customers should default to git
 	Enabled []string `yaml:"enabled"`
 
 	// Config is the configuration information for all version resolvers
