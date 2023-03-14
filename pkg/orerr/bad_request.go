@@ -56,12 +56,12 @@ type BadRequestError struct {
 	Err error
 
 	// Violations particular violations
-	Violations []Violation
+	Violations []*Violation
 }
 
 // NewBadRequestError return ready made intance of the BadRequestError error.
 // It wraps given error with the BadRequest status
-func NewBadRequestError(err error, violations ...Violation) error {
+func NewBadRequestError(err error, violations ...*Violation) error {
 	err = New(err, WithStatus(statuscodes.BadRequest))
 	return &BadRequestError{
 		Err:        err,
@@ -80,7 +80,7 @@ func (e BadRequestError) Unwrap() error {
 }
 
 // WithViolations adds more violations into the error
-func (e *BadRequestError) WithViolations(violations ...Violation) *BadRequestError {
+func (e *BadRequestError) WithViolations(violations ...*Violation) *BadRequestError {
 	e.Violations = append(e.Violations, violations...)
 	return e
 }
