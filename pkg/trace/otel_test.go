@@ -10,15 +10,60 @@ import (
 	"time"
 
 	"github.com/getoutreach/gobox/pkg/differs"
+	"github.com/getoutreach/gobox/pkg/events"
+	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"gotest.tools/v3/assert"
 )
 
 type MarshalFunc func(addField func(key string, v interface{}))
 
 func (mf MarshalFunc) MarshalLog(addField func(key string, v interface{})) {
 	mf(addField)
+}
+
+type marshalableError struct {
+	e error
+}
+
+func (m *marshalableError) MarshalLog(addField func(key string, v interface{})) {
+	if m == nil {
+		return
+	}
+	addField("err", m.e.Error())
+}
+
+func TestTraceError(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	defer sr.Close()
+
+	err := fmt.Errorf("test error")
+	ctx := context.Background()
+	var errorInfo *events.ErrorInfo
+
+	ctx = trace.StartSpan(ctx, "testspan")
+
+	var customError *marshalableError
+	trace.AddInfo(ctx, customError)
+	assert.ErrorIs(t, err, trace.Error(ctx, err))
+	assert.NilError(t, trace.Error(ctx, nil))
+	trace.AddInfo(ctx, events.NewErrorInfo(err))
+	trace.AddInfo(ctx, events.NewErrorInfo(nil))
+	trace.AddSpanInfo(ctx, log.F{"example": events.NewErrorInfo(nil)})
+	trace.AddSpanInfo(ctx, log.F{"hi": "friends"}, errorInfo)
+	assert.NilError(t, trace.Error(ctx, error(nil)))
+	trace.AddInfo(ctx, log.F{"hi": errorInfo})
+	trace.AddSpanInfo(ctx, log.F{"hi": errorInfo})
+	assert.NilError(t, trace.Error(ctx, nil))
+	trace.AddInfo(ctx, nil)
+	trace.AddInfo(ctx, errorInfo)
+	trace.AddInfo(ctx, &marshalableError{err})
+	trace.End(ctx)
+
+	ev := sr.Ended()
+	t.Log(ev)
 }
 
 func TestOtelAddInfo(t *testing.T) {
