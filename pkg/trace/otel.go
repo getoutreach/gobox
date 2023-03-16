@@ -226,9 +226,6 @@ func (t *otelTracer) end(ctx context.Context) {
 func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
 		for _, arg := range args {
-			if arg == nil {
-				continue
-			}
 			kvs := marshalToKeyValue(arg)
 			span.SetAttributes(kvs...)
 
