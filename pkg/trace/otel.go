@@ -226,16 +226,27 @@ func (t *otelTracer) end(ctx context.Context) {
 func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
 		for _, arg := range args {
+			if arg == nil {
+				continue
+			}
 			kvs := marshalToKeyValue(arg)
 			span.SetAttributes(kvs...)
 
 			switch v := arg.(type) {
 			case *events.ErrorInfo:
+				if v == nil {
+					//
+					continue
+				}
 				// In this case we use the raw error-- the other attributes of
 				// *events.ErrorInfo will be sent along via the above call to
 				// span.SetAttributes
 				setError(span, v.RawError)
 			case error:
+				if v == nil {
+					continue
+				}
+
 				// Any log.Marshaler could also implement error, in which case we want
 				// to respect that the client intended to send an error, and set the
 				// appropriate attributes on the span
