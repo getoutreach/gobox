@@ -232,7 +232,6 @@ func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 			switch v := arg.(type) {
 			case *events.ErrorInfo:
 				if v == nil {
-					//
 					continue
 				}
 				// In this case we use the raw error-- the other attributes of
