@@ -14,7 +14,10 @@ service:
   framework: stencil
   description: >
     A collection of libraries that are useful for implementing Go services, libraries, and more.
+  lifecycle: public_ga
+  tier: tier_0
   ## <<Stencil::Block(extraServiceMetadata)>>
+
   ## <</Stencil::Block>>
   aliases:
     ## <<Stencil::Block(extraAliases)>>
@@ -34,7 +37,7 @@ service:
     - key: name
       value: "gobox"
     - key: stencil_version
-      value: "v1.28.1"
+      value: "v1.31.0"
     - key: golang_version
       value: "1.17.9"
     - key: tutorial

@@ -1,64 +1,16 @@
 name: gobox
 arguments:
-  circleAPIKey: ""
-  commands: []
-  commitGuard: false
-  dependencies:
-    optional: []
-    required: []
   description: A collection of libraries that are useful for implementing Go services, libraries, and more.
-  go-protoc-imports: []
-  grpcClients: []
-  kubernetes:
-    groups: []
   lintroller: silver
   metrics: datadog
-  opslevel:
-    confluenceSpaceKey: ""
-    datadogDashboards:
-      mainLink: ""
-    designDocumentLink: ""
   oss: true
+  ciOptions:
+    skipDocker: true
   releaseOptions:
     allowMajorVersions: true
-    enablePrereleases: false
-    prereleasesBranch: ""
   reportingTeam: fnd-dt
-  resources: {}
-  service: false
   slack: dev-tooling-notifications
-  terraform:
-    datadog:
-      grpc:
-        evaluationWindow: ""
-        latency:
-          percentiles:
-            highTraffic: 0
-            lowTraffic: 0
-          thresholds:
-            highTraffic: 0
-            lowTraffic: 0
-        lowTrafficCountThreshold: 0
-        qos:
-          thresholds:
-            highTraffic: 0
-            lowTraffic: 0
-        tags: []
-      http:
-        evaluationWindow: ""
-        percentiles:
-          highTraffic: 0
-          lowTraffic: 0
-        thresholds:
-          highTraffic: 0
-          lowCount: 0
-          lowTraffic: 0
-      pods:
-        thresholds:
-          availableLowCount: 0
   tracing: opentelemetry
-  tutorial: false
-  validation: false
   vaultSecrets:
     - deploy/honeycomb_new/%(environment)s/honeycomb
     - deploy/launchdarkly/%(environment)s/launchdarkly
@@ -67,6 +19,9 @@ arguments:
 modules:
   - name: github.com/getoutreach/stencil-base
   - name: github.com/getoutreach/stencil-golang
+    channel: rc
+  - name: github.com/getoutreach/devbase
+    channel: rc
   - name: github.com/getoutreach/stencil-outreach
   - name: github.com/getoutreach/stencil-circleci
   - name: github.com/getoutreach/stencil-actions
