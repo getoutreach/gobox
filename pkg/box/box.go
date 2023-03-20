@@ -58,6 +58,9 @@ type DeveloperEnvironmentConfig struct {
 	// RuntimeConfig stores configuration specific to different devenv
 	// runtimes.
 	RuntimeConfig DeveloperEnvironmentRuntimeConfig `yaml:"runtimeConfig"`
+
+	// VersionResolvers stores the configuration for version resolvers
+	VersionResolvers DevenvVersionResolvers `yaml:"versionResolvers"`
 }
 
 // DeveloperEnvironmentRuntimeConfig stores configuration specific to
@@ -88,6 +91,34 @@ type VaultConfig struct {
 	// AddressCI is the URL to use to talk to Vault in CI
 	// Defaults to Address
 	AddressCI string `yaml:"addressCI"`
+}
+
+// DevenvVersionResolvers is the configurations used to get the latest version
+type DevenvVersionResolvers struct {
+	// Enabled is a list of image resolvers to use. If none are specified Maestro will be used
+	// ordered based on priority. External customers should default to git
+	Enabled []string `yaml:"enabled"`
+
+	// Config is the configuration information for all version resolvers
+	Config VersionResolverConfig `yaml:"config"`
+}
+
+// VersionResolverConfig contains configuration for version resolvers
+type VersionResolverConfig struct {
+	// Maestro configuration used by maestro image resolver
+	Maestro MaestroConfig `yaml:"maestro"`
+}
+
+// MaestroConfig contains configuration used by the maestro version resolver
+type MaestroConfig struct {
+	// VaultSecretPath vault path that contains the auth secret to access maestro API
+	VaultSecretPath string `yaml:"vaultSecretPath"`
+
+	// VaultSecretKey the key within the VaultSecretPath that contains the API token
+	VaultSecretKey string `yaml:"vaultSecretKey"`
+
+	// Channels list of channels that maestro should retrieve version from
+	Channels []string `yaml:"channels"`
 }
 
 // SnapshotConfig stores configuration for generated and accessing
