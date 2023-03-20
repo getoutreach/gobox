@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Provides various call options functions
+// Description: This file implements configuration types and helpers for
+// configuring tracing.
 
 package trace
 
@@ -11,10 +12,11 @@ import (
 // Config is the tracing config that gets read from trace.yaml
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
+	LogFile    `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
-// GlobalTags arre tags that get included with every span
+// GlobalTags are tags that get included with every span
 type GlobalTags struct {
 	DevEmail string `yaml:"DevEmail,omitempty"`
 }
@@ -44,6 +46,15 @@ type Otel struct {
 	Stdout bool `yaml:"Stdout"`
 	// APIKey used for authentication with the backend at Endpoint
 	APIKey cfg.Secret `yaml:"APIKey"`
+}
+
+// LogFile is the configuration for log file based tracing
+type LogFile struct {
+	// Enabled determines whether to turn on tracing to a log file
+	Enabled bool `yaml:"Enabled"`
+
+	// Port is the port used by the the logfile trace server
+	Port int `yaml:"Port"`
 }
 
 // Load loads the configuration from trace.yaml

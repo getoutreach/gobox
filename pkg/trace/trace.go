@@ -97,6 +97,7 @@ package trace
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/events"
@@ -112,11 +113,7 @@ var defaultTracer tracer
 //
 // This should be called at the start of the application.
 func StartTracing(serviceName string) error {
-	if err := setDefaultTracer(); err != nil {
-		return err
-	}
-
-	return defaultTracer.startTracing(serviceName)
+	return InitTracer(context.Background(), serviceName)
 }
 
 // InitTracer starts all tracing infrastructure.
@@ -124,32 +121,48 @@ func StartTracing(serviceName string) error {
 // This needs to be called before sending any traces
 // otherwise they will not be published.
 func InitTracer(ctx context.Context, serviceName string) error {
-	if err := setDefaultTracer(); err != nil {
+	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}
-
 	if defaultTracer == nil {
-		panic(`It looks like you upgraded gobox without upgrading bootstrap. To correct the issue:
-  - Update bootstrap to v10.2.0-rc.3 or later
-  - add 'tracing: opentelemetry' to your service.yaml`)
+		return fmt.Errorf("no tracer configured, please check your 'trace.yaml' config")
 	}
 
-	return defaultTracer.initTracer(ctx, serviceName)
+	return nil
 }
 
 func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
 	defaultTracer.registerSpanProcessor(s)
 }
 
-func setDefaultTracer() error {
-	config := Config{}
-	err := config.Load()
-	if err != nil && !os.IsNotExist(err) {
+// setDefaultTracer sets the default tracer to use
+func setDefaultTracer(serviceName string) error {
+	config := &Config{}
+	if err := config.Load(); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
+	// Ensure only one tracer is enabled
+	if config.Otel.Enabled && config.LogFile.Enabled {
+		return fmt.Errorf("more than one tracer enabled, please check your 'trace.yaml' config")
+	}
+
 	if config.Otel.Enabled {
-		defaultTracer = &otelTracer{Config: config}
+		var err error
+		defaultTracer, err = NewOtelTracer(context.Background(), serviceName, config)
+		if err != nil {
+			return fmt.Errorf("unable to start otel tracer: %w", err)
+		}
+	}
+
+	if config.LogFile.Enabled {
+		var err error
+		// Note: NewLogFileTracer doesn't call tracer.initTracer to prevent otelTracer
+		// from being initialized twice and overwriting itself.
+		defaultTracer, err = NewLogFileTracer(context.Background(), serviceName, config)
+		if err != nil {
+			return fmt.Errorf("unable to start log file tracer: %w", err)
+		}
 	}
 
 	return nil
