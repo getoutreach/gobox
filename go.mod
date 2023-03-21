@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/schollz/progressbar/v3 v3.9.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.34.0
