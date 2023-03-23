@@ -37,7 +37,7 @@ func NewLogFileTracer(ctx context.Context, serviceName string, config *Config) (
 	mp := metric.NewNoopMeterProvider()
 	global.SetMeterProvider(mp)
 
-	exp, err := NewLogFileExporter(tracer.Port)
+	exp, err := NewLogFileExporter(tracer.LogFile.Port)
 	if err != nil {
 		log.Error(ctx, "Unable to start trace exporter", events.NewErrorInfo(err))
 	}
