@@ -9,41 +9,41 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"gotest.tools/v3/assert"
 )
 
 func TestTraceRoundtripJSON(t *testing.T) {
-	t.Skip("Broken due to formatter")
-
 	testFilePath := "testdata/trace.json"
-	originalJSON, err := os.ReadFile(testFilePath)
+	originalJSONStr, err := os.ReadFile(testFilePath)
 	if err != nil {
 		t.Fatalf("unable to read %s: %v", testFilePath, err)
 	}
 
+	// TODO(jaredallard): When I land, lookup how to minify JSON w/o parsing it. If we parse it
+	// the map key order gets messed up....
+	originalJSON, err := exec.Command("sh", "-c", fmt.Sprintf("cat '%s' | jq -c . | tr -d '\\n'", testFilePath)).Output()
+	assert.NilError(t, err, "failed to minify original json")
+
 	var spans []Span
-	if err := json.NewDecoder(bytes.NewReader(originalJSON)).Decode(&spans); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(originalJSONStr)).Decode(&spans); err != nil {
 		t.Fatalf("unable to decode %s: %v", testFilePath, err)
 	}
 
-	fmt.Printf("TraceID: %s\n", spans[0].SpanContext.TraceID())
-
-	var readOnlySpans []tracesdk.ReadOnlySpan
-	for _, span := range spans {
-		readOnlySpans = append(readOnlySpans, span.Snapshot())
+	readOnlySpans := make([]tracesdk.ReadOnlySpan, len(spans))
+	for i := range spans {
+		readOnlySpans[i] = spans[i].Snapshot()
 	}
 
-	stubs := tracetest.SpanStubsFromReadOnlySpans(readOnlySpans)
+	newJSON, err := json.Marshal(tracetest.SpanStubsFromReadOnlySpans(readOnlySpans))
+	assert.NilError(t, err, "failed to json marshal stub spans")
 
-	var newJSON bytes.Buffer
-	if err := json.NewEncoder(&newJSON).Encode(stubs); err != nil {
-		t.Fatalf("unable to encode %s: %v", testFilePath, err)
-	}
-
-	if !bytes.Equal(originalJSON, newJSON.Bytes()) {
-		t.Fatalf("expectd: %s, to equal: %s", originalJSON, newJSON.String())
+	if diff := cmp.Diff(string(originalJSON), string(newJSON)); diff != "" {
+		t.Fatalf("TestTraceRoundtripJSON() = %s", diff)
 	}
 }
