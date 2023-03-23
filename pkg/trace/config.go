@@ -12,7 +12,7 @@ import (
 // Config is the tracing config that gets read from trace.yaml
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
-	LogFile    `yaml:"LogFile"`
+	LogFile    LogFile `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
 }
 
