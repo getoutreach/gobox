@@ -30,6 +30,10 @@ type CredentialOptions struct {
 
 	// Profile to use
 	Profile string
+
+	// FileName is the name of the file to use for storing
+	// AWS credentials. Defaults to `~/.aws/credentials`.
+	FileName string
 }
 
 // DefaultCredentialOptions uses the default role and profile
@@ -58,6 +62,35 @@ func assumedToRole(assumedRole string) string {
 	return strings.Join(spl[:2], "/")
 }
 
+// needsRefresh determines if AWS authentication needs to be refreshed
+// or setup.
+func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) {
+	if creds, err := awsconfig.NewSharedCredentials(copts.Profile, copts.FileName).Load(); err == nil {
+		// Check, via the principal_arn, if the creds match the role we want
+		if creds.PrincipalARN != "" && assumedToRole(creds.PrincipalARN) != copts.Role {
+			return true, "Refreshing AWS credentials due to existing credentials using a different role"
+		}
+
+		// If our have no expiration date, it's probably not set. So, attempt to refresh.
+		if creds.Expires.IsZero() {
+			return true, "No existing credentials"
+		}
+
+		// Attempt to refresh the aws credentials via saml2aws if
+		// they can expire. If they can refresh within 10 minutes of
+		// the expiration period or if they are expired.
+		if time.Now().Add(10 * time.Minute).After(creds.Expires) {
+			return true, "Credentials are expired"
+		}
+	} else {
+		// Failed to load the config, so attempt to refresh
+		return true, fmt.Sprintf("Credential file failed to load: %v", err)
+	}
+
+	// Default to creds being valid
+	return false, ""
+}
+
 // EnsureValidCredentials ensures that the current AWS credentials are valid
 // and if they can expire it is attempted to rotate them when they are expired
 // via saml2aws
@@ -66,42 +99,17 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 		return nil
 	}
 
-	if copts == nil {
-		copts = DefaultCredentialOptions()
-	}
-
-	needsNewCreds := false
-	reason := ""
-
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
 		copts.Log.Debug("Skipping AWS credentials refresh check, AWS_ACCESS_KEY_ID is set")
 		return nil
 	}
 
-	if creds, err := awsconfig.NewSharedCredentials(copts.Profile, "").Load(); err == nil {
-		// Check, via the principal_arn, if the creds match the role we want
-		if creds.PrincipalARN != "" && assumedToRole(creds.PrincipalARN) != copts.Role {
-			if copts.Log != nil {
-				reason = "Refreshing AWS credentials due to existing credentials using a different role"
-			}
-			needsNewCreds = true
-		}
-
-		// Attempt to refresh the aws credentials via saml2aws if
-		// they can expire. If they can refresh within 3 minutes of
-		// the expiration period or if they are expired.
-		if !creds.Expires.IsZero() && time.Now().Add(3*time.Minute).After(creds.Expires) {
-			reason = "Credentials are expired"
-			needsNewCreds = true
-		}
-	} else if err != nil {
-		// if we failed to load the credentials, assume they need to be refreshed
-		reason = "No existing credentials"
-		needsNewCreds = true
+	if copts == nil {
+		copts = DefaultCredentialOptions()
 	}
 
-	// Reissue the AWS credentials
-	if needsNewCreds {
+	needsNewCreds, reason := needsRefresh(copts)
+	if needsNewCreds { // Refresh the credentials
 		if _, err := exec.LookPath("saml2aws"); err != nil {
 			return fmt.Errorf("failed to find saml2aws, please run orc setup")
 		}
