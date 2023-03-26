@@ -7,12 +7,12 @@ package logfile
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
-	"os/exec"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/tdewolff/minify/v2"
+	minifyjson "github.com/tdewolff/minify/v2/json" // used by minify
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"gotest.tools/v3/assert"
@@ -25,9 +25,8 @@ func TestTraceRoundtripJSON(t *testing.T) {
 		t.Fatalf("unable to read %s: %v", testFilePath, err)
 	}
 
-	// TODO(jaredallard): When I land, lookup how to minify JSON w/o parsing it. If we parse it
-	// the map key order gets messed up....
-	originalJSON, err := exec.Command("sh", "-c", fmt.Sprintf("cat '%s' | jq -c . | tr -d '\\n'", testFilePath)).Output()
+	var originalJSON bytes.Buffer
+	err = minifyjson.Minify(minify.New(), &originalJSON, bytes.NewReader(originalJSONStr), nil)
 	assert.NilError(t, err, "failed to minify original json")
 
 	var spans []Span
@@ -43,7 +42,7 @@ func TestTraceRoundtripJSON(t *testing.T) {
 	newJSON, err := json.Marshal(tracetest.SpanStubsFromReadOnlySpans(readOnlySpans))
 	assert.NilError(t, err, "failed to json marshal stub spans")
 
-	if diff := cmp.Diff(string(originalJSON), string(newJSON)); diff != "" {
+	if diff := cmp.Diff(originalJSON.String(), string(newJSON)); diff != "" {
 		t.Fatalf("TestTraceRoundtripJSON() = %s", diff)
 	}
 }
