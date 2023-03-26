@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/Masterminds/semver/v3 v3.2.0
-	github.com/briandowns/spinner v1.18.1
+	github.com/briandowns/spinner v1.23.0
 	github.com/charmbracelet/glamour v0.5.0
 	github.com/creack/pty v1.1.17
 	github.com/davecgh/go-spew v1.1.1
@@ -30,7 +30,7 @@ require (
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.36.4
-	github.com/zalando/go-keyring v0.2.1
+	github.com/zalando/go-keyring v0.2.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.33.0
 	go.opentelemetry.io/otel v1.14.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.14.0
