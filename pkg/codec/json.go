@@ -26,7 +26,7 @@ func (j *JSON) NewEncoder(w io.Writer) *jsonEncoder { //nolint:revive // Why: we
 	return &jsonEncoder{json.NewEncoder(w)}
 }
 
-// NewDecoder returns a new encoding/json style decoder agumenting it
+// NewDecoder returns a new encoding/json style decoder augmenting it
 // with snippets of the payload in case of errors.
 func (j *JSON) NewDecoder(r io.Reader) *jsonDecoder { //nolint:revive // Why: we want to expose json.Decoder but override some methods
 	w := &orio.BufferedWriter{N: j.snippetSize()}

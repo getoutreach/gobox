@@ -26,6 +26,7 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.0
+	github.com/tdewolff/minify/v2 v2.12.5
 	github.com/ulikunitz/xz v0.5.10
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.36.4
@@ -49,6 +50,7 @@ require (
 require (
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/tdewolff/parse/v2 v2.6.5 // indirect
 )
 
 require (
