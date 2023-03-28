@@ -12,6 +12,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+
+	"github.com/getoutreach/gobox/pkg/app"
 )
 
 // CallerInfo holds basic information about a call site:
@@ -43,6 +45,13 @@ var buildInfo *debug.BuildInfo
 func init() {
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		buildInfo = bi
+
+		// It's a known issue that buildinfo.Main.Version _always_ returns (devel) right now.  It's been an open issue
+		// for 4 years now: https://github.com/golang/go/issues/29228
+		// Work around it in the meantime by pulling the version from appinfo
+		if buildInfo.Main.Version == "(devel)" {
+			buildInfo.Main.Version = app.Info().Version
+		}
 	}
 }
 
@@ -52,7 +61,7 @@ func init() {
 func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	// We only care about the one stack frame above the caller, so skip at least two:
 	// 1. runtime.Callers
-	// 2. GetCallerModule
+	// 2. GetCallerInfo
 	pc := make([]uintptr, 1)
 	skipTotal := 2 + int(skipFrames)
 	num := runtime.Callers(skipTotal, pc)
