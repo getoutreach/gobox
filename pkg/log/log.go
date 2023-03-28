@@ -40,6 +40,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
 )
 
+// packageSourceInfoSkips lists the packages that we will skip when calculating caller info
+var packageSourceInfoSkips = map[string]interface{}{
+	"github.com/getoutreach/gobox/pkg/log":   nil,
+	"github.com/getoutreach/gobox/pkg/trace": nil,
+}
+
 // nolint:gochecknoglobals // Why: sets up overwritable writers
 var (
 	// wrap stdout and stderr in sync writers to ensure that writes exceeding
@@ -168,19 +174,32 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 func addSource(entry F) {
 	// Attempt to map the caller of the log function into the "module" field for identifying if a service or a module
 	// that the service is using is sending logs (costing money).
-	// Skip 3 levels:
+	// Skip 3 levels to start, and we may go further below (to skip log.With, other wrappers, etc.):
 	// 1. addSource
 	// 2. format
 	// 3. log[Info/Error/etc.]
-	ci, err := callerinfo.GetCallerInfo(3)
-	switch {
-	case err != nil:
-		entry["module"] = "error"
-	case ci.Module != "":
-		entry["module"] = ci.Module
-		if ci.ModuleVersion != "" {
-			entry["modulever"] = ci.ModuleVersion
+	skips := uint16(3)
+	for {
+		ci, err := callerinfo.GetCallerInfo(skips)
+		if err != nil {
+			entry["module"] = "error"
+			break
 		}
+
+		// Specifically skip some internal packages (in the fixed map above) -- callers to these are responsible
+		// for their logging, the skipped packages are just doing what they're told to do by the caller.
+		if _, has := packageSourceInfoSkips[ci.Package]; has {
+			skips++
+			continue
+		}
+
+		if ci.Module != "" {
+			entry["module"] = ci.Module
+			if ci.ModuleVersion != "" {
+				entry["modulever"] = ci.ModuleVersion
+			}
+		}
+		break
 	}
 }
 
