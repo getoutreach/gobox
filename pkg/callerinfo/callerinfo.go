@@ -26,6 +26,7 @@ type CallerInfo struct {
 	Function      string
 	File          string
 	LineNum       uint
+	Package       string
 	Module        string
 	ModuleVersion string
 }
@@ -72,6 +73,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	frame, _ := frames.Next()
 
 	ci := CallerInfo{
+		Package:  parsePackageName(frame.Function),
 		Function: frame.Function,
 		File:     frame.File,
 		LineNum:  uint(frame.Line),
@@ -125,4 +127,15 @@ func calculateModule(funcName string) string {
 	}
 	// Put it back together and close your eyes
 	return strings.Join(splits, "/")
+}
+
+// The function name looks like "github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers", so parse the
+// package name out of the base
+func parsePackageName(funcName string) string {
+	// Pull off the last period and beyond
+	index := strings.LastIndex(funcName, ".")
+	if index == -1 {
+		return "error:" + funcName
+	}
+	return funcName[0:index]
 }

@@ -12,6 +12,7 @@ func Test_Callers(t *testing.T) {
 
 	ci, err := GetCallerInfo(0)
 	assert.NilError(t, err)
+	assert.Equal(t, ci.Package, "github.com/getoutreach/gobox/pkg/callerinfo")
 	assert.Equal(t, ci.Function, "github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers")
 	assert.Check(t, strings.HasSuffix(ci.File, "callerinfo_test.go"))
 	assert.Check(t, ci.LineNum > 0)
