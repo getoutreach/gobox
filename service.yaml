@@ -8,6 +8,8 @@ arguments:
     skipDocker: true
   releaseOptions:
     allowMajorVersions: true
+  opslevel:
+    lifecycle: public_ga
   reportingTeam: fnd-dt
   slack: dev-tooling-notifications
   tracing: opentelemetry
