@@ -32,6 +32,8 @@ version=$(get_field_from_yaml '.modules[] | select(.name == "github.com/getoutre
 existingVersion=$(cat "$libDir/.version" 2>/dev/null || true)
 
 if [[ ! -e $libDir ]] || [[ $existingVersion != "$version" ]] || [[ ! -e "$libDir/.version" ]]; then
+  rm -rf "$libDir"
+
   if [[ $version == "local" ]]; then
     # If we're using a local version, we should use ln
     # to map the local devbase into the bootstrap dir

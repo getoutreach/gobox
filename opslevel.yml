@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://www.opslevel.com/opslevel.schema.yml
+# yaml-language-server: $schema=https://app.opslevel.com/public/opslevel.schema.yml
 
 # Available options are listed here: https://app.opslevel.com/account
 # To find the alias for a given lifecycle: https://www.opslevel.com/docs/api/opslevel-yml/#finding-the-alias-for-a-lifecycle
@@ -15,7 +15,6 @@ service:
   description: >
     A collection of libraries that are useful for implementing Go services, libraries, and more.
   lifecycle: public_ga
-  tier: tier_0
   ## <<Stencil::Block(extraServiceMetadata)>>
 
   ## <</Stencil::Block>>
@@ -37,17 +36,15 @@ service:
     - key: name
       value: "gobox"
     - key: stencil_version
-      value: "v1.31.0"
+      value: "v1.32.0"
     - key: golang_version
-      value: "1.17.9"
-    - key: tutorial
-      value: "false"
+      value: "1.19.5"
     - key: cli
       value: "false"
     - key: service
       value: "false"
       # This is necessary for filters in OpsLevel because we have to assume all things are
-      # services if they don't have the `servce` tag. So we can gaurantee this tag for
+      # services if they don't have the `service` tag. So we can guarantee this tag for
       # bootstrapped CLIs/Libraries.
     - key: notservice
       value: "true"
