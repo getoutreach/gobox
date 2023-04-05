@@ -30,6 +30,10 @@ func GetToken() (cfg.SecretData, error) {
 	accessors := []authAccessor{
 		envToken,
 		outreachDirToken,
+		ghCLIAuthToken,
+
+		// Deprecated: Use ghCLIAuthToken in the future. Leaving to ensure that
+		// potentially non standard formats of the gh config are still supported.
 		ghCLIToken,
 	}
 
@@ -73,6 +77,23 @@ func envToken() (cfg.SecretData, error) {
 	}
 
 	return "", fmt.Errorf("failed to read token from env vars: %v", envVars)
+}
+
+// ghCLIAuthToken is a helper function to get the token from the gh CLI
+// using the 'gh auth token' command.
+func ghCLIAuthToken() (cfg.SecretData, error) {
+	if path, err := exec.LookPath("gh"); err != nil || path == "" {
+		return "", fmt.Errorf("failed to find 'gh' CLI")
+	}
+
+	cmd := exec.Command("gh", "auth", "token")
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get token via gh CLI (try 'gh auth login?'): %s", string(b))
+	}
+
+	// Return the token, removing whitespace
+	return cfg.SecretData(strings.TrimSpace(string(b))), nil
 }
 
 // ghCLIToken gets a token from gh, or informs the user how to setup
