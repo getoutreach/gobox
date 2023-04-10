@@ -11,3 +11,11 @@ func FloatRange(start, end float64) CustomComparer {
 		return ok && f >= start && f <= end
 	})
 }
+
+// AnyFloat64 allows any float64 value
+func AnyFloat64() CustomComparer {
+	return Customf(func(o interface{}) bool {
+		_, ok := o.(float64)
+		return ok
+	})
+}
