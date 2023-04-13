@@ -73,6 +73,7 @@ func TestWithInfoLoggingDisabled(t *testing.T) {
 	expected := []log.F{
 		{
 			"@timestamp":           differs.AnyString(),
+			"app.version":          differs.AnyString(),
 			"deployment.namespace": differs.AnyString(),
 			"event_name":           "trace",
 			"honeycomb.parent_id":  differs.AnyString(),
