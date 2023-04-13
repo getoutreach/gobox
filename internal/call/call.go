@@ -16,9 +16,10 @@ import (
 	"github.com/getoutreach/gobox/pkg/metrics"
 )
 
-// Type tracks the call type.
+// Type tracks the type of calling being made.
 type Type string
 
+// Contains the call type constants.
 const (
 	// TypeHTTP is a constant that denotes the call type being an HTTP
 	// request.
@@ -35,15 +36,29 @@ const (
 
 // Info tracks information about an ongoing synchronous call.
 type Info struct {
+	// Name is the name of the call.
 	Name string
+
+	// Type is the type of the call.
 	Type Type
+
+	// Opts are the options for this call.
+	Opts Options
+
+	// Kind is the type of call being made. See metrics.CallKind for more
+	// information.
 	Kind metrics.CallKind
+
+	// Args are the arguments to the call, this is used for attributes on
+	// logs and traces.
 	Args []logf.Marshaler
+
+	// ErrInfo is the information for an error that occurred during the call.
+	// This is set by SetStatus and used for reporting that an error occurred.
+	ErrInfo *events.ErrorInfo
 
 	events.Times
 	events.Durations
-
-	ErrInfo *events.ErrorInfo
 
 	mu sync.Mutex
 }
@@ -117,8 +132,7 @@ func (info *Info) MarshalLog(addField func(key string, value interface{})) {
 }
 
 // Tracker helps manage a call info via the context.
-type Tracker struct {
-}
+type Tracker struct{}
 
 // StartCall creates a new call Info object and returns a new context
 // where tracker.Info(ctx) will return the newly setup call Info object.
@@ -131,6 +145,8 @@ func (t *Tracker) StartCall(ctx context.Context, name string, args []logf.Marsha
 }
 
 // Info returns the call Info object stashed in the context.
+// If there is no call Info object, it returns nil. Be sure
+// to check for nil before using the returned value.
 func (t *Tracker) Info(ctx context.Context) *Info {
 	if v := ctx.Value(t); v != nil {
 		return v.(*Info)
