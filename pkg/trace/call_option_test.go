@@ -7,6 +7,7 @@ import (
 
 	"github.com/getoutreach/gobox/internal/call"
 	"github.com/getoutreach/gobox/internal/logf"
+	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/differs"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
@@ -45,6 +46,11 @@ func TestAsOutboundCall(t *testing.T) {
 }
 
 func TestWithInfoLoggingDisabled(t *testing.T) {
+	// Fixes a test break in VSCode, where the app version is not set.
+	if app.Info().Version == "" {
+		app.Info().Version = "testing"
+	}
+
 	// Test that the default is false
 	callInfo := startCall(func(c *call.Info) {})
 	assert.Equal(t, false, callInfo.Opts.DisableInfoLogging)
@@ -72,22 +78,21 @@ func TestWithInfoLoggingDisabled(t *testing.T) {
 
 	expected := []log.F{
 		{
-			"@timestamp":           differs.AnyString(),
-			"app.version":          differs.AnyString(),
-			"deployment.namespace": differs.AnyString(),
-			"event_name":           "trace",
-			"honeycomb.parent_id":  differs.AnyString(),
-			"honeycomb.span_id":    differs.AnyString(),
-			"honeycomb.trace_id":   differs.AnyString(),
-			"level":                "INFO",
-			"message":              "test",
-			"module":               "github.com/getoutreach/gobox",
-			"timing.dequeued_at":   differs.AnyString(),
-			"timing.finished_at":   differs.AnyString(),
-			"timing.scheduled_at":  differs.AnyString(),
-			"timing.service_time":  differs.AnyFloat64(),
-			"timing.total_time":    differs.AnyFloat64(),
-			"timing.wait_time":     differs.AnyFloat64(),
+			"@timestamp":          differs.AnyString(),
+			"app.version":         differs.AnyString(),
+			"event_name":          "trace",
+			"honeycomb.parent_id": differs.AnyString(),
+			"honeycomb.span_id":   differs.AnyString(),
+			"honeycomb.trace_id":  differs.AnyString(),
+			"level":               "INFO",
+			"message":             "test",
+			"module":              "github.com/getoutreach/gobox",
+			"timing.dequeued_at":  differs.AnyString(),
+			"timing.finished_at":  differs.AnyString(),
+			"timing.scheduled_at": differs.AnyString(),
+			"timing.service_time": differs.AnyFloat64(),
+			"timing.total_time":   differs.AnyFloat64(),
+			"timing.wait_time":    differs.AnyFloat64(),
 		},
 	}
 	if diff := cmp.Diff(expected, recorder.Entries(), differs.Custom()); diff != "" {
