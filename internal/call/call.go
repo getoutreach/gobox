@@ -16,7 +16,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/metrics"
 )
 
-// Type tracks the type of calling being made.
+// Type tracks the type of call being made.
 type Type string
 
 // Contains the call type constants.
@@ -36,13 +36,14 @@ const (
 
 // Info tracks information about an ongoing synchronous call.
 type Info struct {
-	// Name is the name of the call.
+	// Name is the name of the call, this is used for the message of the log
+	// and the name of the trace.
 	Name string
 
-	// Type is the type of the call.
+	// Type is the type of the call, see `Type` for more information.
 	Type Type
 
-	// Opts are the options for this call.
+	// Opts are the options for this call, see `Options` for more information.
 	Opts Options
 
 	// Kind is the type of call being made. See metrics.CallKind for more
