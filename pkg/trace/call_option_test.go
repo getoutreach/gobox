@@ -7,12 +7,12 @@ import (
 
 	"github.com/getoutreach/gobox/internal/call"
 	"github.com/getoutreach/gobox/internal/logf"
-	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/differs"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 )
 
@@ -45,12 +45,16 @@ func TestAsOutboundCall(t *testing.T) {
 	assert.Equal(t, call.TypeOutbound, callInfo.Type)
 }
 
-func TestWithInfoLoggingDisabled(t *testing.T) {
-	// Fixes a test break in VSCode, where the app version is not set.
-	if app.Info().Version == "" {
-		app.Info().Version = "testing"
-	}
+// ignoreVariableFields ignores the "deployment.namespace" and
+// "app.version" fields because they can be variable across testing
+// environments.
+func ignoreVariableFields() cmp.Option {
+	return cmpopts.IgnoreMapEntries(func(key string, value interface{}) bool {
+		return key == "deployment.namespace" || key == "app.version"
+	})
+}
 
+func TestWithInfoLoggingDisabled(t *testing.T) {
 	// Test that the default is false
 	callInfo := startCall(func(c *call.Info) {})
 	assert.Equal(t, false, callInfo.Opts.DisableInfoLogging)
@@ -79,7 +83,6 @@ func TestWithInfoLoggingDisabled(t *testing.T) {
 	expected := []log.F{
 		{
 			"@timestamp":          differs.AnyString(),
-			"app.version":         differs.AnyString(),
 			"event_name":          "trace",
 			"honeycomb.parent_id": differs.AnyString(),
 			"honeycomb.span_id":   differs.AnyString(),
@@ -95,7 +98,7 @@ func TestWithInfoLoggingDisabled(t *testing.T) {
 			"timing.wait_time":    differs.AnyFloat64(),
 		},
 	}
-	if diff := cmp.Diff(expected, recorder.Entries(), differs.Custom()); diff != "" {
+	if diff := cmp.Diff(expected, recorder.Entries(), differs.Custom(), ignoreVariableFields()); diff != "" {
 		t.Fatal("unexpected events", diff)
 	}
 }
