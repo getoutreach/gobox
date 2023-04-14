@@ -7,9 +7,8 @@ type Option func(c *Info)
 
 // Options contains options for all tracing calls.
 type Options struct {
-	// DisableInfoLogging determines if info logging should be disabled or not
-	// when a call is finished. This is useful for calls that are expected to
-	// be very frequent, such as HTTP requests.
+	// DisableInfoLogging turns off per-call info logging if set to true. If false, every successful
+	// (statuscodes.CategoryOK) call will have an Info line emitted.
 	DisableInfoLogging bool
 }
 
