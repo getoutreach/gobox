@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -190,32 +192,73 @@ func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 	// Value types get encoded as string
 	switch kv.Value.Type {
-	case "INVALID":
+	case attribute.INVALID.String():
 		return attribute.KeyValue{}, errors.New("invalid value type")
-	case "BOOL":
+	case attribute.BOOL.String():
 		return attribute.Bool(kv.Key, kv.Value.Value.(bool)), nil
-	case "INT64":
-		// JSON always decodes numbers to float64 so we have to manually re-cast
-		return attribute.Int64(kv.Key, int64(kv.Value.Value.(float64))), nil
-	case "FLOAT64":
-		return attribute.Float64(kv.Key, kv.Value.Value.(float64)), nil
-	case "STRING":
-		return attribute.String(kv.Key, kv.Value.Value.(string)), nil
-	case "BOOLSLICE":
-		return attribute.BoolSlice(kv.Key, kv.Value.Value.([]bool)), nil
-	case "INT64SLICE":
-		// JSON always decodes numbers to float64 so we have to manually re-cast
-		var v []int64
-		for _, fv := range kv.Value.Value.([]float64) {
-			v = append(v, int64(fv))
+	case attribute.INT64.String():
+		// Value could be int64 or float64, so handle
+		// both cases. float64 comes from json.Unmarshal.
+		var v int64
+		switch i := kv.Value.Value.(type) {
+		case int64:
+			v = i
+		case float64:
+			v = int64(i)
 		}
+		return attribute.Int64(kv.Key, v), nil
+	case attribute.FLOAT64.String():
+		return attribute.Float64(kv.Key, kv.Value.Value.(float64)), nil
+	case attribute.STRING.String():
+		return attribute.String(kv.Key, kv.Value.Value.(string)), nil
+	case attribute.BOOLSLICE.String():
+		return attribute.BoolSlice(kv.Key, kv.Value.Value.([]bool)), nil
+	case attribute.INT64SLICE.String():
+		// Handle both float64 and int64. float64 comes from json.Unmarshal.
+		var v []int64
+		switch sli := kv.Value.Value.(type) {
+		case []int64:
+			v = sli
+		case []float64:
+			for i := range sli {
+				v = append(v, int64(sli[i]))
+			}
+		}
+
 		return attribute.Int64Slice(kv.Key, v), nil
-	case "FLOAT64SLICE":
+	case attribute.FLOAT64SLICE.String():
 		return attribute.Float64Slice(kv.Key, kv.Value.Value.([]float64)), nil
-	case "STRINGSLICE":
-		return attribute.StringSlice(kv.Key, kv.Value.Value.([]string)), nil
+	case attribute.STRINGSLICE.String():
+		var strSli []string
+
+		// Sometimes we can get a []interface{} instead of a []string, so always cast
+		// to []string if that happens.
+		switch sli := kv.Value.Value.(type) {
+		case []string:
+			strSli = sli
+		case []interface{}:
+			for i := range sli {
+				var v string
+
+				// Best case we have a string. Otherwise, cast it
+				// using fmt.Sprintf.
+				if str, ok := sli[i].(string); ok {
+					v = str
+				} else {
+					v = fmt.Sprintf("%v", sli[i])
+				}
+
+				// Add the string to the slice
+				strSli = append(strSli, v)
+			}
+		default:
+			return attribute.KeyValue{},
+				fmt.Errorf("got unsupported type %q for %s", reflect.ValueOf(kv.Value.Value).Kind(), attribute.STRINGSLICE.String())
+		}
+
+		return attribute.StringSlice(kv.Key, strSli), nil
 	default:
-		return attribute.KeyValue{}, errors.New("unsupported value type")
+		return attribute.KeyValue{}, fmt.Errorf("unknown value type %s", kv.Value.Type)
 	}
 }
 
