@@ -6,7 +6,6 @@
 // with a PTY attached to it, and then hook into the PTY's stdout/stderr
 // to record logs. Also exposed is the lower level functions (recorder, storage)
 // that are used to implement the hook.
-
 package logfile
 
 import (
