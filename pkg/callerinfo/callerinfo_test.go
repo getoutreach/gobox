@@ -17,6 +17,10 @@ func Test_ParsePackageName(t *testing.T) {
 	assert.Equal(t,
 		parsePackageName("github.com/getoutreach/gobox/pkg/log.logger.Info"),
 		"github.com/getoutreach/gobox/pkg/log")
+
+	assert.Equal(t,
+		parsePackageName("sdfdsfsed"),
+		"error:sdfdsfsed")
 }
 
 func Test_Callers(t *testing.T) {

@@ -143,6 +143,9 @@ func calculateModule(funcName string) string {
 func parsePackageName(funcName string) string {
 	// Find the last segment of the URL path
 	index := strings.LastIndex(funcName, "/")
+	if index == -1 {
+		return "error:" + funcName
+	}
 	indexDot := strings.Index(funcName[index:], ".")
 	if indexDot == -1 {
 		return funcName
