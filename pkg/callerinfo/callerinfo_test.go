@@ -7,6 +7,22 @@ import (
 	"gotest.tools/v3/assert"
 )
 
+func Test_ParsePackageName(t *testing.T) {
+	assert.Equal(t,
+		parsePackageName("github.com/getoutreach/gobox/pkg/foobar"),
+		"github.com/getoutreach/gobox/pkg/foobar")
+	assert.Equal(t,
+		parsePackageName("github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers"),
+		"github.com/getoutreach/gobox/pkg/callerinfo")
+	assert.Equal(t,
+		parsePackageName("github.com/getoutreach/gobox/pkg/log.logger.Info"),
+		"github.com/getoutreach/gobox/pkg/log")
+
+	assert.Equal(t,
+		parsePackageName("sdfdsfsed"),
+		"error:sdfdsfsed")
+}
+
 func Test_Callers(t *testing.T) {
 	assert.Equal(t, len(moduleLookupByPC), 0)
 
