@@ -141,10 +141,12 @@ func calculateModule(funcName string) string {
 // The function name looks like "github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers", so parse the
 // package name out of the base
 func parsePackageName(funcName string) string {
-	// Pull off the last period and beyond
-	index := strings.LastIndex(funcName, ".")
-	if index == -1 {
-		return "error:" + funcName
+	// Find the last segment of the URL path
+	index := strings.LastIndex(funcName, "/")
+	indexDot := strings.Index(funcName[index:], ".")
+	if indexDot == -1 {
+		return funcName
 	}
-	return funcName[0:index]
+	// Pull off everything after the first period (and the period)
+	return funcName[0:(index + indexDot)]
 }
