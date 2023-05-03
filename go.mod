@@ -12,7 +12,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/go-logr/logr v1.2.3
+	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v47 v47.0.0
 	github.com/google/uuid v1.3.0
@@ -31,13 +31,13 @@ require (
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/versent/saml2aws/v2 v2.36.4
 	github.com/zalando/go-keyring v0.2.2
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.33.0
-	go.opentelemetry.io/otel v1.14.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.41.1
+	go.opentelemetry.io/otel v1.15.1
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.14.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.14.0
-	go.opentelemetry.io/otel/metric v0.31.0
+	go.opentelemetry.io/otel/metric v0.38.1
 	go.opentelemetry.io/otel/sdk v1.14.0
-	go.opentelemetry.io/otel/trace v1.14.0
+	go.opentelemetry.io/otel/trace v1.15.1
 	golang.org/x/crypto v0.1.0
 	golang.org/x/oauth2 v0.4.0
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
