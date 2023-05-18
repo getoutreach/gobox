@@ -101,6 +101,7 @@ func Hook() error {
 
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
+		cmd.Stdin = os.Stdin
 		cmdErr = cmd.Run()
 
 		// Tell the trace server to shutdown
