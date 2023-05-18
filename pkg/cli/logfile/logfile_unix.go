@@ -190,16 +190,16 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 		return nil, errors.Wrap(err, "failed to attach stdin to pty")
 	}
 
-	// forward os.Stdin to the PTY
-	//nolint:errcheck // Why: Best effort
-	go io.Copy(ptmx, os.Stdin)
-
 	finishedChan := make(chan struct{})
 
 	w, h, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get terminal size")
 	}
+
+	// forward os.Stdin to the PTY
+	//nolint:errcheck // Why: Best effort
+	go io.Copy(ptmx, os.Stdin)
 
 	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:], l)
 
