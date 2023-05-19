@@ -14,19 +14,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// CallKind is the type of call that was made. This is meant to differentiate
-// between calls that are made to internal services vs calls that are made to
-// 3rd party (external) services.
 type CallKind string
 
 const (
-	// CallKindInternal is a call that was made to an internal service.
-	// "internal" represents a service that is within the same organization.
 	CallKindInternal CallKind = "internal"
-
-	// CallKindExternal is a call that was made to an external service.
-	// "external" represents a service that is outside of the organization, such
-	// as a 3rd party service.
 	CallKindExternal CallKind = "external"
 )
 
