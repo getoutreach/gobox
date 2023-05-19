@@ -107,33 +107,30 @@ func SetCallError(ctx context.Context, err error) error {
 // logging to happen (as do any SetCallStatus calls)
 func EndCall(ctx context.Context) {
 	callInfo := callTracker.Info(ctx)
-	if callInfo == nil {
-		// There was no call associated with this context, so we can't
-		// do anything.
-		return
-	}
-
 	defer End(ctx)
 
-	defer func(info *call.Info) {
-		addDefaultTracerInfo(ctx, info)
-		info.ReportLatency(ctx)
+	// If we had call information we should log it and report latency
+	if callInfo != nil {
+		defer func(info *call.Info) {
+			addDefaultTracerInfo(ctx, info)
+			info.ReportLatency(ctx)
 
-		if info.ErrInfo != nil {
-			switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
-			case statuscodes.CategoryClientError:
-				log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryServerError:
-				log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-				if !info.Opts.DisableInfoLogging {
-					log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+			if info.ErrInfo != nil {
+				switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
+				case statuscodes.CategoryClientError:
+					log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+				case statuscodes.CategoryServerError:
+					log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+				case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
+					if !info.Opts.DisableInfoLogging {
+						log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					}
 				}
+			} else if !info.Opts.DisableInfoLogging {
+				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			}
-		} else if !info.Opts.DisableInfoLogging {
-			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-		}
-	}(callInfo)
+		}(callInfo)
+	}
 
 	callTracker.EndCall(ctx)
 }
