@@ -106,13 +106,6 @@ func SetCallError(ctx context.Context, err error) error {
 // rethrows them.  Any panics are converted to errors and cause error
 // logging to happen (as do any SetCallStatus calls)
 func EndCall(ctx context.Context) {
-	callInfo := callTracker.Info(ctx)
-	if callInfo == nil {
-		// There was no call associated with this context, so we can't
-		// do anything.
-		return
-	}
-
 	defer End(ctx)
 
 	defer func(info *call.Info) {
@@ -133,7 +126,7 @@ func EndCall(ctx context.Context) {
 		} else if !info.Opts.DisableInfoLogging {
 			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 		}
-	}(callInfo)
+	}(callTracker.Info(ctx))
 
 	callTracker.EndCall(ctx)
 }
