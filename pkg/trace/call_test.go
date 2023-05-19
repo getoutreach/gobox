@@ -37,7 +37,7 @@ func (m *Model) MarshalLog(addField func(k string, v interface{})) {
 	addField("model.id", m.ID)
 }
 
-func TestNestedCall(t *testing.T) {
+func (suite) TestNestedCall(t *testing.T) {
 	t.Skip("flaky test")
 
 	defer app.SetName(app.Info().Name)
@@ -354,13 +354,13 @@ func getMetricsInfo(t *testing.T) []map[string]interface{} {
 	return result
 }
 
-func TestEndCallDoesNotPanicWithNilError(t *testing.T) {
+func (suite) TestEndCallDoesNotPanicWithNilError(t *testing.T) {
 	t.Skip("requires method to clear metrics between tests")
 
 	ctx := trace.StartCall(context.Background(), "")
 	trace.EndCall(ctx)
 }
 
-func TestSetCallStatusDoesNotPanicWithNilInfo(t *testing.T) {
+func (suite) TestSetCallStatusDoesNotPanicWithNilInfo(t *testing.T) {
 	trace.SetCallStatus(context.Background(), errors.New(""))
 }
