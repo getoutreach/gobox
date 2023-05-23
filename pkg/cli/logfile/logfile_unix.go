@@ -33,7 +33,8 @@ func Hook() error {
 		return nil
 	}
 
-	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
+	// if both stdin and stdout are not terminals, then we don't need a pty
+	isTerminal := term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
