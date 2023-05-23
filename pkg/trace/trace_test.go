@@ -22,7 +22,7 @@ func TestAll(t *testing.T) {
 
 type suite struct{}
 
-func (suite) TestNestedSpan(t *testing.T) {
+func TestNestedSpan(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
@@ -166,7 +166,7 @@ func (suite) TestNestedSpan(t *testing.T) {
 	}
 }
 
-func (suite) TestIncludesDevEmail(t *testing.T) {
+func TestIncludesDevEmail(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
