@@ -21,7 +21,7 @@ import (
 type initRoundTripperStateFunc func(t *testing.T) *roundtripperState
 type callRoudTripperFunc func(t *testing.T, state *roundtripperState) []map[string]interface{}
 
-func TestRoundtripper(t *testing.T) {
+func (suite) TestRoundtripper(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 

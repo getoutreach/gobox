@@ -16,7 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestForceTracingByHeader(t *testing.T) {
+func (suite) TestForceTracingByHeader(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
@@ -104,7 +104,7 @@ func TestForceTracingByHeader(t *testing.T) {
 	}
 }
 
-func TestHeadersForceTracingByHeader(t *testing.T) {
+func (suite) TestHeadersForceTracingByHeader(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
@@ -170,7 +170,7 @@ func TestHeadersForceTracingByHeader(t *testing.T) {
 	}
 }
 
-func TestForceTracing(t *testing.T) {
+func (suite) TestForceTracing(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
 
