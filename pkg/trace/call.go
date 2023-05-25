@@ -15,7 +15,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
-// nolint:nochecknoglobals // Why: we use this as a singleton.
 var callTracker = &call.Tracker{}
 
 // StartCall is used to start an internal call. For external calls please
@@ -107,27 +106,34 @@ func SetCallError(ctx context.Context, err error) error {
 // rethrows them.  Any panics are converted to errors and cause error
 // logging to happen (as do any SetCallStatus calls)
 func EndCall(ctx context.Context) {
+	callInfo := callTracker.Info(ctx)
 	defer End(ctx)
 
-	defer func(info *call.Info) {
-		addDefaultTracerInfo(ctx, info)
-		info.ReportLatency(ctx)
+	// If we don't have any call information we don't need to
+	// emit any logs, metrics, or traces.
+	if callInfo != nil {
+		defer func(info *call.Info) {
+			addDefaultTracerInfo(ctx, info)
+			info.ReportLatency(ctx)
 
-		if info.ErrInfo != nil {
-			switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
-			case statuscodes.CategoryClientError:
-				log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryServerError:
-				log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-			case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
+			if info.ErrInfo != nil {
+				switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
+				case statuscodes.CategoryClientError:
+					log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+				case statuscodes.CategoryServerError:
+					log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+				case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
+					if !info.Opts.DisableInfoLogging {
+						log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					}
+				}
+			} else if !info.Opts.DisableInfoLogging {
 				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			}
-		} else {
-			log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
-		}
-	}(callTracker.Info(ctx))
+		}(callInfo)
 
-	callTracker.EndCall(ctx)
+		callTracker.EndCall(ctx)
+	}
 }
 
 // addArgsToCallInfo appends the log marshalers passed in as arguments
