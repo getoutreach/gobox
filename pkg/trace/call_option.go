@@ -43,7 +43,7 @@ func AsHTTPCall() call.Option {
 	}
 }
 
-// AsOutboundCall set the call type to Outbound. This is meant for calls
+// AsOutboundCall changes the call type to Outbound. This is meant for calls
 // to external services, such as a client making a call to a server.
 func AsOutboundCall() call.Option {
 	return func(c *call.Info) {
