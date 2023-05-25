@@ -27,21 +27,24 @@ func WithScheduledTime(t time.Time) call.Option {
 	}
 }
 
-// AsGRPCCall set the call type to GRPC
+// AsGRPCCall changes the call type to gRPC. This SHOULD NOT be used for outbound
+// calls to external services. Use AsOutboundCall instead.
 func AsGRPCCall() call.Option {
 	return func(c *call.Info) {
 		c.Type = call.TypeGRPC
 	}
 }
 
-// AsHTTPCall set the call type to HTTP
+// AsHTTPCall changes the call type to HTTP. This SHOULD NOT be used for outbound
+// calls to external services. Use AsOutboundCall instead.
 func AsHTTPCall() call.Option {
 	return func(c *call.Info) {
 		c.Type = call.TypeHTTP
 	}
 }
 
-// AsOutboundCall set the call type to Outbound
+// AsOutboundCall set the call type to Outbound. This is meant for calls
+// to external services, such as a client making a call to a server.
 func AsOutboundCall() call.Option {
 	return func(c *call.Info) {
 		c.Type = call.TypeOutbound

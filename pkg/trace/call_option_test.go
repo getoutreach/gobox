@@ -102,3 +102,18 @@ func TestWithInfoLoggingDisabled(t *testing.T) {
 		t.Fatal("unexpected events", diff)
 	}
 }
+
+func TestWithNoCallInfo(t *testing.T) {
+	ctx := context.Background()
+
+	recorder := logtest.NewLogRecorder(t)
+	defer recorder.Close()
+
+	// This shouldn't panic or produce any logs.
+	trace.EndCall(ctx)
+
+	expected := []log.F(nil)
+	if diff := cmp.Diff(expected, recorder.Entries(), differs.Custom(), ignoreVariableFields()); diff != "" {
+		t.Fatal("unexpected events", diff)
+	}
+}
