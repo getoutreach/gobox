@@ -33,7 +33,8 @@ func Hook() error {
 		return nil
 	}
 
-	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
+	// if both stdin and stdout are not terminals, then we don't need a pty
+	isTerminal := term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -101,6 +102,7 @@ func Hook() error {
 
 		cmd.Stdout = io.MultiWriter(os.Stdout, rec)
 		cmd.Stderr = io.MultiWriter(os.Stderr, rec)
+		cmd.Stdin = os.Stdin
 		cmdErr = cmd.Run()
 
 		// Tell the trace server to shutdown
@@ -189,16 +191,16 @@ func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
 		return nil, errors.Wrap(err, "failed to attach stdin to pty")
 	}
 
-	// forward os.Stdin to the PTY
-	//nolint:errcheck // Why: Best effort
-	go io.Copy(ptmx, os.Stdin)
-
 	finishedChan := make(chan struct{})
 
 	w, h, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get terminal size")
 	}
+
+	// forward os.Stdin to the PTY
+	//nolint:errcheck // Why: Best effort
+	go io.Copy(ptmx, os.Stdin)
 
 	rec := newRecorder(logFile, w, h, cmd.Path, cmd.Args[1:], l)
 
