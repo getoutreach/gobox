@@ -15,12 +15,14 @@ const (
 	OK StatusCode = 600
 
 	// Client-caused error responses
-	BadRequest   StatusCode = 700
-	Unauthorized StatusCode = 701
-	Forbidden    StatusCode = 702
-	NotFound     StatusCode = 703
-	Conflict     StatusCode = 704
-	RateLimited  StatusCode = 705
+	BadRequest       StatusCode = 700
+	Unauthorized     StatusCode = 701
+	Forbidden        StatusCode = 702
+	NotFound         StatusCode = 703
+	Conflict         StatusCode = 704
+	RateLimited      StatusCode = 705
+	DeadlineExceeded StatusCode = 706
+	Canceled         StatusCode = 707
 
 	// Server-caused error responses
 	InternalServerError StatusCode = 800
@@ -91,6 +93,10 @@ func FromString(s string) (StatusCode, bool) {
 		return Unavailable, true
 	case UnknownError.String():
 		return UnknownError, true
+	case DeadlineExceeded.String():
+		return DeadlineExceeded, true
+	case Canceled.String():
+		return Canceled, true
 	default:
 		return UnknownError, false
 	}
