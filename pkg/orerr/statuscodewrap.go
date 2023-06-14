@@ -10,6 +10,10 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
+type StatusCodeProvider interface {
+	StatusCode() statuscodes.StatusCode
+}
+
 type StatusCategoryProvider interface {
 	StatusCategory() statuscodes.StatusCategory
 }
@@ -40,9 +44,9 @@ func NewErrorStatus(errToWrap error, errCode statuscodes.StatusCode) error {
 }
 
 func IsErrorStatusCode(err error, code statuscodes.StatusCode) bool {
-	var scw *StatusCodeWrapper
-	if errors.As(err, &scw) {
-		return scw.code == code
+	var scp StatusCodeProvider
+	if errors.As(err, &scp) {
+		return scp.StatusCode() == code
 	}
 	return false
 }
@@ -56,9 +60,9 @@ func IsErrorStatusCategory(err error, category statuscodes.StatusCategory) bool 
 }
 
 func ExtractErrorStatusCode(err error) statuscodes.StatusCode {
-	var scw *StatusCodeWrapper
-	if errors.As(err, &scw) {
-		return scw.StatusCode()
+	var scp StatusCodeProvider
+	if errors.As(err, &scp) {
+		return scp.StatusCode()
 	}
 	return statuscodes.UnknownError
 }
