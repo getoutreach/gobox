@@ -40,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.14.0
 	golang.org/x/crypto v0.1.0
 	golang.org/x/oauth2 v0.4.0
-	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
+	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.6.0
 	golang.org/x/tools v0.2.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -49,6 +49,7 @@ require (
 
 require (
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
+	github.com/hashicorp/go-hclog v1.0.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tdewolff/parse/v2 v2.6.5 // indirect
@@ -112,7 +113,7 @@ require (
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
+	google.golang.org/genproto v0.0.0-20230127162408-596548ed4efa // indirect
 	google.golang.org/grpc v1.53.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect

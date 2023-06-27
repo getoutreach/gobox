@@ -15,12 +15,12 @@ const (
 	OK StatusCode = 600
 
 	// Client-caused error responses
-	BadRequest   StatusCode = 700
-	Unauthorized StatusCode = 701
-	Forbidden    StatusCode = 702
-	NotFound     StatusCode = 703
-	Conflict     StatusCode = 704
-	RateLimited  StatusCode = 705
+	BadRequest          StatusCode = 700
+	Unauthorized        StatusCode = 701
+	Forbidden           StatusCode = 702
+	NotFound            StatusCode = 703
+	Conflict            StatusCode = 704
+	RateLimited         StatusCode = 705
 	UnprocessableEntity StatusCode = 706
 
 	// Server-caused error responses
