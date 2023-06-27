@@ -21,6 +21,7 @@ const (
 	NotFound     StatusCode = 703
 	Conflict     StatusCode = 704
 	RateLimited  StatusCode = 705
+	UnprocessableEntity StatusCode = 706
 
 	// Server-caused error responses
 	InternalServerError StatusCode = 800
@@ -83,6 +84,8 @@ func FromString(s string) (StatusCode, bool) {
 		return Conflict, true
 	case RateLimited.String():
 		return RateLimited, true
+	case UnprocessableEntity.String():
+		return UnprocessableEntity, true
 	case InternalServerError.String():
 		return InternalServerError, true
 	case NotImplemented.String():
