@@ -41,8 +41,7 @@ const (
 	// Conflict should be used for when there is a conflict between the incoming data and the data existing in a
 	// storage system (database, etc.), very similar to a BadRequest call (and it is similarly not expected to be
 	// successfully retriable unless someone changes the data in the source system via another call).
-	// Note: In retrospect, this inclusion is possibly a mistake compared to just having it be a nuance of BadRequest,
-	// but it exists now, so we'll live with it.
+	// Deprecated: In retrospect, this inclusion is a mistake compared to just having it be a nuance of BadRequest.
 	Conflict StatusCode = 704
 	// RateLimited is expected to be used when the client (or a set of clients) is/are sending too many requests that
 	// are flooding the server.  It is expected that the client will back off for some duration and then try again.
@@ -61,9 +60,9 @@ const (
 	// Unavailable is for when the server is experiencing a condition that is making all service temporarily
 	// unavailable.  This error is potentially retriable, but the duration for backoff is unknown.
 	Unavailable StatusCode = 802
-	// UnknownError was intended to be a catchall error type for server-side issues, but in reality server-side errors
-	// should fall into one of the above 3 errors, and this inclusion was likely a mistake.  It's not worth a breaking
-	// change to revoke at this time, though, so it shall live on.
+	// UnknownError was intended to be a catchall error type for server-side issues.
+	// Deprecated: In reality server-side errors should fall into one of the above 3 errors, and this inclusion was
+	// a mistake.  It's not worth a breaking change to revoke at this time, though, so it shall live on.
 	UnknownError StatusCode = 803
 )
 
