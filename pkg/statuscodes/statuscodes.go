@@ -1,16 +1,29 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: Provides custom status types and helpers
+// Description: Implements the statuscodes package.
 
-// Package statuscodes provides custom status types and helpers
+// Package statuscodes is an attempt to create very-high-level buckets/classifications of errors, for two and ONLY two purposes:
+//  1. Categories are intended for super-high-level bucketing of the responsibility for errors, ideally to be used for SLOs/success rate
+//     metrics on dashboards/reporting (availability).
+//  2. Codes are intended for high-level bucketing of categories of errors, so that generic framework-level http/grpc clients can identify
+//     basic things like retriability, without understanding a ton of nuanced error codes.  For example, I was torn between even including
+//     Conflict as a type separate from BadRequest, but decided to because it's still a different level of responsibility over behavior.
+//     We should ideally never need to extend this list, as extensions should be done via wrapped errors specific to the service.
+//
+// For sending service-specific errors, please wrap one of these errors into a more specific error type with your service-specific errors.
+// For example, bad_request.go has been added to this package, which wraps the basic BadRequest status code with more detailed information
+// about the specific fields in question.
 package statuscodes
 
 import "fmt"
 
 type StatusCode int
 
-// 1. Keep OK not as zero so you know someone affirmatively picked it
-// 2. Don't overlap with HTTP error codes so people know that these are different
+// Notes:
+//  1. DO NOT EXTEND THIS LIST WITHOUT VERY CAREFUL CONSIDERATION.  Please read the package description at the top
+//     of this file to understand the intent of these error codes (and categories).
+//  2. Keep OK not as zero so you know someone affirmatively picked it
+//  3. Don't overlap with HTTP error codes so people know that these are different
 const (
 	OK StatusCode = 600
 
