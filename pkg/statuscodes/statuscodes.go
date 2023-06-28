@@ -21,32 +21,56 @@ type StatusCode int
 // Notes:
 //  1. DO NOT EXTEND THIS LIST WITHOUT VERY CAREFUL CONSIDERATION.  Please read the package description at the top
 //     of this file to understand the intent of these error codes (and categories).
-//  2. Keep OK not as zero so you know someone affirmatively picked it
-//  3. Don't overlap with HTTP error codes so people know that these are different
+//  2. Don't overlap with HTTP error codes so people know that these are not HTTP error codes when they see them in
+//     server/service logs.
 const (
+	// Keep OK not as zero so you know someone affirmatively picked it
 	OK StatusCode = 600
 
-	// Client-caused error responses
-	BadRequest   StatusCode = 700
+	// The 700-swath is for Client-caused error responses
+	// BadRequest is for when the caller has provided input data that does not pass validation.  This is expected to
+	// fail in all retry scenarios -- the caller needs to change the input data to succeed.
+	BadRequest StatusCode = 700
+	// Unauthorized is for when the caller has presented no or invalid credentials.
 	Unauthorized StatusCode = 701
-	Forbidden    StatusCode = 702
-	NotFound     StatusCode = 703
-	// Note: In retrospect, this inclusion is probably a mistake compared to just having it be a nuance of BadRequest,
+	// Forbidden is for when the caller has presented valid credentials to SOMETHING in the system, but they
+	// specifically do not have access to the referred item.
+	Forbidden StatusCode = 702
+	// NotFound is for when the document attempting to be fetched or updated is not found.
+	NotFound StatusCode = 703
+	// Conflict should be used for when there is a conflict between the incoming data and the data existing in a
+	// storage system (database, etc.), very similar to a BadRequest call (and it is similarly not expected to be
+	// successfully retriable unless someone changes the data in the source system via another call).
+	// Note: In retrospect, this inclusion is possibly a mistake compared to just having it be a nuance of BadRequest,
 	// but it exists now, so we'll live with it.
-	Conflict    StatusCode = 704
+	Conflict StatusCode = 704
+	// RateLimited is expected to be used when the client (or a set of clients) is/are sending too many requests that
+	// are flooding the server.  It is expected that the client will back off for some duration and then try again.
+	// Well-behaved services will even return an expected duration for the client to retry-after.
 	RateLimited StatusCode = 705
 
-	// Server-caused error responses
+	// The 800-swath is for Server-caused error responses
+	// InternalServerError is for when something otherwise uncategorizable has blown up inside the service logic.
+	// This usually represents either a bug or an issue with a downstream system that the service is unable to
+	// gracefully handle.  InternalServerErrors may or may not be retriable, it is unknown without more context.
 	InternalServerError StatusCode = 800
-	NotImplemented      StatusCode = 801
-	Unavailable         StatusCode = 802
-	// Note: In retrospect, UnknownErrors should just be InternalServerErrors, but it's out in the wild and not worth a
-	// breaking change.
+	// NotImplemented is for when an endpoint exists and input appears valid, but the business logic behind it has
+	// specifically not been implemented yet, but may exist in the future.  Without a further release of the service,
+	// this error should not be retriable.
+	NotImplemented StatusCode = 801
+	// Unavailable is for when the server is experiencing a condition that is making all service temporarily
+	// unavailable.  This error is potentially retriable, but the duration for backoff is unknown.
+	Unavailable StatusCode = 802
+	// UnknownError was intended to be a catchall error type for server-side issues, but in reality server-side errors
+	// should fall into one of the above 3 errors, and this inclusion was likely a mistake.  It's not worth a breaking
+	// change to revoke at this time, though, so it shall live on.
 	UnknownError StatusCode = 803
 )
 
 //go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.12 -type=StatusCode
 
+// StatusCodes map directly into StatusCategories by the numeric range of the status code.  See StatusCode comments
+// for more details.
 type StatusCategory int
 
 const (
