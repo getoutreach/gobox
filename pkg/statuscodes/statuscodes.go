@@ -2,15 +2,16 @@
 
 // Description: Implements the statuscodes package.
 
-// Package statuscodes is an attempt to create very-high-level buckets/classifications of errors, for two and ONLY two purposes:
-//  1. Categories are intended for super-high-level bucketing of the responsibility for errors, ideally to be used for SLOs/success rate
-//     metrics on dashboards/reporting (availability).
-//  2. Codes are intended for high-level bucketing of categories of errors, so that generic framework-level http/grpc clients can identify
-//     basic things like retriability, without understanding a ton of nuanced error codes.
+// Package statuscodes is an attempt to create very-high-level buckets/classifications of errors, for two and ONLY two
+// purposes:
+//  1. Categories are intended for super-high-level bucketing of the responsibility for errors, ideally to be used for
+//     SLOs/success rate metrics on dashboards/reporting (availability).
+//  2. Codes are intended for high-level bucketing of categories of errors, so that generic framework-level http/grpc
+//     clients can identify basic things like retriability, without understanding a ton of nuanced error codes.
 //
-// For sending service-specific errors, please wrap one of these errors into a more specific error type with your service-specific errors.
-// For example, bad_request.go has been added to this package, which wraps the basic BadRequest status code with more detailed information
-// about the specific fields in question.
+// For sending service-specific errors, please wrap one of these errors into a more specific error type with your
+// service-specific errors.  For example, bad_request.go has been added to this package, which wraps the basic
+// BadRequest status code with more detailed information about the specific fields in question.
 package statuscodes
 
 import "fmt"
