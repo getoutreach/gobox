@@ -6,9 +6,7 @@
 //  1. Categories are intended for super-high-level bucketing of the responsibility for errors, ideally to be used for SLOs/success rate
 //     metrics on dashboards/reporting (availability).
 //  2. Codes are intended for high-level bucketing of categories of errors, so that generic framework-level http/grpc clients can identify
-//     basic things like retriability, without understanding a ton of nuanced error codes.  For example, I was torn between even including
-//     Conflict as a type separate from BadRequest, but decided to because it's still a different level of responsibility over behavior.
-//     We should ideally never need to extend this list, as extensions should be done via wrapped errors specific to the service.
+//     basic things like retriability, without understanding a ton of nuanced error codes.
 //
 // For sending service-specific errors, please wrap one of these errors into a more specific error type with your service-specific errors.
 // For example, bad_request.go has been added to this package, which wraps the basic BadRequest status code with more detailed information
@@ -32,14 +30,18 @@ const (
 	Unauthorized StatusCode = 701
 	Forbidden    StatusCode = 702
 	NotFound     StatusCode = 703
-	Conflict     StatusCode = 704
-	RateLimited  StatusCode = 705
+	// Note: In retrospect, this inclusion is probably a mistake compared to just having it be a nuance of BadRequest,
+	// but it exists now, so we'll live with it.
+	Conflict    StatusCode = 704
+	RateLimited StatusCode = 705
 
 	// Server-caused error responses
 	InternalServerError StatusCode = 800
 	NotImplemented      StatusCode = 801
 	Unavailable         StatusCode = 802
-	UnknownError        StatusCode = 803
+	// Note: In retrospect, UnknownErrors should just be InternalServerErrors, but it's out in the wild and not worth a
+	// breaking change.
+	UnknownError StatusCode = 803
 )
 
 //go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.12 -type=StatusCode
