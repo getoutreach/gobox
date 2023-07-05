@@ -21,8 +21,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -34,8 +33,8 @@ import (
 func NewLogFileTracer(ctx context.Context, serviceName string, config *Config) (tracer, error) {
 	tracer := &otelTracer{Config: *config}
 
-	mp := metric.NewNoopMeterProvider()
-	global.SetMeterProvider(mp)
+	mp := noop.NewMeterProvider()
+	otel.SetMeterProvider(mp)
 
 	exp, err := NewLogFileExporter(tracer.LogFile.Port)
 	if err != nil {
