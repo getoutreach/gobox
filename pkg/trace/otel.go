@@ -22,8 +22,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -93,8 +92,8 @@ func (t *otelTracer) registerSpanProcessor(s sdktrace.SpanProcessor) {
 }
 
 func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
-	mp := metric.NewNoopMeterProvider()
-	global.SetMeterProvider(mp)
+	mp := noop.NewMeterProvider()
+	otel.SetMeterProvider(mp)
 
 	key, err := t.Otel.APIKey.Data(ctx)
 	if err != nil {
