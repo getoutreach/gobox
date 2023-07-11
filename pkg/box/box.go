@@ -208,6 +208,21 @@ type SnapshotTarget struct {
 
 	// ReadyAddress is a URL to ping before marking the devenv as ready
 	ReadyAddress string `yaml:"readyAddress"`
+
+	// RestoreSteps defines which steps are used for restore
+	RestoreSteps []RestoreStep `yaml:"restore_steps"`
+}
+
+// RestoreStep is the defn for a restore step
+type RestoreStep struct {
+	// Description allows to specify what's this intended to exactly
+	Description string
+
+	// IncludedNamespaces defines what namespaces are restored in this step. It maps to Velero IncludedNamespaces restore parameter
+	IncludedNamespaces []string `yaml:"included_namespaces"`
+
+	// ExcludedNamespaces defines what namespaces are not restored in this step. It maps to Velero ExcludedNamespaces restore parameter
+	ExcludedNamespaces []string `yaml:"excluded_namespaces"`
 }
 
 // SnapshotGenerateConfig stores configuration for snapshots that should be generated
