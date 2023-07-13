@@ -209,13 +209,20 @@ type SnapshotTarget struct {
 	// ReadyAddress is a URL to ping before marking the devenv as ready
 	ReadyAddress string `yaml:"readyAddress"`
 
-	// RestoreSteps defines which steps are used for restore
+	// RestoreSteps defines the startup order of the resources within this snapshot.
+	// If not specified, all snapshot resources are started at the same time
 	RestoreSteps []RestoreStep `yaml:"restore_steps"`
 }
 
-// RestoreStep is the defn for a restore step
+// RestoreStep maps to a set of resources included in the snapshot.
+//
+// Examples:
+//
+// - a "databases" step specifies "IncludedNamespaces" of all database namespaces
+//
+// - a "all the rest" step only specifies "ExcludedNamespaces" used in previous steps
 type RestoreStep struct {
-	// Description allows to specify what's this intended to exactly
+	// Description describes what resources are restored in this step
 	Description string
 
 	// IncludedNamespaces defines what namespaces are restored in this step. It maps to Velero IncludedNamespaces restore parameter
