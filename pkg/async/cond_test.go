@@ -11,7 +11,6 @@ import (
 )
 
 func TestCond(t *testing.T) {
-
 	t.Run("broadcast wakes up waiter", func(t *testing.T) {
 		cond := Cond{}
 
