@@ -32,7 +32,7 @@ func TestCond(t *testing.T) {
 		defer cancel()
 		for j := 0; j < 10; j++ {
 			start := make(chan struct{})
-			g, ctx := errgroup.WithContext(ctx)
+			g := errgroup.Group{}
 			g.Go(func() error {
 				return cond.Wait(ctx)
 			})
