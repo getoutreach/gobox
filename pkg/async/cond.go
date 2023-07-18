@@ -15,7 +15,6 @@ import (
 // the Wait method exits with error if the context cancels.
 type Cond struct {
 	pointer atomic.Pointer[chan struct{}]
-	mu      sync.Mutex
 }
 
 // ch returns the channel that Waiters are waiting on, possibly creating one if it doesn't exist.
