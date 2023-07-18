@@ -59,7 +59,7 @@ func TestCond(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
-		g, ctx := errgroup.WithContext(ctx)
+		g := errgroup.Group{}
 		// start everyone waiting
 		for i := 0; i < 10; i++ {
 			g.Go(func() error {
