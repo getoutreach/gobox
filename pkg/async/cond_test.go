@@ -3,6 +3,7 @@ package async
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,16 +117,16 @@ func TestCond_WaitForCondition(t *testing.T) {
 
 		mu := &sync.Mutex{}
 		mu.Lock() // lock it so the condition isn't evaluated until we unlock it
-		waitedForUnlock := false
+		waitedForUnlock := atomic.Bool{}
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			mu.Unlock()
-			waitedForUnlock = true
+			waitedForUnlock.Store(true)
 		}()
 		unlock, err := cond.WaitForCondition(ctx, mu, func() bool {
 			return true
 		})
-		assert.True(t, waitedForUnlock)
+		assert.True(t, waitedForUnlock.Load())
 
 		assert.Nil(t, err)
 		assert.False(t, mu.TryLock()) // it is locked
@@ -140,13 +141,13 @@ func TestCond_WaitForCondition(t *testing.T) {
 
 		mu := &sync.Mutex{}
 
-		var i = 0
+		var i = atomic.Int32{}
 		unlock, err := cond.WaitForCondition(ctx, mu, func() bool {
 			go func() {
-				i++
+				i.Add(1)
 				cond.Broadcast()
 			}()
-			return i > 5
+			return i.Load() > 5
 		})
 
 		assert.Nil(t, err)

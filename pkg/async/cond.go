@@ -36,10 +36,11 @@ func (c *Cond) Wait(ctx context.Context) error {
 
 // Broadcast signals the state change to all Waiters
 func (c *Cond) Broadcast() {
-	ch := c.ch()
 	// now that we retrieved the channel, new calls to Wait should get a new channel
-	c.pointer.Store(nil)
-	close(ch)
+	ch := c.pointer.Swap(nil)
+	if ch != nil {
+		close(*ch)
+	}
 }
 
 // WaitForCondition checks if the condition is true or the context is done, otherwise
