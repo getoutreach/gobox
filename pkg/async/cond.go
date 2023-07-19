@@ -21,12 +21,13 @@ type Cond struct {
 	Mu      sync.Mutex
 }
 
-// ch returns the channel that Waiters are waiting on, possibly creating one if it doesn't exist.
+// ch returns the channel that Waiters are waiting on,
+// possibly creating one if it hasn't been initialized
 func (c *Cond) ch() chan struct{} {
 	// non atomic check for nil channel
 	load := c.pointer.Load()
 	if load == nil {
-		t := make(chan struct{}, 0)
+		t := make(chan struct{})
 		c.pointer.CompareAndSwap(nil, &t)
 		return t
 	}
@@ -46,9 +47,9 @@ func (c *Cond) Wait(ctx context.Context) error {
 
 // Broadcast signals the state change to all Waiters
 func (c *Cond) Broadcast() {
-	// now that we retrieved the channel, new calls to Wait should get a new channel
-	c2 := make(chan struct{}, 0)
-	ch := c.pointer.Swap(&c2)
+	// swap in a new channel, close the old one
+	newChan := make(chan struct{})
+	ch := c.pointer.Swap(&newChan)
 	if ch != nil {
 		close(*ch)
 	}
