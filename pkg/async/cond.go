@@ -13,14 +13,22 @@ import (
 // Cond is a sync.Cond that respects context cancellation.
 // It provides equivalent functionality to sync.Cond (excepting there is no `Signal` method), except that
 // the Wait method exits with error if the context cancels.
+//
+// It also provides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
+// checking a condition, and releasing the lock before waiting for a state change if the condition is not met.
 type Cond struct {
 	pointer atomic.Pointer[chan struct{}]
+	Mu      sync.Mutex
 }
 
 // ch returns the channel that Waiters are waiting on, possibly creating one if it doesn't exist.
 func (c *Cond) ch() chan struct{} {
-	t := make(chan struct{})
-	c.pointer.CompareAndSwap(nil, &t)
+	// non atomic check for nil channel
+	if c.pointer.Load() == nil {
+		t := make(chan struct{})
+		// make the swap safely.
+		c.pointer.CompareAndSwap(nil, &t)
+	}
 	return *c.pointer.Load()
 }
 
@@ -43,25 +51,29 @@ func (c *Cond) Broadcast() {
 	}
 }
 
-// WaitForCondition checks if the condition is true or the context is done, otherwise
-// it waits for the state change Broadcast.
+// WaitForCondition acquires Cond's lock, then checks if the condition is true. If the condition is not true,
+// or the lock was not available, it releases the locker and waits for the state change Broadcast.
+// If the context ends during any of these operations, the context error is returned.
 //
-// if it returns without error, it also locks the provided locker and the caller must call the returned function
+// WaitForCondition returns an unlock function that should always be called to unlock the locker.
+// unlock is safe to call regardless  of error.
+// Error should only be returned if the context ends before the condition is met.
+//
+// If it returns without error, it also locks the provided locker and the caller must call the returned function
 // to unlock it. Until they call unlock, the state should not be changed.
-func (c *Cond) WaitForCondition(ctx context.Context, locker sync.Locker, condition func() bool) (func(), error) {
+func (c *Cond) WaitForCondition(ctx context.Context, condition func() bool) (unlock func(),
+	err error) {
 	for {
-		err := c.lockWithContext(ctx, locker)
-		if err != nil {
-			return func() {}, err
-		}
-
+		locked := c.Mu.TryLock()
 		// we have the lock, we can safely check the condition
-		ok := condition()
+		ok := locked && condition()
 
 		if !ok {
 			// condition not met
-			// but we acquired the lock. so unlock it...
-			locker.Unlock()
+			if locked {
+				// but we acquired the lock. so unlock it...
+				c.Mu.Unlock()
+			}
 
 			// either way, wait for the next signal
 			waitErr := c.Wait(ctx)
@@ -72,23 +84,10 @@ func (c *Cond) WaitForCondition(ctx context.Context, locker sync.Locker, conditi
 			// condition met, return the unlock function and nil error
 			// client must call the unlock function to unlock the mutex
 			// client guaranteed the condition holds while mutex lock is held.
-			return locker.Unlock, nil
+			return func() {
+				c.Mu.Unlock()
+				c.Broadcast()
+			}, nil
 		}
 	}
-}
-
-// lockWithContext waits to either acquire the lock or for the context to end.
-// It returns an error if context ends before it can acquire the lock
-func (c *Cond) lockWithContext(ctx context.Context, locker sync.Locker) error {
-	lockAcquired := make(chan struct{})
-	go func() {
-		locker.Lock()
-		close(lockAcquired)
-	}()
-	select {
-	case <-lockAcquired:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-	return nil
 }
