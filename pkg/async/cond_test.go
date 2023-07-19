@@ -27,21 +27,21 @@ func ExampleCond_WaitForCondition() {
 	var ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	// Create a new condition variable; the zero value is ready to use.
-	// Cond protects and synchronizes goroutines that need to respond to changes in the queue's state.
-	var cond Cond
-
-	// state represents the external state we are synchronizing on
-	var queue = make([]int, 0, 10)
-	// counter is used to generate unique values for the queue
-	// it is also protected by cond
-	var counter int
-	// consumed is used to track how many values we have consumed
-	// it is also protected by cond
-	var consumed int
-
-	// we're going to run multiple goroutines, Group will keep track of them for us.
-	var group errgroup.Group
+	var (
+		// Create a new condition variable; the zero value is ready to use.
+		// Cond protects and synchronizes goroutines that need to respond to changes in the queue's state.
+		cond Cond
+		// state represents the external state we are synchronizing on
+		queue = make([]int, 0, 10)
+		// counter is used to generate unique values for the queue
+		// it is also protected by cond
+		counter int
+		// consumed is used to track how many values we have consumed
+		// it is also protected by cond
+		consumed int
+		// we're going to run multiple goroutines, Group will keep track of them for us.
+		group errgroup.Group
+	)
 
 	// this goroutine is the producer, it will enqueue values into the queue when there is capacity
 	group.Go(func() (err error) {
@@ -335,8 +335,7 @@ func BenchmarkCond(b *testing.B) {
 
 			for i := 0; i < 10; i++ {
 				g.Go(func() error {
-					var err error
-					err = cond.Wait(ctx)
+					err := cond.Wait(ctx)
 					return err
 				})
 			}
