@@ -24,18 +24,20 @@ type Cond struct {
 // ch returns the channel that Waiters are waiting on, possibly creating one if it doesn't exist.
 func (c *Cond) ch() chan struct{} {
 	// non atomic check for nil channel
-	if c.pointer.Load() == nil {
-		t := make(chan struct{})
-		// make the swap safely.
+	load := c.pointer.Load()
+	if load == nil {
+		t := make(chan struct{}, 0)
 		c.pointer.CompareAndSwap(nil, &t)
+		return t
 	}
-	return *c.pointer.Load()
+	return *load
 }
 
 // Wait waits for the state change Broadcast until context ends.
 func (c *Cond) Wait(ctx context.Context) error {
+	ch := c.ch()
 	select {
-	case <-c.ch():
+	case <-ch:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -45,7 +47,8 @@ func (c *Cond) Wait(ctx context.Context) error {
 // Broadcast signals the state change to all Waiters
 func (c *Cond) Broadcast() {
 	// now that we retrieved the channel, new calls to Wait should get a new channel
-	ch := c.pointer.Swap(nil)
+	c2 := make(chan struct{}, 0)
+	ch := c.pointer.Swap(&c2)
 	if ch != nil {
 		close(*ch)
 	}

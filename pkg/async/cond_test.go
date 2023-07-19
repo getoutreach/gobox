@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/pprof"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func ExampleCond_WaitForCondition() {
 
 				// enqueue 5 values. this is threadsafe because we are protected by the condition's lock
 				for i := 0; i < 5 && ctx.Err() == nil; i++ {
-					counter += 1
+					counter++
 					queue = append(queue, counter)
 				}
 
@@ -90,7 +91,7 @@ func ExampleCond_WaitForCondition() {
 					return
 				}
 
-				consumed += 1
+				consumed++
 				queue = append(make([]int, 0, 10),
 					queue[1:]...) // we have to append/make because otherwise the cap decreases by 1 each time we do this.
 				unlock()
@@ -291,5 +292,64 @@ func TestCond_WaitForCondition(t *testing.T) {
 		})
 		defer fn()
 		assert.Equal(t, context.Canceled, err)
+	})
+}
+
+func BenchmarkCond(b *testing.B) {
+	wait := time.Millisecond * 10
+	b.Run("one broadcasts; one wait", func(b *testing.B) {
+		b.ReportAllocs()
+		var cond Cond
+		start := time.Now()
+
+		for i := 0; i < b.N; i++ {
+			var g sync.WaitGroup
+			var ctx, cancel = context.WithCancel(context.Background())
+			g.Add(2)
+			go func() {
+				time.Sleep(wait) // just a breath so the other goroutine goes first
+				cond.Broadcast()
+				g.Done()
+			}()
+			go func() {
+				err := cond.Wait(ctx)
+				cancel()
+				g.Done()
+				assert.Nil(b, err)
+			}()
+			g.Wait()
+			cancel()
+		}
+
+		correctedDuration := time.Since(start) - wait*time.Duration(b.N)
+		b.ReportMetric(float64(correctedDuration.Milliseconds())/float64(b.N), "ms_corrected/op")
+	})
+
+	b.Run("one broadcasts; 10 waiters", func(b *testing.B) {
+		b.ReportAllocs()
+		start := time.Now()
+		var cond Cond
+		for i := 0; i < b.N; i++ {
+			g, ctx := errgroup.WithContext(context.Background())
+			ctx, cancel := context.WithCancel(ctx)
+
+			for i := 0; i < 10; i++ {
+				g.Go(func() error {
+					var err error
+					err = cond.Wait(ctx)
+					return err
+				})
+			}
+
+			go func() {
+				time.Sleep(wait) // just a breath so the other goroutine goes first
+				cond.Broadcast()
+			}()
+			err := g.Wait()
+			assert.Nil(b, err)
+			cancel()
+		}
+		correctedDuration := time.Since(start) - wait*time.Duration(b.N)
+		b.ReportMetric(float64(correctedDuration.Milliseconds())/float64(b.N), "ms_corrected/op")
 	})
 }
