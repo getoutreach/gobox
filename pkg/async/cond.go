@@ -10,13 +10,11 @@ import (
 	"sync/atomic"
 )
 
-// Cond mimics sync.Cond in purpose,
-// but respects context cancellation and wraps up the instructions on how to safely Wait for a condition in a
-// specific method.
+// Cond mimics sync.Cond in purpose, with the added goals of easing usability slightly and respecting context expiry.
 //
 // It provides functionality similar sync.Cond (excepting there is no `Signal` method), except:
 // - the Wait method exits with error if the context cancels.
-// - it rovides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
+// - it provides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
 // checking a condition, and releasing the lock before waiting for a state change if the condition is not met.
 type Cond struct {
 	pointer atomic.Pointer[chan struct{}]
