@@ -10,11 +10,13 @@ import (
 	"sync/atomic"
 )
 
-// Cond is a sync.Cond that respects context cancellation.
-// It provides equivalent functionality to sync.Cond (excepting there is no `Signal` method), except that
-// the Wait method exits with error if the context cancels.
+// Cond mimics sync.Cond in purpose,
+// but respects context cancellation and wraps up the instructions on how to safely Wait for a condition in a
+// specific method.
 //
-// It also provides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
+// It provides functionality similar sync.Cond (excepting there is no `Signal` method), except:
+// - the Wait method exits with error if the context cancels.
+// - it rovides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
 // checking a condition, and releasing the lock before waiting for a state change if the condition is not met.
 type Cond struct {
 	pointer atomic.Pointer[chan struct{}]
@@ -35,6 +37,7 @@ func (c *Cond) ch() chan struct{} {
 }
 
 // Wait waits for the state change Broadcast until context ends.
+// If the returned error is non-nil, then the context ended before the state change Broadcast.
 func (c *Cond) Wait(ctx context.Context) error {
 	ch := c.ch()
 	select {
@@ -65,6 +68,36 @@ func (c *Cond) Broadcast() {
 //
 // If it returns without error, it also locks the provided locker and the caller must call the returned function
 // to unlock it. Until they call unlock, the state should not be changed.
+//
+// This method encapsulates the instructions in sync.Cond.Wait:
+//
+// """
+// Because c.L is not locked while Wait is waiting, the caller
+// typically cannot assume that the condition is true when
+// Wait returns. Instead, the caller should Wait in a loop:
+//
+//		c.L.Lock()
+//		for !condition() {
+//	    	c.Wait()
+//		}
+//		... make use of condition ...
+//		c.L.Unlock()
+//
+// """
+//
+// Instead, you can do the following:
+//
+//		var c Cond
+//
+//		unlock, err := c.WaitForCondition(ctx, func() bool {
+//		   // check condition
+//		    return true
+//		})
+//		if err != nil {
+//		    // context expired before condition was met
+//		}
+//	 	... make use of condition ...
+//	 	unlock()
 func (c *Cond) WaitForCondition(ctx context.Context, condition func() bool) (unlock func(),
 	err error) {
 	for {
