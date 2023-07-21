@@ -12,10 +12,11 @@ import (
 
 // Cond mimics sync.Cond in purpose, with the added goals of easing usability slightly and respecting context expiry.
 //
-// It provides functionality similar sync.Cond (excepting there is no `Signal` method), except:
-// - the Wait method exits with error if the context cancels.
-// - it provides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock,
-// checking a condition, and releasing the lock before waiting for a state change if the condition is not met.
+// It provides functionality similar sync.Cond
+//   - there is no signal method for waking a single Waiter
+//   - the Wait method exits with error if the context cancels.
+//   - it provides WaitForCondition, which intends to encapsulate the common pattern of acquiring a lock, checking
+//     a condition, and releasing the lock before waiting for a state change if the condition is not met.
 type Cond struct {
 	pointer atomic.Pointer[chan struct{}]
 	Mu      sync.Mutex
