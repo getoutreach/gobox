@@ -1,8 +1,8 @@
-version: v1.35.0
+version: v1.36.0
 modules:
     - name: github.com/getoutreach/devbase
       url: https://github.com/getoutreach/devbase
-      version: v2.14.0
+      version: v2.16.0
     - name: github.com/getoutreach/stencil-actions
       url: https://github.com/getoutreach/stencil-actions
       version: v0.3.0
@@ -14,13 +14,13 @@ modules:
       version: v1.10.0
     - name: github.com/getoutreach/stencil-discovery
       url: https://github.com/getoutreach/stencil-discovery
-      version: v1.7.0
+      version: v1.8.0
     - name: github.com/getoutreach/stencil-golang
       url: https://github.com/getoutreach/stencil-golang
-      version: v1.12.0
+      version: v1.13.2
     - name: github.com/getoutreach/stencil-outreach
       url: https://github.com/getoutreach/stencil-outreach
-      version: v0.11.0
+      version: v0.12.2
     - name: github.com/getoutreach/stencil-pipeline
       url: https://github.com/getoutreach/stencil-pipeline
       version: v1.1.0
