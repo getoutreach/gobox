@@ -36,7 +36,10 @@ p.Schedule(ctx, async.Func(func(ctx context.Context) error {
 p := pool.New().WithContext(ctx).WithMaxGoroutines(numOfWorkers)
 
 // blocks if there is no available worker.
-p.Go(func(ctx context.Context) error {
+//
+// Note: Use `pool.New().WithErrors()` if you want to keep the
+// `func(ctx) error` signature.
+p.Go(func(ctx context.Context) {
   // Do work
 })
 
@@ -70,7 +73,9 @@ wait()
 ```go
 p := pool.New().WithContext(ctx).WithMaxGoroutines(numOfWorkers)
 
-go p.Go(func(ctx context.Context) error {
+// Note: Use `pool.New().WithErrors()` if you want to keep the
+// `func(ctx) error` signature.
+go p.Go(func(ctx context.Context) {
   // Do work
 })
 
