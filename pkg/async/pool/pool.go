@@ -33,7 +33,14 @@ func (of OptionFunc) Apply(opts *Options) {
 // SizeFunc tells the pool whether it should increase or decrease number of workers
 type SizeFunc func() int
 
-// ConstantSize provides
+// ConstantSize provides constant size for the pool.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. There is
+// no equivalent because calls to (*Pool).Go() will block if there are
+// no free workers. Control the size of the worker pool by calling
+// (*Pool).WithMaxGoroutines(). For more information, see the README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func ConstantSize(size int) OptionFunc {
 	return func(opts *Options) {
 		opts.Size = func() int {
@@ -131,6 +138,12 @@ type Pool struct {
 
 // New creates new instance of Pool and start goroutine that will spawn the workers
 // Call Close() to release pool resource
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. Use
+// (*Pool).New().WithContext() instead. Replace calls to Schedule with
+// (*Pool).Go(). For more information, see the README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func New(ctx context.Context, options ...Option) *Pool {
 	// default values
 	var opts = &Options{
@@ -238,6 +251,12 @@ func (p *Pool) Close() {
 // - When item gets successfully scheduled and withdrawn by worker
 // - When the given context is Done and item is not scheduled (Timeout, buffered queue full)
 // - When pool is in shutdown phase.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. Replace
+// calls to Schedule with (*Pool).Go(). For more information, see the
+// README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
 	// Check whether pool is alive
 	if p.context.Err() != nil {
@@ -276,13 +295,28 @@ type loggingScheduler struct {
 	Name  string
 }
 
+// Schedule task for processing in the pool with logging for each item
+// being scheduled and executed.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. There is
+// no replacement for this function. Instead, log on each item when
+// calling (*Pool).Go(). For more information, see the README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func (w *loggingScheduler) Schedule(ctx context.Context, r async.Runner) error {
 	return w.log(ctx, w.Inner.Schedule(ctx, async.Func(func(ctx context.Context) error {
 		return w.log(ctx, r.Run(ctx))
 	})))
 }
 
-// WithLogging creates a scheduler which logs the errors returned from the scheduling as well as executing phase
+// WithLogging creates a scheduler which logs the errors returned from
+// the scheduling as well as executing phase.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. There is
+// no replacement for this function. Instead, log on each item when
+// calling (*Pool).Go(). For more information, see the README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func WithLogging(name string, s Scheduler) Scheduler {
 	return &loggingScheduler{Name: name, Inner: s}
 }

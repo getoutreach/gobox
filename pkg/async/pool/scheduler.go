@@ -18,5 +18,11 @@ func (sf SchedulerFunc) Schedule(ctx context.Context, r async.Runner) error {
 
 type Scheduler interface {
 	// Schedule task for processing in the pool
+	//
+	// Deprecated: This library is being deprecated in favor of using
+	// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead.
+	// Replaces calls to Schedule with (*Pool).Go().  For more information,
+	// see the README:
+	// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 	Schedule(ctx context.Context, r async.Runner) error
 }
