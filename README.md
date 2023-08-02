@@ -37,7 +37,7 @@ Context is often abused for thread-local state. There are very few legitimate us
 
 ### Do not use fmt.PrintXXX or the standard log package
 
-Prefer the [gobox log](https://github.com/getoutreach/gobox/blob/master/docs/log.md) package. This logs data in a structured format suitable for outreach Go services.
+Prefer the [gobox log](https://pkg.go.dev/github.com/getoutreach/gobox/pkg/log) package. This logs data in a structured format suitable for outreach Go services.
 
 ### Do not use non-literal messages with log
 
