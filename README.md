@@ -6,7 +6,7 @@
 
 <!-- <</Stencil::Block>> -->
 
-A collection of useful libraries for implementing Go services, libraries, and more.
+A collection of libraries that are useful for implementing Go services, libraries, and more.
 
 ## Contributing
 
