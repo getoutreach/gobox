@@ -6,7 +6,7 @@
 
 <!-- <</Stencil::Block>> -->
 
-A collection of libraries that are useful for implementing Go services, libraries, and more.
+A collection of useful libraries for implementing Go services, libraries, and more.
 
 ## Contributing
 
@@ -29,15 +29,15 @@ comments](https://github.com/golang/go/wiki/CodeReviewComments),
 
 ### Log errors with events.NewErrorInfo
 
-When logging errors, use `log.Debug(ctx, "some debug event", events.NewErrorInfo(err))` instead of using `log.F{"error": err}`. [NewErrorInfo](https://github.com/getoutreach/gobox/blob/master/docs/events.md) logs errors using outreach naming conventions and also takes care of logging stack traces.
+When logging errors, use `log.Debug(ctx, "some debug event", events.NewErrorInfo(err))` instead of using `log.F{"error": err}`. [NewErrorInfo](https://pkg.go.dev/github.com/getoutreach/gobox/pkg/events) logs errors using outreach naming conventions and logs stack traces.
 
 ### Do not use context.WithValue
 
-Context is often abused for thread local state. There are very few legitimate uses for this ([tracing](https://github.com/getoutreach/gobox/blob/master/docs/trace.md) is one of those).
+Context is often abused for thread-local state. There are very few legitimate uses for this ([tracing](https://pkg.go.dev/github.com/getoutreach/gobox/pkg/trace) is one of those).
 
 ### Do not use fmt.PrintXXX or the standard log package
 
-Prefer the [gobox log](https://github.com/getoutreach/gobox/blob/master/docs/log.md) package. This logs data in structured format suitable for outreach go services.
+Prefer the [gobox log](https://github.com/getoutreach/gobox/blob/master/docs/log.md) package. This logs data in a structured format suitable for outreach Go services.
 
 ### Do not use non-literal messages with log
 
