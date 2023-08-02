@@ -51,7 +51,7 @@ Do not use the following pattern:
 The first arg of `log.XXX` calls should be a literal string so we can
 quickly find out where a log message comes from. The rest of the args
 can hold any structured data we want. The
-[events](https://github.com/getoutreach/gobox/blob/master/docs/events.md)
+[events](https://pkg.go.dev/github.com/getoutreach/gobox/pkg/events)
 package exposes a few common logging structures.
 
 ### Use code generation for stringifying enums
