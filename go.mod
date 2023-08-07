@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/briandowns/spinner v1.23.0
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/creack/pty v1.1.17
+	github.com/creack/pty v1.1.18
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.13.0
 	github.com/go-git/go-billy/v5 v5.3.1
