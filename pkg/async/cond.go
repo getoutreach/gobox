@@ -117,7 +117,7 @@ func (c *Cond) WaitForCondition(ctx context.Context, condition func() bool) (unl
 				return func() {}, waitErr
 			}
 		} else {
-			// condition met, return the unlock function and nil error
+			// condition met, return the unlock function and nil error.
 			// client must call the unlock function to unlock the mutex
 			// client guaranteed the condition holds while mutex lock is held.
 			return func() {
