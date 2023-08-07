@@ -47,7 +47,7 @@ func (c *Cond) Wait(ctx context.Context) error {
 	}
 }
 
-// Broadcast signals the state change to all Waiters
+// Broadcast signals the state change to all Waiters.
 func (c *Cond) Broadcast() {
 	// swap in a new channel, close the old one
 	newChan := make(chan struct{})
