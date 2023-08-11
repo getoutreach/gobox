@@ -28,7 +28,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.12.8
 	github.com/ulikunitz/xz v0.5.10
-	github.com/urfave/cli/v2 v2.8.1
+	github.com/urfave/cli/v2 v2.25.7
 	github.com/versent/saml2aws/v2 v2.36.10
 	github.com/zalando/go-keyring v0.2.3
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0
