@@ -10,6 +10,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.13.0
+	github.com/fynelabs/selfupdate v0.2.0
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.8.1
 	github.com/go-logr/logr v1.2.4
@@ -18,7 +19,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/honeycombio/beeline-go v1.13.0
-	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/json-iterator/go v1.1.12
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -28,7 +28,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.12.8
 	github.com/ulikunitz/xz v0.5.10
-	github.com/urfave/cli/v2 v2.6.0
+	github.com/urfave/cli/v2 v2.8.1
 	github.com/versent/saml2aws/v2 v2.36.10
 	github.com/zalando/go-keyring v0.2.3
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.42.0
@@ -57,6 +57,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/skeema/knownhosts v1.2.0 // indirect
 	github.com/tdewolff/parse/v2 v2.6.7 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230525234035-dd9d682886f9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 )

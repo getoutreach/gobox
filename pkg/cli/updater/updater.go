@@ -18,6 +18,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/briandowns/spinner"
+	"github.com/fynelabs/selfupdate"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
@@ -25,7 +26,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/cli/updater/release"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/getoutreach/gobox/pkg/exec"
-	"github.com/inconshreveable/go-update"
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
@@ -434,5 +434,5 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 		r = io.TeeReader(bin, pb)
 	}
 
-	return update.Apply(r, update.Options{})
+	return selfupdate.Apply(r, selfupdate.Options{})
 }
