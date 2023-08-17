@@ -165,7 +165,8 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(entry); err != nil {
-		log.Fatal(err)
+		log.Printf("could not encode %v; %s", entry, err.Error())
+		return ""
 	}
 
 	return strings.TrimSpace(b.String())

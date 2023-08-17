@@ -6,11 +6,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
 )
+
+func TestUnmarshalableValues(t *testing.T) {
+	t.Run("Infinity", func(t *testing.T) {
+		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": math.Inf(1)})
+	})
+
+	t.Run("Func", func(t *testing.T) {
+		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": func() {}})
+	})
+}
 
 func Example() {
 	logs := logtest.NewLogRecorder(nil)
