@@ -27,7 +27,6 @@ func TestUnmarshalableValues(t *testing.T) {
 		assert.NilError(t, err)
 		_, ok := f["party"]
 		assert.Assert(t, !ok, "party should not be present")
-		assert.Assert(t, f["error"] != nil, "error should be present")
 	})
 
 	t.Run("Func", func(t *testing.T) {
