@@ -3,14 +3,36 @@
 package log_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/log/logtest"
+	"gotest.tools/v3/assert"
 )
+
+func TestUnmarshalableValues(t *testing.T) {
+	t.Run("Infinity", func(t *testing.T) {
+		var b bytes.Buffer
+		log.SetOutput(&b)
+		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": math.Inf(1)})
+		assert.Assert(t, b.Len() > 0, "log should not be empty")
+		f := log.F{}
+		err := json.Unmarshal(b.Bytes(), &f)
+		assert.NilError(t, err)
+		_, ok := f["party"]
+		assert.Assert(t, !ok, "party should not be present")
+	})
+
+	t.Run("Func", func(t *testing.T) {
+		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": func() {}})
+	})
+}
 
 func Example() {
 	logs := logtest.NewLogRecorder(nil)

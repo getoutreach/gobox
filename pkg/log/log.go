@@ -27,7 +27,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -165,7 +164,20 @@ func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string 
 
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(entry); err != nil {
-		log.Fatal(err)
+		// at this point we need to report the serialization error.
+		// do it in a JSON object so parsers have a better chance of understanding it
+		err = json.NewEncoder(&b).Encode(map[string]string{
+			"message": fmt.Sprintf(
+				"gobox/log: failed to JSON encode log entry of type %T; err=%v",
+				entry,
+				err,
+			),
+			"level":      "ERROR",
+			"@timestamp": ts.Format(time.RFC3339Nano),
+		})
+		if err != nil {
+			return ""
+		}
 	}
 
 	return strings.TrimSpace(b.String())
