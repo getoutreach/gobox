@@ -37,6 +37,12 @@ type AWSConfig struct {
 	// DefaultProfile is the default profile to use when communcating
 	// with AWS.
 	DefaultProfile string `yaml:"defaultProfile"`
+
+	// RefreshMethod is the CLI used to refresh AWS credentials.
+	// Known values:
+	// * saml2aws (default)
+	// * okta-aws-cli
+	RefreshMethod string `yaml:"refreshMethod"`
 }
 
 type DeveloperEnvironmentConfig struct {
