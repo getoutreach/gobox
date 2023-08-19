@@ -110,22 +110,42 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 
 	needsNewCreds, reason := needsRefresh(copts)
 	if needsNewCreds { // Refresh the credentials
-		if _, err := exec.LookPath("saml2aws"); err != nil {
-			return fmt.Errorf("failed to find saml2aws, please run orc setup")
+		b, err := box.LoadBox()
+		if err != nil {
+			return errors.Wrap(err, "could not load refresh credential config")
 		}
+		switch b.AWS.RefreshMethod {
+		case "okta-aws-cli":
+			return errors.New("okta-aws-cli SUPPORT NOT IMPLEMENTED")
+		case "saml2aws":
+		case "":
+			if err := refreshCredsViaSaml2aws(ctx, copts, reason); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown AWS refresh method '%s'", b.AWS.RefreshMethod)
+		}
+	}
 
-		if copts.Log != nil {
-			copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
-		}
+	return nil
+}
 
-		//nolint:gosec // Why: What other option do I have
-		cmd := exec.CommandContext(ctx, "saml2aws", "login", "--profile", copts.Profile, "--role", copts.Role, "--force")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		if err := cmd.Run(); err != nil {
-			return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
-		}
+func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, reason string) error {
+	if _, err := exec.LookPath("saml2aws"); err != nil {
+		return fmt.Errorf("failed to find saml2aws, please run orc setup")
+	}
+
+	if copts.Log != nil {
+		copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
+	}
+
+	//nolint:gosec // Why: What other option do I have
+	cmd := exec.CommandContext(ctx, "saml2aws", "login", "--profile", copts.Profile, "--role", copts.Role, "--force")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
 	}
 
 	return nil
