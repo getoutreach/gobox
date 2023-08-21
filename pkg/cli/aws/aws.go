@@ -116,7 +116,9 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 		}
 		switch b.AWS.RefreshMethod {
 		case "okta-aws-cli":
-			return errors.New("okta-aws-cli SUPPORT NOT IMPLEMENTED")
+			if err := refreshCredsViaOktaAWSCLI(ctx, copts, reason); err != nil {
+				return err
+			}
 		case "saml2aws":
 		case "":
 			if err := refreshCredsViaSaml2aws(ctx, copts, reason); err != nil {
@@ -125,6 +127,35 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 		default:
 			return fmt.Errorf("unknown AWS refresh method '%s'", b.AWS.RefreshMethod)
 		}
+	}
+
+	return nil
+}
+
+func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, reason string) error {
+	if _, err := exec.LookPath("okta-aws-cli"); err != nil {
+		return fmt.Errorf("failed to find okta-aws-cli in PATH")
+	}
+
+	if copts.Log != nil {
+		copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
+	}
+
+	//nolint:gosec // Why: What other option do I have
+	cmd := exec.CommandContext(ctx,
+		"okta-aws-cli",
+		"--open-browser",
+		"--write-aws-credentials",
+		"--profile",
+		copts.Profile,
+		"--aws-iam-role",
+		copts.Role,
+	)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
 	}
 
 	return nil
