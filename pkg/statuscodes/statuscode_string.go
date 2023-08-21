@@ -15,6 +15,7 @@ func _() {
 	_ = x[NotFound-703]
 	_ = x[Conflict-704]
 	_ = x[RateLimited-705]
+	_ = x[ClientCanceled-706]
 	_ = x[InternalServerError-800]
 	_ = x[NotImplemented-801]
 	_ = x[Unavailable-802]
@@ -23,12 +24,12 @@ func _() {
 
 const (
 	_StatusCode_name_0 = "OK"
-	_StatusCode_name_1 = "BadRequestUnauthorizedForbiddenNotFoundConflictRateLimited"
+	_StatusCode_name_1 = "BadRequestUnauthorizedForbiddenNotFoundConflictRateLimitedClientCanceled"
 	_StatusCode_name_2 = "InternalServerErrorNotImplementedUnavailableUnknownError"
 )
 
 var (
-	_StatusCode_index_1 = [...]uint8{0, 10, 22, 31, 39, 47, 58}
+	_StatusCode_index_1 = [...]uint8{0, 10, 22, 31, 39, 47, 58, 72}
 	_StatusCode_index_2 = [...]uint8{0, 19, 33, 44, 56}
 )
 
@@ -36,7 +37,7 @@ func (i StatusCode) String() string {
 	switch {
 	case i == 600:
 		return _StatusCode_name_0
-	case 700 <= i && i <= 705:
+	case 700 <= i && i <= 706:
 		i -= 700
 		return _StatusCode_name_1[_StatusCode_index_1[i]:_StatusCode_index_1[i+1]]
 	case 800 <= i && i <= 803:

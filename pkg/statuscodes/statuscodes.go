@@ -47,6 +47,10 @@ const (
 	// are flooding the server.  It is expected that the client will back off for some duration and then try again.
 	// Well-behaved services will even return an expected duration for the client to retry-after.
 	RateLimited StatusCode = 705
+	// ClientCanceled is for when the client has canceled the request, and the server has not yet started processing.
+	// It is expectedc that sometimes the client will simply have a canceled request and no server request will have
+	// been made.
+	ClientCanceled StatusCode = 706
 
 	// The 800-swath is for Server-caused error responses
 	// InternalServerError is for when something otherwise uncategorizable has blown up inside the service logic.
@@ -122,6 +126,8 @@ func FromString(s string) (StatusCode, bool) {
 		return Conflict, true
 	case RateLimited.String():
 		return RateLimited, true
+	case ClientCanceled.String():
+		return ClientCanceled, true
 	case InternalServerError.String():
 		return InternalServerError, true
 	case NotImplemented.String():
