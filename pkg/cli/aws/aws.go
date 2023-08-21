@@ -141,8 +141,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, re
 		copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
 	}
 
-	//nolint:gosec // Why: What other option do I have
-	cmd := exec.CommandContext(ctx,
+	err := runCmd(ctx,
 		"okta-aws-cli",
 		"--open-browser",
 		"--write-aws-credentials",
@@ -151,10 +150,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, re
 		"--aws-iam-role",
 		copts.Role,
 	)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	if err != nil {
 		return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
 	}
 
@@ -170,14 +166,18 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, reas
 		copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
 	}
 
-	//nolint:gosec // Why: What other option do I have
-	cmd := exec.CommandContext(ctx, "saml2aws", "login", "--profile", copts.Profile, "--role", copts.Role, "--force")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
+	err := runCmd(ctx, "saml2aws", "login", "--profile", copts.Profile, "--role", copts.Role, "--force")
+	if err != nil {
 		return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
 	}
 
 	return nil
+}
+
+func runCmd(ctx context.Context, name string, args ...string) error {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }
