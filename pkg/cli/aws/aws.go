@@ -145,6 +145,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, re
 		"okta-aws-cli",
 		"--open-browser",
 		"--write-aws-credentials",
+		"--cache-access-token",
 		"--profile",
 		copts.Profile,
 		"--aws-iam-role",
