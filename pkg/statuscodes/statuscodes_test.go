@@ -11,7 +11,7 @@ func TestStatusCodeUnmarshalText(t *testing.T) {
 		NotFound,
 		Conflict,
 		RateLimited,
-		ClientCanceled,
+		ClientConnectionSevered,
 		InternalServerError,
 		NotImplemented,
 		Unavailable,
