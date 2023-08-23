@@ -93,7 +93,7 @@ func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) 
 
 // EnsureValidCredentials ensures that the current AWS credentials are valid
 // and if they can expire it is attempted to rotate them when they are expired
-// via saml2aws
+// via the CLI tool specified in the box configuration.
 func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error { //nolint:funlen,lll // Why: cleaner to keep everything together
 	if _, ok := os.LookupEnv("CI"); ok {
 		return nil
@@ -132,6 +132,8 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 	return nil
 }
 
+// refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
+// credentials file via the okta-aws-cli CLI tool.
 func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, reason string) error {
 	if _, err := exec.LookPath("okta-aws-cli"); err != nil {
 		return fmt.Errorf("failed to find okta-aws-cli in PATH")
@@ -158,6 +160,8 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, re
 	return nil
 }
 
+// refreshCredsViaSaml2aws refreshes the AWS credentials in the AWS
+// credentials file via the saml2aws CLI tool.
 func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, reason string) error {
 	if _, err := exec.LookPath("saml2aws"); err != nil {
 		return fmt.Errorf("failed to find saml2aws, please run orc setup")
@@ -175,6 +179,8 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, reas
 	return nil
 }
 
+// runCmd is a wrapper for running a command via exec.CommandContext
+// and passing through stdin/stdout/stderr.
 func runCmd(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stderr = os.Stderr
