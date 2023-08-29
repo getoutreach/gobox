@@ -97,8 +97,9 @@ func SetCallError(ctx context.Context, err error) error {
 	return SetCallStatus(ctx, err)
 }
 
-// SetCustomCallKind is meant to alter Kind property of traced call.
-// This can be useful as a service specific dimension to slice e.g. grpc_request_handled metric based on additional context
+// SetCustomCallKind is meant to alter the Kind property of a traced call.
+// This can be useful as a service specific dimension to slice, e.g.
+// grpc_request_handled metric based on additional context.
 func SetCustomCallKind(ctx context.Context, ck metrics.CallKind) {
 	info := callTracker.Info(ctx)
 	if info != nil {
