@@ -11,6 +11,7 @@ import (
 	"github.com/getoutreach/gobox/internal/call"
 
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/metrics"
 	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
@@ -94,6 +95,16 @@ func SetCallStatus(ctx context.Context, err error) error {
 // SetCallError is deprecated and will directly call into SetCallStatus for backward compatibility
 func SetCallError(ctx context.Context, err error) error {
 	return SetCallStatus(ctx, err)
+}
+
+// SetCustomCallKind is meant to alter the Kind property of a traced call.
+// This can be useful as a service specific dimension to slice, e.g.
+// grpc_request_handled metric based on additional context.
+func SetCustomCallKind(ctx context.Context, ck metrics.CallKind) {
+	info := callTracker.Info(ctx)
+	if info != nil {
+		info.Kind = ck
+	}
 }
 
 // EndCall calculates the duration of the call, writes to metrics,
