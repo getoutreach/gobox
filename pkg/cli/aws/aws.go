@@ -63,7 +63,13 @@ const (
 // AuthorizeCredentialsOptions are optional arguments for the
 // AuthorizeCredentials function.
 type AuthorizeCredentialsOptions struct {
-	Force  bool
+	// If DryRun is true, do not run the command, just print out what
+	// the command would be.
+	DryRun bool
+	// If Force is true, always overwrite the existing AWS credentials.
+	Force bool
+	// If Output is not empty, print the specified format to STDOUT
+	// instead of writing to the AWS credentials file.
 	Output CredentialsOutput
 }
 
@@ -180,9 +186,13 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		args = append(args, "--format", string(OutputCredentialProvider))
 	}
 
-	err := runCmd(ctx, "okta-aws-cli", args...)
-	if err != nil {
-		return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
+	if acopts.DryRun {
+		copts.Log.Infof("Dry Run: okta-aws-cli %v", args)
+	} else {
+		err := runCmd(ctx, "okta-aws-cli", args...)
+		if err != nil {
+			return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
+		}
 	}
 
 	return nil
@@ -212,11 +222,13 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acop
 		args = append(args, "--credential-process")
 	}
 
-	copts.Log.Warnf("Running saml2aws %v", args)
-
-	err := runCmd(ctx, "saml2aws", args...)
-	if err != nil {
-		return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
+	if acopts.DryRun {
+		copts.Log.Infof("Dry Run: saml2aws %v", args)
+	} else {
+		err := runCmd(ctx, "saml2aws", args...)
+		if err != nil {
+			return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
+		}
 	}
 
 	return nil
