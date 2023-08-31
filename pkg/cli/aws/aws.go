@@ -187,7 +187,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	}
 
 	if acopts.DryRun {
-		copts.Log.Infof("Dry Run: okta-aws-cli %v", args)
+		copts.Log.Infof("Dry Run: okta-aws-cli %s", strings.Join(args, " "))
 	} else {
 		err := runCmd(ctx, "okta-aws-cli", args...)
 		if err != nil {
@@ -223,7 +223,7 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acop
 	}
 
 	if acopts.DryRun {
-		copts.Log.Infof("Dry Run: saml2aws %v", args)
+		copts.Log.Infof("Dry Run: saml2aws %s", strings.Join(args, " "))
 	} else {
 		err := runCmd(ctx, "saml2aws", args...)
 		if err != nil {
