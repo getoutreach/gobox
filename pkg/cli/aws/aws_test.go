@@ -1,11 +1,13 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gotest.tools/v3/assert"
 )
 
@@ -114,4 +116,15 @@ x_security_token_expires = 2006-01-02T15:04:05+07:00`,
 			}
 		})
 	}
+}
+
+func Test_AuthorizeCredentials(t *testing.T) {
+	copts := &CredentialOptions{
+		Log: logrus.New(),
+	}
+	acopts := &AuthorizeCredentialsOptions{
+		DryRun: true,
+	}
+	err := AuthorizeCredentials(context.Background(), copts, acopts)
+	assert.NilError(t, err)
 }
