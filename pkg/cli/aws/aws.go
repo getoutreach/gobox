@@ -182,7 +182,6 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 
 	args := []string{
 		"--open-browser",
-		"--write-aws-credentials",
 		"--cache-access-token",
 		"--profile",
 		copts.Profile,
@@ -194,6 +193,8 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 
 	if acopts.Output == OutputCredentialProvider {
 		args = append(args, "--format", string(OutputCredentialProvider))
+	} else {
+		args = append(args, "--write-aws-credentials")
 	}
 
 	if acopts.DryRun {
