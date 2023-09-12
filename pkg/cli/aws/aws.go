@@ -50,6 +50,12 @@ func DefaultCredentialOptions() *CredentialOptions {
 	}
 }
 
+// chooseRoleInteractively determines whether the credential tool
+// needs to choose an IAM role interactively.
+func (c *CredentialOptions) chooseRoleInteractively() bool {
+	return c.Role == ""
+}
+
 type CredentialsOutput string
 
 // Possible CredentialsOutput values.
@@ -58,9 +64,6 @@ const (
 	// CLI used needs to output credential provider compliant JSON.
 	// nolint: gosec // Why: These aren't credentials.
 	OutputCredentialProvider CredentialsOutput = "credential-provider"
-	// RoleInteractive is the magic value used to indicate that the
-	// user wants to interactively select a role.
-	RoleInteractive = "interactive"
 )
 
 // AuthorizeCredentialsOptions are optional arguments for the
@@ -91,11 +94,6 @@ func assumedToRole(assumedRole string) string {
 // needsRefresh determines if AWS authentication needs to be refreshed
 // or setup.
 func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) {
-	if copts.Role == RoleInteractive {
-		// Assume that if the caller is explicitly asking to select
-		// the role interactively, that they want to refresh authentication.
-		return true, "Refreshing AWS credentials since we are interactively selecting a role"
-	}
 	if creds, err := awsconfig.NewSharedCredentials(copts.Profile, copts.FileName).Load(); err == nil {
 		// Check, via the principal_arn, if the creds match the role we want
 		if creds.PrincipalARN != "" && assumedToRole(creds.PrincipalARN) != copts.Role {
@@ -187,7 +185,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		copts.Profile,
 	}
 
-	if copts.Role != RoleInteractive {
+	if !copts.chooseRoleInteractively() {
 		args = append(args, "--aws-iam-role", copts.Role)
 	}
 
@@ -227,7 +225,7 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acop
 		"--force",
 	}
 
-	if copts.Role != RoleInteractive {
+	if !copts.chooseRoleInteractively() {
 		args = append(args, "--role", copts.Role)
 	}
 
