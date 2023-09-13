@@ -43,6 +43,16 @@ type AWSConfig struct {
 	// * saml2aws (default)
 	// * okta-aws-cli
 	RefreshMethod string `yaml:"refreshMethod"`
+
+	Okta OktaConfig `yaml:"okta"`
+}
+
+// OktaConfig is Okta-related configuration for AWS authorization.
+type OktaConfig struct {
+	// DefaultMFA is the default MFA type to use when using the
+	// saml2aws refresh method and outputting in the credential
+	// provider format.
+	DefaultMFA string `yaml:"defaultMFA"`
 }
 
 type DeveloperEnvironmentConfig struct {

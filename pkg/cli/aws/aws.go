@@ -74,6 +74,9 @@ type AuthorizeCredentialsOptions struct {
 	DryRun bool
 	// If Force is true, always overwrite the existing AWS credentials.
 	Force bool
+	// If MFA is not empty and the Output type is credential provider,
+	// set the MFA type when the selected authorization tool supports it.
+	MFA string
 	// If Output is not empty, print the specified format to STDOUT
 	// instead of writing to the AWS credentials file.
 	Output CredentialsOutput
@@ -235,6 +238,9 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acop
 
 	if acopts.Output == OutputCredentialProvider {
 		args = append(args, "--credential-process")
+		if acopts.MFA != "" {
+			args = append([]string{"--mfa", acopts.MFA}, args...)
+		}
 	}
 
 	if acopts.DryRun {
