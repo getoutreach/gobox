@@ -1,11 +1,14 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"gotest.tools/v3/assert"
 )
 
@@ -114,4 +117,61 @@ x_security_token_expires = 2006-01-02T15:04:05+07:00`,
 			}
 		})
 	}
+}
+
+func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
+	t.Run("defaults", func(t *testing.T) {
+		log, hook := logtest.NewNullLogger()
+		copts := DefaultCredentialOptions()
+		copts.Log = log
+
+		acopts := &AuthorizeCredentialsOptions{
+			DryRun: true,
+		}
+
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		assert.NilError(t, err)
+		assert.Equal(t, len(hook.Entries), 2)
+		msg := hook.LastEntry().Message
+		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
+		assert.Assert(t, strings.Contains(msg, "--aws-iam-role "))
+		assert.Assert(t, strings.Contains(msg, "--write-aws-credentials"))
+	})
+
+	t.Run("interactive role selection", func(t *testing.T) {
+		log, hook := logtest.NewNullLogger()
+		copts := DefaultCredentialOptions()
+		copts.Role = ""
+		copts.Log = log
+
+		acopts := &AuthorizeCredentialsOptions{
+			DryRun: true,
+		}
+
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		assert.NilError(t, err)
+		assert.Equal(t, len(hook.Entries), 2)
+		msg := hook.LastEntry().Message
+		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
+		assert.Assert(t, !strings.Contains(msg, "--aws-iam-role "))
+	})
+
+	t.Run("credential provider format", func(t *testing.T) {
+		log, hook := logtest.NewNullLogger()
+		copts := DefaultCredentialOptions()
+		copts.Log = log
+
+		acopts := &AuthorizeCredentialsOptions{
+			DryRun: true,
+			Output: OutputCredentialProvider,
+		}
+
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		assert.NilError(t, err)
+		assert.Equal(t, len(hook.Entries), 2)
+		msg := hook.LastEntry().Message
+		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
+		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
+		assert.Assert(t, strings.Contains(msg, "--format credential-provider"))
+	})
 }

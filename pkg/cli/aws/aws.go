@@ -50,6 +50,12 @@ func DefaultCredentialOptions() *CredentialOptions {
 	}
 }
 
+// chooseRoleInteractively determines whether the credential tool
+// needs to choose an IAM role interactively.
+func (c *CredentialOptions) chooseRoleInteractively() bool {
+	return c.Role == ""
+}
+
 type CredentialsOutput string
 
 // Possible CredentialsOutput values.
@@ -68,6 +74,9 @@ type AuthorizeCredentialsOptions struct {
 	DryRun bool
 	// If Force is true, always overwrite the existing AWS credentials.
 	Force bool
+	// If MFA is not empty and the Output type is credential provider,
+	// set the MFA type when the selected authorization tool supports it.
+	MFA string
 	// If Output is not empty, print the specified format to STDOUT
 	// instead of writing to the AWS credentials file.
 	Output CredentialsOutput
@@ -164,8 +173,10 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 // refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
 // credentials file via the okta-aws-cli CLI tool.
 func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if _, err := exec.LookPath("okta-aws-cli"); err != nil {
-		return fmt.Errorf("failed to find okta-aws-cli in PATH")
+	if !acopts.DryRun {
+		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
+			return fmt.Errorf("failed to find okta-aws-cli in PATH")
+		}
 	}
 
 	if copts.Log != nil {
@@ -174,16 +185,19 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 
 	args := []string{
 		"--open-browser",
-		"--write-aws-credentials",
 		"--cache-access-token",
 		"--profile",
 		copts.Profile,
-		"--aws-iam-role",
-		copts.Role,
+	}
+
+	if !copts.chooseRoleInteractively() {
+		args = append(args, "--aws-iam-role", copts.Role)
 	}
 
 	if acopts.Output == OutputCredentialProvider {
 		args = append(args, "--format", string(OutputCredentialProvider))
+	} else {
+		args = append(args, "--write-aws-credentials")
 	}
 
 	if acopts.DryRun {
@@ -201,8 +215,10 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 // refreshCredsViaSaml2aws refreshes the AWS credentials in the AWS
 // credentials file via the saml2aws CLI tool.
 func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if _, err := exec.LookPath("saml2aws"); err != nil {
-		return fmt.Errorf("failed to find saml2aws, please run orc setup")
+	if !acopts.DryRun {
+		if _, err := exec.LookPath("saml2aws"); err != nil {
+			return fmt.Errorf("failed to find saml2aws, please run orc setup")
+		}
 	}
 
 	if copts.Log != nil {
@@ -213,13 +229,18 @@ func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acop
 		"login",
 		"--profile",
 		copts.Profile,
-		"--role",
-		copts.Role,
 		"--force",
+	}
+
+	if !copts.chooseRoleInteractively() {
+		args = append(args, "--role", copts.Role)
 	}
 
 	if acopts.Output == OutputCredentialProvider {
 		args = append(args, "--credential-process")
+		if acopts.MFA != "" {
+			args = append([]string{"--mfa", acopts.MFA}, args...)
+		}
 	}
 
 	if acopts.DryRun {
