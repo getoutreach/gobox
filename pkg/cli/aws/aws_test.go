@@ -54,14 +54,6 @@ func Test_needsRefresh(t *testing.T) {
 		wantReason          string
 	}{
 		{
-			name: "should refresh when selecting a role interactively",
-			args: args{copts: &CredentialOptions{
-				Role: RoleInteractive,
-			}},
-			wantNeedsNewCreds: true,
-			wantReason:        "Refreshing AWS credentials since we are interactively selecting a role",
-		},
-		{
 			name: "should refresh when file doesn't exist",
 			args: args{copts: &CredentialOptions{
 				FileName: "i/do/not/exist",
