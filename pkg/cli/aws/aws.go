@@ -170,8 +170,10 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 // refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
 // credentials file via the okta-aws-cli CLI tool.
 func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if _, err := exec.LookPath("okta-aws-cli"); err != nil {
-		return fmt.Errorf("failed to find okta-aws-cli in PATH")
+	if !acopts.DryRun {
+		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
+			return fmt.Errorf("failed to find okta-aws-cli in PATH")
+		}
 	}
 
 	if copts.Log != nil {
@@ -210,8 +212,10 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 // refreshCredsViaSaml2aws refreshes the AWS credentials in the AWS
 // credentials file via the saml2aws CLI tool.
 func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if _, err := exec.LookPath("saml2aws"); err != nil {
-		return fmt.Errorf("failed to find saml2aws, please run orc setup")
+	if !acopts.DryRun {
+		if _, err := exec.LookPath("saml2aws"); err != nil {
+			return fmt.Errorf("failed to find saml2aws, please run orc setup")
+		}
 	}
 
 	if copts.Log != nil {
