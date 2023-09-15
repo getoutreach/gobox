@@ -1,129 +1,87 @@
-Goroutine worker pool structure
+# async/pool
 
-Universal structure for controlling the right level of concurrency. Excessive spawning of goroutines might lead to resource exhaustion or slowing down due to heavy context switching.
+This package is currently deprecated in favor of
+[github.com/sourcegraph/conc/pool](https://pkg.go.dev/github.com/sourcegraph/conc/pool).
 
-You might think that Go routines are relatively cheap, but they are not for free. So choosing the right level of concurrency might help to improve overall performance and throughput of the system. See the benchmarks.
+## Migrating
 
-Something you might not realize when migrating from ruby. For example, every Http request in GO operates in goroutine already. There is no default limit on how many of these can be spawned (Possibly limit of opened descriptors, ports, etc). Under the DDOS or heavy request rate system will linearly slow down due to context switching. Ruby server in opposite usually runs with a fixed number of threads. If not a thread is available in the specified interval you are getting a timeout.
+Most of the functionality from the original package is available in the
+`conc/pool` package. The main difference is that there is no ability to
+control what happens when a worker is unavailable. Previously, one could
+include a dynamically resizable buffer or constant size buffer and how
+Schedule would react when the buffer was full. This is no longer
+possible, instead there is no buffer and the `Go` method will always
+block until a worker is available.
 
-Also, the pool prevents the application from being killed by OOM killer due to higher memory consumption
+### Creating a constant pool for workers (`pool.New`)
 
-The library was developed for MailroomAPI and used to limit the number of concurrent calls to S3. When there was unbounded processing using just goroutines application got often killed by OOM killer under heavy load.
+The majority use case of this package was to create a pool of
+goroutines, of a specific size, that would process work.
 
-https://github.com/getoutreach/mailroomapi/blob/master/internal/mailroomapi/storage/concurrent_message_reader.go
-
-I have bumped into that issue already in the past. Here is a nice article to read.
-https://medium.com/smsjunk/handling-1-million-requests-per-minute-with-golang-f70ac505fcaa
-
-# Benchmarks
-
-Goal here is to process 10000 "cpu heavy" operations.
-
-| Benchmark           | Description                                                             |
-| ------------------- | ----------------------------------------------------------------------- |
-| BenchmarkPureGo     | Spawning goroutine for each task and waiting for all of them to finish. |
-| BenchmarkPool5-1000 | Putting them into pool and processing just N items at once.             |
-
-```
-go test -benchmem -cpu 1,2,6 -run=^$ github.com/getoutreach/gobox/pkg/async/pool -v -bench '^Benchmark'
-goos: linux
-goarch: amd64
-pkg: github.com/getoutreach/gobox/pkg/async/pool
-BenchmarkPool1000
-BenchmarkPool1000-6            1        1560899231 ns/op        234332864 B/op  20031897 allocs/op
-BenchmarkPool100
-BenchmarkPool100-6             1        1156778012 ns/op        233000224 B/op  20020978 allocs/op
-BenchmarkPool10
-BenchmarkPool10-6              1        1092621750 ns/op        232935976 B/op  20020126 allocs/op
-BenchmarkPool5
-BenchmarkPool5-6               1        1313762356 ns/op        232909576 B/op  20019824 allocs/op
-BenchmarkPureGo
-BenchmarkPureGo-6              1        2264417948 ns/op        237819960 B/op  20034677 allocs/op
-PASS
-ok  	github.com/getoutreach/gobox/pkg/async/pool	28.360s
-
-```
-
-# Insides
-
-- Currently structure utilize standard go channels that are more universal.
-- "Pool of workers" allow you to timeout without item being enqueued in opposite to pure "worker pool".
-
-## Example
+#### Old
 
 ```go
-package main
-
-import (
-	"fmt"
-	"context"
-	"fmt"
-	"github.com/getoutreach/gobox/pkg/async/pool"
+p := pool.New(ctx,
+  pool.ConstantSize(numOfWorkers),
 )
 
-func main() {
-	var (
-		concurrency = 5
-		items       = 10
-		sleepFor    = 5 * time.Millisecond
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-
-    // Spawn pool of workers
-	p := pool.New(ctx,
-		pool.ConstantSize(concurrency),
-		pool.ResizeEvery(5*time.Minute),
-		pool.BufferLength(256),
-		pool.WaitWhenFull,
-	)
-	defer p.Close()
-
-    // Wrap it with timeout for schedule
-	scheduler = pool.WithTimeout(5 * time.Millisecond, p)
-
-    // Lets wait for items scheduled with this example
-	scheduler, wait := pool.WithWait(scheduler)
-
-	output := make(chan string, items)
-	now := time.Now()
-
-	for i := 0; i < items; i++ {
-		func(i int) {
-            // All input and output is captured by closure
-			scheduler.Schedule(ctx, async.Func(func(ctx context.Context) error {
-				if ctx.Err() != nil {
-					// It is very important to check the context error:
-					// - Given context might be done
-					// - Underlying buffered channel is full
-					// - Pool is in shutdown phase
-					return ctx.Err()
-				}
-				time.Sleep(sleepFor)
-				batchN := (time.Since(now) / (sleepFor))
-				output <- fmt.Sprintf("task_%d_%d", batchN, i)
-                // returned error is logged but not returned by Schedule function
-				return nil
-			})
-		}(i)
-	}
-	wait()
-
-	close(output)
-	for s := range output{
-		fmt.Println(s)
-	}
-	// Unordered output:
-	// task_1_3
-	// task_1_4
-	// task_1_0
-	// task_1_1
-	// task_1_2
-	// task_2_6
-	// task_2_9
-	// task_2_5
-	// task_2_7
-	// task_2_8
-}
+p.Schedule(ctx, async.Func(func(ctx context.Context) error {
+  // Do work
+}))
 ```
+
+#### New
+
+```go
+p := pool.New().WithContext(ctx).WithMaxGoroutines(numOfWorkers)
+
+// blocks if there is no available worker.
+//
+// Note: Use `pool.New().WithErrors()` if you want to keep the
+// `func(ctx) error` signature.
+p.Go(func(ctx context.Context) {
+  // Do work
+})
+
+```
+
+#### Creating a Pool and waiting for it to finish (`pool.WithWait`)
+
+The `pool.WithWait` function is no longer necessary. Instead, the
+`pool.Pool` type has a `Wait` method that will block until all workers
+have finished.
+
+#### Old
+
+```go
+p := pool.New(ctx,
+  pool.ConstantSize(numOfWorkers),
+)
+
+var wait func()
+p, wait = pool.WithWait(p)
+
+go p.Schedule(ctx, async.Func(func(ctx context.Context) error {
+  // Do work
+}))
+
+wait()
+```
+
+#### New
+
+```go
+p := pool.New().WithContext(ctx).WithMaxGoroutines(numOfWorkers)
+
+// Note: Use `pool.New().WithErrors()` if you want to keep the
+// `func(ctx) error` signature.
+go p.Go(func(ctx context.Context) {
+  // Do work
+})
+
+p.Wait()
+```
+
+## Original README
+
+See [ORIGINAL_README.md](ORIGINAL_README.md) for the original README.

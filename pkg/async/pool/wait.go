@@ -27,6 +27,14 @@ func (w *Wait) Schedule(ctx context.Context, r async.Runner) error {
 	}))
 }
 
+// WithWait wraps a scheduler and returns a new scheduler and a function
+// that blocks until all scheduled tasks are processed or have failed to
+// enqueue.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. Use
+// (*Pool).Wait() instead. For more information, see the README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func WithWait(s Scheduler) (scheduler Scheduler, wait func()) {
 	w := &Wait{Scheduler: s}
 	return w, func() {
