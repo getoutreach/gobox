@@ -35,7 +35,6 @@ type otelTracer struct {
 	sync.Once
 	serviceName    string
 	tracerProvider *sdktrace.TracerProvider
-	force          bool
 }
 
 // NewOtelTracer creates and initializes a new otel tracer.
@@ -51,7 +50,6 @@ func NewOtelTracer(ctx context.Context, serviceName string, config *Config) (tra
 // Annotator is a SpanProcessor that adds service-level tags on every span
 type Annotator struct {
 	globalTags GlobalTags
-	sampleRate int64
 }
 
 func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
@@ -59,7 +57,6 @@ func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
 		s.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
 	}
 
-	s.SetAttributes(attribute.Int64("SampleRate", a.sampleRate))
 	app.Info().MarshalLog(setf)
 	a.globalTags.MarshalLog(setf)
 }
@@ -133,7 +130,6 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		sdktrace.WithSampler(forceSample(uint(100 / t.Otel.SamplePercent))),
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: t.GlobalTags,
-			sampleRate: int64(100 / t.Otel.SamplePercent),
 		}),
 	}
 
@@ -402,12 +398,4 @@ func (t *otelTracer) spanID(ctx context.Context) string {
 // OpenTelemetry automatically handle adding parentID to traces
 func (t *otelTracer) parentID(ctx context.Context) string {
 	return ""
-}
-
-func (t *otelTracer) setForce(force bool) {
-	t.force = force
-}
-
-func (t *otelTracer) isForce() bool {
-	return t.force
 }

@@ -48,10 +48,6 @@ type tracer interface {
 
 	newHandler(handler http.Handler, operation string) http.Handler
 
-	isForce() bool
-
-	setForce(force bool)
-
 	toHeaders(ctx context.Context) map[string][]string
 
 	contextFromHeaders(ctx context.Context, hdrs map[string][]string) context.Context

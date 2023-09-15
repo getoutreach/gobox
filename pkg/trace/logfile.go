@@ -57,7 +57,6 @@ func NewLogFileTracer(ctx context.Context, serviceName string, config *Config) (
 		sdktrace.WithResource(r),
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: tracer.GlobalTags,
-			sampleRate: 1,
 		}),
 	}
 
