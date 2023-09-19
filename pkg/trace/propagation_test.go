@@ -90,7 +90,7 @@ func TestForceTracingByHeader(t *testing.T) {
 			"attributes.timing.service_time":       differs.FloatRange(0, 30),
 			"attributes.timing.total_time":         differs.FloatRange(0, 30),
 			"attributes.timing.wait_time":          differs.FloatRange(0, 30),
-			"SampleRate":                           int64(1000),
+			"SampleRate":                           int64(1),
 		},
 	}
 
@@ -125,7 +125,7 @@ func TestHeadersForceTracingByHeader(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"SampleRate":              int64(1000),
+			"SampleRate":              int64(1),
 			"name":                    "inner",
 			"spanContext.traceID":     traceID,
 			"spanContext.spanID":      differs.AnyString(),
@@ -142,7 +142,7 @@ func TestHeadersForceTracingByHeader(t *testing.T) {
 			"attributes.service_name": "gobox",
 		},
 		{
-			"SampleRate":              int64(1000),
+			"SampleRate":              int64(1),
 			"name":                    "trace-test",
 			"spanContext.traceID":     traceID,
 			"spanContext.spanID":      rootID,
@@ -238,7 +238,7 @@ func TestForceTracing(t *testing.T) {
 			"attributes.timing.service_time":       differs.FloatRange(0, 30),
 			"attributes.timing.total_time":         differs.FloatRange(0, 30),
 			"attributes.timing.wait_time":          differs.FloatRange(0, 30),
-			"SampleRate":                           int64(1000),
+			"SampleRate":                           int64(1),
 		},
 		{
 			"name":                    "trace-test",
@@ -255,7 +255,7 @@ func TestForceTracing(t *testing.T) {
 			"attributes.app.name":     "gobox",
 			"attributes.service_name": "gobox",
 			"attributes.app.version":  "testing",
-			"SampleRate":              int64(1000),
+			"SampleRate":              int64(1),
 		},
 	}
 
