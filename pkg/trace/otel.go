@@ -179,6 +179,7 @@ func (t *otelTracer) closeTracer(ctx context.Context) {
 	}
 
 	t.tracerProvider.ForceFlush(ctx)
+
 	err := t.tracerProvider.Shutdown(ctx)
 	if err != nil {
 		log.Error(ctx, "Unable to stop otel tracer", events.NewErrorInfo(err))

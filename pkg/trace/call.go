@@ -18,6 +18,11 @@ import (
 
 var callTracker = &call.Tracker{}
 
+// logCallsByDefault is a package-global flag that controls whether or not
+// non-error `trace.StartCall` calls get an info log or not.  Its value is set
+// in `setDefaultTracer` and it comes from a value in the config file.
+var logCallsByDefault = false
+
 // StartCall is used to start an internal call. For external calls please
 // use StartExternalCall.
 //
@@ -49,7 +54,17 @@ var callTracker = &call.Tracker{}
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
 	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
 
-	ctx = StartSpan(callTracker.StartCall(ctx, cType, args), cType)
+	// Specify the default behavior first in line.  It might be overridden
+	// by later args and that's OK.
+	opts := make([]log.Marshaler, 0, len(args)+1)
+	if logCallsByDefault {
+		opts = append(opts, WithInfoLoggingEnabled())
+	} else {
+		opts = append(opts, WithInfoLoggingDisabled())
+	}
+	opts = append(opts, args...)
+
+	ctx = StartSpan(callTracker.StartCall(ctx, cType, opts), cType)
 	AddInfo(ctx, args...)
 
 	return ctx
@@ -134,11 +149,11 @@ func EndCall(ctx context.Context) {
 				case statuscodes.CategoryServerError:
 					log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 				case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-					if !info.Opts.DisableInfoLogging {
+					if info.Opts.EnableInfoLogging {
 						log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 					}
 				}
-			} else if !info.Opts.DisableInfoLogging {
+			} else if info.Opts.EnableInfoLogging {
 				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			}
 		}(callInfo)

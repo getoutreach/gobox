@@ -7,9 +7,10 @@ type Option func(c *Info)
 
 // Options contains options for all tracing calls.
 type Options struct {
-	// DisableInfoLogging turns off per-call info logging if set to true. If false, every successful
-	// (statuscodes.CategoryOK) call will have an Info line emitted.
-	DisableInfoLogging bool
+	// EnableInfoLogging turns on per-call info logging if set to true. If
+	// true, every successful (statuscodes.CategoryOK) call will have an
+	// Info line emitted.  Otherwise, it is omitted.
+	EnableInfoLogging bool
 }
 
 // MarshalLog is defined for being compliant with trace.StartCall contract

@@ -62,13 +62,30 @@ func WithCallOptions(ctx context.Context, opts CallOptions) {
 	callTracker.Info(ctx).Opts = call.Options(opts)
 }
 
-// WithInfoLoggingDisabled disables info logging on the current call
+// WithInfoLoggingDisabled disables info logging on the current call.
+//
+// Note that the default behavior is configurable.  If the info logs were
+// already disabled by default, this will be a no-op.
 //
 // Example:
 //
 //	ctx = trace.StartCall(ctx, "http", trace.WithInfoLoggingDisabled())
 func WithInfoLoggingDisabled() call.Option {
 	return func(c *call.Info) {
-		c.Opts.DisableInfoLogging = true
+		c.Opts.EnableInfoLogging = false
+	}
+}
+
+// WithInfoLoggingEnabled enables info logging on the current call
+//
+// Note that the default behavior is configurable.  If the info logs were
+// already enabled by default, this will be a no-op.
+//
+// Example:
+//
+//	ctx = trace.StartCall(ctx, "http", trace.WithInfoLoggingEnabled())
+func WithInfoLoggingEnabled() call.Option {
+	return func(c *call.Info) {
+		c.Opts.EnableInfoLogging = true
 	}
 }
