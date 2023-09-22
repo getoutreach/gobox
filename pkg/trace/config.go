@@ -14,6 +14,12 @@ type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
 	LogFile    LogFile `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
+
+	// LogCallByDefault determines info logs for non-error instances of
+	// `trace.StartCall`.  The behavior can be overridden by providing
+	// explicit options to specific `trace.StartCall` invocations.  A
+	// `trace.StartCall` that ends in an error will always be logged.
+	LogCallsByDefault bool `yaml:"LogCallsByDefault"`
 }
 
 // GlobalTags are tags that get included with every span

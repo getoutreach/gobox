@@ -165,6 +165,8 @@ func setDefaultTracer(serviceName string) error {
 		}
 	}
 
+	logCallsByDefault = config.LogCallsByDefault
+
 	return nil
 }
 
@@ -188,6 +190,12 @@ func CloseTracer(ctx context.Context) {
 	if defaultTracer == nil {
 		return
 	}
+
+	// In a nod to tests, reset the logCallsByDefault flag to its default
+	// state.  This ensures the `trace.CloseTracer` call at the end of a
+	// tracetest run cleans up any non-default values it created when it was
+	// initialized.
+	logCallsByDefault = false
 
 	defaultTracer.closeTracer(ctx)
 }

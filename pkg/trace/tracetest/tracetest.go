@@ -3,6 +3,7 @@ package tracetest
 import (
 	"context"
 	"fmt"
+	"time"
 
 	clean "github.com/getoutreach/gobox/pkg/cleanup"
 	"github.com/getoutreach/gobox/pkg/env"
@@ -15,8 +16,9 @@ import (
 )
 
 type Options struct {
-	SamplePercent float32
-	DevEmail      string
+	SamplePercent     float32
+	DevEmail          string
+	LogCallsByDefault bool
 }
 
 type SpanRecorder struct {
@@ -41,10 +43,11 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 	fakeConfig := map[string]interface{}{
 		"OpenTelemetry": map[string]interface{}{
 			"SamplePercent": options.SamplePercent,
-			"Endpoint":      "localhost",
+			"Endpoint":      "blackhole.test",
 			"Enabled":       true,
 			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
 		},
+		"LogCallsByDefault": options.LogCallsByDefault,
 	}
 
 	if options.DevEmail != "" {
@@ -64,7 +67,14 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 	trace.RegisterSpanProcessor(sr.recorder)
 
 	sr.cleanup = func() {
-		trace.CloseTracer(ctx)
+		// We know that CloseTracer will timeout waiting to flush pending
+		// spans because we've routed it to a non-existent host and it's
+		// going to be in an error backoff forever.  We set a short context
+		// to make failure faster and speed up our tests.
+		fastCtx, cancel := context.WithTimeout(ctx, time.Millisecond*100)
+		defer cancel()
+		trace.CloseTracer(fastCtx)
+
 		restoreSecrets()
 		restoreConfig()
 	}
