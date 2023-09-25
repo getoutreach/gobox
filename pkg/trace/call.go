@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/getoutreach/gobox/internal/call"
+	"github.com/getoutreach/gobox/internal/logf"
 
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/metrics"
@@ -53,6 +54,7 @@ var logCallsByDefault = false
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
 	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
+	log.Info(ctx, "---------------------- "+cType, logf.F{"len_args": len(args)})
 
 	// Specify the default behavior first in line.  It might be overridden
 	// by later args and that's OK.
@@ -64,8 +66,18 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 	}
 	opts = append(opts, args...)
 
+	var in call.Info
+	for idx, o := range opts {
+		in.ApplyOpts(ctx, o)
+		log.Info(ctx, "?????????????????? "+cType, logf.F{"idx": idx, "EnableInfoLogging": in.Opts.EnableInfoLogging})
+	}
+
 	ctx = StartSpan(callTracker.StartCall(ctx, cType, opts), cType)
 	AddInfo(ctx, args...)
+
+	info := callTracker.Info(ctx)
+
+	log.Info(ctx, "+++++++++++++ "+cType, info, logf.F{"EnableInfoLogging": info.Opts.EnableInfoLogging})
 
 	return ctx
 }
@@ -141,6 +153,8 @@ func EndCall(ctx context.Context) {
 		defer func(info *call.Info) {
 			addDefaultTracerInfo(ctx, info)
 			info.ReportLatency(ctx)
+
+			log.Info(ctx, "==================="+info.Name, info, logf.F{"EnableInfoLogging": info.Opts.EnableInfoLogging}, IDs(ctx), traceEventMarker{})
 
 			if info.ErrInfo != nil {
 				switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {

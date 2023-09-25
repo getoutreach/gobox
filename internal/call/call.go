@@ -119,6 +119,17 @@ func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
 	}
 }
 
+func (info *Info) GetOptions(ctx context.Context, args ...logf.Marshaler) []Options {
+	opts := []Options{info.Opts}
+	for _, a := range args {
+		if opt, ok := a.(Option); ok {
+			opt(info)
+			opts = append(opts, info.Opts)
+		}
+	}
+	return opts
+}
+
 // SetStatus updates the ErrInfo field based on the error.
 func (info *Info) SetStatus(ctx context.Context, err error) {
 	info.ErrInfo = events.NewErrorInfo(err)
