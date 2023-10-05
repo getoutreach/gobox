@@ -180,9 +180,12 @@ func (t *otelTracer) closeTracer(ctx context.Context) {
 
 	t.tracerProvider.ForceFlush(ctx)
 
-	err := t.tracerProvider.Shutdown(ctx)
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	err := t.tracerProvider.Shutdown(ctxTimeout)
 	if err != nil {
-		log.Error(ctx, "Unable to stop otel tracer", events.NewErrorInfo(err))
+		log.Warn(ctx, "Unable to stop otel tracer within the context timeout", events.NewErrorInfo(err))
 	}
 }
 
