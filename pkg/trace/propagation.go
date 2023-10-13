@@ -44,7 +44,7 @@ func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		r.Header[k] = v
 	}
 
-	if defaultTracer.isForce() {
+	if isTracingForced(r.Context()) {
 		r.Header.Set(HeaderForceTracing, "true")
 	}
 
@@ -73,6 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if force != "" {
 		startOptions = oteltrace.WithAttributes(attribute.String(fieldForceTrace, force))
 		handler = otelhttp.NewHandler(h.handler, h.operation, otelhttp.WithSpanOptions(startOptions))
+		r = r.WithContext(forceTracing(r.Context()))
 	}
 
 	handler.ServeHTTP(w, r)
