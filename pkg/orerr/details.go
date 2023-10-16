@@ -54,7 +54,7 @@ func (v ErrDetail) WithMeta(m map[string]string) ErrDetail {
 
 // ErrDetails represents an invalidate input error
 type ErrDetails struct {
-	// Err is an original err
+	// Err is the original err
 	Err error
 
 	// Details is the list of error details
