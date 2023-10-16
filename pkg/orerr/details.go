@@ -52,10 +52,10 @@ func (v ErrDetail) WithMeta(m map[string]string) ErrDetail {
 	return v
 }
 
-// ErrDetails represents an invalidate input error
+// ErrDetails represents an error with list of details
 type ErrDetails struct {
-	// Err is the original err
-	Err error
+	// err is the original err
+	err error
 
 	// Details is the list of error details
 	Details []ErrDetail
@@ -65,7 +65,7 @@ type ErrDetails struct {
 // It wraps given error
 func NewErrDetails(err error, details ...ErrDetail) error {
 	return &ErrDetails{
-		Err:     err,
+		err:     err,
 		Details: details,
 	}
 }
@@ -77,12 +77,12 @@ func (e ErrDetails) Error() string {
 		details = append(details, fmt.Sprintf("%s(%s): %s", d.Title, d.ID, d.Detail))
 	}
 
-	return fmt.Sprintf("Details: %v, Wrapped: %s", details, e.Err.Error())
+	return fmt.Sprintf("Details: %v, Wrapped: %s", details, e.err.Error())
 }
 
 // Unwrap returns the inner error.
 func (e ErrDetails) Unwrap() error {
-	return e.Err
+	return e.err
 }
 
 // WithDetails adds more details into the error
