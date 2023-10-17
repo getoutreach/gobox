@@ -109,6 +109,15 @@ func WithStatus(code statuscodes.StatusCode) ErrOption {
 	}
 }
 
+// WithDetails calls NewErrorDetails with the given error details.
+//
+// It is a functional option for use with New.
+func WithDetails(details ...ErrDetail) ErrOption {
+	return func(err error) error {
+		return NewErrDetails(err, details...)
+	}
+}
+
 // Info adds extra logging info to an error.
 func Info(err error, info ...log.Marshaler) error {
 	return withInfo{err, log.Many(info)}
