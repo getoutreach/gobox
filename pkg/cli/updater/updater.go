@@ -41,10 +41,10 @@ import (
 //
 // or you can do it in main() before UseUpdater is called:
 //
-//	updater.Disabled="true"
+//	updater.Disabled = "true"
 //
 // Any value other than "true" is considered false.
-// The type must be string to allow -ldflags "-X ..."
+// The type is string to allow for invoking via `go run -ldflags "-X ..."`.
 var Disabled = "false"
 
 // UseUpdater creates an automatic updater.
