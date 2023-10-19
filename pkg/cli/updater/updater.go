@@ -33,10 +33,19 @@ import (
 	"golang.org/x/term"
 )
 
-// Disabled globally disables the automatic updater. This is helpful
-// for when using an external package manager, such as brew.
-// This should usually be done with an ldflag.
-var Disabled bool
+// Disabled globally disables the automatic updater.
+// This is helpful for when using an external package manager, such as brew.
+// This should usually be done with an ldflag:
+//
+//	go run -ldflags "-X github.com/getoutreach/gobox/pkg/cli/updater.Disabled=true" ...
+//
+// or you can do it in main() before UseUpdater is called:
+//
+//	updater.Disabled = "true"
+//
+// Any value other than "true" is considered false.
+// The type is string to allow for invoking via `go run -ldflags "-X ..."`.
+var Disabled = "false"
 
 // UseUpdater creates an automatic updater.
 func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolint:revive // Why: Purposely not exported.
@@ -115,10 +124,12 @@ type updater struct {
 
 // defaultOptions configures the default options for the updater if
 // not already set
+// nolint:funlen // Why: a lot of options to set
 func (u *updater) defaultOptions() error {
-	if Disabled {
+	if Disabled == "true" {
 		u.disabled = true
 		u.disabledReason = "disabled via go linker"
+		return nil
 	}
 
 	if u.log == nil {
