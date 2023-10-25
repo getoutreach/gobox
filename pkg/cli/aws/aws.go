@@ -108,8 +108,8 @@ func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) 
 			return true, "No existing credentials"
 		}
 
-		// Attempt to refresh the aws credentials via saml2aws if
-		// they can expire. If they can refresh within 10 minutes of
+		// Attempt to refresh the aws credentials via the credential provider
+		// if they can expire. If they can refresh within 10 minutes of
 		// the expiration period or if they are expired.
 		if time.Now().Add(10 * time.Minute).After(creds.Expires) {
 			return true, "Credentials are expired"
@@ -134,12 +134,8 @@ func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts 
 		}
 		switch b.AWS.RefreshMethod {
 		case "okta-aws-cli":
-			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, reason); err != nil {
-				return err
-			}
-		case "saml2aws":
 		case "":
-			if err := refreshCredsViaSaml2aws(ctx, copts, acopts, reason); err != nil {
+			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, reason); err != nil {
 				return err
 			}
 		default:
@@ -206,49 +202,6 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		err := runCmd(ctx, "okta-aws-cli", args...)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
-		}
-	}
-
-	return nil
-}
-
-// refreshCredsViaSaml2aws refreshes the AWS credentials in the AWS
-// credentials file via the saml2aws CLI tool.
-func refreshCredsViaSaml2aws(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if !acopts.DryRun {
-		if _, err := exec.LookPath("saml2aws"); err != nil {
-			return fmt.Errorf("failed to find saml2aws, please run orc setup")
-		}
-	}
-
-	if copts.Log != nil {
-		copts.Log.WithField("reason", reason).Info("Obtaining AWS credentials via Okta")
-	}
-
-	args := []string{
-		"login",
-		"--profile",
-		copts.Profile,
-		"--force",
-	}
-
-	if !copts.chooseRoleInteractively() {
-		args = append(args, "--role", copts.Role)
-	}
-
-	if acopts.Output == OutputCredentialProvider {
-		args = append(args, "--credential-process")
-		if acopts.MFA != "" {
-			args = append([]string{"--mfa", acopts.MFA}, args...)
-		}
-	}
-
-	if acopts.DryRun {
-		copts.Log.Infof("Dry Run: saml2aws %s", strings.Join(args, " "))
-	} else {
-		err := runCmd(ctx, "saml2aws", args...)
-		if err != nil {
-			return errors.Wrap(err, "failed to refresh AWS credentials via saml2aws")
 		}
 	}
 

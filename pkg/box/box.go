@@ -40,19 +40,8 @@ type AWSConfig struct {
 
 	// RefreshMethod is the CLI used to refresh AWS credentials.
 	// Known values:
-	// * saml2aws (default)
-	// * okta-aws-cli
+	// * okta-aws-cli (default)
 	RefreshMethod string `yaml:"refreshMethod"`
-
-	Okta OktaConfig `yaml:"okta"`
-}
-
-// OktaConfig is Okta-related configuration for AWS authorization.
-type OktaConfig struct {
-	// DefaultMFA is the default MFA type to use when using the
-	// saml2aws refresh method and outputting in the credential
-	// provider format.
-	DefaultMFA string `yaml:"defaultMFA"`
 }
 
 type DeveloperEnvironmentConfig struct {
@@ -152,10 +141,10 @@ type SnapshotConfig struct {
 	// DefaultName is the default name (snapshot) to use, e.g. flagship
 	DefaultName string `yaml:"defaultName"`
 
-	// ReadAWSRole is the role to use, if set, for saml2aws for RO access
+	// ReadAWSRole is the role to use, if set, for RO access to AWS
 	ReadAWSRole string `yaml:"readAWSRole"`
 
-	// WriteAWSRole is the role to use, if set, for saml2aws for RW access
+	// WriteAWSRole is the role to use, if set, for RW access to AWS
 	WriteAWSRole string `yaml:"writeAWSRole"`
 }
 
