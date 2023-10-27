@@ -29,7 +29,7 @@ require (
 	github.com/tdewolff/minify/v2 v2.19.10
 	github.com/ulikunitz/xz v0.5.11
 	github.com/urfave/cli/v2 v2.25.7
-	github.com/versent/saml2aws/v2 v2.36.11
+	github.com/versent/saml2aws/v2 v2.36.12
 	github.com/zalando/go-keyring v0.2.3
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.45.0
 	go.opentelemetry.io/otel v1.19.0
