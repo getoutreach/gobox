@@ -146,8 +146,7 @@ func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts 
 			return errors.Wrap(err, "could not load refresh credential config")
 		}
 		switch b.AWS.RefreshMethod {
-		case "okta-aws-cli":
-		case "":
+		case "okta-aws-cli", "":
 			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, reason); err != nil {
 				return err
 			}
