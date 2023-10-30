@@ -10,6 +10,7 @@ import (
 
 	logtest "github.com/sirupsen/logrus/hooks/test"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func Test_assumedToRole(t *testing.T) {
@@ -134,8 +135,8 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
-		assert.Assert(t, strings.Contains(msg, "--aws-iam-role "))
-		assert.Assert(t, strings.Contains(msg, "--write-aws-credentials"))
+		assert.Assert(t, cmp.Contains(msg, "--aws-iam-role "))
+		assert.Assert(t, cmp.Contains(msg, "--write-aws-credentials"))
 	})
 
 	t.Run("interactive role selection", func(t *testing.T) {
@@ -163,7 +164,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
-			Output: OutputCredentialProviderV1,
+			Output: OutputCredentialProvider,
 		}
 
 		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
@@ -172,7 +173,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
-		assert.Assert(t, strings.Contains(msg, "--format credential-provider"))
+		assert.Assert(t, cmp.Contains(msg, "--format process-credentials"))
 	})
 }
 
@@ -193,6 +194,11 @@ func Test_oktaAwsCliVersionOutputMatchesV1(t *testing.T) {
 		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 10.2.3\n"))
 		assert.NilError(t, err)
 		assert.Assert(t, !isV1)
+	})
+
+	t.Run("error string returns an error", func(t *testing.T) {
+		_, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nError: unknown flag: --version\n"))
+		assert.ErrorContains(t, err, "unknown version format")
 	})
 }
 

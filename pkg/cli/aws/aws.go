@@ -182,9 +182,17 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 // credentials file via the okta-aws-cli CLI tool.
 func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
 	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
+	cliExists := true
 	if !acopts.DryRun || useCredentialProviderOutput {
 		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
-			return fmt.Errorf("failed to find okta-aws-cli in PATH")
+			if !acopts.DryRun {
+				return fmt.Errorf("failed to find okta-aws-cli in PATH")
+			}
+
+			if copts.Log != nil {
+				copts.Log.Warnln("Cannot find okta-aws-cli but in dry run mode")
+			}
+			cliExists = false
 		}
 	}
 
@@ -204,7 +212,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	}
 
 	if useCredentialProviderOutput {
-		isCLIVersion1, err := isOktaAwsCliVersion1(ctx)
+		isCLIVersion1, err := isOktaAwsCliVersion1(ctx, cliExists)
 		if err != nil {
 			return errors.Wrap(err, "could not determine okta-aws-cli version")
 		}
@@ -235,7 +243,15 @@ func runCmd(ctx context.Context, name string, args ...string) error {
 	return cmd.Run()
 }
 
-func isOktaAwsCliVersion1(ctx context.Context) (bool, error) {
+// isOktaAwsCliVersion1 determines what major version of okta-aws-cli
+// is installed. If the CLI is not installed and in dry run mode,
+// return false (not v1).
+func isOktaAwsCliVersion1(ctx context.Context, cliExists bool) (bool, error) {
+	if !cliExists {
+		// Assumes that we're in dry run mode
+		return false, nil
+	}
+
 	cmd := exec.CommandContext(ctx, "okta-aws-cli", "--version")
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
