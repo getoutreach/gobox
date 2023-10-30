@@ -169,7 +169,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 
 		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
 		assert.NilError(t, err)
-		assert.Equal(t, len(hook.Entries), 2)
+		assert.Equal(t, len(hook.Entries), 3)
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
