@@ -163,7 +163,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
-			Output: OutputCredentialProvider,
+			Output: OutputCredentialProviderV1,
 		}
 
 		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
@@ -174,4 +174,29 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
 		assert.Assert(t, strings.Contains(msg, "--format credential-provider"))
 	})
+}
+
+func Test_oktaAwsCliVersionOutputMatchesV1(t *testing.T) {
+	t.Run("version 1 matches", func(t *testing.T) {
+		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 1.2.1\n"))
+		assert.NilError(t, err)
+		assert.Assert(t, isV1)
+	})
+
+	t.Run("version 2 beta does not match", func(t *testing.T) {
+		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 2.0.0-beta.5\n"))
+		assert.NilError(t, err)
+		assert.Assert(t, !isV1)
+	})
+
+	t.Run("version 10 does not match", func(t *testing.T) {
+		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 10.2.3\n"))
+		assert.NilError(t, err)
+		assert.Assert(t, !isV1)
+	})
+}
+
+func Test_credentialProviderFormat(t *testing.T) {
+	assert.Equal(t, credentialProviderFormat(true), OutputCredentialProviderV1)
+	assert.Equal(t, credentialProviderFormat(false), OutputCredentialProvider)
 }

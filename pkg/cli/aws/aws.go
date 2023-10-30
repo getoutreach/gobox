@@ -8,8 +8,10 @@ package aws
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -56,14 +58,25 @@ func (c *CredentialOptions) chooseRoleInteractively() bool {
 	return c.Role == ""
 }
 
+// vRE is the regular expression used to determine the okta-aws-cli
+// version being executed.
+var vRE = regexp.MustCompile(`okta-aws-cli version (\d+)`)
+
 type CredentialsOutput string
 
 // Possible CredentialsOutput values.
 const (
-	// OutputCredentialProvider is the value used to specify that the
-	// CLI used needs to output credential provider compliant JSON.
+	// OutputCredentialProviderV1 is the value used to specify that the
+	// CLI used needs to output credential provider compliant JSON, in
+	// the forked version of okta-aws-cli v1.
 	// nolint: gosec // Why: These aren't credentials.
-	OutputCredentialProvider CredentialsOutput = "credential-provider"
+	OutputCredentialProviderV1 CredentialsOutput = "credential-provider"
+
+	// OutputCredentialProvider is the value used to specify that the
+	// CLI used needs to output credential provider compliant JSON, in
+	// okta-aws-cli v2 and later.
+	// nolint: gosec // Why: These aren't credentials.
+	OutputCredentialProvider CredentialsOutput = "process-credentials"
 )
 
 // AuthorizeCredentialsOptions are optional arguments for the
@@ -190,8 +203,12 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		args = append(args, "--aws-iam-role", copts.Role)
 	}
 
-	if acopts.Output == OutputCredentialProvider {
-		args = append(args, "--format", string(OutputCredentialProvider))
+	if acopts.Output == OutputCredentialProviderV1 {
+		isCLIVersion1, err := isOktaAwsCliVersion1(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not determine okta-aws-cli version")
+		}
+		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
 		args = append(args, "--write-aws-credentials")
 	}
@@ -216,4 +233,52 @@ func runCmd(ctx context.Context, name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
+}
+
+func isOktaAwsCliVersion1(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx, "okta-aws-cli", "--version")
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return false, errors.Wrap(err, "cannot get stdout pipe")
+	}
+
+	if err := cmd.Start(); err != nil {
+		return false, errors.Wrap(err, "problem executing okta-aws-cli --version")
+	}
+
+	output, err := io.ReadAll(stdout)
+	if err != nil {
+		return false, errors.Wrap(err, "could not read version output")
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return false, errors.Wrap(err, "problem completing execution of okta-aws-cli --version")
+	}
+
+	return oktaAwsCliVersionOutputMatchesV1(output)
+}
+
+func oktaAwsCliVersionOutputMatchesV1(output []byte) (bool, error) {
+	matches := vRE.FindSubmatch(output)
+	if matches == nil {
+		return false, errors.Errorf("unknown version format: '%s'", output)
+	}
+
+	if len(matches) < 2 {
+		return false, errors.New("cannot find version in output")
+	}
+
+	majorVersion := matches[1]
+
+	return string(majorVersion) == "1", nil
+}
+
+func credentialProviderFormat(isCLIVersion1 bool) CredentialsOutput {
+	if isCLIVersion1 {
+		return OutputCredentialProviderV1
+	}
+
+	return OutputCredentialProvider
 }
