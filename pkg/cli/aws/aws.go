@@ -276,6 +276,8 @@ func isOktaAwsCliVersion1(ctx context.Context, cliExists bool) (bool, error) {
 	return oktaAwsCliVersionOutputMatchesV1(output)
 }
 
+// oktaAwsCliVersionOutputMatchesV1 determines whether the
+// `okta-aws-cli --version` output is for major version 1.
 func oktaAwsCliVersionOutputMatchesV1(output []byte) (bool, error) {
 	matches := vRE.FindSubmatch(output)
 	if matches == nil {
@@ -291,6 +293,9 @@ func oktaAwsCliVersionOutputMatchesV1(output []byte) (bool, error) {
 	return string(majorVersion) == "1", nil
 }
 
+// credentialProviderFormat is the value of `--format` that corresponds
+// to the credential provider format, depending on the okta-aws-cli
+// major version.
 func credentialProviderFormat(isCLIVersion1 bool) CredentialsOutput {
 	if isCLIVersion1 {
 		return OutputCredentialProviderV1
