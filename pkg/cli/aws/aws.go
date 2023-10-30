@@ -181,7 +181,8 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 // refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
 // credentials file via the okta-aws-cli CLI tool.
 func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if !acopts.DryRun {
+	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
+	if !acopts.DryRun || useCredentialProviderOutput {
 		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
 			return fmt.Errorf("failed to find okta-aws-cli in PATH")
 		}
@@ -202,7 +203,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		args = append(args, "--aws-iam-role", copts.Role)
 	}
 
-	if acopts.Output == OutputCredentialProviderV1 {
+	if useCredentialProviderOutput {
 		isCLIVersion1, err := isOktaAwsCliVersion1(ctx)
 		if err != nil {
 			return errors.Wrap(err, "could not determine okta-aws-cli version")
