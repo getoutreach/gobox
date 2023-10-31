@@ -13,4 +13,5 @@ golang 1.21.3
 # while leaving the 'default' version intact for the infra.
 # The most common case is nodejs.
 ## <<Stencil::Block(toolver)>>
+golangci-lint 1.55.1
 ## <</Stencil::Block>>
