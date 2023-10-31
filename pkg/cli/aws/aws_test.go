@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/gobox/pkg/box"
 	logtest "github.com/sirupsen/logrus/hooks/test"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
@@ -126,11 +127,13 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		copts := DefaultCredentialOptions()
 		copts.Log = log
 
+		b := &box.Config{}
+
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -145,11 +148,13 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		copts.Role = ""
 		copts.Log = log
 
+		b := &box.Config{}
+
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -162,14 +167,21 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		copts := DefaultCredentialOptions()
 		copts.Log = log
 
+		b := &box.Config{}
+
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
 			Output: OutputCredentialProvider,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, "")
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
 		assert.NilError(t, err)
-		assert.Equal(t, len(hook.Entries), 3)
+		expectedEntryCount := 2
+		if os.Getenv("CI") != "" {
+			// extra log for missing okta-aws-cli since it's not installed by CI
+			expectedEntryCount = 3
+		}
+		assert.Equal(t, len(hook.Entries), expectedEntryCount)
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))

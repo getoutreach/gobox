@@ -42,6 +42,19 @@ type AWSConfig struct {
 	// Known values:
 	// * okta-aws-cli (default)
 	RefreshMethod string `yaml:"refreshMethod"`
+
+	Okta OktaConfig `yaml:"okta"`
+}
+
+// OktaConfig is the Okta-specific config used for AWS access.
+type OktaConfig struct {
+	// FederationAppID is the Okta app ID for the AWS federation app.
+	FederationAppID string `yaml:"federationAppID"`
+	// OIDCClientID is the Okta app ID for the AWS OIDC app (not the
+	// federation one).
+	OIDCClientID string `yaml:"oidcClientID"`
+	// OrgDomain is the hostname of the Okta instance.
+	OrgDomain string `yaml:"orgDomain"`
 }
 
 type DeveloperEnvironmentConfig struct {

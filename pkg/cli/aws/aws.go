@@ -147,7 +147,7 @@ func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts 
 		}
 		switch b.AWS.RefreshMethod {
 		case "okta-aws-cli", "":
-			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, reason); err != nil {
+			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, b, reason); err != nil {
 				return err
 			}
 		default:
@@ -180,7 +180,13 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 
 // refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
 // credentials file via the okta-aws-cli CLI tool.
-func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
+func refreshCredsViaOktaAWSCLI(
+	ctx context.Context,
+	copts *CredentialOptions,
+	acopts *AuthorizeCredentialsOptions,
+	b *box.Config,
+	reason string,
+) error {
 	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
 	cliExists := true
 	if !acopts.DryRun || useCredentialProviderOutput {
@@ -190,7 +196,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 			}
 
 			if copts.Log != nil {
-				copts.Log.Warnln("Cannot find okta-aws-cli but in dry run mode")
+				copts.Log.Warnln("Cannot find okta-aws-cli in PATH but in dry run mode")
 			}
 			cliExists = false
 		}
@@ -224,7 +230,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	if acopts.DryRun {
 		copts.Log.Infof("Dry Run: okta-aws-cli %s", strings.Join(args, " "))
 	} else {
-		err := runCmd(ctx, "okta-aws-cli", args...)
+		err := runOktaAwsCLI(ctx, b, args...)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
 		}
@@ -233,13 +239,30 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	return nil
 }
 
-// runCmd is a wrapper for running a command via exec.CommandContext
-// and passing through stdin/stdout/stderr.
-func runCmd(ctx context.Context, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+// oktaAwsCLICmd is a convenience function that creates an exec.Cmd
+// instance for okta-aws-cli.
+func oktaAwsCLICmd(ctx context.Context, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, "okta-aws-cli", args...)
 	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
+	return cmd
+}
+
+// runOktaAwsCLI is a wrapper for running okta-aws-cli via exec.CommandContext,
+// passing through stdin/stdout/stderr, and setting the appropriate
+// environment variables.
+func runOktaAwsCLI(ctx context.Context, b *box.Config, args ...string) error {
+	cmd := oktaAwsCLICmd(ctx, args...)
+	cmd.Stdout = os.Stdout
+	// Always set up the Okta environment variables based off of what's
+	// in the box config, regardless of what's currently in the environment.
+	cmd.Env = cmd.Environ()
+	cmd.Env = append(
+		cmd.Env,
+		"OKTA_ORG_DOMAIN="+b.AWS.Okta.OrgDomain,
+		"OKTA_AWS_ACCOUNT_FEDERATION_APP_ID="+b.AWS.Okta.FederationAppID,
+		"OKTA_OIDC_CLIENT_ID="+b.AWS.Okta.OIDCClientID,
+	)
 	return cmd.Run()
 }
 
@@ -252,9 +275,7 @@ func isOktaAwsCliVersion1(ctx context.Context, cliExists bool) (bool, error) {
 		return false, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "okta-aws-cli", "--version")
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	cmd := oktaAwsCLICmd(ctx, "--version")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return false, errors.Wrap(err, "cannot get stdout pipe")
