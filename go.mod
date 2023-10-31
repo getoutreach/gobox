@@ -1,6 +1,6 @@
 module github.com/getoutreach/gobox
 
-go 1.19
+go 1.21
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
@@ -28,6 +28,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.20.4
 	github.com/ulikunitz/xz v0.5.11
+	github.com/undefinedlabs/go-mpatch v1.0.7
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/versent/saml2aws/v2 v2.36.12
 	github.com/zalando/go-keyring v0.2.3

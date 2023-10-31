@@ -4,7 +4,7 @@
 # you are reducing compatibility guarantees.
 ## <<Stencil::Block(toolverOverride)>>
 ## <</Stencil::Block>>
-golang 1.19.11
+golang 1.21.3
 terraform 1.4.4
 protoc 21.5
 nodejs 18.14.1
@@ -13,4 +13,5 @@ nodejs 18.14.1
 # while leaving the 'default' version intact for the infra.
 # The most common case is nodejs.
 ## <<Stencil::Block(toolver)>>
+golangci-lint 1.55.1
 ## <</Stencil::Block>>
