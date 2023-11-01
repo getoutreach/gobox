@@ -2,6 +2,9 @@
 
 // Description: Contains a strongly-typed logger for audit logs using
 // slog.
+//
+// Note: This is an EXAMPLE of an extension to the slog.Logger, it is
+// not meant to actually be used.
 
 package olog
 
