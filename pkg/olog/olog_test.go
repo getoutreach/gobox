@@ -39,12 +39,15 @@ func TestLogLevelByModule(t *testing.T) {
 	// Effectively disable logging for the null logger.
 	lr.Set(slog.Level(100), "nullModuleName")
 
-	nullLogger.Info("test message")
-	logger.Info("test message")
+	nullLogger.Info("should not appear")
+	logger.Info("should appear")
 
-	// Verify that the message was logged.
+	// Verify the right messages were logged.
+	//
+	// TODO(jaredallard): This will have a helper to make it easier to
+	// work with.
 	expected := []string{
-		`{"time":"2023-10-31T00:00:00Z","level":"INFO","source":{"function":"github.com/getoutreach/gobox/pkg/olog.TestModuleLogger","file":"/home/jaredallard/Code/getoutreach/gobox/pkg/olog/olog_test.go","line":41},"msg":"test message"}`,
+		`{"time":"2023-10-31T00:00:00Z","level":"INFO","source":{"function":"github.com/getoutreach/gobox/pkg/olog.TestLogLevelByModule","file":"/home/jaredallard/Code/getoutreach/gobox/pkg/olog/olog_test.go","line":43},"msg":"should appear"}`,
 	}
 	expectedStr := strings.Join(expected, "\n") + "\n"
 

@@ -27,7 +27,7 @@ type leveler struct {
 	// log-level overrides.
 	levelRegistry *levelRegistry
 
-	// addrs are address that this logger uses for determining what the
+	// addrs are addresses that this logger uses for determining what the
 	// logging level of this logger should be.
 	//
 	// Note: The more addresses that this logger is associated with, the
@@ -59,7 +59,9 @@ func newLeveler(lr *levelRegistry, addrs []string) slog.Leveler {
 }
 
 // SetGlobalLevel sets the global logging level used by all loggers by
-// default that do not have a level set in the level registry.
+// default that do not have a level set in the level registry. This
+// impacts loggers that have previously been created as well as loggers
+// that will be created in the future.
 func SetGlobalLevel(l slog.Level) {
 	level.Store(int64(l))
 }
