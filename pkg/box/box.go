@@ -42,7 +42,8 @@ type AWSConfig struct {
 	// Known values:
 	// * okta-aws-cli (default)
 	RefreshMethod string `yaml:"refreshMethod"`
-
+  // Okta contains configuration for using Okta authentication
+  // with AWS.
 	Okta OktaConfig `yaml:"okta"`
 }
 
