@@ -8,7 +8,6 @@ package aws
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -276,22 +275,9 @@ func isOktaAwsCliVersion1(ctx context.Context, cliExists bool) (bool, error) {
 	}
 
 	cmd := oktaAwsCLICmd(ctx, "--version")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return false, errors.Wrap(err, "cannot get stdout pipe")
-	}
-
-	if err := cmd.Start(); err != nil {
-		return false, errors.Wrap(err, "problem executing okta-aws-cli --version")
-	}
-
-	output, err := io.ReadAll(stdout)
+	output, err := cmd.Output()
 	if err != nil {
 		return false, errors.Wrap(err, "could not read version output")
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return false, errors.Wrap(err, "problem completing execution of okta-aws-cli --version")
 	}
 
 	return oktaAwsCliVersionOutputMatchesV1(output)
