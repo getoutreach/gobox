@@ -190,28 +190,26 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 }
 
 func Test_oktaAwsCliVersionOutputMatchesV1(t *testing.T) {
-	t.Run("version 1 matches", func(t *testing.T) {
-		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 1.2.1\n"))
-		assert.NilError(t, err)
-		assert.Assert(t, isV1)
-	})
+	isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 1.2.1\n"))
+	assert.NilError(t, err)
+	assert.Assert(t, isV1)
+}
 
-	t.Run("version 2 beta does not match", func(t *testing.T) {
-		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 2.0.0-beta.5\n"))
-		assert.NilError(t, err)
-		assert.Assert(t, !isV1)
-	})
+func Test_oktaAwsCliVersionOutputDoesntMatchV2Beta(t *testing.T) {
+	isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 2.0.0-beta.5\n"))
+	assert.NilError(t, err)
+	assert.Assert(t, !isV1)
+}
 
-	t.Run("version 10 does not match", func(t *testing.T) {
-		isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 10.2.3\n"))
-		assert.NilError(t, err)
-		assert.Assert(t, !isV1)
-	})
+func Test_oktaAwsCliVersionOutputDoesntMatchV10(t *testing.T) {
+	isV1, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nokta-aws-cli version 10.2.3\n"))
+	assert.NilError(t, err)
+	assert.Assert(t, !isV1)
+}
 
-	t.Run("error string returns an error", func(t *testing.T) {
-		_, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nError: unknown flag: --version\n"))
-		assert.ErrorContains(t, err, "unknown version format")
-	})
+func Test_oktaAwsCliVersionOutputErrorsWithUnknownOutput(t *testing.T) {
+	_, err := oktaAwsCliVersionOutputMatchesV1([]byte("\nError: unknown flag: --version\n"))
+	assert.ErrorContains(t, err, "unknown version format")
 }
 
 func Test_credentialProviderFormat(t *testing.T) {
