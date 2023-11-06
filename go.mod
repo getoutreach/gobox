@@ -40,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.19.0
 	golang.org/x/crypto v0.14.0
 	golang.org/x/oauth2 v0.13.0
-	golang.org/x/sync v0.4.0
+	golang.org/x/sync v0.5.0
 	golang.org/x/term v0.13.0
 	golang.org/x/tools v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
