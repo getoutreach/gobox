@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -56,14 +57,25 @@ func (c *CredentialOptions) chooseRoleInteractively() bool {
 	return c.Role == ""
 }
 
+// vRE is the regular expression used to determine the okta-aws-cli
+// version being executed.
+var vRE = regexp.MustCompile(`okta-aws-cli version (\d+)`)
+
 type CredentialsOutput string
 
 // Possible CredentialsOutput values.
 const (
-	// OutputCredentialProvider is the value used to specify that the
-	// CLI used needs to output credential provider compliant JSON.
+	// OutputCredentialProviderV1 is the value used to specify that the
+	// CLI used needs to output credential provider compliant JSON, in
+	// the forked version of okta-aws-cli v1.
 	// nolint: gosec // Why: These aren't credentials.
-	OutputCredentialProvider CredentialsOutput = "credential-provider"
+	OutputCredentialProviderV1 CredentialsOutput = "credential-provider"
+
+	// OutputCredentialProvider is the value used to specify that the
+	// CLI used needs to output credential provider compliant JSON, in
+	// okta-aws-cli v2 and later.
+	// nolint: gosec // Why: These aren't credentials.
+	OutputCredentialProvider CredentialsOutput = "process-credentials"
 )
 
 // AuthorizeCredentialsOptions are optional arguments for the
@@ -133,9 +145,8 @@ func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts 
 			return errors.Wrap(err, "could not load refresh credential config")
 		}
 		switch b.AWS.RefreshMethod {
-		case "okta-aws-cli":
-		case "":
-			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, reason); err != nil {
+		case "okta-aws-cli", "":
+			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, b, reason); err != nil {
 				return err
 			}
 		default:
@@ -168,10 +179,25 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 
 // refreshCredsViaOktaAWSCLI refreshes the AWS credentials in the AWS
 // credentials file via the okta-aws-cli CLI tool.
-func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions, reason string) error {
-	if !acopts.DryRun {
+func refreshCredsViaOktaAWSCLI(
+	ctx context.Context,
+	copts *CredentialOptions,
+	acopts *AuthorizeCredentialsOptions,
+	b *box.Config,
+	reason string,
+) error {
+	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
+	cliExists := true
+	if !acopts.DryRun || useCredentialProviderOutput {
 		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
-			return fmt.Errorf("failed to find okta-aws-cli in PATH")
+			if !acopts.DryRun {
+				return fmt.Errorf("failed to find okta-aws-cli in PATH")
+			}
+
+			if copts.Log != nil {
+				copts.Log.Warnln("Cannot find okta-aws-cli in PATH but in dry run mode")
+			}
+			cliExists = false
 		}
 	}
 
@@ -190,8 +216,12 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 		args = append(args, "--aws-iam-role", copts.Role)
 	}
 
-	if acopts.Output == OutputCredentialProvider {
-		args = append(args, "--format", string(OutputCredentialProvider))
+	if useCredentialProviderOutput {
+		isCLIVersion1, err := isOktaAwsCliVersion1(ctx, cliExists)
+		if err != nil {
+			return errors.Wrap(err, "could not determine okta-aws-cli version")
+		}
+		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
 		args = append(args, "--write-aws-credentials")
 	}
@@ -199,7 +229,7 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	if acopts.DryRun {
 		copts.Log.Infof("Dry Run: okta-aws-cli %s", strings.Join(args, " "))
 	} else {
-		err := runCmd(ctx, "okta-aws-cli", args...)
+		err := runOktaAwsCLI(ctx, b, args...)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh AWS credentials via okta-aws-cli")
 		}
@@ -208,12 +238,75 @@ func refreshCredsViaOktaAWSCLI(ctx context.Context, copts *CredentialOptions, ac
 	return nil
 }
 
-// runCmd is a wrapper for running a command via exec.CommandContext
-// and passing through stdin/stdout/stderr.
-func runCmd(ctx context.Context, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+// oktaAwsCLICmd is a convenience function that creates an exec.Cmd
+// instance for okta-aws-cli.
+func oktaAwsCLICmd(ctx context.Context, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, "okta-aws-cli", args...)
 	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
+	return cmd
+}
+
+// runOktaAwsCLI is a wrapper for running okta-aws-cli via exec.CommandContext,
+// passing through stdin/stdout/stderr, and setting the appropriate
+// environment variables.
+func runOktaAwsCLI(ctx context.Context, b *box.Config, args ...string) error {
+	cmd := oktaAwsCLICmd(ctx, args...)
+	cmd.Stdout = os.Stdout
+	// Always set up the Okta environment variables based off of what's
+	// in the box config, regardless of what's currently in the environment.
+	cmd.Env = cmd.Environ()
+	cmd.Env = append(
+		cmd.Env,
+		"OKTA_ORG_DOMAIN="+b.AWS.Okta.OrgDomain,
+		"OKTA_AWS_ACCOUNT_FEDERATION_APP_ID="+b.AWS.Okta.FederationAppID,
+		"OKTA_OIDC_CLIENT_ID="+b.AWS.Okta.OIDCClientID,
+	)
 	return cmd.Run()
+}
+
+// isOktaAwsCliVersion1 determines what major version of okta-aws-cli
+// is installed. If the CLI is not installed and in dry run mode,
+// return false (not v1).
+func isOktaAwsCliVersion1(ctx context.Context, cliExists bool) (bool, error) {
+	if !cliExists {
+		// Assumes that we're in dry run mode
+		return false, nil
+	}
+
+	cmd := oktaAwsCLICmd(ctx, "--version")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, errors.Wrap(err, "could not read version output")
+	}
+
+	return oktaAwsCliVersionOutputMatchesV1(output)
+}
+
+// oktaAwsCliVersionOutputMatchesV1 determines whether the
+// `okta-aws-cli --version` output is for major version 1.
+func oktaAwsCliVersionOutputMatchesV1(output []byte) (bool, error) {
+	matches := vRE.FindSubmatch(output)
+	if matches == nil {
+		return false, errors.Errorf("unknown version format: '%s'", output)
+	}
+
+	if len(matches) < 2 {
+		return false, errors.New("cannot find version in output")
+	}
+
+	majorVersion := matches[1]
+
+	return string(majorVersion) == "1", nil
+}
+
+// credentialProviderFormat is the value of `--format` that corresponds
+// to the credential provider format, depending on the okta-aws-cli
+// major version.
+func credentialProviderFormat(isCLIVersion1 bool) CredentialsOutput {
+	if isCLIVersion1 {
+		return OutputCredentialProviderV1
+	}
+
+	return OutputCredentialProvider
 }
