@@ -56,6 +56,8 @@ type OktaConfig struct {
 	OIDCClientID string `yaml:"oidcClientID"`
 	// OrgDomain is the hostname of the Okta instance.
 	OrgDomain string `yaml:"orgDomain"`
+	// SessionDuration is the TTL for the session in seconds.
+	SessionDuration uint `yaml:"sessionDuration"`
 }
 
 type DeveloperEnvironmentConfig struct {
