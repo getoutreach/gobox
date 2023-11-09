@@ -261,6 +261,7 @@ func runOktaAwsCLI(ctx context.Context, b *box.Config, args ...string) error {
 		"OKTA_ORG_DOMAIN="+b.AWS.Okta.OrgDomain,
 		"OKTA_AWS_ACCOUNT_FEDERATION_APP_ID="+b.AWS.Okta.FederationAppID,
 		"OKTA_OIDC_CLIENT_ID="+b.AWS.Okta.OIDCClientID,
+		"OKTA_AWSCLI_SESSION_DURATION="+b.AWS.Okta.SessionDuration,
 	)
 	return cmd.Run()
 }
