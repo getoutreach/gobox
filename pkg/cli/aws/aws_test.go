@@ -127,7 +127,16 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		copts := DefaultCredentialOptions()
 		copts.Log = log
 
-		b := &box.Config{}
+		b := &box.Config{
+			AWS: box.AWSConfig{
+				Okta: box.OktaConfig{
+					FederationAppID: "0oFedExample",
+					OIDCClientID:    "0oExample",
+					OrgDomain:       "example.okta.com",
+					SessionDuration: 1234,
+				},
+			},
+		}
 
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
@@ -140,6 +149,10 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, cmp.Contains(msg, "--aws-iam-role "))
 		assert.Assert(t, cmp.Contains(msg, "--write-aws-credentials"))
+		assert.Assert(t, cmp.Contains(msg, "--org-domain example.okta.com"))
+		assert.Assert(t, cmp.Contains(msg, "--oidc-client-id 0oExample"))
+		assert.Assert(t, cmp.Contains(msg, "--aws-acct-fed-app-id 0oFedExample"))
+		assert.Assert(t, cmp.Contains(msg, "--session-duration 1234"))
 	})
 
 	t.Run("interactive role selection", func(t *testing.T) {

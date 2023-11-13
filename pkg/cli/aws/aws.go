@@ -210,6 +210,14 @@ func refreshCredsViaOktaAWSCLI(
 		"--cache-access-token",
 		"--profile",
 		copts.Profile,
+		"--org-domain",
+		b.AWS.Okta.OrgDomain,
+		"--oidc-client-id",
+		b.AWS.Okta.OIDCClientID,
+		"--aws-acct-fed-app-id",
+		b.AWS.Okta.FederationAppID,
+		"--session-duration",
+		fmt.Sprint(b.AWS.Okta.SessionDuration),
 	}
 
 	if !copts.chooseRoleInteractively() {
@@ -253,16 +261,17 @@ func oktaAwsCLICmd(ctx context.Context, args ...string) *exec.Cmd {
 func runOktaAwsCLI(ctx context.Context, b *box.Config, args ...string) error {
 	cmd := oktaAwsCLICmd(ctx, args...)
 	cmd.Stdout = os.Stdout
-	// Always set up the Okta environment variables based off of what's
-	// in the box config, regardless of what's currently in the environment.
-	cmd.Env = cmd.Environ()
-	cmd.Env = append(
-		cmd.Env,
-		"OKTA_ORG_DOMAIN="+b.AWS.Okta.OrgDomain,
-		"OKTA_AWS_ACCOUNT_FEDERATION_APP_ID="+b.AWS.Okta.FederationAppID,
-		"OKTA_OIDC_CLIENT_ID="+b.AWS.Okta.OIDCClientID,
-		fmt.Sprintf("OKTA_AWSCLI_SESSION_DURATION=%d", b.AWS.Okta.SessionDuration),
-	)
+	// Prefer using the CLI flags over the environment variables,
+	// which are likely more up-to-date.
+	oEnv := cmd.Environ()
+	env := make([]string, 0, len(oEnv))
+	for _, v := range oEnv {
+		if !strings.HasPrefix(v, "OKTA_") {
+			env = append(env, v)
+		}
+	}
+
+	cmd.Env = env
 	return cmd.Run()
 }
 
