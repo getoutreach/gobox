@@ -216,8 +216,10 @@ func refreshCredsViaOktaAWSCLI(
 		b.AWS.Okta.OIDCClientID,
 		"--aws-acct-fed-app-id",
 		b.AWS.Okta.FederationAppID,
-		"--session-duration",
-		fmt.Sprint(b.AWS.Okta.SessionDuration),
+	}
+
+	if b.AWS.Okta.SessionDuration > 0 {
+		args = append(args, "--session-duration", fmt.Sprint(b.AWS.Okta.SessionDuration))
 	}
 
 	if !copts.chooseRoleInteractively() {
