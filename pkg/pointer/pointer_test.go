@@ -215,3 +215,36 @@ func TestMapPtrInterface(t *testing.T) {
 		}
 	}
 }
+
+func TestPtrFunc(t *testing.T) {
+	f := func() string {
+		return "value"
+	}
+	oPtr := ToPtr(f)
+	if oPtr == nil {
+		t.Error("expected a non-nil pointer")
+	}
+	s := *oPtr
+	if s() != "value" {
+		t.Errorf("expected %s, but received %s", "value", s())
+	}
+	oValue := ToValue(oPtr)
+	if oValue() != "value" {
+		t.Errorf("expected %s, but received %s", "value", oValue())
+	}
+}
+
+func TestPtrOfPtr(t *testing.T) {
+	value := ToPtr("value")
+	oPtr := ToPtr(value)
+	if oPtr == nil {
+		t.Error("expected a non-nil pointer")
+	}
+	if *oPtr != value {
+		t.Errorf("expected %p, but received %p", *oPtr, value)
+	}
+	oValue := ToValue(oPtr)
+	if oValue != value {
+		t.Errorf("expected %p, but received %p", oValue, value)
+	}
+}
