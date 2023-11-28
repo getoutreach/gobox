@@ -68,6 +68,9 @@ const (
 	// Deprecated: In reality server-side errors should fall into one of the above 3 errors, and this inclusion was
 	// a mistake.  It's not worth a breaking change to revoke at this time, though, so it shall live on.
 	UnknownError StatusCode = 803
+	// DeadlineExceeded is for when the server is unable to complete the request within the configured deadline and the
+	// request times out. This error is retriable, but the duration for backoff is unknown.
+	DeadlineExceeded StatusCode = 804
 )
 
 //go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.1.12 -type=StatusCode
@@ -136,6 +139,8 @@ func FromString(s string) (StatusCode, bool) {
 		return Unavailable, true
 	case UnknownError.String():
 		return UnknownError, true
+	case DeadlineExceeded.String():
+		return DeadlineExceeded, true
 	default:
 		return UnknownError, false
 	}

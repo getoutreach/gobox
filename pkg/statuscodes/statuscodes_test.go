@@ -16,6 +16,7 @@ func TestStatusCodeUnmarshalText(t *testing.T) {
 		NotImplemented,
 		Unavailable,
 		UnknownError,
+		DeadlineExceeded,
 	}
 
 	for _, code := range codes {
