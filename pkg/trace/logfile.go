@@ -107,7 +107,7 @@ func (se *LogFileSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace
 }
 
 // Shutdown cleans up when the exporter close by ensuring that the connection gets closed.
-func (se *LogFileSpanExporter) Shutdown(ctx context.Context) error {
+func (se *LogFileSpanExporter) Shutdown(_ context.Context) error {
 	return se.conn.Close()
 }
 

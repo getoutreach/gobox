@@ -14,4 +14,4 @@ type Options struct {
 }
 
 // MarshalLog is defined for being compliant with trace.StartCall contract
-func (Option) MarshalLog(addField func(string, interface{})) {}
+func (Option) MarshalLog(_ func(string, interface{})) {}

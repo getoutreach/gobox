@@ -25,7 +25,7 @@ type GCP struct{}
 // Regions returns a list of all known-gcp regions. This should not be used
 // over native GCP region fetching.
 // IDEA: One day we could probably get this from GCP. That is authenticated though.
-func (*GCP) Regions(ctx context.Context) Regions {
+func (*GCP) Regions(_ context.Context) Regions {
 	regions := []region{
 		{Name: "us", Endpoint: "https://us-docker.pkg.dev"},
 		{Name: "europe", Endpoint: "https://europe-docker.pkg.dev"},

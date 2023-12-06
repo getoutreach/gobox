@@ -28,7 +28,7 @@ type zipExtractor struct{}
 // Note: Due to how zip files work, this function has to read the entire
 // zip into memory before returning the Archive. It is recommended that gz/xz
 // with tar be used instead when dealing with large zip files.
-func (z *zipExtractor) Open(ctx context.Context, name string, r io.Reader) (Archive, error) {
+func (z *zipExtractor) Open(_ context.Context, _ string, r io.Reader) (Archive, error) {
 	byt, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err

@@ -27,7 +27,7 @@ func WithRepoURL(repo string) Option {
 // major version upgrades
 func WithSkipMajorVersionPrompt(skip bool) Option {
 	return func(u *updater) {
-		u.skipMajorVersionPrompt = true
+		u.skipMajorVersionPrompt = skip
 	}
 }
 
@@ -63,7 +63,7 @@ func WithDisabled(disabled bool) Option {
 
 // Deprecated: Set the channel via the WithChannel option.
 // WithPrereleases sets whether or not to include prereleases in the update check.
-func WithPrereleases(prereleases bool) Option {
+func WithPrereleases(_ bool) Option {
 	return func(u *updater) {
 		u.channel = "rc"
 	}

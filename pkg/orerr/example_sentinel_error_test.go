@@ -9,7 +9,7 @@ import (
 
 const ErrUsernameTaken orerr.SentinelError = "username already taken"
 
-func createUser(username string) error {
+func createUser(_ string) error {
 	return ErrUsernameTaken
 }
 

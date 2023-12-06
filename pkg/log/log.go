@@ -110,26 +110,26 @@ type F = logf.F
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
-func Debug(ctx context.Context, message string, m ...Marshaler) {
+func Debug(_ context.Context, message string, m ...Marshaler) {
 	dbgEntries.Append(format(message, "DEBUG", time.Now(), app.Info(), m))
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
-func Info(ctx context.Context, message string, m ...Marshaler) {
+func Info(_ context.Context, message string, m ...Marshaler) {
 	s := format(message, "INFO", time.Now(), app.Info(), m)
 
 	Write(s)
 }
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
-func Warn(ctx context.Context, message string, m ...Marshaler) {
+func Warn(_ context.Context, message string, m ...Marshaler) {
 	s := format(message, "WARN", time.Now(), app.Info(), m)
 
 	Write(s)
 }
 
 // Error emits a log at ERROR level.  Error logs must be investigated
-func Error(ctx context.Context, message string, m ...Marshaler) {
+func Error(_ context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
 	s := format(message, "ERROR", time.Now(), app.Info(), m)
 
@@ -137,7 +137,7 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 }
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
-func Fatal(ctx context.Context, message string, m ...Marshaler) {
+func Fatal(_ context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
 	s := format(message, "FATAL", time.Now(), app.Info(), m)
 
@@ -216,13 +216,13 @@ func addSource(entry F) {
 }
 
 // Flush writes out all debug logs
-func Flush(ctx context.Context) {
+func Flush(_ context.Context) {
 	dbgEntries.Flush(Write)
 }
 
 // Purge clears all debug logs without writing them out. This is useful to clear logs
 // from a successful tests that we don't want output during a subsequent test
-func Purge(ctx context.Context) {
+func Purge(_ context.Context) {
 	dbgEntries.Purge()
 }
 

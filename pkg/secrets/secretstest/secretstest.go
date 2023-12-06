@@ -32,7 +32,7 @@ func setTestOverride(filePath, value string) (func(), error) {
 //
 // TestLookup uses the global `testOverrides` declared elsewhere in this
 // file to provide specific overrides for specific values.
-func testLookup(ctx context.Context, filePath string) ([]byte, error) {
+func testLookup(_ context.Context, filePath string) ([]byte, error) {
 	key := secrets.TryMapWindowsKeys(filePath)
 	if value, ok := testOverrides[key]; ok {
 		return []byte(value), nil

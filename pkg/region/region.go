@@ -32,7 +32,7 @@ type region struct {
 
 // Duration hits the attached region's endpoint and returns how long it took
 // to do a HEAD request.
-func (r *region) Duration(ctx context.Context, averageOf int) (time.Duration, error) {
+func (r *region) Duration(_ context.Context, averageOf int) (time.Duration, error) {
 	if dur, ok := cache.Get(r.Cloud, r.Name); ok {
 		return dur, nil
 	}
