@@ -115,7 +115,7 @@ func Run(ctx context.Context, cancel context.CancelFunc, a *cli.App, conf *Confi
 // TODO(jaredallard): Deprecate this after templates have been updated and released
 // for a few weeks.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cli.App,
-	logger logrus.FieldLogger, honeycombAPIKey, dataset, teleforkAPIKey string) {
+	logger logrus.FieldLogger, honeycombAPIKey, dataset, _ string) {
 	Run(ctx, cancel, a, &Config{
 		Telemetry: TelemetryConfig{
 			Otel: TelemetryOtelConfig{

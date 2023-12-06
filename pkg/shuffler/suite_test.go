@@ -9,11 +9,11 @@ type testingTestSuite struct{}
 
 func (ts *testingTestSuite) One()                   {}
 func (ts *testingTestSuite) Two()                   {}
-func (ts *testingTestSuite) TestOne(t *testing.T)   {}
-func (ts *testingTestSuite) TestTwo(t *testing.T)   {}
-func (ts *testingTestSuite) TestThree(t *testing.T) {}
+func (ts *testingTestSuite) TestOne(_ *testing.T)   {}
+func (ts *testingTestSuite) TestTwo(_ *testing.T)   {}
+func (ts *testingTestSuite) TestThree(_ *testing.T) {}
 
-func TestEverythingWorks(t *testing.T) {}
+func TestEverythingWorks(_ *testing.T) {}
 
 func TestOnlyTestMethodsResolved(t *testing.T) {
 	ts := new(testingTestSuite)

@@ -31,7 +31,7 @@ func NewCustomCloud(regions []*CustomRegion) *CustomCloud {
 }
 
 // Regions converts the underlying region list into Regions
-func (cc *CustomCloud) Regions(ctx context.Context) Regions {
+func (cc *CustomCloud) Regions(_ context.Context) Regions {
 	regions := make([]region, len(cc.regions))
 	for i, r := range cc.regions {
 		regions[i] = region{

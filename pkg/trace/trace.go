@@ -120,7 +120,7 @@ func StartTracing(serviceName string) error {
 //
 // This needs to be called before sending any traces
 // otherwise they will not be published.
-func InitTracer(ctx context.Context, serviceName string) error {
+func InitTracer(_ context.Context, serviceName string) error {
 	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}

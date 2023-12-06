@@ -18,6 +18,6 @@ var _ CompressedReader = &bz2CompressedReader{}
 type bz2CompressedReader struct{}
 
 // Open returns a reader for a bz2 file
-func (g *bz2CompressedReader) Open(ctx context.Context, r io.Reader) (io.ReadCloser, error) {
+func (g *bz2CompressedReader) Open(_ context.Context, r io.Reader) (io.ReadCloser, error) {
 	return io.NopCloser(bzip2.NewReader(r)), nil
 }

@@ -183,8 +183,10 @@ func TestPriorityQueue_Contains(t *testing.T) {
 		testContain(items2, false, true)
 
 		// remove all items
+		//nolint:revive // Why: This is still doing something (albeit nothing...)
 		for queue1.Pop() != nil {
 		}
+		//nolint:revive // Why: This is still doing something (albeit nothing...)
 		for queue2.Pop() != nil {
 		}
 

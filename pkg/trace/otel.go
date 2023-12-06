@@ -400,6 +400,6 @@ func (t *otelTracer) spanID(ctx context.Context) string {
 
 // Deprecated: Will be removed with full migration to OpenTelemetry.
 // OpenTelemetry automatically handle adding parentID to traces
-func (t *otelTracer) parentID(ctx context.Context) string {
+func (t *otelTracer) parentID(_ context.Context) string {
 	return ""
 }
