@@ -99,6 +99,8 @@ func (s *forceTraceHeaderSampler) Description() string {
 
 // ShouldSample returns true if the context-based isTracingForced flag is enabled,
 // and delegates to its provided sampler otherwise.
+//
+//nolint:gocritic // Why: required by otel
 func (s *forceTraceHeaderSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
 	ctx := p.ParentContext
 	psc := trace.SpanContextFromContext(p.ParentContext)
@@ -152,7 +154,10 @@ func (s *honeycombDeterministicSampler) Description() string {
 
 // ShouldSample returns a "record and sample" decision with an appropriate
 // sample_rate entry in its tracestate if the traceID is sampled at the current
+//
 // sample rate, and a "drop" decision otherwise.
+//
+//nolint:gocritic // Why: required by otel
 func (s *honeycombDeterministicSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
 	psc := trace.SpanContextFromContext(p.ParentContext)
 
@@ -204,8 +209,11 @@ func (s *sampleRateTaggingSampler) Description() string {
 // ShouldSample returns "record and sample" if the parent span context is sampled
 // and "drop" otherwise.
 //
-// In the case where the parent span context is sampled, we also attach a sample
+// # In the case where the parent span context is sampled, we also attach a sample
+//
 // rate attribute to this span.  This hack is the main purrpose of this sampler.
+//
+//nolint:gocritic // Why: required by otel
 func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
 	psc := trace.SpanContextFromContext(p.ParentContext)
 	ts := psc.TraceState()
@@ -220,20 +228,22 @@ func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) s
 					sampleRateAttribute.Int(int(sampleRate)),
 				},
 			}
-		} else {
-			return sdktrace.SamplingResult{
-				Decision:   sdktrace.RecordAndSample,
-				Tracestate: ts,
-				Attributes: []attribute.KeyValue{
-					sampleRateAttribute.Int(int(s.defaultSampleRate)),
-				},
-			}
 		}
-	} else {
+
+		// Sampled but no "sample_rate" in the tracestate.
 		return sdktrace.SamplingResult{
-			Decision:   sdktrace.Drop,
+			Decision:   sdktrace.RecordAndSample,
 			Tracestate: ts,
+			Attributes: []attribute.KeyValue{
+				sampleRateAttribute.Int(int(s.defaultSampleRate)),
+			},
 		}
+	}
+
+	// Not sampled.
+	return sdktrace.SamplingResult{
+		Decision:   sdktrace.Drop,
+		Tracestate: ts,
 	}
 }
 
