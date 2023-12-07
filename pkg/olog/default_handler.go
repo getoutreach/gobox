@@ -6,9 +6,11 @@
 package olog
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"sync/atomic"
 
 	charmlog "github.com/charmbracelet/log"
@@ -25,6 +27,9 @@ var (
 	// defaultOut is the default output for the default handler. This is
 	// set to `os.Stderr` by default.
 	defaultOut io.Writer = os.Stderr
+
+	// mainModule is the module that the current binary was built in.
+	mainModule = debug.Module{}
 )
 
 // DefaultHandlerType denotes which handler should be used by default.
@@ -36,6 +41,18 @@ const (
 	JSONHandler DefaultHandlerType = iota
 	TextHandler
 )
+
+// determineMainModule uses the `debug.ReadBuildInfo` function to
+// determine the module that the current binary was built in.
+func determineMainModule() {
+	m, ok := debug.ReadBuildInfo()
+	if !ok {
+		//nolint:errorlint // Why: We can't wrap panic-d errors.
+		panic(fmt.Errorf("failed to read build info (must be built with GO111MODULE=on)"))
+	}
+
+	mainModule = m.Main
+}
 
 // determineDefaultHandler sets the default handler based on the current
 // environment. If the `defaultOut` is a TTY, then the default handler
@@ -57,12 +74,14 @@ func determineDefaultHandler() {
 	}
 }
 
-// init sets the default handler. See `determineDefaultHandler` for more
-// information.
+// init sets the default handler and determines the main (parent) module
+// of the current program. See `determineDefaultHandler` and
+// `detemineMainModule` for more information.
 //
 //nolint:gochecknoinits // Why: Initializes the default handler.
 func init() {
 	determineDefaultHandler()
+	determineMainModule()
 }
 
 // SetDefaultHandler changes the default handler to be the provided
@@ -90,8 +109,8 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 			// Order is important here, the first address that
 			// matches will be used. So, we start with the most granular
 			// address, the package name.
-			m.PackageName,
-			m.ModuleName,
+			m.PackagePath,
+			m.ModulePath,
 		}),
 	}
 
@@ -119,18 +138,26 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 		}
 
 		h = charmlog.NewWithOptions(defaultOut, charmlog.Options{
-			ReportCaller: opts.AddSource,
-			Level:        charmLogLevel,
+			ReportTimestamp: true,
+			TimeFormat:      "15:04:05",
+			ReportCaller:    opts.AddSource,
+			Level:           charmLogLevel,
 		})
 	default:
 		panic("unknown default handler")
+	}
+
+	// When running in the main module, we don't need to add any extra
+	// keys to the handler.
+	if mainModule.Path == m.ModulePath {
+		return h
 	}
 
 	// Return the handler with the default keys set.
 	// - module: the module that logged this message.
 	// - modulever: the version of the module that logged this message.
 	return h.WithAttrs([]slog.Attr{
-		{Key: "module", Value: slog.StringValue(m.ModuleName)},
+		{Key: "module", Value: slog.StringValue(m.ModulePath)},
 		{Key: "modulever", Value: slog.StringValue(m.ModuleVersion)},
 	})
 }

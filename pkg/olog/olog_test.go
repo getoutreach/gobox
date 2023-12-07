@@ -13,8 +13,8 @@ func TestLogLevelByModule(t *testing.T) {
 	lr := newRegistry()
 	logCapture := NewTestCapturer(t)
 
-	logger := NewWithHandler(createHandler(lr, &metadata{ModuleName: "testModuleName", PackageName: "testPackageName"}))
-	nullLogger := NewWithHandler(createHandler(lr, &metadata{ModuleName: "nullModuleName", PackageName: "nullPackageName"}))
+	logger := NewWithHandler(createHandler(lr, &metadata{ModulePath: "testModuleName", PackagePath: "testPackageName"}))
+	nullLogger := NewWithHandler(createHandler(lr, &metadata{ModulePath: "nullModuleName", PackagePath: "nullPackageName"}))
 
 	// Effectively disable logging for the null logger.
 	lr.Set(slog.Level(100), "nullModuleName")

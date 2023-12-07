@@ -60,18 +60,18 @@ func New() *slog.Logger {
 // This metadata always corresponds to whatever created the logger
 // through New().
 type metadata struct {
-	// ModuleName is the name of the module that created this logger.
+	// ModulePath is the path of the module that created this logger.
 	// Format: <module> (e.g., github.com/getoutreach/gobox)
-	ModuleName string
+	ModulePath string
 
 	// ModuleVersion is the version of the module that created this
 	// logger. See (callerInfo.CallerInfo).ModuleVersion for more
 	// information.
 	ModuleVersion string
 
-	// PackageName is the name of the package that created this logger.
+	// PackagePath is the path of the package that created this logger.
 	// Format: <moduleName>/<package>
-	PackageName string
+	PackagePath string
 }
 
 // getMetadata returns the moduleName, moduleVersion, and packageName
@@ -99,9 +99,9 @@ func getMetadata() (metadata, error) {
 	}
 
 	return metadata{
-		ModuleName:    ci.Module,
+		ModulePath:    ci.Module,
 		ModuleVersion: ci.ModuleVersion,
-		PackageName:   ci.Package,
+		PackagePath:   ci.Package,
 	}, nil
 }
 
