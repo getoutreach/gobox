@@ -1,7 +1,8 @@
-// Package olog implements a logger focused on providing strongly typed
-// logs focused around audit and compliance. Also included are
-// utilities to change logging level dynamically (without
-// re-compiling/restarting).
+// Package olog implements a lightweight logging library built around
+// the slog package. It aims to never mask the core slog.Logger type by
+// default. Provided is a global system for controlling logging levels
+// based on the package and module that a logger was created in, with a
+// system to update the logging level at runtime.
 //
 // This package does not provide the ability to ship logs to a remote
 // server, instead a logging collector should be used.
@@ -9,7 +10,6 @@ package olog
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 
 	"github.com/getoutreach/gobox/pkg/callerinfo"
@@ -29,8 +29,8 @@ func New() *slog.Logger {
 		panic(fmt.Errorf("failed to get information about what created the logger: %v", err))
 	}
 
-	handler := createHandler(globalLevelRegistry, defaultOut, &m)
-	return new(globalLevelRegistry, defaultOut, &m, handler)
+	handler := createHandler(globalLevelRegistry, &m)
+	return NewWithHandler(handler)
 }
 
 // metadata is metadata associated with every logger created by New().
@@ -82,15 +82,11 @@ func getMetadata() (metadata, error) {
 	}, nil
 }
 
-// new returns a new logger with the provided levelRegistry, io.Writer,
-// and metadata. This is used primarily useful for testing purposes.
+// NewWithHandler returns a new slog.Logger with the provided handler.
 //
-// h is optional and only should be provided by New().
-func new(lr *levelRegistry, out io.Writer, m *metadata, h slog.Handler) *slog.Logger {
-	if h == nil {
-		h = createHandler(lr, out, m)
-	}
-
-	return slog.New(h).
-		With("module", m.ModuleName, "modulever", m.ModuleVersion)
+// Note: A logger created with this function will not be controlled by
+// the global log level and will not have any of the features provided
+// by this package. This is primarily mean to be used only by tests.
+func NewWithHandler(h slog.Handler) *slog.Logger {
+	return slog.New(h)
 }

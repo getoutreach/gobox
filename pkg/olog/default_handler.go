@@ -24,7 +24,7 @@ var (
 
 	// defaultOut is the default output for the default handler. This is
 	// set to `os.Stderr` by default.
-	defaultOut = os.Stderr
+	defaultOut io.Writer = os.Stderr
 )
 
 // DefaultHandlerType denotes which handler should be used by default.
@@ -38,11 +38,19 @@ const (
 )
 
 // determineDefaultHandler sets the default handler based on the current
-// environment. If the `os.Stderr` is a TTY, then the default handler
+// environment. If the `defaultOut` is a TTY, then the default handler
 // is a `slog.TextHandler`. Otherwise, the default handler is the
 // `slog.JSONHandler`.
 func determineDefaultHandler() {
-	if term.IsTerminal(int(os.Stderr.Fd())) {
+	out, ok := defaultOut.(*os.File)
+	if !ok {
+		// If the default output is not a file, then we can't
+		// determine if it's a TTY or not. So, we default to JSON.
+		defaultHandler.Store(int32(JSONHandler))
+		return
+	}
+
+	if term.IsTerminal(int(out.Fd())) {
 		defaultHandler.Store(int32(TextHandler))
 	} else {
 		defaultHandler.Store(int32(JSONHandler))
@@ -65,9 +73,10 @@ func init() {
 // the provided moduleName and packageName as addresses for determining
 // the log level.
 //
-// `lr` should be `globalLevelRegistry` unless you are testing.
-// `out` should be defaultOut unless you are testing.
-func createHandler(lr *levelRegistry, out io.Writer, m *metadata) slog.Handler {
+// `lr` should be `globalLevelRegistry` unless you need to change the
+// log level for tests (in the olog package).
+func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
+	var h slog.Handler
 	opts := &slog.HandlerOptions{
 		AddSource: true,
 		Level: newLeveler(lr, []string{
@@ -81,7 +90,7 @@ func createHandler(lr *levelRegistry, out io.Writer, m *metadata) slog.Handler {
 
 	switch DefaultHandlerType(defaultHandler.Load()) {
 	case JSONHandler:
-		return slog.NewJSONHandler(out, opts)
+		h = slog.NewJSONHandler(defaultOut, opts)
 	case TextHandler:
 		// TODO(jaredallard): There's no support for slog.Leveler in the
 		// current charmbracelet/log implementation. So, we can't
@@ -102,11 +111,19 @@ func createHandler(lr *levelRegistry, out io.Writer, m *metadata) slog.Handler {
 			panic("unknown slog level")
 		}
 
-		return charmlog.NewWithOptions(out, charmlog.Options{
+		h = charmlog.NewWithOptions(defaultOut, charmlog.Options{
 			ReportCaller: opts.AddSource,
 			Level:        charmLogLevel,
 		})
 	default:
 		panic("unknown default handler")
 	}
+
+	// Return the handler with the default keys set.
+	// - module: the module that logged this message.
+	// - modulever: the version of the module that logged this message.
+	return h.WithAttrs([]slog.Attr{
+		{Key: "module", Value: slog.StringValue(m.ModuleName)},
+		{Key: "modulever", Value: slog.StringValue(m.ModuleVersion)},
+	})
 }
