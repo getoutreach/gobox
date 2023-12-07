@@ -39,6 +39,15 @@ import (
 func New() *slog.Logger {
 	m, err := getMetadata()
 	if err != nil {
+		// We panic here because we don't have an error return signature.
+		// The main reason for not having an error return signature is that
+		// we do not want the logger to be able to be used without the
+		// required metadata (otherwise log levels, attribution, etc. would
+		// not work). If we return an error, a caller would likely just
+		// return err to terminate their program anyways, and worst case
+		// they would continue without a valid logger which is also not a
+		// good scenario.
+		//
 		//nolint:errorlint // Why: We can't wrap panic-d errors.
 		panic(fmt.Errorf("failed to get information about what created the logger: %v", err))
 	}
