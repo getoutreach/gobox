@@ -23,7 +23,9 @@ type TestLogLine struct {
 	// Message is the message that was logged.
 	Message string
 
-	// Attrs is a map of attributes that were logged.
+	// Attrs is a map of attributes that were logged. This does not
+	// include the time or source attributes since they are generally not
+	// stable across runs.
 	Attrs map[string]any
 }
 
@@ -87,6 +89,9 @@ func (t *testLogCapturer) Write(p []byte) (n int, err error) {
 //
 // Note: This should only ever be used during tests and is not
 // thread-safe.
+//
+// Note (parallel tests): This will not work with parallel tests due to
+// the usage of globals in this package.
 //
 //nolint:revive // Why: We don't want this to be passed around.
 func NewTestCapturer(t *testing.T) *testLogCapturer {
