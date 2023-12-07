@@ -5,36 +5,18 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/undefinedlabs/go-mpatch"
-	"gotest.tools/v3/assert"
 )
-
-// fakeTime patches time.Now to return a fixed time. Automatically calls
-// t.Cleanup to unpatch time.Now.
-func fakeTime(t *testing.T) {
-	p, err := mpatch.PatchMethod(time.Now, func() time.Time {
-		return time.Date(2023, 10, 31, 00, 00, 00, 0, time.UTC)
-	})
-	assert.NilError(t, err, "failed to patch time")
-
-	t.Cleanup(func() {
-		assert.NilError(t, p.Unpatch(), "failed to unpatch time")
-	})
-}
 
 // TestLogLevelByModule ensures that the log-level is able to be
 // determined by the module name that a logger was created in.
 func TestLogLevelByModule(t *testing.T) {
-	fakeTime(t)
-
 	lr := newRegistry()
 	out := &bytes.Buffer{}
 
-	logger := newTestLogger(lr, out, "moduleNameGoesHere", "packageNameGoesHere")
-	nullLogger := newTestLogger(lr, out, "nullModuleName", "nullPackageName")
+	logger := new(lr, out, &metadata{ModuleName: "testModuleName", PackageName: "testPackageName"}, nil)
+	nullLogger := new(lr, out, &metadata{ModuleName: "nullModuleName", PackageName: "nullPackageName"}, nil)
 
 	// Effectively disable logging for the null logger.
 	lr.Set(slog.Level(100), "nullModuleName")

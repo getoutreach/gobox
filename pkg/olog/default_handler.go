@@ -11,6 +11,8 @@ import (
 	"os"
 	"sync/atomic"
 
+	charmlog "github.com/charmbracelet/log"
+
 	"golang.org/x/term"
 )
 
@@ -49,6 +51,8 @@ func determineDefaultHandler() {
 
 // init sets the default handler. See `determineDefaultHandler` for more
 // information.
+//
+//nolint:gochecknoinits // Why: Initializes the default handler.
 func init() {
 	determineDefaultHandler()
 }
@@ -63,22 +67,45 @@ func init() {
 //
 // `lr` should be `globalLevelRegistry` unless you are testing.
 // `out` should be defaultOut unless you are testing.
-func createHandler(lr *levelRegistry, out io.Writer, moduleName, packageName string) slog.Handler {
+func createHandler(lr *levelRegistry, out io.Writer, m *metadata) slog.Handler {
 	opts := &slog.HandlerOptions{
 		AddSource: true,
 		Level: newLeveler(lr, []string{
 			// Order is important here, the first address that
 			// matches will be used. So, we start with the most granular
 			// address, the package name.
-			packageName,
-			moduleName,
+			m.PackageName,
+			m.ModuleName,
 		}),
 	}
+
 	switch DefaultHandlerType(defaultHandler.Load()) {
 	case JSONHandler:
 		return slog.NewJSONHandler(out, opts)
 	case TextHandler:
-		return slog.NewTextHandler(out, opts)
+		// TODO(jaredallard): There's no support for slog.Leveler in the
+		// current charmbracelet/log implementation. So, we can't
+		// dynamically change the logging level yet.
+		//
+		// https://github.com/charmbracelet/log/issues/98
+		var charmLogLevel charmlog.Level
+		switch opts.Level.Level() {
+		case slog.LevelDebug:
+			charmLogLevel = charmlog.DebugLevel
+		case slog.LevelInfo:
+			charmLogLevel = charmlog.InfoLevel
+		case slog.LevelWarn:
+			charmLogLevel = charmlog.WarnLevel
+		case slog.LevelError:
+			charmLogLevel = charmlog.ErrorLevel
+		default:
+			panic("unknown slog level")
+		}
+
+		return charmlog.NewWithOptions(out, charmlog.Options{
+			ReportCaller: opts.AddSource,
+			Level:        charmLogLevel,
+		})
 	default:
 		panic("unknown default handler")
 	}
