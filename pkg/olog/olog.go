@@ -61,16 +61,16 @@ type metadata struct {
 	PackageName string
 }
 
-// getLoggerInformation returns the moduleName, moduleVersion, and
-// packageName for the caller of the New() function. This associates a
-// logger with the module and package that it was instantiated in.
+// getMetadata returns the moduleName, moduleVersion, and packageName
+// for the caller of the New() function. This associates a logger with
+// the module and package that it was instantiated in.
 func getMetadata() (metadata, error) {
 	var m metadata
 
 	// Skips are the number of functions we should skip when attempting to
 	// look up the caller information.
 	//
-	// 1: getLoggerInformation (this function)
+	// 1: getMetadata (this function)
 	// 2: New (the function that called this function)
 	skips := uint16(2)
 
@@ -96,7 +96,8 @@ func getMetadata() (metadata, error) {
 //
 // Note: A logger created with this function will not be controlled by
 // the global log level and will not have any of the features provided
-// by this package. This is primarily mean to be used only by tests.
+// by this package. This is primarily meant to be used only by tests or
+// other special cases.
 func NewWithHandler(h slog.Handler) *slog.Logger {
 	return slog.New(h)
 }
