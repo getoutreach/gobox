@@ -1,3 +1,7 @@
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements the public API for the olog package.
+
 // Package olog implements a lightweight logging library built around
 // the slog package. It aims to never mask the core slog.Logger type by
 // default. Provided is a global system for controlling logging levels
