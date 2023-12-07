@@ -22,6 +22,16 @@ import (
 // The logger will be automatically associated with the module and
 // package that it was instantiated in. This is done by looking at the
 // call stack.
+//
+// Note: As mentioned above, this logger is associated with the module
+// and package that created it. So, if you pass this logger to another
+// module or package, the association will NOT be changed. This
+// includes the caller metadata added to every log line as well as
+// log-level management. If a type has a common logging format that the
+// other module or package should use, then a slog.LogValuer should be
+// implemented on that type instead of passing a logger around. If
+// trying to set attributes the be logged by default, this is not
+// supported without retaining the original association.
 func New() *slog.Logger {
 	m, err := getMetadata()
 	if err != nil {
