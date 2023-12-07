@@ -66,7 +66,6 @@ func shuffleTests(tests []testing.InternalTest, t *testing.T) []testing.Internal
 		seed = *shuffleSeed
 	}
 	t.Logf("Shuffling tests using seed %d", seed)
-	rand.Seed(seed)
 
 	rand.Shuffle(len(tests), func(i, j int) {
 		tests[i], tests[j] = tests[j], tests[i]

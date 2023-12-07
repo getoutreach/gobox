@@ -23,9 +23,6 @@ func TestLogLevelByModule(t *testing.T) {
 	logger.Info("should appear")
 
 	// Verify the right messages were logged.
-	//
-	// TODO(jaredallard): This will have a helper to make it easier to
-	// work with.
 	expected := []TestLogLine{
 		{Message: "should appear", Level: slog.LevelInfo, Attrs: map[string]any{"module": "testModuleName", "modulever": ""}},
 	}
