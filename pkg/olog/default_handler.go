@@ -65,6 +65,13 @@ func init() {
 	determineDefaultHandler()
 }
 
+// SetDefaultHandler changes the default handler to be the provided
+// type. This must be called before any loggers are created to have an
+// effect on all loggers.
+func SetDefaultHandler(ht DefaultHandlerType) {
+	defaultHandler.Store(int32(ht))
+}
+
 // createHandler creates a new handler for usage with a slog.Logger. The
 // handler used is determined based on the current defaultHandler. The
 // handler is configured to add source information to all logs as well
