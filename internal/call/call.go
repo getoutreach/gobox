@@ -65,7 +65,7 @@ type Info struct {
 }
 
 // Start initializes info with the start time and some name.
-func (info *Info) Start(ctx context.Context, name string) {
+func (info *Info) Start(_ context.Context, name string) {
 	info.Name = name
 	if info.Kind == "" {
 		info.Kind = metrics.CallKindInternal
@@ -74,14 +74,14 @@ func (info *Info) Start(ctx context.Context, name string) {
 }
 
 // End records the finished time and updates durations.
-func (info *Info) End(ctx context.Context) {
+func (info *Info) End(_ context.Context) {
 	info.Times.Finished = time.Now()
 	info.Durations = *info.Times.Durations()
 }
 
 // ReportLatency reports the call latency via the metrics package based on the
 // call Kind.  If the Kind is not one of HTTP, GRPC or Outbound, it does nothing.
-func (info *Info) ReportLatency(ctx context.Context) {
+func (info *Info) ReportLatency(_ context.Context) {
 	var err error
 	if info.ErrInfo != nil {
 		err = info.ErrInfo.RawError
@@ -101,7 +101,7 @@ func (info *Info) ReportLatency(ctx context.Context) {
 }
 
 // AddArgs appends the provided logf.Marshalers to the Args slice.
-func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
+func (info *Info) AddArgs(_ context.Context, args ...logf.Marshaler) {
 	info.mu.Lock()
 	info.Args = append(info.Args, args...)
 	info.mu.Unlock()
@@ -111,7 +111,7 @@ func (info *Info) AddArgs(ctx context.Context, args ...logf.Marshaler) {
 // even if args are logf.Marshalers, but there might be some call.Options
 // this is done intentionally to preserve compatibility of StartCall API
 // and extend it with new functionality
-func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
+func (info *Info) ApplyOpts(_ context.Context, args ...logf.Marshaler) {
 	for _, a := range args {
 		if opt, ok := a.(Option); ok {
 			opt(info)
@@ -120,7 +120,7 @@ func (info *Info) ApplyOpts(ctx context.Context, args ...logf.Marshaler) {
 }
 
 // SetStatus updates the ErrInfo field based on the error.
-func (info *Info) SetStatus(ctx context.Context, err error) {
+func (info *Info) SetStatus(_ context.Context, err error) {
 	info.ErrInfo = events.NewErrorInfo(err)
 }
 

@@ -20,7 +20,7 @@ var _ CompressedReader = &xzCompressedReader{}
 type xzCompressedReader struct{}
 
 // Open returns a reader for a xz file
-func (x *xzCompressedReader) Open(ctx context.Context, r io.Reader) (io.ReadCloser, error) {
+func (x *xzCompressedReader) Open(_ context.Context, r io.Reader) (io.ReadCloser, error) {
 	xzr, err := xz.NewReader(bufio.NewReader(r))
 	if err != nil {
 		return nil, err

@@ -27,11 +27,11 @@ type Error struct {
 	Err error
 }
 
-func (e Error) Read(p []byte) (int, error) {
+func (e Error) Read(_ []byte) (int, error) {
 	return 0, e.Err
 }
 
-func (e Error) Write(p []byte) (int, error) {
+func (e Error) Write(_ []byte) (int, error) {
 	return 0, e.Err
 }
 

@@ -22,7 +22,7 @@ func TestClientDoesNotSendNoEvents(t *testing.T) {
 	client.Close()
 }
 
-func TestClientSilentlyFails(t *testing.T) {
+func TestClientSilentlyFails(_ *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}))

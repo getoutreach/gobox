@@ -24,7 +24,7 @@ type TestConfig struct {
 }
 
 // LoadTestConfig returns a new Config type that has been loaded in accordance to the environment
-func LoadTestConfig(ctx context.Context, input TestConfig) (*TestConfig, error) {
+func LoadTestConfig(_ context.Context, input TestConfig) (*TestConfig, error) {
 	c := TestConfig{
 		ListenHost: input.ListenHost,
 		HTTPPort:   input.HTTPPort,

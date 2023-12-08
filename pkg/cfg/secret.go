@@ -54,7 +54,7 @@ func (s SecretData) GoString() string {
 }
 
 // Format implements fmt.Formatter
-func (s SecretData) Format(f fmt.State, c rune) {
+func (s SecretData) Format(f fmt.State, _ rune) {
 	if _, err := f.Write([]byte("redacted")); err != nil {
 		panic(err)
 	}

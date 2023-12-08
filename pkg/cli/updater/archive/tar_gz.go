@@ -18,6 +18,6 @@ var _ CompressedReader = &gzipCompressedReader{}
 type gzipCompressedReader struct{}
 
 // Open returns a reader for a gzipped file
-func (g *gzipCompressedReader) Open(ctx context.Context, r io.Reader) (io.ReadCloser, error) {
+func (g *gzipCompressedReader) Open(_ context.Context, r io.Reader) (io.ReadCloser, error) {
 	return gzip.NewReader(r)
 }

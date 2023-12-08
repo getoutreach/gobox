@@ -34,12 +34,12 @@ type logrLogger struct {
 
 // Init initializes the logger. The gobox logger doesn't need
 // to be intialized so this is a NOOP
-func (l *logrLogger) Init(ri logr.RuntimeInfo) {}
+func (l *logrLogger) Init(_ logr.RuntimeInfo) {}
 
 // Enabled returns if this logger is enabled or not. Because this
 // logger does not support different levels this function always
 // returns true.
-func (l *logrLogger) Enabled(level int) bool {
+func (l *logrLogger) Enabled(_ int) bool {
 	return true
 }
 
@@ -86,13 +86,13 @@ func (l *logrLogger) Error(err error, msg string, keysAndValues ...interface{}) 
 }
 
 // Info wraps log.Info()
-func (l *logrLogger) Info(level int, msg string, keysAndValues ...interface{}) {
+func (l *logrLogger) Info(_ int, msg string, keysAndValues ...interface{}) {
 	log.Info(l.ctx, msg, append(l.existingMarshalers, listToGoboxF(keysAndValues...))...)
 }
 
 // WithName sets the name of this logger. Gobox no-ops this because we only
 // support app.Name
-func (l *logrLogger) WithName(name string) logr.LogSink {
+func (l *logrLogger) WithName(_ string) logr.LogSink {
 	return l
 }
 

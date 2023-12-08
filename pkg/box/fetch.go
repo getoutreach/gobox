@@ -236,7 +236,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 // InitializeBox prompts the user for a box config location,
 // downloads it and then saves it to disk. In general EnsureBox
 // should be used over this function.
-func InitializeBox(ctx context.Context, defaults []string) error {
+func InitializeBox(ctx context.Context, _ []string) error {
 	gitRepo := ""
 
 	err := survey.AskOne(&survey.Input{
