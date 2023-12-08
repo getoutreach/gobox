@@ -30,8 +30,7 @@ const (
 
 // forceTracing turn on forceTracing starting with the next span
 func forceTracing(ctx context.Context) context.Context {
-	ctx = context.WithValue(ctx, forceTraceContextKey, true)
-	return ctx
+	return context.WithValue(ctx, forceTraceContextKey, true)
 }
 
 // isTracingForced returns true if the force-tracing context flag is set.
@@ -58,9 +57,11 @@ func defaultSampler(sampleRate uint) sdktrace.Sampler {
 		// new, non-remote trace: use HC deterministic sampler.
 		NewHoneycombDeterministicSampler(sampleRate),
 
-		// Assume our parent uses the same sample rate that we do.  It's
-		// an odd assumption, but it's the better options aren't fully
-		// standardized yet.
+		// Assume the calling service that initiated this trace used the
+		// sampling rate that we're set to use.  We do not have a
+		// standard way to pass this information through the trace
+		// context so we make an educated guess.  Our services tend to
+		// sample at the same rate, to this mostly works.
 		sdktrace.WithRemoteParentSampled(NewSampleRateTaggingSampler(sampleRate)),
 
 		// This hack takes our propagated "sample_rate", probably
@@ -132,7 +133,7 @@ func (s *forceTraceHeaderSampler) ShouldSample(p sdktrace.SamplingParameters) sd
 func NewHoneycombDeterministicSampler(sampleRate uint) sdktrace.Sampler {
 	sampler, err := sample.NewDeterministicSampler(sampleRate)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to create deterministic sampler: %w", err))
 	}
 	return &honeycombDeterministicSampler{
 		sampler:    sampler,
@@ -209,8 +210,7 @@ func (s *sampleRateTaggingSampler) Description() string {
 // ShouldSample returns "record and sample" if the parent span context is sampled
 // and "drop" otherwise.
 //
-// # In the case where the parent span context is sampled, we also attach a sample
-//
+// In the case where the parent span context is sampled, we also attach a sample
 // rate attribute to this span.  This hack is the main purrpose of this sampler.
 //
 //nolint:gocritic // Why: required by otel
@@ -265,7 +265,7 @@ func SetTraceStateSampleRate(ts trace.TraceState, sampleRate uint) trace.TraceSt
 	updated, err := ts.Insert(sampleRateKey, fmt.Sprintf("%d", sampleRate))
 	if err != nil {
 		// This really shouldn't happen.
-		log.Warn(context.TODO(), "failed to insert sample rate into tracestate", events.NewErrorInfo(err))
+		log.Warn(context.Background(), "failed to insert sample rate into tracestate", events.NewErrorInfo(err))
 		return ts
 	}
 	return updated
