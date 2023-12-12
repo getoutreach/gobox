@@ -314,6 +314,19 @@ func TestReportLatencyMetrics(t *testing.T) {
 			"type":         "HISTOGRAM",
 		},
 	}
+	// This test was observed to be flaky in
+	// https://github.com/getoutreach/gobox/pull/417.
+	//
+	// For some reason the spacing between bucket labels can be one space
+	// or two depending on how/when that `getMetricsInfo` method is called.
+	// I'm pretty sure I've seen the behavior change as I added print
+	// statements to help debug.
+	//
+	// This seems to be purely a formatting issue.  Everything that seems
+	// like it would affect real-world correctness seems fine.  We adjusted
+	// the spacing and moved on.
+	//
+	// If this has now come back to bite you, I'm sorry.
 	if diff := cmp.Diff(expectedMetrics, metricsInfo); diff != "" {
 		fmt.Println(metricsInfo[0]["label"])
 		t.Fatal("unexpected metrics entries", diff)
