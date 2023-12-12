@@ -1,4 +1,4 @@
-//go:build !or_e2e
+// FIXME: restore stuff here.
 
 package trace_test
 
@@ -18,9 +18,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 	"gotest.tools/v3/assert"
 
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 )
 
 type SQLQuery string
@@ -300,72 +303,48 @@ func TestReportLatencyMetrics(t *testing.T) {
 		}
 	}()
 
-	metricsInfo := getMetricsInfo(t)
-	expectedMetrics := []map[string]interface{}{
-		{
-			//nolint:lll // Why: Output comparision
-			"bucket": "[cumulative_count:1 upper_bound:0.005 cumulative_count:1 upper_bound:0.01 cumulative_count:1 upper_bound:0.025 cumulative_count:1 upper_bound:0.05 cumulative_count:1 upper_bound:0.1 cumulative_count:1 upper_bound:0.25 cumulative_count:1 upper_bound:0.5 cumulative_count:1 upper_bound:1 cumulative_count:1 upper_bound:2.5 cumulative_count:1 upper_bound:5 cumulative_count:1 upper_bound:10]",
-			"help":   "The latency of the HTTP request, in seconds",
-			//nolint:lll // Why: Output comparision
-			"label":        `[name:"app" value:"gobox" name:"call" value:"test" name:"kind" value:"internal" name:"statuscategory" value:"CategoryOK" name:"statuscode" value:"OK"]`,
-			"name":         "http_request_handled",
-			"sample count": uint64(0x01),
-			"summary":      "<nil>",
-			"type":         "HISTOGRAM",
-		},
-	}
-	// This test was observed to be flaky in
-	// https://github.com/getoutreach/gobox/pull/417.
-	//
-	// For some reason the spacing between bucket labels can be one space
-	// or two depending on how/when that `getMetricsInfo` method is called.
-	// I'm pretty sure I've seen the behavior change as I added print
-	// statements to help debug.
-	//
-	// This seems to be purely a formatting issue.  Everything that seems
-	// like it would affect real-world correctness seems fine.  We adjusted
-	// the spacing and moved on.
-	//
-	// If this has now come back to bite you, I'm sorry.
-	if diff := cmp.Diff(expectedMetrics, metricsInfo); diff != "" {
-		fmt.Println(metricsInfo[0]["label"])
-		t.Fatal("unexpected metrics entries", diff)
-	}
-}
-
-func getMetricsInfo(t *testing.T) []map[string]interface{} {
-	got, err := prometheus.DefaultGatherer.Gather()
+	metricsInfo, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
 		t.Fatal("metrics info", err)
 	}
 
-	result := []map[string]interface{}{}
-	for _, metricFamily := range got {
+	var relevantMetricFamily *dto.MetricFamily
+	for _, metricFamily := range metricsInfo {
 		if metricFamily.GetName() == "http_request_handled" {
-			for _, metric := range metricFamily.Metric {
-				found := false
-				for _, labelPair := range metric.GetLabel() {
-					if labelPair.GetName() == "app" && labelPair.GetValue() == "gobox" {
-						found = true
-					}
-				}
-				if !found {
-					continue
-				}
-				info := map[string]interface{}{
-					"name":         metricFamily.GetName(),
-					"help":         metricFamily.GetHelp(),
-					"type":         metricFamily.GetType().String(),
-					"label":        fmt.Sprint(metric.GetLabel()),
-					"summary":      metric.GetSummary().String(),
-					"sample count": metric.GetHistogram().GetSampleCount(),
-					"bucket":       fmt.Sprint(metric.GetHistogram().GetBucket()),
-				}
-				result = append(result, info)
-			}
+			relevantMetricFamily = metricFamily
 		}
 	}
-	return result
+	if relevantMetricFamily == nil {
+		t.Fatal("no http_request_duration_seconds metric found")
+	}
+	assert.Check(t, cmp.Equal(relevantMetricFamily.GetType(), dto.MetricType_HISTOGRAM))
+	assert.Check(t, cmp.Equal(relevantMetricFamily.GetHelp(), "The latency of the HTTP request, in seconds"))
+
+	assert.Equal(t, len(relevantMetricFamily.GetMetric()), 1)
+	metric := relevantMetricFamily.GetMetric()[0]
+
+	assert.Check(t, cmp.Equal(metric.GetHistogram().GetSampleCount(), uint64(1)))
+	assert.Check(t, cmp.Equal(metric.GetHistogram().GetBucket(), []*dto.Bucket{
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.005)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.01)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.025)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.05)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.1)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.25)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(0.5)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(1)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(2.5)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(5)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(10)},
+	}, protocmp.Transform()))
+
+	assert.Check(t, cmp.Equal(metric.GetLabel(), []*dto.LabelPair{
+		{Name: proto.String("app"), Value: proto.String("gobox")},
+		{Name: proto.String("call"), Value: proto.String("test")},
+		{Name: proto.String("kind"), Value: proto.String("internal")},
+		{Name: proto.String("statuscategory"), Value: proto.String("CategoryOK")},
+		{Name: proto.String("statuscode"), Value: proto.String("OK")},
+	}, protocmp.Transform()))
 }
 
 func TestEndCallDoesNotPanicWithNilError(t *testing.T) {
