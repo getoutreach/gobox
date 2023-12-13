@@ -12,7 +12,7 @@ require (
 	github.com/fatih/color v1.16.0
 	github.com/fynelabs/selfupdate v0.2.0
 	github.com/go-git/go-billy/v5 v5.5.0
-	github.com/go-git/go-git/v5 v5.10.1
+	github.com/go-git/go-git/v5 v5.11.0
 	github.com/go-logr/logr v1.3.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v57 v57.0.0
