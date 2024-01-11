@@ -10,6 +10,9 @@ import (
 // TestLogLevelByModule ensures that the log-level is able to be
 // determined by the module name that a logger was created in.
 func TestLogLevelByModule(t *testing.T) {
+	// Force JSON handler for valid unmarshaling used in the TestCapturer
+	SetDefaultHandler(JSONHandler)
+
 	lr := newRegistry()
 	logCapture := NewTestCapturer(t)
 
