@@ -182,6 +182,33 @@ func logEveryLevel(ctx context.Context) {
 
 ```
 
+**Changing the Default Handler Type**
+
+```go
+import (
+    "log/slog"
+
+    "github.com/getoutreach/gobox/pkg/olog"
+)
+
+var logger *slog.Logger
+
+func init() {
+    // The olog package comes with 2 different handler
+    // options out of the box: JSON and TEXT. By default,
+    // the JSON handler is used for all loggers, unless
+    // stdOut is a TTY (local execution environment).
+    // But this can be manually changed using the following
+    // func in the olog package:
+    olog.SetDefaultHandler(olog.TextHandler)
+
+    // Set the package level logger using the new default
+    // handler type.
+    logger := olog.New()
+}
+
+```
+
 ## func [New](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L39>)
 
 ```go
