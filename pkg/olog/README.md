@@ -4,7 +4,7 @@
 import "github/getoutreach/gobox/pkg/olog"
 ```
 
-Package olog implements a lightweight logging library built around the slog package. It aims to never mask the core slog.Logger type by default. Provided is a global system for controlling logging levels based on the package and module that a logger was created in, with a system to update the logging level at runtime.
+Package olog implements a lightweight logging library built around the [`slog`](https://pkg.go.dev/log/slog) package. It aims to never mask the core slog.Logger type by default. Provided is a global system for controlling logging levels based on the package and module that a logger was created in, with a system to update the logging level at runtime.
 
 This package does not provide the ability to ship logs to a remote server, instead a logging collector should be used.
 
