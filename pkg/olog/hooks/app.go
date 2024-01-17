@@ -14,6 +14,7 @@ import (
 
 // AppInfo provides a log hook which extracts and returns the gobox/pkg/app.Data
 // as a nested attribute on log record.
+// nolint:gocritic // Why: this signature is inline with the slog pkg handler interface
 func AppInfo(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
 	info := app.Info()
 	if info == nil {
