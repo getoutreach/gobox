@@ -3,7 +3,7 @@
 // Description: Implements a hook based pattern for automatically
 // adding data to logs before the record is written.
 
-// Package olog/hooks implements a lightweight hooks interface for
+// Package hooks implements a lightweight hooks interface for
 // creating olog/slog compliant loggers. This package builds around
 // the log handler and logger already built and used by the olog
 // package, but wraps the underlying handler such that it can accept
