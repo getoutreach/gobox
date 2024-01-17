@@ -7,6 +7,7 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -196,4 +197,29 @@ func (d *Data) MarshalLog(addField func(key string, v interface{})) {
 	if d.Namespace != "" {
 		addField("deployment.namespace", d.Namespace)
 	}
+}
+
+// LogValue implements the log/slog package's LogValuer interface (found
+// here: https://pkg.go.dev/log/slog#LogValuer). Returns a subset of the
+// App.Info data as a map.
+func (d *Data) LogValue() slog.Value {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	attrs := make(map[string]string, 4)
+
+	// App prefixes are removed as AppInfo func nests data under app key
+	// already.
+	if d.Name != "unknown" {
+		attrs["name"] = d.Name
+		attrs["service_name"] = d.Name
+	}
+	if d.Version != "" {
+		attrs["version"] = d.Version
+	}
+	if d.Namespace != "" {
+		attrs["deployment.namespace"] = d.Namespace
+	}
+
+	return slog.AnyValue(attrs)
 }
