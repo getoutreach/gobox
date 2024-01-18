@@ -21,5 +21,10 @@ func AppInfo(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
 		return []slog.Attr{}, nil
 	}
 
-	return []slog.Attr{slog.Any("app", info)}, nil
+	return []slog.Attr{
+		// Manually assign the LogValue to an attribute. The slog.Group
+		// func doesn't really take an already existing GroupValue as
+		// Values are more meant to be used directly in log calls.
+		{Key: "app", Value: info.LogValue()},
+	}, nil
 }

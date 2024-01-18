@@ -206,20 +206,20 @@ func (d *Data) LogValue() slog.Value {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	attrs := make(map[string]string, 4)
+	attrs := make([]slog.Attr, 0, 4)
 
 	// App prefixes are removed as AppInfo func nests data under app key
 	// already.
 	if d.Name != "unknown" {
-		attrs["name"] = d.Name
-		attrs["service_name"] = d.Name
+		attrs = append(attrs, slog.String("name", d.Name))
+		attrs = append(attrs, slog.String("service_name", d.Name))
 	}
 	if d.Version != "" {
-		attrs["version"] = d.Version
+		attrs = append(attrs, slog.String("version", d.Version))
 	}
 	if d.Namespace != "" {
-		attrs["deployment.namespace"] = d.Namespace
+		attrs = append(attrs, slog.String("deployment.namespace", d.Namespace))
 	}
 
-	return slog.AnyValue(attrs)
+	return slog.GroupValue(attrs...)
 }
