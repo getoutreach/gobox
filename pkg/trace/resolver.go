@@ -26,7 +26,7 @@ func ResolvedLogging(logging InfoLoggingResolved) log.Marshaler {
 		return nil
 	}
 	if logging == InfoLoggingEnabled {
-		return WithInfoLoggingDisabled()
+		return WithInfoLoggingEnabled()
 	}
 	return WithInfoLoggingDisabled()
 }
