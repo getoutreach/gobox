@@ -11,6 +11,7 @@ This package does not provide the ability to ship logs to a remote server, inste
 ## Index
 
 - [Usage](<#usage>)
+- [Migrating from gobox/pkg/log](<#migrating-from-goboxpkglog>)
 - [func New() *slog.Logger](<#func-new>)
 - [func NewWithHandler(h slog.Handler) *slog.Logger](<#func-newwithhandler>)
 - [func SetDefaultHandler(ht DefaultHandlerType)](<#func-setdefaulthandler>)
@@ -207,6 +208,77 @@ func init() {
     logger := olog.New()
 }
 
+```
+
+## Migrating from `gobox/pkg/log`
+
+**Example using `gobox/pkg/log`** - *old*
+
+```go
+import (
+    "context"
+
+    "github.com/getoutreach/gobox/pkg/log"
+)
+
+// Create a type which can be passed directly as a value to
+// the logger.
+type Thing struct {
+    Type string
+    Name string
+}
+
+// MarshalLog adds the Thing's type and name fields as fields
+// on the log via the provided func. Added fields will appear
+// flat with the rest of the log data.
+func (t Thing) MarshalLog(addField func(key string, value interface{})) {
+    addField("type", t.Type)
+    addField("name", t.Name)
+}
+
+func doSomething(ctx context.Context, t *Thing) {
+    log.Info(ctx, "doing the thing", t)
+}
+```
+
+**Example using `gobox/pkg/olog`** - *new*
+
+```go
+import (
+    "context"
+    "log/slog"
+
+    "github.com/getoutreach/gobox/pkg/olog"
+)
+
+var logger *slog.Logger = olog.New()
+
+// Create a type which can be passed directly as a value to
+// the logger.
+type Thing struct {
+    Type string
+    Name string
+}
+
+// LogValue returns the Thing's fields as grouped attributes
+// to the logger, adding them onto the log as attributes. The
+// key is determined when added to the logger in the log call.
+// In this case, a group is used which will nest the data as an
+// object on the log record under the key provided on the log
+// call. A single value could also be used, see more about the
+// slog values here: https://pkg.go.dev/log/slog#LogValuer
+func (t Thing) LogValue() slog.Value {
+    return slog.GroupValue(
+        slog.String("type", t.Type),
+        slog.String("name", t.Name),
+    )
+}
+
+func doSomething(ctx context.Context, t *Thing) {
+    logger.InfoContext(ctx, "doing the thing", "thing", t)
+    // OR
+    logger.InfoContext(ctx, "doing the thing", slog.Attr{Key: "thing", Value: t})
+}
 ```
 
 ## func [New](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L39>)
