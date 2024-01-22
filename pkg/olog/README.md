@@ -276,8 +276,6 @@ func (t Thing) LogValue() slog.Value {
 
 func doSomething(ctx context.Context, t *Thing) {
     logger.InfoContext(ctx, "doing the thing", "thing", t)
-    // OR
-    logger.InfoContext(ctx, "doing the thing", slog.Attr{Key: "thing", Value: t})
 }
 ```
 
