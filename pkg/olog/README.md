@@ -11,6 +11,8 @@ This package does not provide the ability to ship logs to a remote server, inste
 ## Index
 
 - [Usage](<#usage>)
+- [Migrating from gobox/pkg/log](<#migrating-from-goboxpkglog>)
+- [Logger Hooks](<#logger-hooks>)
 - [func New() *slog.Logger](<#func-new>)
 - [func NewWithHandler(h slog.Handler) *slog.Logger](<#func-newwithhandler>)
 - [func SetDefaultHandler(ht DefaultHandlerType)](<#func-setdefaulthandler>)
@@ -209,6 +211,75 @@ func init() {
 
 ```
 
+## Migrating from `gobox/pkg/log`
+
+**Example using `gobox/pkg/log`** - *old*
+
+```go
+import (
+    "context"
+
+    "github.com/getoutreach/gobox/pkg/log"
+)
+
+// Create a type which can be passed directly as a value to
+// the logger.
+type Thing struct {
+    Type string
+    Name string
+}
+
+// MarshalLog adds the Thing's type and name fields as fields
+// on the log via the provided func. Added fields will appear
+// flat with the rest of the log data.
+func (t Thing) MarshalLog(addField func(key string, value interface{})) {
+    addField("type", t.Type)
+    addField("name", t.Name)
+}
+
+func doSomething(ctx context.Context, t *Thing) {
+    log.Info(ctx, "doing the thing", t)
+}
+```
+
+**Example using `gobox/pkg/olog`** - *new*
+
+```go
+import (
+    "context"
+    "log/slog"
+
+    "github.com/getoutreach/gobox/pkg/olog"
+)
+
+var logger *slog.Logger = olog.New()
+
+// Create a type which can be passed directly as a value to
+// the logger.
+type Thing struct {
+    Type string
+    Name string
+}
+
+// LogValue returns the Thing's fields as grouped attributes
+// to the logger, adding them onto the log as attributes. The
+// key is determined when added to the logger in the log call.
+// In this case, a group is used which will nest the data as an
+// object on the log record under the key provided on the log
+// call. A single value could also be used, see more about the
+// slog values here: https://pkg.go.dev/log/slog#LogValuer
+func (t Thing) LogValue() slog.Value {
+    return slog.GroupValue(
+        slog.String("type", t.Type),
+        slog.String("name", t.Name),
+    )
+}
+
+func doSomething(ctx context.Context, t *Thing) {
+    logger.InfoContext(ctx, "doing the thing", "thing", t)
+}
+```
+
 ## Logger Hooks
 
 To provide a mechanism with which to automatically add attributes to all logs (with access to context), a sub-package named `olog/hooks` has been provided. This package exposes a new `Logger` func which wraps the handler provided by the `olog` package and allows for hook functions to be provided by the caller which may return any number of `slog` attributes which will then be added to the final log record before it is written.
@@ -246,9 +317,7 @@ func New() *slog.Logger
 ```
 
 New creates a new slog instance that can be used for logging. The provided logger use the global handler provided by this package. See the documentation on the 'handler' global for more information.
-
 The logger will be automatically associated with the module and package that it was instantiated in. This is done by looking at the call stack.
-
 Note: As mentioned above, this logger is associated with the module and package that created it. So, if you pass this logger to another module or package, the association will NOT be changed. This includes the caller metadata added to every log line as well as log\-level management. If a type has a common logging format that the other module or package should use, then a slog.LogValuer should be implemented on that type instead of passing a logger around. If trying to set attributes the be logged by default, this is not supported without retaining the original association.
 
 ## func [NewWithHandler](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L114>)
@@ -258,7 +327,6 @@ func NewWithHandler(h slog.Handler) *slog.Logger
 ```
 
 NewWithHandler returns a new slog.Logger with the provided handler.
-
 Note: A logger created with this function will not be controlled by the global log level and will not have any of the features provided by this package. This is primarily meant to be used only by tests or other special cases.
 
 ## func [SetDefaultHandler](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/default_handler.go#L90>)
