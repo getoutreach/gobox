@@ -282,14 +282,15 @@ func doSomething(ctx context.Context, t *Thing) {
 
 ## Logger Hooks
 
-To provide a mechanism with which to automatically add attributes to all logs (with access to context), a sub-package named `olog/hooks` has been provided. This package exposes a new `Logger` func which wraps the handler provided by the `olog` package and allows for hook functions to be provided by the caller which may return any number of `slog` attributes which will then be added to the final log record before it is written.
+To provide a mechanism with which to automatically add attributes to all logs (with access to context), loggers can also be created with hook functions. This package exposes a `NewWithHooks` func which wraps the default olog handler and allows for hook functions to be provided by the caller. These hooks funcs may return any number of `slog` attributes which will then be added to the final log record before it is written.
 
 ```go
 import (
     "context"
     "log/slog"
 
-    "github.com/getoutreach/gobox/pkg/olog/hooks"
+    "github.com/getoutreach/gobox/pkg/app"
+    "github.com/getoutreach/gobox/pkg/olog"
     "github.com/getoutreach/gobox/pkg/trace"
 )
 
@@ -297,14 +298,14 @@ var logger *slog.Logger
 
 func init() {
     // Create custom hook func
-    traceHook := hooks.LogHookFunc(func(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
+    traceHook := olog.LogHookFunc(func(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
         return []slog.Attr{slog.String("traceId", trace.ID(ctx))}, nil
     })
 
     // Create a hooks logger with the provided AppInfo hook as well as
     // the custom traceHook, assigning to our package logger instance.
-    logger = hooks.Logger(
-        hooks.AppInfo,
+    logger = olog.NewWithHooks(
+        app.LogHook,
         traceHook,
     )
 }

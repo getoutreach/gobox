@@ -6,6 +6,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -222,4 +223,21 @@ func (d *Data) LogValue() slog.Value {
 	}
 
 	return slog.GroupValue(attrs...)
+}
+
+// LogHook provides an olog compatible hook func which extracts and returns
+// the app Data as a nested attribute on log record.
+// nolint:gocritic // Why: this signature is inline with the olog pkg hook type
+func LogHook(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
+	info := Info()
+	if info == nil {
+		return []slog.Attr{}, nil
+	}
+
+	return []slog.Attr{
+		// Manually assign the LogValue to an attribute. The slog.Group
+		// func doesn't really take an already existing GroupValue as
+		// Values are more meant to be used directly in log calls.
+		{Key: "app", Value: info.LogValue()},
+	}, nil
 }
