@@ -38,7 +38,7 @@ type AWSConfig struct {
 	// with AWS.
 	DefaultProfile string `yaml:"defaultProfile"`
 
-	// AccountId is the default Account ID to use when communicating
+	// DefaultAccountID is the default Account ID to use when communicating
 	// with AWS.
 	DefaultAccountID string `yaml:"defaultAccountID"`
 
