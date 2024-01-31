@@ -40,7 +40,7 @@ type AWSConfig struct {
 
 	// AccountId is the default Account ID to use when communicating
 	// with AWS.
-	DefaultAccountID string `yaml:"defaultAccountId"`
+	DefaultAccountID string `yaml:"defaultAccountID"`
 
 	// RefreshMethod is the CLI used to refresh AWS credentials.
 	// Known values:
