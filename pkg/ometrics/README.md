@@ -4,7 +4,7 @@
 import "github/getoutreach/gobox/pkg/ometrics"
 ```
 
-Package ometrics implements a small wrapper around working with the otel metrics package. It does not provide any wrappers around the core types provided by otel, instead provides a way to instantiate them instead.
+Package ometrics implements a small wrapper around working with the OpenTelemetry (otel) metrics package. It does not provide any wrappers around the core types provided by otel, but instead provides a way to instantiate them.
 
 ## Index
 
@@ -19,11 +19,11 @@ Package ometrics implements a small wrapper around working with the otel metrics
 
 ## Usage
 
-**Initialize Metrics Exporter**
+### Initialize metrics exporter
 
-In order to ensure the correct provider is used to export the open-telemtry metrics, it is required to call the `gobox/pkg/ometrics` func `InitializeMeterProvider(...)` with the expected provider type as well as any other relevant options. Currently, this package only has support for `prometheus` and `otlp` (open-telemetry collector) exporter providers. Furthermore, the `prometheus` provider type is the only type which will be referenced throughout these docs, as it will provide the closest examples to current metric usage.
+In order to ensure the correct provider is used to export the open-telemetry metrics, it is required to call the `gobox/pkg/ometrics` func `InitializeMeterProvider(...)` with the expected provider type as well as any other relevant options. Currently, this package only has support for `prometheus` and `otlp` (open-telemetry collector) exporter providers. Furthermore, the `prometheus` provider type is the only type which will be referenced throughout these docs, as it will provide the closest examples to current metric usage.
 
-The below code demonstrates how to initialize the `prometheus` provider using this package, which only needs to be done once, ideally in some service setup file *(main.go, internal/[serviceName]/server.go, etc...)*. Likely this will be added to a stencil template in the future, but will need to be added manually for now.
+The below code demonstrates how to initialize the `prometheus` provider using this package, which only needs to be done once, ideally in some service setup file *(`main.go`, `internal/[serviceName]/server.go`, etc.)* Likely this will be added to a stencil template in the future, but will need to be added manually for now.
 
 ```go
 // main.go
@@ -45,13 +45,15 @@ func main() {
 }
 ```
 
-*IMPORTANT* - While this function will initialize the default, global provider for the open-telemetry package, it will not automatically create or expose an http handler for consuming these metrics. This will still need to be done by the caller. However, as long as your service is using the golang stencil template, this should be provided for you through the `github.com/getoutreach/httpx` package. If your service is not using the template, then you will likely still need to create and configure an http endpoint for your metrics to be consumed through.
+> [!IMPORTANT]
+> While this function will initialize the default, global provider for the open-telemetry package, it will not automatically create or expose an HTTP handler for consuming these metrics. This will still need to be done by the caller. However, as long as your service is using the `stencil-golang` module, this should be provided for you through the `github.com/getoutreach/httpx` package. If your service is not using the template, then you will likely still need to create and configure an HTTP endpoint for your metrics to be consumed through.
 
-**Setup Package Level Meter** *- recommended usage*
+### Setup package level meter (_recommended usage_)
 
 In order to setup instruments on which metrics may be recorded, a meter is first required. A meter ties the instrumented recordings to a scope and finally to the configured provider which will handle the exporting of those recorded metrics. An important note here is that these meters are intended to be **scoped**. According to the open-telemetry documentation, a meter should be scoped to a package. Because of this, it is expected by convention to use the package name of the calling code for this meter. See docs here: https://pkg.go.dev/go.opentelemetry.io/otel/metric#MeterProvider. *(The scope name from the meter simply gets added as an attribute on prometheus observations).*
 
-*IMPORTANT* - Using the open-telemetry package's global `Meter` func will use whichever provider is currently configured, and the resulting meter will be tied to that provider. Because of this, it is important that you have called the `ometrics.InitializeMeterProvider` before creating any meters.
+> [!IMPORTANT]
+> Using the open-telemetry package's global `Meter` func will use whichever provider is currently configured, and the resulting meter will be tied to that provider. Because of this, it is important that you have called the `ometrics.InitializeMeterProvider` before creating any meters.
 
 ```go
 import (
@@ -79,7 +81,7 @@ func createPackageMeter() {
 }
 ```
 
-**Creating an Instrument**
+### Creating an instrument
 
 ```go
 import (
@@ -121,7 +123,7 @@ func initMetrics() {
 }
 ```
 
-**Recording a Value using an Instrument**
+### Recording a value using an instrument
 
 This example usage uses the previous section as the implied setup for this usage.
 
@@ -150,13 +152,13 @@ func exampleFunc(ctx context.Context, req interface{}) error {
 
 ### Further Reading
 
-These docs provide high level usage examples, and specific information about the usage of otel with this package. However, most metrics instrumentation will ultimately be done directly using the golang otel package. In order to get a full understanding of the available instruments and their usage, feel free to check out their docs here: https://pkg.go.dev/go.opentelemetry.io/otel/metric.
+These docs provide high level usage examples, and specific information about the usage of otel with this package. However, most metrics instrumentation will ultimately be done directly using the Golang `otel` package. To get a full understanding of the available instruments and their usage, check out the docs: https://pkg.go.dev/go.opentelemetry.io/otel/metric.
 
 ## Migrating from `gobox/pkg/metrics`
 
-Today, the current `metrics` package only exposes a small set of functionality, primarily creating a few basic http/grpc histograms. However, most code outside of the `github.com/getoutreach/httpx` package do not seem to use the `metrics` package directly (though all services using stencil should likely be using the httpx package's default metrics, if applicable). Most seem to use the prometheus libraries directly. Fortunately, the open-telemetry metrics package should allow for a progressive switch over to the new package, as both direct usage of prometheus as well as usage through open-telemetry can be done concurrently. New instruments can be created with open-telemetry package while old packages using the prometheus libraries directly can begin to gradually be moved over.
+Today, the current `metrics` package only exposes a small set of functionality, primarily creating a few basic http/grpc histograms. However, most code outside of the `github.com/getoutreach/httpx` package do not seem to use the `metrics` package directly (though all services using Stencil should likely be using the `httpx` package's default metrics, if applicable). Most seem to use the Prometheus libraries directly. Fortunately, the open-telemetry metrics package should allow for a progressive switch over to the new package, as both direct usage of Prometheus as well as usage through open-telemetry can be done concurrently. New instruments can be created with open-telemetry package while old packages using the Prometheus libraries directly can begin to gradually be moved over.
 
-Below is an example os using the new open-telemetry package using a common pattern found within our own code-bases.
+Below is an example of using the new open-telemetry package using a common pattern found within our own codebases.
 
 *new*
 
