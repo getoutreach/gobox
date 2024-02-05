@@ -20,17 +20,18 @@ func _() {
 	_ = x[NotImplemented-801]
 	_ = x[Unavailable-802]
 	_ = x[UnknownError-803]
+	_ = x[DeadlineExceeded-804]
 }
 
 const (
 	_StatusCode_name_0 = "OK"
 	_StatusCode_name_1 = "BadRequestUnauthorizedForbiddenNotFoundConflictRateLimitedClientConnectionSevered"
-	_StatusCode_name_2 = "InternalServerErrorNotImplementedUnavailableUnknownError"
+	_StatusCode_name_2 = "InternalServerErrorNotImplementedUnavailableUnknownErrorDeadlineExceeded"
 )
 
 var (
 	_StatusCode_index_1 = [...]uint8{0, 10, 22, 31, 39, 47, 58, 81}
-	_StatusCode_index_2 = [...]uint8{0, 19, 33, 44, 56}
+	_StatusCode_index_2 = [...]uint8{0, 19, 33, 44, 56, 72}
 )
 
 func (i StatusCode) String() string {
@@ -40,7 +41,7 @@ func (i StatusCode) String() string {
 	case 700 <= i && i <= 706:
 		i -= 700
 		return _StatusCode_name_1[_StatusCode_index_1[i]:_StatusCode_index_1[i+1]]
-	case 800 <= i && i <= 803:
+	case 800 <= i && i <= 804:
 		i -= 800
 		return _StatusCode_name_2[_StatusCode_index_2[i]:_StatusCode_index_2[i+1]]
 	default:
