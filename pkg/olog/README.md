@@ -15,9 +15,11 @@ This package does not provide the ability to ship logs to a remote server, inste
 - [Logger Hooks](<#logger-hooks>)
 - [func New() *slog.Logger](<#func-new>)
 - [func NewWithHandler(h slog.Handler) *slog.Logger](<#func-newwithhandler>)
+- [func NewWithHooks(hooks ...LogHookFunc) *slog.Logger](<#func-newwithhooks>)
 - [func SetDefaultHandler(ht DefaultHandlerType)](<#func-setdefaulthandler>)
 - [func SetGlobalLevel(l slog.Level)](<#func-setgloballevel>)
 - [type DefaultHandlerType](<#type-defaulthandlertype>)
+- [type LogHookFunc](<#type-loghookfunc>)
 
 ## Usage
 
@@ -330,6 +332,16 @@ func NewWithHandler(h slog.Handler) *slog.Logger
 NewWithHandler returns a new slog.Logger with the provided handler.
 Note: A logger created with this function will not be controlled by the global log level and will not have any of the features provided by this package. This is primarily meant to be used only by tests or other special cases.
 
+## func [NewWithHooks](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L125>)
+
+```go
+func NewWithHooks(hooks ...LogHookFunc) *slog.Logger
+```
+
+NewWithHooks returns a new slog.Logger, allowing hooks to be provided by the caller in order to automatically augment the attributes on the log record before it writes.
+
+All hooks provided will be executed in the order in which they are provided and will overwrite any attributes written by the previous hook when a duplicate key is provided.
+
 ## func [SetDefaultHandler](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/default_handler.go#L90>)
 
 ```go
@@ -359,4 +371,12 @@ const (
     JSONHandler DefaultHandlerType = iota
     TextHandler
 )
+```
+
+## type [LogHookFunc](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/hook_handler.go#L14>)
+
+LogHookFunc defines a function which can be called prior to a log being emitted, allowing the caller to augment the attributes on a log by returning a slice of slog.Attr which will appended to the record. The caller may also return an error, which will be handled by the underlying log handler \(slog.TextHandler or slog.JSONHandler\).
+
+```go
+type LogHookFunc func(context.Context, slog.Record) ([]slog.Attr, error)
 ```
