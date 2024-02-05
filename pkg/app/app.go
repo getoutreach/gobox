@@ -6,7 +6,9 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -196,4 +198,46 @@ func (d *Data) MarshalLog(addField func(key string, v interface{})) {
 	if d.Namespace != "" {
 		addField("deployment.namespace", d.Namespace)
 	}
+}
+
+// LogValue implements the log/slog package's LogValuer interface (found
+// here: https://pkg.go.dev/log/slog#LogValuer). Returns a subset of the
+// App.Info data as a map.
+func (d *Data) LogValue() slog.Value {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	attrs := make([]slog.Attr, 0, 4)
+
+	// App prefixes are removed as AppInfo func nests data under app key
+	// already.
+	if d.Name != "unknown" {
+		attrs = append(attrs, slog.String("name", d.Name))
+		attrs = append(attrs, slog.String("service_name", d.Name))
+	}
+	if d.Version != "" {
+		attrs = append(attrs, slog.String("version", d.Version))
+	}
+	if d.Namespace != "" {
+		attrs = append(attrs, slog.String("deployment.namespace", d.Namespace))
+	}
+
+	return slog.GroupValue(attrs...)
+}
+
+// LogHook provides an olog compatible hook func which extracts and returns
+// the app Data as a nested attribute on log record.
+// nolint:gocritic // Why: this signature is inline with the olog pkg hook type
+func LogHook(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
+	info := Info()
+	if info == nil {
+		return []slog.Attr{}, nil
+	}
+
+	return []slog.Attr{
+		// Manually assign the LogValue to an attribute. The slog.Group
+		// func doesn't really take an already existing GroupValue as
+		// Values are more meant to be used directly in log calls.
+		{Key: "app", Value: info.LogValue()},
+	}, nil
 }

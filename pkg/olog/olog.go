@@ -114,3 +114,16 @@ func getMetadata() (metadata, error) {
 func NewWithHandler(h slog.Handler) *slog.Logger {
 	return slog.New(h)
 }
+
+// NewWithHooks returns a new slog.Logger, allowing hooks to be provided
+// by the caller in order to automatically augment the attributes on the
+// log record before it writes.
+//
+// All hooks provided will be executed in the order in which they are provided
+// and will overwrite any attributes written by the previous hook when a
+// duplicate key is provided.
+func NewWithHooks(hooks ...LogHookFunc) *slog.Logger {
+	defaultHandler := New().Handler()
+	hookedHandler := &hookHandler{Handler: defaultHandler, hooks: hooks}
+	return slog.New(hookedHandler)
+}
