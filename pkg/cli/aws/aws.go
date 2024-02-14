@@ -53,16 +53,20 @@ func DefaultCredentialOptions() *CredentialOptions {
 
 // DefaultCredentialOptionsWithLog uses the default role and profile
 // for accessing AWS.
-func DefaultCredentialOptionsWithLog() *CredentialOptions {
+func DefaultCredentialOptionsWithLog(log logrus.FieldLogger) *CredentialOptions {
 	b, err := box.LoadBox()
 	if err != nil {
 		return nil
 	}
 
+	if log == nil {
+		log = logrus.New()
+	}
+
 	return &CredentialOptions{
 		Role:    b.AWS.DefaultRole,
 		Profile: b.AWS.DefaultProfile,
-		Log:     logrus.New(),
+		Log:     log,
 	}
 }
 
@@ -181,7 +185,7 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 	}
 
 	if copts == nil {
-		copts = DefaultCredentialOptionsWithLog()
+		copts = DefaultCredentialOptionsWithLog(nil)
 	}
 
 	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
@@ -204,7 +208,7 @@ func refreshCredsViaOktaAWSCLI(
 	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
 	cliExists := true
 	if copts == nil {
-		copts = DefaultCredentialOptionsWithLog()
+		copts = DefaultCredentialOptionsWithLog(nil)
 	}
 
 	if !acopts.DryRun || useCredentialProviderOutput {
