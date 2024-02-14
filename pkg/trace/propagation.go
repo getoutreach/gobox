@@ -7,9 +7,7 @@ package trace
 import (
 	"context"
 	"net/http"
-	"strings"
 
-	"github.com/honeycombio/beeline-go/propagation"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -29,21 +27,7 @@ type roundtripper struct {
 }
 
 func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	headers := map[string]string{
-		strings.ToLower(OtelPropagationHeader): r.Header.Get(OtelPropagationHeader),
-	}
-	_, prop, err := propagation.UnmarshalW3CTraceContext(r.Context(), headers)
-	if err != nil {
-		return nil, err
-	}
-
-	hcHeaders := http.Header{}
-	hcHeaders.Set(propagation.TracePropagationHTTPHeader, propagation.MarshalHoneycombTraceContext(prop))
-
-	for k, v := range hcHeaders {
-		r.Header[k] = v
-	}
-
+	// Pass along the `X-Force-Trace` header if we received one.
 	if isTracingForced(r.Context()) {
 		r.Header.Set(HeaderForceTracing, "true")
 	}
@@ -61,10 +45,6 @@ type Handler struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get(OtelPropagationHeader) == "" {
-		hcHeaderToW3CHeaders(r)
-	}
-
 	var startOptions oteltrace.SpanStartEventOption
 
 	handler := otelhttp.NewHandler(h.handler, h.operation)
@@ -77,19 +57,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.ServeHTTP(w, r)
-}
-
-func hcHeaderToW3CHeaders(r *http.Request) {
-	prop, err := propagation.UnmarshalHoneycombTraceContext(r.Header.Get(propagation.TracePropagationHTTPHeader))
-	if err != nil {
-		return
-	}
-
-	_, headers := propagation.MarshalW3CTraceContext(r.Context(), prop)
-
-	for k, v := range headers {
-		r.Header.Set(k, v)
-	}
 }
 
 func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Handler {
@@ -111,20 +78,6 @@ func (t *otelTracer) toHeaders(ctx context.Context) map[string][]string {
 	propagator := otel.GetTextMapPropagator()
 	propagator.Inject(ctx, otelpropagation.HeaderCarrier(result))
 
-	// Honeycomb expects
-	headers := map[string]string{
-		strings.ToLower(OtelPropagationHeader): result.Get(OtelPropagationHeader),
-	}
-
-	_, prop, err := propagation.UnmarshalW3CTraceContext(ctx, headers)
-	if err != nil {
-		return result
-	}
-
-	result.Set(
-		propagation.TracePropagationHTTPHeader,
-		propagation.MarshalHoneycombTraceContext(prop))
-
 	return result
 }
 
@@ -136,16 +89,6 @@ func (t *otelTracer) contextFromHeaders(ctx context.Context, hdrs map[string][]s
 	force := header.Get(HeaderForceTracing)
 	if force != "" {
 		ctx = ForceTracing(ctx)
-	}
-
-	if header.Get(OtelPropagationHeader) == "" {
-		prop, err := propagation.UnmarshalHoneycombTraceContext(header.Get(propagation.TracePropagationHTTPHeader))
-		if err == nil {
-			_, headers := propagation.MarshalW3CTraceContext(ctx, prop)
-			for k, v := range headers {
-				header.Set(k, v)
-			}
-		}
 	}
 
 	propagator := otel.GetTextMapPropagator()

@@ -34,9 +34,13 @@ type AWSConfig struct {
 	// with AWS.
 	DefaultRole string `yaml:"defaultRole"`
 
-	// DefaultProfile is the default profile to use when communcating
+	// DefaultProfile is the default profile to use when communicating
 	// with AWS.
 	DefaultProfile string `yaml:"defaultProfile"`
+
+	// DefaultAccountID is the default Account ID to use when communicating
+	// with AWS.
+	DefaultAccountID string `yaml:"defaultAccountID"`
 
 	// RefreshMethod is the CLI used to refresh AWS credentials.
 	// Known values:

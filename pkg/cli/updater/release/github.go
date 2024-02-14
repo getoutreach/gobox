@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/getoutreach/gobox/pkg/cfg"
-	gogithub "github.com/google/go-github/v57/github"
+	gogithub "github.com/google/go-github/v58/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )

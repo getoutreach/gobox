@@ -4,7 +4,10 @@
 
 package box
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/agent"
+)
 
 type LoadBoxOptions struct {
 	// MinVersion of a box configuration that is required for this
@@ -16,7 +19,10 @@ type LoadBoxOptions struct {
 	// Deprecated: Configure before running an application instead.
 	DefaultBoxSources []string
 
-	// log is the logger to use
+	// Agent is the SSH agent used when fetching the box git repository.
+	Agent agent.Agent
+
+	// log is the logger to use.
 	log logrus.FieldLogger
 }
 
@@ -38,6 +44,15 @@ func WithMinVersion(version float32) LoadBoxOption {
 func WithDefaults(defaults []string) LoadBoxOption {
 	return func(opts *LoadBoxOptions) {
 		opts.DefaultBoxSources = defaults
+	}
+}
+
+// WithAgent sets the SSH agent for fetching the box repository.
+// If not specified, it creates a new one and uses the existing SSH
+// config to load the github.com SSH key specified.
+func WithAgent(sshAgent agent.Agent) LoadBoxOption {
+	return func(opts *LoadBoxOptions) {
+		opts.Agent = sshAgent
 	}
 }
 
