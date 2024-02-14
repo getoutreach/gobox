@@ -67,7 +67,10 @@ func shuffleTests(tests []testing.InternalTest, t *testing.T) []testing.Internal
 	}
 	t.Logf("Shuffling tests using seed %d", seed)
 
-	rand.Shuffle(len(tests), func(i, j int) {
+	//nolint:gosec // Why: This is just used for tests, do not need cryptographically secure randomization.
+	r := rand.New(rand.NewSource(seed))
+
+	r.Shuffle(len(tests), func(i, j int) {
 		tests[i], tests[j] = tests[j], tests[i]
 	})
 
