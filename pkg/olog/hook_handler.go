@@ -1,3 +1,7 @@
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
+
+// Description: Contains log handler wrapper allowing hook funcs.
+
 package olog
 
 import (
