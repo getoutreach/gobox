@@ -87,6 +87,9 @@ func TestLogWithAppInfoHook(t *testing.T) {
 	if version := app.Info().Version; version != "" {
 		expAppInfo["version"] = version
 	}
+	if namespace := app.Info().Namespace; namespace != "" {
+		expAppInfo["deployment.namespace"] = namespace
+	}
 
 	// Create logger with test hook
 	logger := NewWithHooks(app.LogHook)
