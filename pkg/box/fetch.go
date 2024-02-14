@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/agent"
 	"gopkg.in/yaml.v3"
 )
 
@@ -123,6 +124,8 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 		// Always default to the min version being the version
 		// in this package.
 		MinVersion: &v,
+
+		Agent: sshhelper.GetSSHAgent(),
 	}
 
 	for _, f := range optFns {
@@ -161,7 +164,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 	opts.log.WithField("reason", reason).Info("Refreshing box configuration")
 	// past the time interval, refresh the config
-	s.Config, err = downloadBox(ctx, s.StorageURL)
+	s.Config, err = downloadBox(ctx, opts.Agent, s.StorageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -176,9 +179,7 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 
 // downloadBox downloads and parses a box config from a given repository
 // URL.
-func downloadBox(ctx context.Context, gitRepo string) (yaml.Node, error) {
-	a := sshhelper.GetSSHAgent()
-
+func downloadBox(ctx context.Context, a agent.Agent, gitRepo string) (yaml.Node, error) {
 	//nolint:errcheck // Why: Best effort and not worth bringing logger here
 	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
@@ -247,7 +248,7 @@ func InitializeBox(ctx context.Context, _ []string) error {
 		return err
 	}
 
-	conf, err := downloadBox(ctx, gitRepo)
+	conf, err := downloadBox(ctx, sshhelper.GetSSHAgent(), gitRepo)
 	if err != nil {
 		return err
 	}
