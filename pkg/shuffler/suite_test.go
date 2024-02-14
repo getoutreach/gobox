@@ -89,3 +89,48 @@ func TestThatTestsAreShuffled(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestThatTestsAreShuffledDeterministically(t *testing.T) {
+	one := newInternalTestSetup()
+	two := newInternalTestSetup()
+
+	length := len(two)
+
+	// check that the two slices are identical to start (DeepEqual will
+	// ensure the elements are in the same order
+	if !reflect.DeepEqual(one, two) {
+		t.Fail()
+	}
+
+	// Set a specific seed to create deterministic order
+	seed := int64(3)
+	shuffleSeed = &seed
+
+	two = shuffleTests(two, t)
+
+	if len(two) != length {
+		t.Fail()
+	}
+
+	// And now use DeepEqual to check that the order of the test slices are
+	// now distinct
+	if reflect.DeepEqual(one, two) {
+		t.Fail()
+	}
+
+	// Verify the specific order of the shuffled tests are always the same
+	testOrder := []testing.InternalTest{
+		{Name: "d"},
+		{Name: "c"},
+		{Name: "b"},
+		{Name: "a"},
+		{Name: "g"},
+		{Name: "e"},
+		{Name: "e"},
+		{Name: "e"},
+		{Name: "f"},
+	}
+	if !reflect.DeepEqual(two, testOrder) {
+		t.Fail()
+	}
+}
