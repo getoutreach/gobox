@@ -212,8 +212,11 @@ func (d *Data) LogValue() slog.Value {
 	// App prefixes are removed as AppInfo func nests data under app key
 	// already.
 	if d.Name != "unknown" {
-		attrs = append(attrs, slog.String("name", d.Name))
-		attrs = append(attrs, slog.String("service_name", d.Name))
+		attrs = append(
+			attrs,
+			slog.String("name", d.Name),
+			slog.String("service_name", d.Name),
+		)
 	}
 	if d.Version != "" {
 		attrs = append(attrs, slog.String("version", d.Version))
