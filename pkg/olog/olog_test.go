@@ -77,6 +77,17 @@ func TestLogWithAppInfoHook(t *testing.T) {
 	// Initialize test app info
 	app.SetName("ologHooksTest")
 
+	// Due to different environments during testing, capturing expected
+	// app version directly from Info(). Shouldn't affect test integrity
+	// as we mostly want to test the output structure.
+	expAppInfo := map[string]any{
+		"name":         "ologHooksTest",
+		"service_name": "ologHooksTest",
+	}
+	if version := app.Info().Version; version != "" {
+		expAppInfo["version"] = version
+	}
+
 	// Create logger with test hook
 	logger := NewWithHooks(app.LogHook)
 
@@ -90,10 +101,7 @@ func TestLogWithAppInfoHook(t *testing.T) {
 			Attrs: map[string]any{
 				"module":    "github.com/getoutreach/gobox",
 				"modulever": "",
-				"app": map[string]any{
-					"name":         "ologHooksTest",
-					"service_name": "ologHooksTest",
-				},
+				"app":       expAppInfo,
 			},
 		},
 	}
