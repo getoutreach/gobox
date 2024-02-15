@@ -40,14 +40,22 @@ type CredentialOptions struct {
 // DefaultCredentialOptions uses the default role and profile
 // for accessing AWS.
 func DefaultCredentialOptions() *CredentialOptions {
+	return DefaultCredentialOptionsWithLog(logrus.New())
+}
+
+// DefaultCredentialOptionsWithLog uses the default role and profile
+// for accessing AWS.
+func DefaultCredentialOptionsWithLog(log logrus.FieldLogger) *CredentialOptions {
 	b, err := box.LoadBox()
 	if err != nil {
+		log.WithError(err).Error("Could not load box config")
 		return nil
 	}
 
 	return &CredentialOptions{
 		Role:    b.AWS.DefaultRole,
 		Profile: b.AWS.DefaultProfile,
+		Log:     log,
 	}
 }
 
@@ -165,13 +173,13 @@ func EnsureValidCredentials(ctx context.Context, copts *CredentialOptions) error
 		return nil
 	}
 
-	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
-		copts.Log.Debug("Skipping AWS credentials refresh check, AWS_ACCESS_KEY_ID is set")
-		return nil
-	}
-
 	if copts == nil {
 		copts = DefaultCredentialOptions()
+	}
+
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		copts.Log.Warnln("Skipping AWS credentials refresh check, AWS_ACCESS_KEY_ID is set")
+		return nil
 	}
 
 	return AuthorizeCredentials(ctx, copts, &AuthorizeCredentialsOptions{})
@@ -188,6 +196,10 @@ func refreshCredsViaOktaAWSCLI(
 ) error {
 	useCredentialProviderOutput := acopts.Output == OutputCredentialProvider || acopts.Output == OutputCredentialProviderV1
 	cliExists := true
+	if copts == nil {
+		copts = DefaultCredentialOptions()
+	}
+
 	if !acopts.DryRun || useCredentialProviderOutput {
 		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
 			if !acopts.DryRun {
