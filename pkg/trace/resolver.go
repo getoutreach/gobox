@@ -6,6 +6,7 @@ package trace
 
 import (
 	"context"
+	"strings"
 
 	"github.com/getoutreach/gobox/pkg/log"
 )
@@ -29,4 +30,14 @@ func ResolvedLogging(logging InfoLoggingResolved) log.Marshaler {
 		return WithInfoLoggingEnabled()
 	}
 	return WithInfoLoggingDisabled()
+}
+
+func ReevaluateLogging(ctx context.Context, resolver InfoLoggingResolver) {
+	opName := strings.Split(GetCallName(ctx), ".")
+	logging := resolver(ctx, opName[len(opName)-1])
+	if logging == InfoLoggingDefault {
+		return
+	}
+	callInfo := callTracker.Info(ctx)
+	callInfo.Opts.EnableInfoLogging = logging == InfoLoggingEnabled
 }
