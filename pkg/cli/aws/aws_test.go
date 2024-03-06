@@ -207,7 +207,11 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		copts := DefaultCredentialOptions()
 		copts.Log = log
 
-		b := &box.Config{}
+		b := &box.Config{
+			AWS: box.AWSConfig{
+				DefaultIAMIdPARN: "arn:aws:iam::123456789012:saml-provider/okta",
+			},
+		}
 
 		acopts := &AuthorizeCredentialsOptions{
 			DryRun: true,
@@ -226,6 +230,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
 		assert.Assert(t, cmp.Contains(msg, "--format process-credentials"))
+		assert.Assert(t, cmp.Contains(msg, "--aws-iam-idp arn:aws:iam::123456789012:saml-provider/okta"))
 	})
 }
 

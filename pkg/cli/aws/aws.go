@@ -243,6 +243,9 @@ func refreshCredsViaOktaAWSCLI(
 		if err != nil {
 			return errors.Wrap(err, "could not determine okta-aws-cli version")
 		}
+		if !isCLIVersion1 {
+			args = append(args, "--aws-iam-idp", b.AWS.DefaultIAMIdPARN)
+		}
 		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
 		args = append(args, "--write-aws-credentials")

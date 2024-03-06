@@ -30,25 +30,30 @@ const (
 
 // AWSConfig configures AWS access for tools that support it
 type AWSConfig struct {
-	// DefaultRole is the default role to assume when communicating
+	// DefaultAccountID is the default Account ID to use when communicating
 	// with AWS.
-	DefaultRole string `yaml:"defaultRole"`
+	DefaultAccountID string `yaml:"defaultAccountID"`
+
+	// DefaultIAMIdPARN is the default IAM IdP ARN to use when communicating
+	// with AWS.
+	DefaultIAMIdPARN string `yaml:"defaultIAMIdPARN"`
 
 	// DefaultProfile is the default profile to use when communicating
 	// with AWS.
 	DefaultProfile string `yaml:"defaultProfile"`
 
-	// DefaultAccountID is the default Account ID to use when communicating
+	// DefaultRole is the default role to assume when communicating
 	// with AWS.
-	DefaultAccountID string `yaml:"defaultAccountID"`
+	DefaultRole string `yaml:"defaultRole"`
+
+	// Okta contains configuration for using Okta authentication
+	// with AWS.
+	Okta OktaConfig `yaml:"okta"`
 
 	// RefreshMethod is the CLI used to refresh AWS credentials.
 	// Known values:
 	// * okta-aws-cli (default)
 	RefreshMethod string `yaml:"refreshMethod"`
-	// Okta contains configuration for using Okta authentication
-	// with AWS.
-	Okta OktaConfig `yaml:"okta"`
 }
 
 // OktaConfig is the Okta-specific config used for AWS access.
