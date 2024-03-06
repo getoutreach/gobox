@@ -6,7 +6,6 @@ package trace
 
 import (
 	"context"
-	"strings"
 
 	"github.com/getoutreach/gobox/pkg/log"
 )
@@ -33,8 +32,7 @@ func ResolvedLogging(logging InfoLoggingResolved) log.Marshaler {
 }
 
 func ReevaluateLogging(ctx context.Context, resolver InfoLoggingResolver) {
-	opName := strings.Split(GetCallName(ctx), ".")
-	logging := resolver(ctx, opName[len(opName)-1])
+	logging := resolver(ctx, GetCallName(ctx))
 	if logging == InfoLoggingDefault {
 		return
 	}
