@@ -59,7 +59,7 @@ var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Wh
 		Help:    "The latency of the HTTP request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
+	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportHTTPLatency reports the http_request_handled metric for a request.
@@ -90,7 +90,7 @@ var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Wh
 		Help:    "The latency of the gRPC request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
+	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportGRPCLatency reports the grpc_request_handled metric for a request.
@@ -121,7 +121,7 @@ var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals /
 		Help:    "The latency of the outbound request, in seconds",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{"app", "call", "statuscode", "statuscategory", "kind"}, // Labels
+	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
 
 // ReportOutboundLatency reports the outbound_call_seconds metric for a request.
