@@ -92,24 +92,42 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	mp := noop.NewMeterProvider()
 	otel.SetMeterProvider(mp)
 
-	key, err := t.Otel.APIKey.Data(ctx)
-	if err != nil {
-		log.Error(ctx, "Unable to fetch otel API key", events.NewErrorInfo(err))
-	}
+	var exp *otlptrace.Exporter
 
-	headers := map[string]string{
-		"x-honeycomb-team":    strings.TrimSpace(string(key)),
-		"x-honeycomb-dataset": t.Otel.Dataset,
-	}
+	if t.Otel.CollectorEndpoint == "" {
+		key, err := t.Otel.APIKey.Data(ctx)
+		if err != nil {
+			log.Error(ctx, "Unable to fetch otel API key", events.NewErrorInfo(err))
+		}
 
-	client := otlptracegrpc.NewClient(
-		otlptracegrpc.WithEndpoint(t.Otel.Endpoint+":443"),
-		otlptracegrpc.WithHeaders(headers),
-	)
+		headers := map[string]string{
+			"x-honeycomb-team":    strings.TrimSpace(string(key)),
+			"x-honeycomb-dataset": t.Otel.Dataset,
+		}
 
-	exp, err := otlptrace.New(ctx, client)
-	if err != nil {
-		log.Error(ctx, "Unable to start trace exporter", events.NewErrorInfo(err))
+		client := otlptracegrpc.NewClient(
+			otlptracegrpc.WithEndpoint(t.Otel.Endpoint+":443"),
+			otlptracegrpc.WithHeaders(headers),
+		)
+
+		exp, err = otlptrace.New(ctx, client)
+		if err != nil {
+			log.Error(ctx, "Unable to start trace exporter", events.NewErrorInfo(err))
+		}
+
+	} else {
+		var err error
+		log.Info(ctx, fmt.Sprintf("Using OTEL Collector Endpoint: %s", t.Otel.CollectorEndpoint))
+		client := otlptracegrpc.NewClient(
+			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
+			// There is no need for TLS because we're sending traffic to a kubernetes service
+			otlptracegrpc.WithInsecure(),
+		)
+
+		exp, err = otlptrace.New(ctx, client)
+		if err != nil {
+			log.Error(ctx, "Unable to start open telemetry collector trace exporter", events.NewErrorInfo(err))
+		}
 	}
 
 	r, err := resource.Merge(
@@ -131,22 +149,6 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: t.GlobalTags,
 		}),
-	}
-
-	if t.Otel.CollectorEndpoint != "" {
-		log.Info(ctx, fmt.Sprintf("Using OTEL Collector Endpoint: %s", t.Otel.CollectorEndpoint))
-		client := otlptracegrpc.NewClient(
-			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
-			// There is no need for TLS because we're sending traffic to a kubernetes service
-			otlptracegrpc.WithInsecure(),
-		)
-
-		exp, err := otlptrace.New(ctx, client)
-		if err != nil {
-			log.Error(ctx, "Unable to start open telemetry collector trace exporter", events.NewErrorInfo(err))
-		}
-
-		tpOptions = append(tpOptions, sdktrace.WithBatcher(exp))
 	}
 
 	tp := sdktrace.NewTracerProvider(tpOptions...)
