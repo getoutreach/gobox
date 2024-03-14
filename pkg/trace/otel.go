@@ -92,42 +92,19 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	mp := noop.NewMeterProvider()
 	otel.SetMeterProvider(mp)
 
-	var exp *otlptrace.Exporter
+	var client otlptrace.Client
 
-	if t.Otel.CollectorEndpoint == "" {
-		key, err := t.Otel.APIKey.Data(ctx)
-		if err != nil {
-			log.Error(ctx, "Unable to fetch otel API key", events.NewErrorInfo(err))
-		}
-
-		headers := map[string]string{
-			"x-honeycomb-team":    strings.TrimSpace(string(key)),
-			"x-honeycomb-dataset": t.Otel.Dataset,
-		}
-
-		client := otlptracegrpc.NewClient(
-			otlptracegrpc.WithEndpoint(t.Otel.Endpoint+":443"),
-			otlptracegrpc.WithHeaders(headers),
-		)
-
-		exp, err = otlptrace.New(ctx, client)
-		if err != nil {
-			log.Error(ctx, "Unable to start trace exporter", events.NewErrorInfo(err))
-		}
-
+	// We want to default to initializating and sending traces through the opentelemetry collectors.
+	// But the fallthrough is to send to Honeycomb directly.
+	if t.Otel.CollectorEndpoint != "" {
+		client = t.newOpentelemetryClient(ctx)
 	} else {
-		var err error
-		log.Info(ctx, fmt.Sprintf("Using OTEL Collector Endpoint: %s", t.Otel.CollectorEndpoint))
-		client := otlptracegrpc.NewClient(
-			otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
-			// There is no need for TLS because we're sending traffic to a kubernetes service
-			otlptracegrpc.WithInsecure(),
-		)
+		client = t.newHoneycombClient(ctx)
+	}
 
-		exp, err = otlptrace.New(ctx, client)
-		if err != nil {
-			log.Error(ctx, "Unable to start open telemetry collector trace exporter", events.NewErrorInfo(err))
-		}
+	exp, err := otlptrace.New(ctx, client)
+	if err != nil {
+		log.Error(ctx, "Unable to start trace exporter", events.NewErrorInfo(err))
 	}
 
 	r, err := resource.Merge(
@@ -168,6 +145,39 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	t.tracerProvider.Tracer(serviceName)
 
 	return nil
+}
+
+// Initializes the otlptracegrpc client to send directly to Honeycomb.
+func (t *otelTracer) newHoneycombClient(ctx context.Context) otlptrace.Client {
+	key, err := t.Otel.APIKey.Data(ctx)
+	if err != nil {
+		log.Error(ctx, "Unable to fetch otel API key", events.NewErrorInfo(err))
+	}
+
+	headers := map[string]string{
+		"x-honeycomb-team":    strings.TrimSpace(string(key)),
+		"x-honeycomb-dataset": t.Otel.Dataset,
+	}
+
+	client := otlptracegrpc.NewClient(
+		otlptracegrpc.WithEndpoint(t.Otel.Endpoint+":443"),
+		otlptracegrpc.WithHeaders(headers),
+	)
+
+	return client
+}
+
+// Initializes the otlptracegrpc client to send to the OpenTelemetry collector running in k8s.
+// This is the preferred method for sending traces.
+// The OTEL collector enables us to generate span metrics, should we want those, to dual send, or quickly switch to a different tracing provider.
+func (t *otelTracer) newOpentelemetryClient(ctx context.Context) otlptrace.Client {
+	client := otlptracegrpc.NewClient(
+		otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
+		// There is no need for TLS because we're sending traffic to a kubernetes service
+		otlptracegrpc.WithInsecure(),
+	)
+
+	return client
 }
 
 // Deprecated: Use closeTracer() instead.
