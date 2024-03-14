@@ -169,7 +169,9 @@ func (t *otelTracer) newHoneycombClient(ctx context.Context) otlptrace.Client {
 
 // Initializes the otlptracegrpc client to send to the OpenTelemetry collector running in k8s.
 // This is the preferred method for sending traces.
-// The OTEL collector enables us to generate span metrics, should we want those, to dual send, or quickly switch to a different tracing provider.
+// The OTEL collector enables us to do the following:
+// 1) generate span metrics, should we want those.
+// 2) dual send traces, or quickly switch to a different tracing provider.
 func (t *otelTracer) newOpentelemetryClient() otlptrace.Client {
 	client := otlptracegrpc.NewClient(
 		otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
