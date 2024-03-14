@@ -97,7 +97,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	// We want to default to initializating and sending traces through the opentelemetry collectors.
 	// But the fallthrough is to send to Honeycomb directly.
 	if t.Otel.CollectorEndpoint != "" {
-		client = t.newOpentelemetryClient(ctx)
+		client = t.newOpentelemetryClient()
 	} else {
 		client = t.newHoneycombClient(ctx)
 	}
@@ -170,7 +170,7 @@ func (t *otelTracer) newHoneycombClient(ctx context.Context) otlptrace.Client {
 // Initializes the otlptracegrpc client to send to the OpenTelemetry collector running in k8s.
 // This is the preferred method for sending traces.
 // The OTEL collector enables us to generate span metrics, should we want those, to dual send, or quickly switch to a different tracing provider.
-func (t *otelTracer) newOpentelemetryClient(ctx context.Context) otlptrace.Client {
+func (t *otelTracer) newOpentelemetryClient() otlptrace.Client {
 	client := otlptracegrpc.NewClient(
 		otlptracegrpc.WithEndpoint(t.Otel.CollectorEndpoint),
 		// There is no need for TLS because we're sending traffic to a kubernetes service
