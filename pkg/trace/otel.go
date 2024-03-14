@@ -94,7 +94,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 
 	var client otlptrace.Client
 
-	// We want to default to initializating and sending traces through the opentelemetry collectors.
+	// We want to default to initialize and send traces through the OpenTelemetry collectors.
 	// But the fallthrough is to send to Honeycomb directly.
 	if t.Otel.CollectorEndpoint != "" {
 		client = t.newOpentelemetryClient()
