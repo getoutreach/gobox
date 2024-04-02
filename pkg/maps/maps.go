@@ -11,13 +11,13 @@ import "maps"
 // Merge takes two maps a and b and return the merged result.
 // If overwrite is true then b will overwrite values in a on conflicting keys
 func Merge[K comparable, T any](a, b map[K]T, overwrite bool) map[K]T {
-	aCpy := make(map[K]T)
-	maps.Copy(aCpy, a)
+	result := make(map[K]T)
+	maps.Copy(result, a)
 	for k, v := range b {
-		if _, ok := aCpy[k]; ok && !overwrite {
+		if _, ok := result[k]; ok && !overwrite {
 			continue
 		}
-		aCpy[k] = v
+		result[k] = v
 	}
-	return aCpy
+	return result
 }
