@@ -28,7 +28,7 @@ require (
 	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.20.18
-	github.com/ulikunitz/xz v0.5.11
+	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/versent/saml2aws/v2 v2.36.13
 	github.com/zalando/go-keyring v0.2.3
