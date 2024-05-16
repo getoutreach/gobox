@@ -69,7 +69,7 @@ func (t *testLogCapturer) Write(p []byte) (n int, err error) {
 			}
 		case "msg":
 			ll.Message = v.(string)
-		case "time", "source": // Ignored fields.
+		case "@timestamp", "source": // Ignored fields.
 		default:
 			// everything else goes into attrs.
 			ll.Attrs[k] = v
