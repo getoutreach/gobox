@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/log v0.4.0
 	github.com/creack/pty v1.1.21
 	github.com/davecgh/go-spew v1.1.1
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/fynelabs/selfupdate v0.2.0
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/go-git/go-git/v5 v5.12.0
