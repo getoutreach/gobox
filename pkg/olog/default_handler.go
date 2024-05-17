@@ -112,6 +112,7 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 			m.PackagePath,
 			m.ModulePath,
 		}),
+		ReplaceAttr: replaceKey("time", "@timestamp"),
 	}
 
 	switch DefaultHandlerType(defaultHandler.Load()) {
@@ -160,4 +161,13 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 		{Key: "module", Value: slog.StringValue(m.ModulePath)},
 		{Key: "modulever", Value: slog.StringValue(m.ModuleVersion)},
 	})
+}
+
+func replaceKey(oldKey, newKey string) func([]string, slog.Attr) slog.Attr {
+	return func(_ []string, a slog.Attr) slog.Attr {
+		if a.Key == oldKey {
+			a.Key = newKey
+		}
+		return a
+	}
 }
