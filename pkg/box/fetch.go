@@ -9,9 +9,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -180,10 +182,13 @@ func EnsureBoxWithOptions(ctx context.Context, optFns ...LoadBoxOption) (*Config
 // downloadBox downloads and parses a box config from a given repository
 // URL.
 func downloadBox(ctx context.Context, a agent.Agent, gitRepo string) (yaml.Node, error) {
-	//nolint:errcheck // Why: Best effort and not worth bringing logger here
+	if strings.HasPrefix(gitRepo, "git@github.com:") {
+		return downloadBoxFromGitHub(ctx, gitRepo)
+	}
+
 	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
-		return yaml.Node{}, errors.Wrap(err, "failed to load Github SSH key into in-memory keyring")
+		return yaml.Node{}, errors.Wrap(err, "failed to load GitHub SSH key into in-memory keyring")
 	}
 
 	fs := memfs.New()
@@ -201,14 +206,39 @@ func downloadBox(ctx context.Context, a agent.Agent, gitRepo string) (yaml.Node,
 		return yaml.Node{}, errors.Wrap(err, "failed to read box configuration file")
 	}
 
-	// Parse the config into a yaml.Node to keep comments
+	return unmarshalBoxYAML(f)
+}
+
+func unmarshalBoxYAML(r io.Reader) (yaml.Node, error) {
 	var n yaml.Node
-	if err := yaml.NewDecoder(f).Decode(&n); err != nil {
+	if err := yaml.NewDecoder(r).Decode(&n); err != nil {
 		return yaml.Node{}, errors.Wrap(err, "failed to decode box configuration file")
 	}
 
 	// We return the first node because we don't want the document start
 	return *n.Content[0], nil
+}
+
+// downloadBoxFromGitHub downloads and parses a box config from a given GitHub repository, via the GitHub API.
+func downloadBoxFromGitHub(ctx context.Context, gitURL string) (yaml.Node, error) {
+	gh, err := github.NewClient()
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to create GitHub client")
+	}
+	path := strings.SplitN(gitURL, ":", 2)[1]
+	components := strings.SplitN(path, "/", 2)
+	owner := components[0]
+	repoName := components[1]
+	boxContent, _, _, err := gh.Repositories.GetContents(ctx, owner, repoName, BoxConfigFile, nil)
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to get GitHub repository")
+	}
+	boxYAML, err := boxContent.GetContent()
+	if err != nil {
+		return yaml.Node{}, errors.Wrap(err, "failed to get GitHub repository content")
+	}
+
+	return unmarshalBoxYAML(strings.NewReader(boxYAML))
 }
 
 // SaveBox takes a Storage wrapped box configuration, serializes it
