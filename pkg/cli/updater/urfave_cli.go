@@ -37,6 +37,13 @@ var UpdaterFlags = []cli.Flag{
 	},
 }
 
+func (u *updater) hookSkipUpdateIntoCLI() {
+	// append the skip-update flag
+	if u.app != nil {
+		u.app.Flags = append(u.app.Flags, UpdaterFlags[0])
+	}
+}
+
 // hookIntoCLI hooks into a urfave/cli.App to add updater support
 func (u *updater) hookIntoCLI() {
 	oldBefore := u.app.Before
