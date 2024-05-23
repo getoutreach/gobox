@@ -129,6 +129,7 @@ func (u *updater) defaultOptions() error {
 	if Disabled == "true" {
 		u.disabled = true
 		u.disabledReason = "disabled via go linker"
+		u.hookSkipUpdateIntoCLI()
 		return nil
 	}
 
@@ -153,6 +154,7 @@ func (u *updater) defaultOptions() error {
 		var err error
 		u.executablePath, err = exec.ResolveExecuable(os.Args[0])
 		if err != nil {
+			u.hookSkipUpdateIntoCLI()
 			return err
 		}
 	}
@@ -162,6 +164,7 @@ func (u *updater) defaultOptions() error {
 	if u.repoURL == "" {
 		r, err := getRepoFromBuild()
 		if err != nil {
+			u.hookSkipUpdateIntoCLI()
 			return fmt.Errorf("failed to determine which repository built this binary")
 		}
 		u.repoURL = "https://" + r
