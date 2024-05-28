@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -84,8 +85,14 @@ func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 		))
 	}
 	entries = append(entries, charm.MessageKey, entry.Message)
-	for k, v := range entry.Data {
-		entries = append(entries, k, v)
+	// stable sort data
+	dataKeys := make([]string, 0, len(entry.Data))
+	for k := range entry.Data {
+		dataKeys = append(dataKeys, k)
+	}
+	sort.Strings(dataKeys)
+	for _, k := range dataKeys {
+		entries = append(entries, k, entry.Data[k])
 	}
 	b := &bytes.Buffer{}
 	l.textFormatter(b, entries...)
