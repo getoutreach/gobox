@@ -29,7 +29,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/schollz/progressbar/v3 v3.14.3
 	github.com/sirupsen/logrus v1.9.3
-	github.com/tdewolff/minify/v2 v2.20.31
+	github.com/tdewolff/minify/v2 v2.20.32
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/versent/saml2aws/v2 v2.36.15
