@@ -92,7 +92,7 @@ func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (l *logrusCharmTextFormat) writeIndent(w io.Writer, str string, indent string, newline bool, key string) {
+func (l *logrusCharmTextFormat) writeIndent(w io.Writer, str, indent string, newline bool, key string) {
 	st := l.styles
 
 	// kindly borrowed from hclog
@@ -100,26 +100,26 @@ func (l *logrusCharmTextFormat) writeIndent(w io.Writer, str string, indent stri
 		nl := strings.IndexByte(str, '\n')
 		if nl == -1 {
 			if str != "" {
-				_, _ = w.Write([]byte(indent))
+				w.Write([]byte(indent)) // nolint:errcheck // Why: consistent with source code
 				val := escapeStringForOutput(str, false)
 				if valueStyle, ok := st.Values[key]; ok {
 					val = valueStyle.Renderer(l.re).Render(val)
 				} else {
 					val = st.Value.Renderer(l.re).Render(val)
 				}
-				_, _ = w.Write([]byte(val))
+				w.Write([]byte(val)) // nolint:errcheck // Why: consistent with source code
 				if newline {
-					_, _ = w.Write([]byte{'\n'})
+					w.Write([]byte{'\n'}) // nolint:errcheck // Why: consistent with source code
 				}
 			}
 			return
 		}
 
-		_, _ = w.Write([]byte(indent))
+		w.Write([]byte(indent)) // nolint:errcheck // Why: consistent with source code
 		val := escapeStringForOutput(str[:nl], false)
 		val = st.Value.Renderer(l.re).Render(val)
-		_, _ = w.Write([]byte(val))
-		_, _ = w.Write([]byte{'\n'})
+		w.Write([]byte(val))  // nolint:errcheck // Why: consistent with source code
+		w.Write([]byte{'\n'}) // nolint:errcheck // Why: consistent with source code
 		str = str[nl+1:]
 	}
 }
@@ -155,11 +155,12 @@ func escapeStringForOutput(str string, escapeQuotes bool) string {
 
 	defer bufPool.Put(bb)
 	for _, r := range str {
-		if escapeQuotes && r == '"' {
+		switch {
+		case escapeQuotes && r == '"':
 			bb.WriteString(`\"`)
-		} else if unicode.IsPrint(r) {
+		case unicode.IsPrint(r):
 			bb.WriteRune(r)
-		} else {
+		default:
 			switch r {
 			case '\a':
 				bb.WriteString(`\a`)
@@ -221,26 +222,27 @@ func needsQuoting(s string) bool {
 	return false
 }
 
-var needsQuotingSet = [utf8.RuneSelf]bool{
-	'"': true,
-	'=': true,
-}
-
-func init() {
+var needsQuotingSet = (func() [utf8.RuneSelf]bool {
+	set := [utf8.RuneSelf]bool{
+		'"': true,
+		'=': true,
+	}
 	for i := 0; i < utf8.RuneSelf; i++ {
 		r := rune(i)
 		if unicode.IsSpace(r) || !unicode.IsPrint(r) {
-			needsQuotingSet[i] = true
+			set[i] = true
 		}
 	}
-}
+	return set
+})()
 
 func writeSpace(w io.Writer, first bool) {
 	if !first {
-		w.Write([]byte{' '}) //nolint: errcheck
+		w.Write([]byte{' '}) // nolint:errcheck // Why: consistent with source code
 	}
 }
 
+// nolint:funlen // Why: consistent with source code
 func (l *logrusCharmTextFormat) textFormatter(b *bytes.Buffer, keyvals ...interface{}) {
 	st := l.styles
 	lenKeyvals := len(keyvals)
@@ -323,18 +325,19 @@ func (l *logrusCharmTextFormat) textFormatter(b *bytes.Buffer, keyvals ...interf
 			// Values may also need quoting, if not all the runes
 			// in the value string are "normal", like if they
 			// contain ANSI escape sequences.
-			if strings.Contains(val, "\n") {
+			switch {
+			case strings.Contains(val, "\n"):
 				b.WriteString("\n  ")
 				b.WriteString(key)
 				b.WriteString(sep + "\n")
 				l.writeIndent(b, val, indentSep, moreKeys, actualKey)
-			} else if !raw && needsQuoting(val) {
+			case !raw && needsQuoting(val):
 				writeSpace(b, firstKey)
 				b.WriteString(key)
 				b.WriteString(sep)
-				b.WriteString(valueStyle.Renderer(l.re).Render(fmt.Sprintf(`"%s"`,
+				b.WriteString(valueStyle.Renderer(l.re).Render(fmt.Sprintf("%q",
 					escapeStringForOutput(val, true))))
-			} else {
+			default:
 				val = valueStyle.Renderer(l.re).Render(val)
 				writeSpace(b, firstKey)
 				b.WriteString(key)
