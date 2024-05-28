@@ -47,6 +47,7 @@ type logrusCharmTextFormat struct {
 	re         *lipgloss.Renderer
 }
 
+// NewCharmTextFormatter creates a new logrus Formatter which uses a charm-style text format
 func NewCharmTextFormatter() logrus.Formatter {
 	return &logrusCharmTextFormat{
 		styles:     charm.DefaultStyles(),
@@ -55,6 +56,7 @@ func NewCharmTextFormatter() logrus.Formatter {
 	}
 }
 
+// Format implements logrus.Formatter using a charm-style text format
 func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 	var level charm.Level
 	switch entry.Level {
