@@ -16,6 +16,7 @@ func TestTextLogger(t *testing.T) {
 	logger := logrus.New()
 	logger.SetFormatter(NewCharmTextFormatter())
 	logger.SetOutput(&buffer)
+	logger.SetLevel(logrus.DebugLevel)
 	cases := []struct {
 		name     string
 		expected string
@@ -31,8 +32,8 @@ func TestTextLogger(t *testing.T) {
 			level:    logrus.InfoLevel,
 		},
 		{
-			name:     "ignored message",
-			expected: "",
+			name:     "debug message",
+			expected: "DEBU this is a debug message\n",
 			msg:      "this is a debug message",
 			fields:   nil,
 			level:    logrus.DebugLevel,
