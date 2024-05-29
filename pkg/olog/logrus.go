@@ -57,10 +57,9 @@ func NewCharmTextFormatter() logrus.Formatter {
 	}
 }
 
-// Format implements logrus.Formatter using a charm-style text format
-func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
+func logrusToCharmLevel(logrusLevel logrus.Level) charm.Level {
 	var level charm.Level
-	switch entry.Level {
+	switch logrusLevel {
 	case logrus.FatalLevel, logrus.PanicLevel:
 		level = charm.FatalLevel
 	case logrus.ErrorLevel:
@@ -72,6 +71,12 @@ func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 	case logrus.DebugLevel, logrus.TraceLevel:
 		level = charm.DebugLevel
 	}
+	return level
+}
+
+// Format implements logrus.Formatter using a charm-style text format
+func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
+	level := logrusToCharmLevel(entry.Level)
 	entries := []interface{}{
 		charm.TimestampKey, entry.Time,
 		charm.LevelKey, level,
@@ -95,7 +100,7 @@ func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 		entries = append(entries, k, entry.Data[k])
 	}
 	b := &bytes.Buffer{}
-	l.textFormatter(b, entries...)
+	l.textFormatter(level, b, entries...)
 	return b.Bytes(), nil
 }
 
@@ -250,7 +255,7 @@ func writeSpace(w io.Writer, first bool) {
 }
 
 // nolint:funlen // Why: consistent with source code
-func (l *logrusCharmTextFormat) textFormatter(b *bytes.Buffer, keyvals ...interface{}) {
+func (l *logrusCharmTextFormat) textFormatter(loggerLevel charm.Level, b *bytes.Buffer, keyvals ...interface{}) {
 	st := l.styles
 	lenKeyvals := len(keyvals)
 
@@ -268,6 +273,11 @@ func (l *logrusCharmTextFormat) textFormatter(b *bytes.Buffer, keyvals ...interf
 			}
 		case charm.LevelKey:
 			if level, ok := keyvals[i+1].(charm.Level); ok {
+				if level < loggerLevel {
+					// skip message
+					b.Reset()
+					return
+				}
 				var lvl string
 				lvlStyle, ok := st.Levels[level]
 				if !ok {
