@@ -8,8 +8,8 @@
 //
 //              Example usage:
 //              ```l := logrus.New()
-//				l.SetFormatter(NewCharmTextFormatter())
-//				l.SetReportCaller(true)```
+//              l.SetFormatter(NewCharmTextFormatter())
+//              l.SetReportCaller(true)```
 //
 //              Example output:
 //              `14:03:38 INFO <qss/qss.go:77> message key=value`
