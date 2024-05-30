@@ -6,6 +6,7 @@ arguments:
   oss: true
   ciOptions:
     skipDocker: true
+    skipE2e: true
   releaseOptions:
     allowMajorVersions: true
   opslevel:
