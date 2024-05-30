@@ -14,7 +14,7 @@ import (
 func TestTextLogger(t *testing.T) {
 	buffer := bytes.Buffer{}
 	logger := logrus.New()
-	logger.SetFormatter(NewCharmTextFormatter())
+	logger.SetFormatter(NewLogrusTextFormatter())
 	logger.SetOutput(&buffer)
 	logger.SetLevel(logrus.DebugLevel)
 	cases := []struct {

@@ -5,14 +5,6 @@
 //              while using a mix of loggers (logrus and olog). This code was mostly copied from [here](1).
 //
 //              [1]: https://github.com/charmbracelet/log/blob/82b5630d2e68c2cf4c972a926be90149fe0c60b9/text.go "Charm Text Format"
-//
-//              Example usage:
-//              ```l := logrus.New()
-//              l.SetFormatter(NewCharmTextFormatter())
-//              l.SetReportCaller(true)```
-//
-//              Example output:
-//              `14:03:38 INFO <qss/qss.go:77> message key=value`
 
 package olog
 
@@ -48,8 +40,16 @@ type logrusCharmTextFormat struct {
 	re         *lipgloss.Renderer
 }
 
-// NewCharmTextFormatter creates a new logrus Formatter which uses a charm-style text format
-func NewCharmTextFormatter() logrus.Formatter {
+// NewLogrusTextFormatter creates a new logrus Formatter which uses a charm-style text format.
+//
+//	Example usage:
+//	```l := logrus.New()
+//	l.SetFormatter(olog.NewLogrusTextFormatter())
+//	l.SetReportCaller(true)```
+//
+//	Example output:
+//	`14:03:38 INFO <qss/qss.go:77> message key=value`
+func NewLogrusTextFormatter() logrus.Formatter {
 	return &logrusCharmTextFormat{
 		styles:     charm.DefaultStyles(),
 		timeFormat: "15:04:05",
@@ -74,7 +74,7 @@ func logrusToCharmLevel(logrusLevel logrus.Level) charm.Level {
 	return level
 }
 
-// Format implements logrus.Formatter using a charm-style text format
+// Format implements logrus.Formatter using a charm-style text format.
 func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 	level := logrusToCharmLevel(entry.Level)
 	entries := []interface{}{
