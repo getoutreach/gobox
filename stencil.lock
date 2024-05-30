@@ -1,4 +1,4 @@
-version: v1.37.3
+version: v1.38.2-rc.1
 modules:
     - name: github.com/getoutreach/devbase
       url: https://github.com/getoutreach/devbase
