@@ -51,6 +51,8 @@ const (
 	// This can occur when a service is using a client to connect to a downstream service. When making the request
 	// it is not sent because the connection has been severed.
 	ClientConnectionSevered StatusCode = 706
+	// Cancelled should be used when the caller has cancelled the request.
+	Cancelled StatusCode = 707
 
 	// The 800-swath is for Server-caused error responses
 	// InternalServerError is for when something otherwise uncategorizable has blown up inside the service logic.
@@ -131,6 +133,8 @@ func FromString(s string) (StatusCode, bool) {
 		return RateLimited, true
 	case ClientConnectionSevered.String():
 		return ClientConnectionSevered, true
+	case Cancelled.String():
+		return Cancelled, true
 	case InternalServerError.String():
 		return InternalServerError, true
 	case NotImplemented.String():
