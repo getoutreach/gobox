@@ -52,7 +52,7 @@ var logCallsByDefault = false
 //
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), args...)
+	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), append(args, IDs(ctx))...)
 
 	// Specify the default behavior first in line.  It might be overridden
 	// by later args and that's OK.

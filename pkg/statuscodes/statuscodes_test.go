@@ -12,6 +12,7 @@ func TestStatusCodeUnmarshalText(t *testing.T) {
 		Conflict,
 		RateLimited,
 		ClientConnectionSevered,
+		Cancelled,
 		InternalServerError,
 		NotImplemented,
 		Unavailable,
