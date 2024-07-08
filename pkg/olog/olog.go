@@ -14,6 +14,7 @@ package olog
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 
 	"github.com/getoutreach/gobox/pkg/callerinfo"
@@ -113,6 +114,11 @@ func getMetadata() (metadata, error) {
 // other special cases.
 func NewWithHandler(h slog.Handler) *slog.Logger {
 	return slog.New(h)
+}
+
+// SetOutput set the global output to desired writer.
+func SetOutput(w io.Writer) {
+	defaultOut = w
 }
 
 // NewWithHooks returns a new slog.Logger, allowing hooks to be provided
