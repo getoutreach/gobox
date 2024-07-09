@@ -116,7 +116,7 @@ func TestLogWithAppInfoHook(t *testing.T) {
 	}
 }
 
-func TestOutputLogTestOutputLog(t *testing.T) {
+func TestOutputLog(t *testing.T) {
 	// Force JSON handler for valid unmarshaling used in the TestCapturer
 	SetDefaultHandler(JSONHandler)
 
