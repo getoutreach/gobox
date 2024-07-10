@@ -126,7 +126,7 @@ func TestOutputLog(t *testing.T) {
 
 	f, err := os.CreateTemp(".", "test_logfile.log")
 	if err != nil {
-		panic(err)
+		t.Fatalf("Could not create temp file: %v", err)
 	}
 	t.Cleanup(func() {
 		os.Remove(f.Name())
