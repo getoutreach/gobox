@@ -25,7 +25,7 @@ var (
 	defaultHandler atomic.Int32
 
 	// defaultOut is the default output for the default handler. This is
-	// set to `os.Stderr` by default. Can be update by SetOutput()
+	// set to `os.Stderr` by default. Can be updated by [SetOutput].
 	defaultOut io.Writer = os.Stderr
 
 	// mainModule is the module that the current binary was built in.
