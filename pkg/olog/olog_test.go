@@ -128,7 +128,9 @@ func TestOutputLog(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	defer os.Remove(f.Name())
+	t.Cleanup(func() {
+		os.Remove(f.Name())
+	})
 	SetOutput(f)
 	// Create logger with test hook
 	logger := NewWithHooks(app.LogHook)
