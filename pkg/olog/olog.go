@@ -116,7 +116,7 @@ func NewWithHandler(h slog.Handler) *slog.Logger {
 	return slog.New(h)
 }
 
-// SetOutput set the global output to desired writer.
+// SetOutput sets the global logger output to desired writer.
 func SetOutput(w io.Writer) {
 	defaultOut = w
 }
