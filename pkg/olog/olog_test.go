@@ -124,7 +124,7 @@ func TestOutputLog(t *testing.T) {
 	// Initialize test app info
 	app.SetName("ologHooksTest")
 
-	f, err := os.CreateTemp(".", "test_logfile.log")
+	f, err := os.CreateTemp("/tmp", "test_logfile.log")
 	if err != nil {
 		t.Fatalf("Could not create temp file: %v", err)
 	}
