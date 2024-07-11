@@ -43,7 +43,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.27.0
 	go.opentelemetry.io/otel/trace v1.28.0
 	golang.org/x/crypto v0.25.0
-	golang.org/x/oauth2 v0.20.0
+	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/term v0.22.0
 	golang.org/x/tools v0.23.0
