@@ -16,8 +16,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/callerinfo"
+)
+
+var (
+	outputLock = new(sync.RWMutex)
 )
 
 // New creates a new slog instance that can be used for logging. The
@@ -117,7 +122,10 @@ func NewWithHandler(h slog.Handler) *slog.Logger {
 }
 
 // SetOutput sets the global logger output to desired writer.
+// The function uses a mutex to ensure that setting the output writer is thread-safe.
 func SetOutput(w io.Writer) {
+	outputLock.Lock()
+	defer outputLock.Unlock()
 	defaultOut = w
 }
 
