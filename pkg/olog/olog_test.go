@@ -3,6 +3,8 @@ package olog
 import (
 	"context"
 	"log/slog"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -111,5 +113,39 @@ func TestLogWithAppInfoHook(t *testing.T) {
 
 	if diff := cmp.Diff(expected, logCapture.GetLogs()); diff != "" {
 		t.Fatalf("unexpected log output (-want +got):\n%s", diff)
+	}
+}
+
+func TestOutputLog(t *testing.T) {
+	// Force JSON handler for valid unmarshaling used in the TestCapturer
+	SetDefaultHandler(JSONHandler)
+
+	logCapture := NewTestCapturer(t)
+	// Initialize test app info
+	app.SetName("ologHooksTest")
+
+	f, err := os.CreateTemp("/tmp", "test_logfile.log")
+	if err != nil {
+		t.Fatalf("Could not create temp file: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(f.Name())
+	})
+	SetOutput(f)
+	// Create logger with test hook
+	logger := NewWithHooks(app.LogHook)
+	testLogLine := "send output to file"
+	logger.Info(testLogLine)
+	// expected empty
+	expected := []TestLogLine{}
+	if diff := cmp.Diff(expected, logCapture.GetLogs()); diff != "" {
+		t.Fatalf("unexpected log output (-want +got):\n%s", diff)
+	}
+	data, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatalf("Can not read output file")
+	}
+	if !strings.Contains(string(data), testLogLine) {
+		t.Fatalf("Expect to find '%s', but got %s\n", testLogLine, string(data))
 	}
 }

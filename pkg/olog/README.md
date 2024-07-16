@@ -358,6 +358,14 @@ func SetGlobalLevel(l slog.Level)
 
 SetGlobalLevel sets the global logging level used by all loggers by default that do not have a level set in the level registry. This impacts loggers that have previously been created as well as loggers that will be created in the future.
 
+## func [SetOutput](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L120>)
+
+```go
+func SetOutput(w io.writer)
+```
+
+SetOutput sets the global logger output to desired writer. The dafault output is os.Stderr. This function needs to be called before creating the handler to take effect.
+
 ## type [DefaultHandlerType](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/default_handler.go#L38>)
 
 DefaultHandlerType denotes which handler should be used by default. This is calculated via the \`setDefaultHandler\` function on package init.

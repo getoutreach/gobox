@@ -14,9 +14,15 @@ package olog
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/getoutreach/gobox/pkg/callerinfo"
+)
+
+var (
+	outputLock = new(sync.RWMutex)
 )
 
 // New creates a new slog instance that can be used for logging. The
@@ -113,6 +119,14 @@ func getMetadata() (metadata, error) {
 // other special cases.
 func NewWithHandler(h slog.Handler) *slog.Logger {
 	return slog.New(h)
+}
+
+// SetOutput sets the global logger output to desired writer.
+// The function uses a mutex to ensure that setting the output writer is thread-safe.
+func SetOutput(w io.Writer) {
+	outputLock.Lock()
+	defer outputLock.Unlock()
+	defaultOut = w
 }
 
 // NewWithHooks returns a new slog.Logger, allowing hooks to be provided
