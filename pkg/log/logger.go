@@ -33,7 +33,7 @@ func (log *Logger) Debug(ctx context.Context, message string, m Marshaler) {
 	if log.useLogrus {
 		Debug(ctx, message, m)
 	} else {
-		// add data field to log
+		// add attr field to log message
 		log.ologLogger.DebugContext(ctx, message, "attr", m)
 	}
 }

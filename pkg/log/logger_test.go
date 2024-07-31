@@ -31,7 +31,7 @@ func TestNewLoggerWithOlog(t *testing.T) {
 	logger.Info(ctx, "this is a test", f)
 }
 
-func TestLogrusFunction(t *testing.T) {
+func TestLogrusInfoFunction(t *testing.T) {
 	ctx := context.Background()
 	logger := log.New(true)
 	f := log.F{"app": "logger_test"}
@@ -56,7 +56,7 @@ func TestLogrusErrorFunction(t *testing.T) {
 	assert.Contains(t, b.String(), "\"level\":\"ERROR\"")
 }
 
-func TestOlogFunction(t *testing.T) {
+func TestOlogInfoFunction(t *testing.T) {
 	ctx := context.Background()
 	logger := log.New(false)
 	f := log.F{"app": "logger_test"}
