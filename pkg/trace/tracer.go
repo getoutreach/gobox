@@ -46,7 +46,7 @@ type tracer interface {
 
 	newTransport(http.RoundTripper) http.RoundTripper
 
-	newHandler(handler http.Handler, operation string) http.Handler
+	newHandler(handler http.Handler, operation string, opts ...HandlerOption) http.Handler
 
 	toHeaders(ctx context.Context) map[string][]string
 

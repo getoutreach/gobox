@@ -40,8 +40,17 @@ func (t *otelTracer) newTransport(old http.RoundTripper) http.RoundTripper {
 }
 
 type Handler struct {
-	handler   http.Handler
-	operation string
+	handler          http.Handler
+	operation        string
+	publicEndpointFn func(*http.Request) bool
+}
+
+type HandlerOption func(*Handler)
+
+func WithPublicEndpointFn(fn func(*http.Request) bool) HandlerOption {
+	return func(h *Handler) {
+		h.publicEndpointFn = fn
+	}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -52,17 +61,23 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	force := r.Header.Get(HeaderForceTracing)
 	if force != "" {
 		startOptions = oteltrace.WithAttributes(attribute.String(fieldForceTrace, force))
-		handler = otelhttp.NewHandler(h.handler, h.operation, otelhttp.WithSpanOptions(startOptions))
+		handler = otelhttp.NewHandler(h.handler, h.operation,
+			otelhttp.WithSpanOptions(startOptions),
+			otelhttp.WithPublicEndpointFn(h.publicEndpointFn), // passing nil function is equivalent to "not configured"
+		)
 		r = r.WithContext(forceTracing(r.Context()))
 	}
 
 	handler.ServeHTTP(w, r)
 }
 
-func (t *otelTracer) newHandler(handler http.Handler, operation string) http.Handler {
+func (t *otelTracer) newHandler(handler http.Handler, operation string, opts ...HandlerOption) http.Handler {
 	h := Handler{
 		handler:   handler,
 		operation: operation,
+	}
+	for _, opt := range opts {
+		opt(&h)
 	}
 
 	return &h
