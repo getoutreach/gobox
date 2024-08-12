@@ -32,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.20.37
 	github.com/ulikunitz/xz v0.5.12
-	github.com/urfave/cli/v2 v2.27.3
+	github.com/urfave/cli/v2 v2.27.4
 	github.com/versent/saml2aws/v2 v2.36.17
 	github.com/zalando/go-keyring v0.2.5
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1
