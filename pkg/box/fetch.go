@@ -66,7 +66,7 @@ func ApplyEnvOverrides(s *Config) {
 	}
 
 	if a := os.Getenv("BOX_DOCKER_PUSH_IMAGE_REGISTRIES"); a != "" {
-		if pushRegs := strings.Split(a, ","); len(pushRegs) != 0 {
+		if pushRegs := strings.Split(a, " "); len(pushRegs) != 0 {
 			s.Docker.ImagePushRegistries = pushRegs
 		}
 	}
