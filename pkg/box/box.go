@@ -192,6 +192,9 @@ type Config struct {
 
 	// CD is the configuration
 	CD CD `yaml:"cd"`
+
+	// Docker is the configuration for pull/push registries
+	Docker Docker `yaml:"docker"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
