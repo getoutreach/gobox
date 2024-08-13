@@ -71,6 +71,10 @@ func ApplyEnvOverrides(s *Config) {
 		}
 	}
 
+	if pullReg := os.Getenv("BOX_DOCKER_PULL_IMAGE_REGISTRY"); pullReg != "" {
+		s.Docker.ImagePullRegistry = pullReg
+	}
+
 	// Set the CI address to the address if not set
 	if s.DeveloperEnvironmentConfig.VaultConfig.AddressCI == "" {
 		s.DeveloperEnvironmentConfig.VaultConfig.AddressCI = s.DeveloperEnvironmentConfig.VaultConfig.Address
