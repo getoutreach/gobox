@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/charmbracelet/lipgloss v0.12.1
 	github.com/charmbracelet/log v0.4.0
-	github.com/creack/pty v1.1.21
+	github.com/creack/pty v1.1.23
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.17.0
 	github.com/fynelabs/selfupdate v0.2.0
