@@ -65,6 +65,21 @@ func ApplyEnvOverrides(s *Config) {
 		s.AWS.DefaultRole = role
 	}
 
+	// Override the box configuration with the contents of the environment variable,
+	// for testing purposes.
+	if a := os.Getenv("BOX_DOCKER_PUSH_IMAGE_REGISTRIES"); a != "" {
+		// The env var is space-separated since it's easiest to split in bash
+		if pushRegs := strings.Split(a, " "); len(pushRegs) != 0 {
+			s.Docker.ImagePushRegistries = pushRegs
+		}
+	}
+
+	// Override the box configuration with the contents of the environment variable,
+	// for testing purposes.
+	if pullReg := os.Getenv("BOX_DOCKER_PULL_IMAGE_REGISTRY"); pullReg != "" {
+		s.Docker.ImagePullRegistry = pullReg
+	}
+
 	// Set the CI address to the address if not set
 	if s.DeveloperEnvironmentConfig.VaultConfig.AddressCI == "" {
 		s.DeveloperEnvironmentConfig.VaultConfig.AddressCI = s.DeveloperEnvironmentConfig.VaultConfig.Address
