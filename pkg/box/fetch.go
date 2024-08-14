@@ -68,6 +68,7 @@ func ApplyEnvOverrides(s *Config) {
 	// Override the box configuration with the contents of the environment variable,
 	// for testing purposes.
 	if a := os.Getenv("BOX_DOCKER_PUSH_IMAGE_REGISTRIES"); a != "" {
+		// The env var is space-separated since it's easiest to split in bash
 		if pushRegs := strings.Split(a, " "); len(pushRegs) != 0 {
 			s.Docker.ImagePushRegistries = pushRegs
 		}
