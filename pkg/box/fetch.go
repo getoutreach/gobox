@@ -65,6 +65,8 @@ func ApplyEnvOverrides(s *Config) {
 		s.AWS.DefaultRole = role
 	}
 
+	// Override the box configuration with the contents of the environment variable,
+	// for testing purposes.
 	if a := os.Getenv("BOX_DOCKER_PUSH_IMAGE_REGISTRIES"); a != "" {
 		if pushRegs := strings.Split(a, " "); len(pushRegs) != 0 {
 			s.Docker.ImagePushRegistries = pushRegs
