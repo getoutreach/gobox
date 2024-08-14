@@ -8,6 +8,6 @@ package box
 type Docker struct {
 	// ImagePullRegistry is the pull registry
 	ImagePullRegistry string `yaml:"imagePullRegistry"`
-	// ImagePushRegistries is a list of defined push registries
+	// ImagePushRegistries is a list of container image registry URLs used to publish to when containers are generated for consumption.
 	ImagePushRegistries []string `yaml:"imagePushRegistries"`
 }
