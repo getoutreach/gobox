@@ -71,6 +71,8 @@ func ApplyEnvOverrides(s *Config) {
 		}
 	}
 
+	// Override the box configuration with the contents of the environment variable,
+	// for testing purposes.
 	if pullReg := os.Getenv("BOX_DOCKER_PULL_IMAGE_REGISTRY"); pullReg != "" {
 		s.Docker.ImagePullRegistry = pullReg
 	}
