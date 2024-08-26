@@ -9,7 +9,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/briandowns/spinner v1.23.1
 	github.com/charmbracelet/glamour v0.8.0
-	github.com/charmbracelet/lipgloss v0.12.1
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/charmbracelet/log v0.4.0
 	github.com/creack/pty v1.1.23
 	github.com/davecgh/go-spew v1.1.1
