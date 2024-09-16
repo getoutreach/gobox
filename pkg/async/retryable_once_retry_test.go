@@ -6,13 +6,13 @@ package async_test
 import (
 	"testing"
 
-	. "github.com/getoutreach/gobox/pkg/async"
+	"github.com/getoutreach/gobox/pkg/async"
 )
 
 // TestOnceRetry verifies the retries behavior
 func TestOnceRetry(t *testing.T) {
 	o := new(one)
-	var once RetryableOnce
+	var once async.RetryableOnce
 
 	result := once.Do(func() bool {
 		o.Increment()
