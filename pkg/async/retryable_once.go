@@ -53,17 +53,17 @@ func (o *RetryableOnce) doSlow(f func() bool) bool {
 	o.m.Lock()
 	defer o.m.Unlock()
 	if o.done.Load() == 0 {
-		shouldRetry := false
+		done := true
 		defer func() {
-			if !shouldRetry {
+			if done {
 				// if f panic or return true, future calls of Do
 				// return without calling f
 				o.done.Store(1)
 			}
 		}()
 
-		shouldRetry = !f()
-		return !shouldRetry
+		done = f()
+		return done
 	}
 
 	return true
