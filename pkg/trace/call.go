@@ -122,6 +122,12 @@ func SetCustomCallKind(ctx context.Context, ck metrics.CallKind) {
 	}
 }
 
+// GetCallName returns name of the current call
+func GetCallName(ctx context.Context) string {
+	info := callTracker.Info(ctx)
+	return info.Name
+}
+
 // EndCall calculates the duration of the call, writes to metrics,
 // standard logs and closes the trace span.
 //
