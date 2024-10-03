@@ -1,8 +1,8 @@
 module github.com/getoutreach/gobox
 
-go 1.21
+go 1.22
 
-toolchain go1.21.5
+toolchain go1.22.6
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
