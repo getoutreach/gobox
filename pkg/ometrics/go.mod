@@ -2,6 +2,8 @@ module github.com/getoutreach/gobox/pkg/ometrics
 
 go 1.22
 
+toolchain go1.22.6
+
 require (
 	github.com/getoutreach/gobox v1.85.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0
