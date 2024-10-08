@@ -339,11 +339,11 @@ func TestReportLatencyMetrics(t *testing.T) {
 	}, protocmp.Transform()))
 
 	assert.Check(t, cmp.Equal(metric.GetLabel(), []*dto.LabelPair{
-		{Name: proto.String("app"), Value: proto.String("gobox")},
 		{Name: proto.String("call"), Value: proto.String("test")},
 		{Name: proto.String("kind"), Value: proto.String("internal")},
 		{Name: proto.String("statuscategory"), Value: proto.String("CategoryOK")},
 		{Name: proto.String("statuscode"), Value: proto.String("OK")},
+		{Name: proto.String("target"), Value: proto.String("gobox")},
 	}, protocmp.Transform()))
 }
 
