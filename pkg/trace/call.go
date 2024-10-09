@@ -122,6 +122,24 @@ func SetCustomCallKind(ctx context.Context, ck metrics.CallKind) {
 	}
 }
 
+// GetCallName returns name of the current call
+func GetCallName(ctx context.Context) string {
+	info := callTracker.Info(ctx)
+	if info != nil {
+		return info.Name
+	}
+	return ""
+}
+
+// IsInfoLoggingEnabled returns state of info logging
+func IsInfoLoggingEnabled(ctx context.Context) bool {
+	info := callTracker.Info(ctx)
+	if info != nil {
+		return info.Opts.EnableInfoLogging
+	}
+	return false
+}
+
 // EndCall calculates the duration of the call, writes to metrics,
 // standard logs and closes the trace span.
 //
