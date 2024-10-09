@@ -60,7 +60,7 @@ func determineMainModule() {
 // is a `slog.TextHandler`. Otherwise, the default handler is the
 // `slog.JSONHandler`.
 func determineDefaultHandler() {
-	if testing.Testing() && testing.Verbose() {
+	if testing.Testing() {
 		defaultHandler.Store(int32(TextHandler))
 		return
 	}
