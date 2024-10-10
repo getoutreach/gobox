@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime/debug"
 	"sync/atomic"
+	"testing"
 
 	charmlog "github.com/charmbracelet/log"
 
@@ -59,7 +60,13 @@ func determineMainModule() {
 // is a `slog.TextHandler`. Otherwise, the default handler is the
 // `slog.JSONHandler`.
 func determineDefaultHandler() {
+	if testing.Testing() {
+		defaultHandler.Store(int32(TextHandler))
+		return
+	}
+
 	out, ok := defaultOut.(*os.File)
+
 	if !ok {
 		// If the default output is not a file, then we can't
 		// determine if it's a TTY or not. So, we default to JSON.
