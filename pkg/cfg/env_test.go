@@ -47,9 +47,7 @@ func TestEnvSecret(t *testing.T) {
 	})
 
 	v, err := EnvSecret(key)
-	if err != nil {
-		t.Fatalf("got unexpected error %s", err.Error())
-	}
+	assert.NilError(t, err)
 
 	assert.Equal(t, string(v), value)
 }
