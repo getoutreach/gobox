@@ -12,9 +12,7 @@ func TestEnvString(t *testing.T) {
 	value := uuid.NewString()
 	notsetKey := uuid.NewString()
 	err := os.Setenv(key, value)
-	if err != nil {
-		t.Fatalf("failed to set environment variable: %v", err)
-	}
+	assert.NilError(t, err, "failed to set environment variable")
 
 	t.Run("if key not set; error is returned", func(t *testing.T) {
 		v, err := EnvString(notsetKey)
