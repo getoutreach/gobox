@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"gotest.tools/v3/assert"
 )
 
 func TestEnvString(t *testing.T) {
@@ -15,9 +16,9 @@ func TestEnvString(t *testing.T) {
 	assert.NilError(t, err, "failed to set environment variable")
 
 	t.Run("if key not set; error is returned", func(t *testing.T) {
-		v, err := EnvString(notsetKey)
-		t.ErrorContains(t, err, notsetKey)
-		t.ErrorContains(t, err, "environment variable not set")
+		_, err := EnvString(notsetKey)
+		assert.ErrorContains(t, err, notsetKey)
+		assert.ErrorContains(t, err, "environment variable not set")
 	})
 
 	t.Run("returns set value", func(t *testing.T) {
@@ -36,9 +37,9 @@ func TestEnvSecret(t *testing.T) {
 	assert.NilError(t, err, "failed to set environment variable")
 
 	t.Run("if key not set; error is returned", func(t *testing.T) {
-		v, err := EnvSecret(notsetKey)
-		t.ErrorContains(t, err, notsetKey)
-		t.ErrorContains(t, err, "environment variable not set")
+		_, err := EnvSecret(notsetKey)
+		assert.ErrorContains(t, err, notsetKey)
+		assert.ErrorContains(t, err, "environment variable not set")
 	})
 
 	v, err := EnvSecret(key)
