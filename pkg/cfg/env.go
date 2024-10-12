@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// EnvSecret looks up a secret from the environment
+// EnvSecret looks up a secret from the environment.
 func EnvSecret(name string) (SecretData, error) {
 	val, err := EnvString(name)
 	if err != nil {
