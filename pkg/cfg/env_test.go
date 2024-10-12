@@ -51,7 +51,5 @@ func TestEnvSecret(t *testing.T) {
 		t.Fatalf("got unexpected error %s", err.Error())
 	}
 
-	if string(v) != value {
-		t.Fatalf("expected %s; got %s", value, v)
-	}
+	assert.Equal(t, string(v), value)
 }
