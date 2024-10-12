@@ -41,9 +41,8 @@ func TestEnvSecret(t *testing.T) {
 
 	t.Run("if key not set; error is returned", func(t *testing.T) {
 		v, err := EnvSecret(notsetKey)
-		if err == nil {
-			t.Fatalf("expected error fetching %s; got nil error and value %v", notsetKey, v)
-		}
+		t.ErrorContains(t, err, notsetKey)
+		t.ErrorContains(t, err, "environment variable not set")
 	})
 
 	v, err := EnvSecret(key)
