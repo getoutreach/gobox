@@ -24,9 +24,7 @@ func TestEnvString(t *testing.T) {
 		v, err := EnvString(key)
 		assert.NilError(t, err)
 
-		if v != value {
-			t.Fatalf("expected %s; got %s", value, v)
-		}
+		assert.Equal(t, v, value)
 	})
 }
 
