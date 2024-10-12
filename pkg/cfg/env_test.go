@@ -24,9 +24,7 @@ func TestEnvString(t *testing.T) {
 
 	t.Run("returns set value", func(t *testing.T) {
 		v, err := EnvString(key)
-		if err != nil {
-			t.Fatalf("got unexpected error %s", err.Error())
-		}
+		assert.NilError(t, err)
 
 		if v != value {
 			t.Fatalf("expected %s; got %s", value, v)
