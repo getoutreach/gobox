@@ -11,6 +11,7 @@
 package events
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -81,6 +82,9 @@ type HTTPRequest struct {
 	Path       string `log:"http.url_details.path"`
 	URI        string `log:"http.url_details.uri"`
 	Endpoint   string `log:"http.url_details.endpoint"`
+
+	// Route is path without extrapolated path variables
+	Route string `log:"http.route"`
 }
 
 // FillFieldsFromRequest fills in the standard request fields
@@ -95,6 +99,7 @@ func (h *HTTPRequest) FillFieldsFromRequest(r *http.Request) {
 	h.RemoteAddr = h.getRemoteAddr(r)
 	h.Times.Scheduled = h.getXRequestStart(r)
 	h.Times.Started = time.Now()
+	h.Route = RequestRoute(r.Context())
 }
 
 // FillResponseInfo fills in the response data as well as ends
@@ -124,4 +129,21 @@ func (h *HTTPRequest) getXRequestStart(r *http.Request) time.Time {
 func (h *HTTPRequest) getRemoteAddr(r *http.Request) string {
 	// See: ETC-182.  Use a remote address library
 	return strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]
+}
+
+// requestRouteCtxKey represents the context key for the request route
+type requestRouteCtxKey struct{}
+
+// WithRequestTime adds a given time to a context as a request time
+func WithRequestRoute(ctx context.Context, route string) context.Context {
+	return context.WithValue(ctx, requestRouteCtxKey{}, route)
+}
+
+// RequestRoute returns a request route present in the context or empty string
+func RequestRoute(ctx context.Context) string {
+	t := ctx.Value(requestRouteCtxKey{})
+	if t == nil {
+		return ""
+	}
+	return t.(string)
 }
