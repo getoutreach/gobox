@@ -83,7 +83,7 @@ type HTTPRequest struct {
 	URI        string `log:"http.url_details.uri"`
 	Endpoint   string `log:"http.url_details.endpoint"`
 
-	// Route is path without extrapolated path variables
+	// Route is the URL path without interpolating the path variables.
 	Route string `log:"http.route"`
 }
 
