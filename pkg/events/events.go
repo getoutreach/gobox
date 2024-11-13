@@ -131,15 +131,15 @@ func (h *HTTPRequest) getRemoteAddr(r *http.Request) string {
 	return strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]
 }
 
-// requestRouteCtxKey represents the context key for the request route
+// requestRouteCtxKey represents the context key for the request route.
 type requestRouteCtxKey struct{}
 
-// WithRequestTime adds a given time to a context as a request time
+// WithRequestRoute adds a given request route to a context.
 func WithRequestRoute(ctx context.Context, route string) context.Context {
 	return context.WithValue(ctx, requestRouteCtxKey{}, route)
 }
 
-// RequestRoute returns a request route present in the context or empty string
+// RequestRoute retrieves the request route present in the context, if available.
 func RequestRoute(ctx context.Context) string {
 	t := ctx.Value(requestRouteCtxKey{})
 	if t == nil {
