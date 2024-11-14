@@ -232,6 +232,49 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Assert(t, cmp.Contains(msg, "--format process-credentials"))
 		assert.Assert(t, cmp.Contains(msg, "--aws-iam-idp arn:aws:iam::123456789012:saml-provider/okta"))
 	})
+
+	t.Run("debug", func(t *testing.T) {
+		log, hook := logtest.NewNullLogger()
+		copts := DefaultCredentialOptions()
+		copts.Role = ""
+		copts.Log = log
+
+		b := &box.Config{}
+
+		acopts := &AuthorizeCredentialsOptions{
+			Debug:  true,
+			DryRun: true,
+		}
+
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		assert.NilError(t, err)
+		assert.Equal(t, len(hook.Entries), 2)
+		msg := hook.LastEntry().Message
+		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
+		assert.Assert(t, strings.Contains(msg, "--debug"))
+		assert.Assert(t, !strings.Contains(msg, "--debug-api-calls"))
+	})
+
+	t.Run("debug API calls", func(t *testing.T) {
+		log, hook := logtest.NewNullLogger()
+		copts := DefaultCredentialOptions()
+		copts.Role = ""
+		copts.Log = log
+
+		b := &box.Config{}
+
+		acopts := &AuthorizeCredentialsOptions{
+			DebugAPICalls: true,
+			DryRun:        true,
+		}
+
+		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		assert.NilError(t, err)
+		assert.Equal(t, len(hook.Entries), 2)
+		msg := hook.LastEntry().Message
+		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
+		assert.Assert(t, strings.Contains(msg, "--debug-api-calls"))
+	})
 }
 
 func Test_oktaAwsCliVersionOutputMatchesV1(t *testing.T) {
