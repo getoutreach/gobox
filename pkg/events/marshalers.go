@@ -30,6 +30,9 @@ func (s *HTTPRequest) MarshalLog(addField func(key string, value interface{})) {
 	addField("http.url_details.path", s.Path)
 	addField("http.url_details.uri", s.URI)
 	addField("http.url_details.endpoint", s.Endpoint)
+	if s.Route != "" {
+		addField("http.route", s.Route)
+	}
 }
 
 func (s *NetworkRequest) MarshalLog(addField func(key string, value interface{})) {

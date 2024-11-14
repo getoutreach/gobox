@@ -17,10 +17,12 @@ import (
 type eventsSuite struct{}
 
 func (eventsSuite) TestHTTPRequest(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://localhost/myendpoint", http.NoBody)
+	req, err := http.NewRequest("GET", "http://localhost/myendpoint/1", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected err", err)
 	}
+
+	req = req.WithContext(events.WithRequestRoute(req.Context(), "/myendpoint/:id"))
 
 	req.Header.Add("X-Forwarded-For", "1.1.1.1, 2.2.2.2")
 	xrs := time.Now().Add(-time.Minute)
@@ -50,7 +52,8 @@ func (eventsSuite) TestHTTPRequest(t *testing.T) {
 		Duration:   0,
 		Method:     "GET",
 		StatusCode: 202,
-		Path:       "/myendpoint",
+		Path:       "/myendpoint/1",
+		Route:      "/myendpoint/:id",
 	}
 	if diff := cmp.Diff(info, expected, cmp.Comparer(approxTime), cmp.Comparer(approxFloat)); diff != "" {
 		t.Fatal("unexpected", diff)
