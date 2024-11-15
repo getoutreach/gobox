@@ -100,6 +100,13 @@ type AuthorizeCredentialsOptions struct {
 	// If Output is not empty, print the specified format to STDOUT
 	// instead of writing to the AWS credentials file.
 	Output CredentialsOutput
+
+	// Debug is whether to enable debug logging.
+	Debug bool
+
+	// DebugAPICalls is whether to specifically enable debug logging
+	// for API calls. This is not dependent on the Debug flag.
+	DebugAPICalls bool
 }
 
 // assumedToRole takes an assumed-role arn and converts it to the
@@ -249,6 +256,14 @@ func refreshCredsViaOktaAWSCLI(
 		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
 		args = append(args, "--write-aws-credentials")
+	}
+
+	if acopts.Debug {
+		args = append(args, "--debug")
+	}
+
+	if acopts.DebugAPICalls {
+		args = append(args, "--debug-api-calls")
 	}
 
 	if acopts.DryRun {
