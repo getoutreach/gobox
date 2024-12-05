@@ -89,7 +89,15 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 			break
 		}
 		if len(errors) != 0 {
-			return fallback(fileName)
+			cfgData, err := fallback(fileName)
+			if err != nil {
+				// print all errors
+				for _, e := range errors {
+					fmt.Printf("failed to read config file %q: %v\n", fileName, e)
+				}
+				return nil, fmt.Errorf("failed to read config file %q: %w", fileName, err)
+			}
+			return cfgData, nil
 		}
 
 		return b, nil
