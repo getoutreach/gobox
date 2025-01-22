@@ -54,6 +54,10 @@ if s.{{.name}} != nil {
 }`
 )
 
+const (
+	tagOmitEmpty = ",omitempty"
+)
+
 func main() {
 	flag.Usage = usage
 
@@ -140,6 +144,9 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 				write(w, nestedNilableMarshalerFormat, args)
 			case field == ".":
 				write(w, nestedMarshalerFormat, args)
+			case strings.HasSuffix(field, tagOmitEmpty):
+				args["key"] = strings.TrimSuffix(field, tagOmitEmpty)
+				write(w, getSimpleOptionalFieldFormat(s.Field(kk).Type()), args)
 			default:
 				write(w, simpleFieldFormat, args)
 			}
@@ -167,4 +174,26 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "\tlogger [go files or directory]\n")
 	fmt.Fprintf(os.Stderr, "Flags:\n")
 	flag.PrintDefaults()
+}
+
+func getSimpleOptionalFieldFormat(p types.Type) string {
+	var defaultValue string
+	switch p.Underlying().String() {
+	case "string":
+		defaultValue = `""`
+	case "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64":
+		defaultValue = "0"
+	case "float32", "float64":
+		defaultValue = "0.0"
+	case "bool":
+		defaultValue = "false"
+	default:
+		defaultValue = "nil"
+	}
+
+	return fmt.Sprintf(`
+if s.{{.name}} != %s {
+	addField("{{.key}}", s.{{.name}})
+}`, defaultValue)
 }
