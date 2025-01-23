@@ -144,11 +144,11 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 			continue
 		}
 
-		var annotations string
+		var annotations []string
 		fieldParts := strings.SplitN(field, ",", 2)
 		field = fieldParts[0]
 		if len(fieldParts) > 1 {
-			annotations = fieldParts[1]
+			annotations = fieldParts[1:]
 		}
 		args := map[string]string{"key": field, "name": s.Field(kk).Name()}
 		switch {
@@ -158,7 +158,7 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 			write(w, nestedNilableMarshalerFormat, args)
 		case field == ".":
 			write(w, nestedMarshalerFormat, args)
-		case strings.Contains(annotations, annotationOmitEmpty):
+		case contains(annotations, annotationOmitEmpty):
 			write(w, getSimpleOptionalFieldFormat(s.Field(kk).Type()), args)
 		default:
 			write(w, simpleFieldFormat, args)
@@ -205,4 +205,13 @@ func getSimpleOptionalFieldFormat(p types.Type) string {
 	}
 
 	return fmt.Sprintf(simpleOptionalFieldFormat, defaultValue)
+}
+
+func contains[T comparable](slice []T, item T) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

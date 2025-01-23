@@ -201,3 +201,74 @@ if s.Nested != nil {
 		})
 	}
 }
+
+func TestContains(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    any
+		item     any
+		expected bool
+	}{
+		{
+			name:     "string slice with matching item",
+			slice:    []string{"a", "b", "c"},
+			item:     "b",
+			expected: true,
+		},
+		{
+			name:     "string slice without matching item",
+			slice:    []string{"a", "b", "c"},
+			item:     "d",
+			expected: false,
+		},
+		{
+			name:     "empty string slice",
+			slice:    []string{},
+			item:     "a",
+			expected: false,
+		},
+		{
+			name:     "int slice with matching item",
+			slice:    []int{1, 2, 3},
+			item:     2,
+			expected: true,
+		},
+		{
+			name:     "int slice without matching item",
+			slice:    []int{1, 2, 3},
+			item:     4,
+			expected: false,
+		},
+		{
+			name:     "bool slice with matching item",
+			slice:    []bool{true, false},
+			item:     true,
+			expected: true,
+		},
+		{
+			name:     "bool slice without matching item",
+			slice:    []bool{false},
+			item:     true,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch slice := tt.slice.(type) {
+			case []string:
+				if got := contains(slice, tt.item.(string)); got != tt.expected {
+					t.Errorf("contains() = %v, want %v", got, tt.expected)
+				}
+			case []int:
+				if got := contains(slice, tt.item.(int)); got != tt.expected {
+					t.Errorf("contains() = %v, want %v", got, tt.expected)
+				}
+			case []bool:
+				if got := contains(slice, tt.item.(bool)); got != tt.expected {
+					t.Errorf("contains() = %v, want %v", got, tt.expected)
+				}
+			}
+		})
+	}
+}
