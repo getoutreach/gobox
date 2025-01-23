@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"go/types"
-	"gotest.tools/v3/assert"
 	"testing"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestGetSimpleOptionalFieldFormat(t *testing.T) {
