@@ -46,6 +46,10 @@ func (s *{{ .name }}) MarshalLog(addField func(key string, value interface{})) {
 addField("{{.key}}", s.{{.name}}.UTC().Format(time.RFC3339Nano))`
 	simpleFieldFormat = `
 addField("{{.key}}", s.{{.name}})`
+	simpleOptionalFieldFormat = `
+if s.{{.name}} != %s {
+	addField("{{.key}}", s.{{.name}})
+}`
 	nestedMarshalerFormat = `
 s.{{.name}}.MarshalLog(addField)`
 	nestedNilableMarshalerFormat = `
@@ -55,7 +59,7 @@ if s.{{.name}} != nil {
 )
 
 const (
-	tagOmitEmpty = ",omitempty"
+	annotationOmitEmpty = "omitempty"
 )
 
 func main() {
@@ -136,6 +140,12 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 	write(w, functionHeaderFormat, map[string]string{"name": name})
 	for kk := 0; kk < s.NumFields(); kk++ {
 		if field, ok := reflect.StructTag(s.Tag(kk)).Lookup("log"); ok {
+			var annotations string
+			fieldParts := strings.SplitN(field, ",", 2)
+			field = fieldParts[0]
+			if len(fieldParts) > 1 {
+				annotations = fieldParts[1]
+			}
 			args := map[string]string{"key": field, "name": s.Field(kk).Name()}
 			switch {
 			case s.Field(kk).Type().String() == "time.Time":
@@ -144,8 +154,7 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 				write(w, nestedNilableMarshalerFormat, args)
 			case field == ".":
 				write(w, nestedMarshalerFormat, args)
-			case strings.HasSuffix(field, tagOmitEmpty):
-				args["key"] = strings.TrimSuffix(field, tagOmitEmpty)
+			case strings.Contains(annotations, annotationOmitEmpty):
 				write(w, getSimpleOptionalFieldFormat(s.Field(kk).Type()), args)
 			default:
 				write(w, simpleFieldFormat, args)
@@ -192,8 +201,5 @@ func getSimpleOptionalFieldFormat(p types.Type) string {
 		defaultValue = "nil"
 	}
 
-	return fmt.Sprintf(`
-if s.{{.name}} != %s {
-	addField("{{.key}}", s.{{.name}})
-}`, defaultValue)
+	return fmt.Sprintf(simpleOptionalFieldFormat, defaultValue)
 }

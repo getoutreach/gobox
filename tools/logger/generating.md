@@ -27,7 +27,7 @@ type OrgInfo struct
 
 ```
 
-With the addition of the annotation (which matches the [standard
+With the addition of the log tags `ie. log:"xyz"` for fields (xyz matches the [standard
 attributes](https://app.datadoghq.com/logs/pipelines/standard-attributes)),
 we can use
 [logger](https://github.com/getoutreach/gobox/tree/master/tools/logger)
@@ -50,6 +50,41 @@ func (s *OrgInfo) MarshalLog(addField func(key string, value interface{})) {
 	addField(or.org.guid, Guid)
 }
 ```
+
+### Annotations:
+These tags for fields also have limited support for annotations: `ie. log:"xyz,annotation"`.
+
+Supported annotations:
+
+- **omitempty**: makes the field optional.
+
+    `omitempty` annotation is available for simple built-in types or
+    custom types with underlying type being built-in or pointers of any type.
+    
+    Example:
+    ```go
+    type OrgInfo struct
+        Org  string `log:"or.org.shortname,omitempty"`
+        Guid *Custom `log:"or.org.guid,omitempty"`
+    }
+    ```
+
+    Generated code:
+    
+    ```go
+    func (s *OrgInfo) MarshalLog(addField func(key string, value interface{})) {
+        if s == nil {
+            return
+        }
+        if s.Org != "" {
+            addField("or.org.shortname", s.Org)
+        }
+        if s.Guid != nil {
+            addField("or.org.guid", s.Guid)
+        }
+    }
+    ```
+
 
 ## Using go generate
 
