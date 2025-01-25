@@ -249,7 +249,7 @@ func TestContains(t *testing.T) {
 			expected:       true,
 		},
 		{
-			name:           "uninitialized string slice",
+			name:           "uninitialized int slice",
 			slice:          uninitializedIntegers,
 			item:           4,
 			underlyingType: "int",
