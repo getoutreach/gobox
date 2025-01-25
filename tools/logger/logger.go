@@ -46,7 +46,7 @@ func (s *{{ .name }}) MarshalLog(addField func(key string, value interface{})) {
 addField("{{.key}}", s.{{.name}}.UTC().Format(time.RFC3339Nano))`
 	simpleFieldFormat = `
 addField("{{.key}}", s.{{.name}})`
-	simpleOptionalFieldFormat = `
+	optionalFieldFormat = `
 if s.{{.name}} != %s {
 	addField("{{.key}}", s.{{.name}})
 }`
@@ -159,7 +159,7 @@ func processStruct(w io.Writer, s *types.Struct, name string) {
 		case field == ".":
 			write(w, nestedMarshalerFormat, args)
 		case contains(annotations, annotationOmitEmpty):
-			write(w, getSimpleOptionalFieldFormat(s.Field(kk).Type()), args)
+			write(w, getOptionalFieldFormat(s.Field(kk).Type()), args)
 		default:
 			write(w, simpleFieldFormat, args)
 		}
@@ -188,7 +188,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func getSimpleOptionalFieldFormat(p types.Type) string {
+func getOptionalFieldFormat(p types.Type) string {
 	var defaultValue string
 	switch p.Underlying().String() {
 	case "string":
@@ -204,7 +204,7 @@ func getSimpleOptionalFieldFormat(p types.Type) string {
 		defaultValue = "nil"
 	}
 
-	return fmt.Sprintf(simpleOptionalFieldFormat, defaultValue)
+	return fmt.Sprintf(optionalFieldFormat, defaultValue)
 }
 
 func contains[T comparable](slice []T, item T) bool {

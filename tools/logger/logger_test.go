@@ -8,7 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestGetSimpleOptionalFieldFormat(t *testing.T) {
+func TestGetOptionalFieldFormat(t *testing.T) {
 	newNamedType := func(name string, underlying types.Type) types.Type {
 		return types.NewNamed(
 			types.NewTypeName(0, nil, name, nil),
@@ -76,9 +76,9 @@ func TestGetSimpleOptionalFieldFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := getSimpleOptionalFieldFormat(tt.typ)
+			got := getOptionalFieldFormat(tt.typ)
 			if got != tt.expected {
-				t.Errorf("getSimpleOptionalFieldFormat() =\n%v\nwant:\n%v", got, tt.expected)
+				t.Errorf("getOptionalFieldFormat() =\n%v\nwant:\n%v", got, tt.expected)
 			}
 		})
 	}
@@ -203,69 +203,94 @@ if s.Nested != nil {
 }
 
 func TestContains(t *testing.T) {
+	var uninitializedStrings []string
+	var uninitializedIntegers []int
+	var uninitializedBooleans []bool
 	tests := []struct {
-		name     string
-		slice    any
-		item     any
-		expected bool
+		name           string
+		slice          any
+		item           any
+		underlyingType string
+		expected       bool
 	}{
 		{
-			name:     "string slice with matching item",
-			slice:    []string{"a", "b", "c"},
-			item:     "b",
-			expected: true,
+			name:           "string slice with matching item",
+			slice:          []string{"a", "b", "c"},
+			item:           "b",
+			underlyingType: "string",
+			expected:       true,
 		},
 		{
-			name:     "string slice without matching item",
-			slice:    []string{"a", "b", "c"},
-			item:     "d",
-			expected: false,
+			name:           "string slice without matching item",
+			slice:          []string{"a", "b", "c"},
+			item:           "d",
+			underlyingType: "string",
+			expected:       false,
 		},
 		{
-			name:     "empty string slice",
-			slice:    []string{},
-			item:     "a",
-			expected: false,
+			name:           "empty string slice",
+			slice:          []string{},
+			item:           "a",
+			underlyingType: "string",
+			expected:       false,
 		},
 		{
-			name:     "int slice with matching item",
-			slice:    []int{1, 2, 3},
-			item:     2,
-			expected: true,
+			name:           "uninitialized string slice",
+			slice:          uninitializedStrings,
+			item:           "a",
+			underlyingType: "string",
+			expected:       false,
 		},
 		{
-			name:     "int slice without matching item",
-			slice:    []int{1, 2, 3},
-			item:     4,
-			expected: false,
+			name:           "int slice with matching item",
+			slice:          []int{1, 2, 3},
+			item:           2,
+			underlyingType: "int",
+			expected:       true,
 		},
 		{
-			name:     "bool slice with matching item",
-			slice:    []bool{true, false},
-			item:     true,
-			expected: true,
+			name:           "uninitialized string slice",
+			slice:          uninitializedIntegers,
+			item:           4,
+			underlyingType: "int",
+			expected:       false,
 		},
 		{
-			name:     "bool slice without matching item",
-			slice:    []bool{false},
-			item:     true,
-			expected: false,
+			name:           "bool slice with matching item",
+			slice:          []bool{true, false},
+			item:           true,
+			underlyingType: "bool",
+			expected:       true,
+		},
+		{
+			name:           "bool slice without matching item",
+			slice:          []bool{false},
+			item:           true,
+			underlyingType: "bool",
+			expected:       false,
+		},
+		{
+			name:           "uninitialized bool slice",
+			slice:          uninitializedBooleans,
+			item:           false,
+			underlyingType: "bool",
+			expected:       false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			switch slice := tt.slice.(type) {
-			case []string:
-				if got := contains(slice, tt.item.(string)); got != tt.expected {
+			switch tt.underlyingType {
+			case "string":
+				if got := contains(tt.slice.([]string), tt.item.(string)); got != tt.expected {
 					t.Errorf("contains() = %v, want %v", got, tt.expected)
 				}
-			case []int:
-				if got := contains(slice, tt.item.(int)); got != tt.expected {
+			case "int":
+				if got := contains(tt.slice.([]int), tt.item.(int)); got != tt.expected {
 					t.Errorf("contains() = %v, want %v", got, tt.expected)
 				}
-			case []bool:
-				if got := contains(slice, tt.item.(bool)); got != tt.expected {
+			case "bool":
+				if got := contains(tt.slice.([]bool), tt.item.(bool)); got != tt.expected {
 					t.Errorf("contains() = %v, want %v", got, tt.expected)
 				}
 			}
