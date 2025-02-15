@@ -355,8 +355,6 @@ func (t *tester) complete() {
 
 	defer close(t.completed)
 	for _, cleanup := range cleanups {
-		cleanup := cleanup
-
 		//nolint:gocritic // Why: Will refactor
 		defer cleanup()
 	}

@@ -116,6 +116,7 @@ type PriorityQueue struct {
 func (q *PriorityQueue) Push(data interface{}, priority int64) (*PriorityQueueItem, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
+	// nolint: gosec // Why: The length of a queue should never be negative.
 	if uint(q.queue.Len()) >= q.capacity {
 		return nil, errors.New("queue is full")
 	}

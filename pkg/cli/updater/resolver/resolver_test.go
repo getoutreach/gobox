@@ -410,7 +410,7 @@ func TestNewVersionFromVersionString(t *testing.T) {
 			if diff := cmp.Diff(*tt.want, *got, cmp.FilterPath(func(p cmp.Path) bool {
 				return p.String() == "sv" // ignore semver
 			}, cmp.Ignore())); diff != "" {
-				t.Fatalf(diff)
+				t.Fatal(diff)
 			}
 
 			if got.String() != tt.want.String() {
