@@ -84,7 +84,7 @@ type HTTPRequest struct {
 	Endpoint   string `log:"http.url_details.endpoint"`
 
 	// Route is the URL path without interpolating the path variables.
-	Route string `log:"http.route"`
+	Route string `log:"http.route,omitempty"`
 }
 
 // FillFieldsFromRequest fills in the standard request fields
