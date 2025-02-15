@@ -142,7 +142,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 	t.serviceName = serviceName
 	t.tracerProvider = tp
 
-	t.tracerProvider.Tracer(serviceName)
+	t.tracerProvider.Tracer("gobox")
 
 	return nil
 }
