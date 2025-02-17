@@ -95,6 +95,7 @@ func init() {
 // type. This must be called before any loggers are created to have an
 // effect on all loggers.
 func SetDefaultHandler(ht DefaultHandlerType) {
+	// nolint: gosec // Why: We probably don't care that we're possibly truncating.
 	defaultHandler.Store(int32(ht))
 }
 

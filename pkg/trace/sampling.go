@@ -168,6 +168,7 @@ func (s *honeycombDeterministicSampler) ShouldSample(p sdktrace.SamplingParamete
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: SetTraceStateSampleRate(psc.TraceState(), s.sampleRate),
 			Attributes: []attribute.KeyValue{
+				// nolint: gosec // Why: sample rate is guaranteed not to be < 0
 				sampleRateAttribute.Int(int(s.sampleRate)),
 			},
 		}
@@ -225,6 +226,7 @@ func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) s
 				Decision:   sdktrace.RecordAndSample,
 				Tracestate: ts,
 				Attributes: []attribute.KeyValue{
+					// nolint: gosec // Why: sample rate is guaranteed not to be < 0
 					sampleRateAttribute.Int(int(sampleRate)),
 				},
 			}
@@ -235,6 +237,7 @@ func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) s
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: ts,
 			Attributes: []attribute.KeyValue{
+				// nolint: gosec // Why: sample rate is guaranteed not to be < 0
 				sampleRateAttribute.Int(int(s.defaultSampleRate)),
 			},
 		}

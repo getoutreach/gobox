@@ -85,7 +85,8 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 		Package:  parsePackageName(frame.Function),
 		Function: frame.Function,
 		File:     frame.File,
-		LineNum:  uint(frame.Line),
+		// nolint:gosec // Why: frame data is internal, line number is always > 0
+		LineNum: uint(frame.Line),
 	}
 
 	// Attempt to back-calc module name by searching through deps
