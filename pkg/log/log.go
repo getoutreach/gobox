@@ -22,38 +22,23 @@
 package log
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"runtime/debug"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/getoutreach/gobox/internal/logf"
 	"github.com/getoutreach/gobox/pkg/app"
-	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/getoutreach/gobox/pkg/olog"
 )
-
-// packageSourceInfoSkips lists the packages that we will skip when calculating caller info
-var packageSourceInfoSkips = map[string]interface{}{
-	"github.com/getoutreach/gobox/pkg/log":   nil,
-	"github.com/getoutreach/gobox/pkg/trace": nil,
-}
 
 // nolint:gochecknoglobals // Why: sets up overwritable writers
 var (
-	// wrap stdout and stderr in sync writers to ensure that writes exceeding
-	// PAGE_SIZE (4KB) are not interleaved.
-
-	stdOutLock           = new(sync.RWMutex)
-	stdOut     io.Writer = &syncWriter{w: os.Stdout}
-	errOut     io.Writer = &syncWriter{w: os.Stderr}
+	slogger = olog.New()
 
 	dbgEntries = entries.New()
 )
@@ -67,37 +52,11 @@ var (
 // with dot to indicate nesting.
 type Marshaler = logf.Marshaler
 
-type syncWriter struct {
-	sync.Mutex
-	w io.Writer
-}
-
-func (sw *syncWriter) Write(b []byte) (int, error) {
-	sw.Lock()
-	defer sw.Unlock()
-
-	return sw.w.Write(b)
-}
-
 // SetOutput can be used to set the output for the module
 // Note: this function should not be used in production code outside of service startup.
 // SetOutput can be used for tests that need to redirect or filter logs
 func SetOutput(w io.Writer) {
-	stdOutLock.Lock()
-	defer stdOutLock.Unlock()
-	stdOut = w
-}
-
-func Output() io.Writer {
-	stdOutLock.RLock()
-	defer stdOutLock.RUnlock()
-	return stdOut
-}
-
-func Write(s string) {
-	if _, err := fmt.Fprintln(Output(), s); err != nil {
-		fmt.Fprintln(errOut, err)
-	}
+	olog.SetOutput(w)
 }
 
 // F is a map of fields used for logging:
@@ -109,127 +68,56 @@ func Write(s string) {
 //	log.Error(ctx, "some failure", events.Err(err))
 type F = logf.F
 
-// Debug emits a log at DEBUG level but only if an error or fatal happens
-// within 2min of this event
+// Debug emits a log at DEBUG level
 func Debug(ctx context.Context, message string, m ...Marshaler) {
-	dbgEntries.Append(format(ctx, message, "DEBUG", time.Now(), app.Info(), m))
+	attrs := format(app.Info(), m)
+	slogger.LogAttrs(ctx, slog.LevelDebug, message, attrs...)
 }
 
-// Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
-	s := format(ctx, message, "INFO", time.Now(), app.Info(), m)
-
-	Write(s)
+	attrs := format(app.Info(), m)
+	slogger.LogAttrs(ctx, slog.LevelInfo, message, attrs...)
 }
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
-	s := format(ctx, message, "WARN", time.Now(), app.Info(), m)
-
-	Write(s)
+	attrs := format(app.Info(), m)
+	slogger.LogAttrs(ctx, slog.LevelWarn, message, attrs...)
 }
 
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
-	dbgEntries.Flush(Write)
-	s := format(ctx, message, "ERROR", time.Now(), app.Info(), m)
-
-	Write(s)
+	attrs := format(app.Info(), m)
+	slogger.LogAttrs(ctx, slog.LevelError, message, attrs...)
 }
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
+// Deprecated: don't use this. os.Exit means you cannot clean up any resources or ensure any buffers are flushed.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
-	dbgEntries.Flush(Write)
-	s := format(ctx, message, "FATAL", time.Now(), app.Info(), m)
-
-	Write(s)
+	attrs := format(app.Info(), m)
+	// todo: make a custom level for Fatal
+	slogger.LogAttrs(ctx, slog.LevelError, message, attrs...)
 
 	os.Exit(1)
 }
 
-func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
-	entry := F{"message": msg, "level": level, "@timestamp": ts.Format(time.RFC3339Nano)}
+// format formats fields into a slog.Attr slice
+func format(appInfo Marshaler, mm Many) []slog.Attr {
+	entry := F{}
 
+	// todo: can we extract appInfo from env at export time
 	appInfo.MarshalLog(entry.Set)
 	mm.MarshalLog(entry.Set)
-
-	// cannot use gobox/trace due to circular import. just copy paste for simplicity
-	if span := trace.SpanFromContext(ctx); span != nil && span.SpanContext().TraceID().IsValid() {
-		entry.Set("traceID", span.SpanContext().TraceID().String())
-	}
-
-	addSource(entry)
 
 	if entry["level"] == "FATAL" {
 		generateFatalFields(entry)
 	}
 
 	if len(entry) == 0 {
-		return ""
+		return nil
 	}
 
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(entry); err != nil {
-		// at this point we need to report the serialization error.
-		// do it in a JSON object so parsers have a better chance of understanding it
-		err = json.NewEncoder(&b).Encode(map[string]string{
-			"message": fmt.Sprintf(
-				"gobox/log: failed to JSON encode log entry of type %T; err=%v",
-				entry,
-				err,
-			),
-			"level":      "ERROR",
-			"@timestamp": ts.Format(time.RFC3339Nano),
-		})
-		if err != nil {
-			return ""
-		}
-	}
-
-	return strings.TrimSpace(b.String())
-}
-
-func addSource(entry F) {
-	// Attempt to map the caller of the log function into the "module" field for identifying if a service or a module
-	// that the service is using is sending logs (costing money).
-	// Skip 3 levels to start, and we may go further below (to skip log.With, other wrappers, etc.):
-	// 1. addSource
-	// 2. format
-	// 3. log[Info/Error/etc.]
-	skips := uint16(3)
-	for {
-		ci, err := callerinfo.GetCallerInfo(skips)
-		if err != nil {
-			entry["module"] = "error"
-			break
-		}
-
-		// Specifically skip some internal packages (in the fixed map above) -- callers to these are responsible
-		// for their logging, the skipped packages are just doing what they're told to do by the caller.
-		if _, has := packageSourceInfoSkips[ci.Package]; has {
-			skips++
-			continue
-		}
-
-		if ci.Module != "" {
-			entry["module"] = ci.Module
-			if ci.ModuleVersion != "" {
-				entry["modulever"] = ci.ModuleVersion
-			}
-		}
-		break
-	}
-}
-
-// Flush writes out all debug logs
-func Flush(_ context.Context) {
-	dbgEntries.Flush(Write)
-}
-
-// Purge clears all debug logs without writing them out. This is useful to clear logs
-// from a successful tests that we don't want output during a subsequent test
-func Purge(_ context.Context) {
-	dbgEntries.Purge()
+	return marshalToKeyValue(entry)
 }
 
 func generateFatalFields(entry F) {
@@ -241,4 +129,59 @@ func generateFatalFields(entry F) {
 	}
 	entry["error.message"] = "fatal occurred"
 	entry["error.stack"] = string(debug.Stack())
+}
+
+// nolint:gocyclo // Why: It's a big case statement that's hard to split.
+func marshalToKeyValue(arg Marshaler) []slog.Attr {
+	res := []slog.Attr{}
+
+	logf.Marshal("", arg, func(key string, value any) {
+		switch v := value.(type) {
+		case bool:
+			res = append(res, slog.Bool(key, v))
+		case int:
+			res = append(res, slog.Int(key, v))
+		case int8:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int16:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int32:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int64:
+			res = append(res, slog.Int64(key, v))
+		case uint8:
+			res = append(res, slog.Int64(key, int64(v)))
+		case uint16:
+			res = append(res, slog.Int64(key, int64(v)))
+		case uint32:
+			res = append(res, slog.Int64(key, int64(v)))
+			// We can't guarantee that uint64 or uint can be safely casted
+			// to int64.  We let them fall through to be strings.  :/
+		case float32:
+			res = append(res, slog.Float64(key, float64(v)))
+		case float64:
+			res = append(res, slog.Float64(key, v))
+		case string:
+			res = append(res, slog.String(key, v))
+		case time.Duration:
+			res = append(res, slog.Duration(key, v))
+		case time.Time:
+			// This is a compromise.  OTel seems to
+			// prefer UNIX epoch milliseconds, while
+			// Honeycomb says it accepts UNIX epoch
+			// seconds.  Honeycomb also has a function to
+			// convert RFC3339 timestamps to epoch.
+			//
+			// We figure RFC3339 is unambiguously a
+			// timestamp and expect most systems can
+			// deal with it accordingly.  Magic ints
+			// or floats without units attached would
+			// be harder to interpret.
+			res = append(res, slog.String(key, v.Format(time.RFC3339Nano)))
+		default:
+			res = append(res, slog.String(key, fmt.Sprintf("%v", v)))
+		}
+	})
+
+	return res
 }
