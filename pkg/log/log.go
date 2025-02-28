@@ -37,6 +37,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // packageSourceInfoSkips lists the packages that we will skip when calculating caller info
@@ -110,47 +111,52 @@ type F = logf.F
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
-func Debug(_ context.Context, message string, m ...Marshaler) {
+func Debug(ctx context.Context, message string, m ...Marshaler) {
 	dbgEntries.Append(format(message, "DEBUG", time.Now(), app.Info(), m))
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
-func Info(_ context.Context, message string, m ...Marshaler) {
-	s := format(message, "INFO", time.Now(), app.Info(), m)
+func Info(ctx context.Context, message string, m ...Marshaler) {
+	s := format(ctx, message, "INFO", time.Now(), app.Info(), m)
 
 	Write(s)
 }
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
-func Warn(_ context.Context, message string, m ...Marshaler) {
-	s := format(message, "WARN", time.Now(), app.Info(), m)
+func Warn(ctx context.Context, message string, m ...Marshaler) {
+	s := format(ctx, message, "WARN", time.Now(), app.Info(), m)
 
 	Write(s)
 }
 
 // Error emits a log at ERROR level.  Error logs must be investigated
-func Error(_ context.Context, message string, m ...Marshaler) {
+func Error(ctx context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
-	s := format(message, "ERROR", time.Now(), app.Info(), m)
+	s := format(ctx, message, "ERROR", time.Now(), app.Info(), m)
 
 	Write(s)
 }
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
-func Fatal(_ context.Context, message string, m ...Marshaler) {
+func Fatal(ctx context.Context, message string, m ...Marshaler) {
 	dbgEntries.Flush(Write)
-	s := format(message, "FATAL", time.Now(), app.Info(), m)
+	s := format(ctx, message, "FATAL", time.Now(), app.Info(), m)
 
 	Write(s)
 
 	os.Exit(1)
 }
 
-func format(msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
+func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
 	entry := F{"message": msg, "level": level, "@timestamp": ts.Format(time.RFC3339Nano)}
 
 	appInfo.MarshalLog(entry.Set)
 	mm.MarshalLog(entry.Set)
+
+	// cannot use gobox/trace due to circular import. just copy paste for simplicity
+	if span := trace.SpanFromContext(ctx); span != nil && span.SpanContext().TraceID().IsValid() {
+		entry.Set("traceID", span.SpanContext().TraceID().String())
+	}
 
 	addSource(entry)
 
