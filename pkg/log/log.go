@@ -112,7 +112,7 @@ type F = logf.F
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
-	dbgEntries.Append(format(message, "DEBUG", time.Now(), app.Info(), m))
+	dbgEntries.Append(format(ctx, message, "DEBUG", time.Now(), app.Info(), m))
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
