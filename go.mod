@@ -43,6 +43,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace v1.29.0
 	golang.org/x/crypto v0.33.0
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/oauth2 v0.22.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/term v0.29.0
@@ -66,7 +67,6 @@ require (
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/tdewolff/parse/v2 v2.7.15 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 )
