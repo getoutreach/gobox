@@ -358,6 +358,48 @@ func SetGlobalLevel(l slog.Level)
 
 SetGlobalLevel sets the global logging level used by all loggers by default that do not have a level set in the level registry. This impacts loggers that have previously been created as well as loggers that will be created in the future.
 
+## [func SetLevel(l slog.Level, address ...string)](https://github.com/getoutreach/gobox/blob/main/pkg/olog/log_level.go#71)
+
+```go
+func SetLevel(l slog.Level, address ...string)
+```
+
+`SetLevel` SetLevel sets the log-level for the provided addresses, which are modules or file paths
+
+## [func ConfigureFromFile](https://github.com/getoutreach/gobox/blob/main/pkg/olog/level.go)
+
+```go
+func ConfigureFromFile(path string) error
+```
+
+`ConfigureFromFile` loads the level configuration from the provided path.
+
+Configuration looks like:
+
+```yaml
+log:
+  - level: WARN
+    address: github.com/getoutreach/gobox/pkg/olog
+  - level: ERROR
+    address: github.com/getoutreach/smartstore
+```
+
+## `func PollConfigurationFile`
+
+```go
+func PollConfigurationFile(ctx context.Context, path string, pollInterval time.Duration, errFunc func(err error) bool) 
+```
+
+PollConfigurationFile watches the level configuration file for changes and reloads it.
+if Poll encounters an error, the errFunc is called. If the errFunc returns false, poller exits
+
+if ctx ends, Poll exits. Otherwise it blocks until errFunc returns an error
+
+pollInterval is the interval at which the file is checked for changes.
+
+You can use this to watch a file mounted by a Kubernetes ConfigMap, for example: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically
+```
+
 ## func [SetOutput](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L120>)
 
 ```go
