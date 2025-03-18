@@ -5,7 +5,7 @@
 // Package events defines the standard logging event structures
 //
 // This is based on
-// https://docs.google.com/document/d/1V1py1iXX9B9NAb30veHYNGOuymZ9o_C2pYSU9E6qmsg/edit#
+// https://outreachsales-my.sharepoint.com/:w:/g/personal/richard_larocque_outreach_io/EZr97aKgdNBNQJFSHeuu8asBz4iHklKWP7tLcbLF2RwiRQ
 // and
 // https://outreach-io.atlassian.net/wiki/spaces/EN/pages/691405109/Logging+Standards
 package events
