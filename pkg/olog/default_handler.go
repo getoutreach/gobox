@@ -42,6 +42,7 @@ type DefaultHandlerType int
 const (
 	JSONHandler DefaultHandlerType = iota
 	TextHandler
+	CharmHandler
 )
 
 // determineMainModule uses the `debug.ReadBuildInfo` function to
@@ -128,6 +129,8 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	case JSONHandler:
 		h = slog.NewJSONHandler(defaultOut, opts)
 	case TextHandler:
+		h = slog.NewTextHandler(defaultOut, opts)
+	case CharmHandler:
 		// charmlog.Logger doesn't support slog.Leveler, so wrap it in
 		// charmLevelHandler to keep its level in sync dynamically.
 		h = newCharmLevelHandler(charmlog.NewWithOptions(defaultOut, charmlog.Options{

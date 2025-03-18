@@ -21,9 +21,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 )
 
-var (
-	outputLock = new(sync.RWMutex)
-)
+var outputLock = new(sync.RWMutex)
 
 // New creates a new slog instance that can be used for logging. The
 // provided logger use the global handler provided by this package. See
