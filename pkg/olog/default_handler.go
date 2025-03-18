@@ -41,6 +41,7 @@ type DefaultHandlerType int
 const (
 	JSONHandler DefaultHandlerType = iota
 	TextHandler
+	CharmHandler
 )
 
 // determineMainModule uses the `debug.ReadBuildInfo` function to
@@ -127,6 +128,8 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	case JSONHandler:
 		h = slog.NewJSONHandler(defaultOut, opts)
 	case TextHandler:
+		h = slog.NewTextHandler(defaultOut, opts)
+	case CharmHandler:
 		// TODO(jaredallard): There's no support for slog.Leveler in the
 		// current charmbracelet/log implementation. So, we can't
 		// dynamically change the logging level yet.
