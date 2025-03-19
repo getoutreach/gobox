@@ -27,7 +27,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.21.1
 	github.com/schollz/progressbar/v3 v3.14.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.20.37
@@ -43,7 +43,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace v1.29.0
 	golang.org/x/crypto v0.35.0
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.24.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/term v0.29.0
 	golang.org/x/tools v0.30.0
@@ -108,7 +108,7 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a
 	github.com/prometheus/client_model v0.6.1
-	github.com/prometheus/common v0.55.0 // indirect
+	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -123,7 +123,7 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.1
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0
