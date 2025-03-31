@@ -151,6 +151,7 @@ func TestWithInfoLoggingManuallyDisabled(t *testing.T) {
 			"timing.service_time": differs.AnyFloat64(),
 			"timing.total_time":   differs.AnyFloat64(),
 			"timing.wait_time":    differs.AnyFloat64(),
+			"traceID":             differs.AnyString(),
 		},
 	}
 	if diff := cmp.Diff(expected, logRecorder.Entries(), differs.Custom(), ignoreVariableFields()); diff != "" {
