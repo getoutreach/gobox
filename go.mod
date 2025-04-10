@@ -32,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tdewolff/minify/v2 v2.20.37
 	github.com/ulikunitz/xz v0.5.12
-	github.com/urfave/cli/v2 v2.27.4
+	github.com/urfave/cli/v2 v2.27.6
 	github.com/versent/saml2aws/v2 v2.36.17
 	github.com/zalando/go-keyring v0.2.5
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1
@@ -80,7 +80,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
