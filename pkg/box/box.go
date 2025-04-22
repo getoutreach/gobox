@@ -173,6 +173,12 @@ type SnapshotConfig struct {
 	WriteAWSRole string `yaml:"writeAWSRole"`
 }
 
+// Engdocs is the configuration for engdocs.
+type Engdocs struct {
+	// URL is the base URL to the engdocs instance.
+	URL string `yaml:"URL"`
+}
+
 // Config is the basis of a box configuration
 type Config struct {
 	// RefreshInterval is the interval to use when refreshing a box configuration
@@ -195,6 +201,9 @@ type Config struct {
 
 	// Docker is the configuration for pull/push registries
 	Docker Docker `yaml:"docker"`
+
+	// Engdocs is the configuration for engdocs
+	Engdocs Engdocs `yaml:"engdocs"`
 }
 
 // Storage is a wrapper type used for storing the box configuration
