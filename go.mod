@@ -30,7 +30,6 @@ require (
 	github.com/prometheus/client_golang v1.20.2
 	github.com/schollz/progressbar/v3 v3.14.6
 	github.com/sirupsen/logrus v1.9.3
-	github.com/tdewolff/minify/v2 v2.20.37
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli/v2 v2.27.4
 	github.com/versent/saml2aws/v2 v2.36.17
@@ -64,7 +63,6 @@ require (
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
-	github.com/tdewolff/parse/v2 v2.7.15 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
