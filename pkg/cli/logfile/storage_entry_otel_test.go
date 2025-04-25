@@ -8,12 +8,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/tdewolff/minify/v2"
-	minifyjson "github.com/tdewolff/minify/v2/json" // used by minify
 	"go.opentelemetry.io/otel/attribute"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -22,17 +21,13 @@ import (
 
 func TestTraceRoundtripJSON(t *testing.T) {
 	testFilePath := "testdata/trace.json"
-	originalJSONStr, err := os.ReadFile(testFilePath)
+	originalJSON, err := os.ReadFile(testFilePath)
 	if err != nil {
 		t.Fatalf("unable to read %s: %v", testFilePath, err)
 	}
 
-	var originalJSON bytes.Buffer
-	err = minifyjson.Minify(minify.New(), &originalJSON, bytes.NewReader(originalJSONStr), nil)
-	assert.NilError(t, err, "failed to minify original json")
-
 	var spans []Span
-	if err := json.NewDecoder(bytes.NewReader(originalJSONStr)).Decode(&spans); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(originalJSON)).Decode(&spans); err != nil {
 		t.Fatalf("unable to decode %s: %v", testFilePath, err)
 	}
 
@@ -41,10 +36,10 @@ func TestTraceRoundtripJSON(t *testing.T) {
 		readOnlySpans[i] = spans[i].Snapshot()
 	}
 
-	newJSON, err := json.Marshal(tracetest.SpanStubsFromReadOnlySpans(readOnlySpans))
+	newJSON, err := json.MarshalIndent(tracetest.SpanStubsFromReadOnlySpans(readOnlySpans), "", "  ")
 	assert.NilError(t, err, "failed to json marshal stub spans")
 
-	if diff := cmp.Diff(originalJSON.String(), string(newJSON)); diff != "" {
+	if diff := cmp.Diff(strings.TrimSpace(string(originalJSON)), string(newJSON)); diff != "" {
 		t.Fatalf("TestTraceRoundtripJSON() = %s", diff)
 	}
 }

@@ -56,8 +56,8 @@ type Span struct {
 	// Resource is the information about the entity that produced the span
 	// We have to change this type from the otel type in order to make this struct marshallable
 	Resource []attribute.KeyValue
-	// InstrumentationLibrary is information about the library that produced the span
-	InstrumentationLibrary instrumentation.Library
+	// InstrumentationScope is information about the scope that produced the span
+	InstrumentationScope instrumentation.Scope
 }
 
 // spanData is data that we need to unmarshal in custom ways
@@ -79,8 +79,8 @@ type spanData struct {
 	DroppedLinks      int
 	ChildSpanCount    int
 	// We have to change this type from the otel type in order to make this struct marshallable
-	Resource               []keyValue
-	InstrumentationLibrary instrumentation.Library
+	Resource             []keyValue
+	InstrumentationScope instrumentation.Scope
 }
 
 // spanContext is a custom type used to unmarshal otel SpanContext correctly
@@ -123,7 +123,7 @@ func (s *Span) UnmarshalJSON(data []byte) error {
 	s.DroppedEvents = sd.DroppedEvents
 	s.DroppedLinks = sd.DroppedLinks
 	s.ChildSpanCount = sd.ChildSpanCount
-	s.InstrumentationLibrary = sd.InstrumentationLibrary
+	s.InstrumentationScope = sd.InstrumentationScope
 
 	// Create the correct SpanContext attributes
 	spanContext, err := sd.SpanContext.asTraceSpanContext()
@@ -336,7 +336,7 @@ func (s *Span) Snapshot() tracesdk.ReadOnlySpan {
 		droppedLinks:         s.DroppedLinks,
 		childSpanCount:       s.ChildSpanCount,
 		resource:             resource.NewSchemaless(s.Resource...),
-		instrumentationScope: s.InstrumentationLibrary,
+		instrumentationScope: s.InstrumentationScope,
 	}
 }
 
@@ -445,9 +445,10 @@ func (s spanSnapshot) InstrumentationScope() instrumentation.Scope {
 	return s.instrumentationScope
 }
 
-// InstrumentationLibrary returns the InstrumentationLibrary of the snapshot
+// InstrumentationLibrary returns the InstrumentationScope of the snapshot.
+// This is probably deprecated in favor of InstrumentationScope.
 //
 //nolint:gocritic // Why: required by otel
-func (s spanSnapshot) InstrumentationLibrary() instrumentation.Library {
+func (s spanSnapshot) InstrumentationLibrary() instrumentation.Scope {
 	return s.instrumentationScope
 }
