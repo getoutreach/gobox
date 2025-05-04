@@ -7,6 +7,7 @@ package events
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 
@@ -37,6 +38,7 @@ func (e *ErrorInfo) MarshalLog(addField func(key string, value interface{})) {
 	if len(e.Stack) > 0 {
 		addField("error.stack", strings.Join(e.Stack, "\n\t"))
 	}
+
 	if e.Cause != nil {
 		addField("error.cause", e.Cause)
 	}
@@ -144,15 +146,6 @@ func NewErrorInfo(err error) *ErrorInfo {
 		Stack:    errStack(err),
 		Custom:   custom,
 	}
-	// obtain nested error, collapsing upward if possible.
-	if cause := nestInfo(errors.Unwrap(err)); cause != nil {
-		if info.pureStack() && cause.pureMessage() {
-			info.Message = cause.Message
-			info.Cause = cause.Cause
-		} else {
-			info.Cause = cause
-		}
-	}
 	return &info
 }
 
@@ -167,15 +160,6 @@ func nestInfo(err error) *nestedErrorInfo {
 		Message:  errMessage(err),
 		Stack:    errStack(err),
 		Custom:   custom,
-	}
-	// obtain nested error, collapsing upward if possible.
-	if cause := nestInfo(errors.Unwrap(err)); cause != nil {
-		if info.pureStack() && cause.pureMessage() {
-			info.Message = cause.Message
-			info.Cause = cause.Cause
-		} else {
-			info.Cause = cause
-		}
 	}
 	return &info
 }
