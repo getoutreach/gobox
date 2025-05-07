@@ -47,6 +47,14 @@ type UpdateConfiguration struct {
 
 	// Channel is the channel to use for this tool
 	Channel string `yaml:"channel,omitempty"`
+
+	// SkipPaths is a list of path substrings to skip when checking for updates.
+	// For example, if you want to skip all installations from Homebrew, add the
+	// path "/usr/local/Cellar/" to this list.
+	// This is useful for tools that are installed in multiple ways, such as
+	// Homebrew and mise. This specifically checks the absolute executable path,
+	// as determined by `pkg/exec.ResolveExecutable()`.
+	SkipPaths []string `yaml:"skipPaths,omitempty"`
 }
 
 type updateCache struct {

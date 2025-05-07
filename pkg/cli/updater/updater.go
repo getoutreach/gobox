@@ -200,6 +200,14 @@ func (u *updater) defaultOptions() error {
 		} else {
 			u.channelReason = "channel passed in to updater"
 		}
+
+		for _, subpath := range conf.GlobalConfig.SkipPaths {
+			if strings.Contains(u.executablePath, subpath) {
+				u.disabled = true
+				u.disabledReason = "install path indicates an external installation method"
+				return nil
+			}
+		}
 	}
 
 	curVersion, err := semver.NewVersion(u.version)
