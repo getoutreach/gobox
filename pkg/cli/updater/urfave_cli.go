@@ -89,7 +89,7 @@ func (u *updater) hookIntoCLI() {
 			return cli.Exit("", 0)
 		}
 
-		binPath, err := goboxexec.ResolveExecuable(os.Args[0])
+		binPath, err := goboxexec.ResolveExecutable(os.Args[0])
 		if err != nil {
 			u.log.WithError(err).Warn("Failed to find binary location, please re-run your command manually")
 			return cli.Exit("", 0)

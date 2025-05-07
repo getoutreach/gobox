@@ -15,7 +15,7 @@ func getCwd() string {
 	return dir
 }
 
-func TestResolveExecuable(t *testing.T) {
+func TestResolveExecutable(t *testing.T) {
 	type args struct {
 		path string
 	}
@@ -63,13 +63,13 @@ func TestResolveExecuable(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ResolveExecuable(tt.args.path)
+			got, err := ResolveExecutable(tt.args.path)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ResolveExecuable() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ResolveExecutable() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("ResolveExecuable() = %v, want %v", got, tt.want)
+				t.Errorf("ResolveExecutable() = %v, want %v", got, tt.want)
 			}
 		})
 	}
