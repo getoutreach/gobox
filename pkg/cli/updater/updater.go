@@ -185,7 +185,7 @@ func (u *updater) defaultOptions() error {
 
 	// read the user's config and mutate the options based on that
 	// if certain values are present
-	if conf, err := readConfig(); err == nil {
+	if conf, err := ReadConfig(); err == nil {
 		// If we don't have a channel, use the one from the config
 		if u.channel == "" {
 			if conf.GlobalConfig.Channel != "" {
@@ -270,7 +270,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	conf, err := readConfig()
+	conf, err := ReadConfig()
 	if err != nil {
 		u.log.WithError(err).Warn("failed to read config")
 	}

@@ -151,7 +151,7 @@ func cliInstallVersion(ctx context.Context, u *updater, version string, rollback
 // newRollbackCommand creates a new cli.Command that rolls back to the previous version
 // or to the specified version
 func newRollbackCommand(u *updater) *cli.Command {
-	conf, _ := readConfig() //nolint:errcheck // Why: Handled below
+	conf, _ := ReadConfig() //nolint:errcheck // Why: Handled below
 	repoCache := conf.UpdaterCache[u.repoURL]
 
 	return &cli.Command{
@@ -224,7 +224,7 @@ func newSetChannel(u *updater) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			conf, err := readConfig()
+			conf, err := ReadConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to read config")
 			}
@@ -310,7 +310,7 @@ func newStatusCommand(u *updater) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			conf, err := readConfig()
+			conf, err := ReadConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to read config")
 			}
@@ -380,7 +380,7 @@ func printDebug(u *updater) error {
 	fmt.Println("Config")
 	fmt.Println("=================")
 
-	conf, err := readConfig()
+	conf, err := ReadConfig()
 	if err != nil {
 		return errors.Wrap(err, "failed to read config")
 	}

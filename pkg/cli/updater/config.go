@@ -24,21 +24,23 @@ var (
 	ConfigFile = filepath.Join(".outreach", ".config", "updater", "config.yaml")
 )
 
-// config is the configuration for the updater
-type config struct {
+// Config is the configuration for the updater.
+type Config struct {
 	Version int `yaml:"version"`
 
 	// GlobalConfig is the global configuration for the updater
-	GlobalConfig *updateConfiguration `yaml:"global"`
+	GlobalConfig *UpdateConfiguration `yaml:"global"`
 
 	// PerRepositoryConfiguration is configuration for each repository
-	PerRepositoryConfiguration map[string]*updateConfiguration `yaml:"perRepository"`
+	PerRepositoryConfiguration map[string]*UpdateConfiguration `yaml:"perRepository"`
 
 	// UpdaterCache contains the cache for the updater
 	UpdaterCache map[string]updateCache `yaml:"cache,omitempty"`
 }
 
-type updateConfiguration struct {
+// UpdateConfiguration is the configuration for a specific tool, or the
+// global configuration.
+type UpdateConfiguration struct {
 	// CheckEvery is the interval at which the updater will check for updates
 	// for the provided tool.
 	CheckEvery time.Duration `yaml:"checkEvery,omitempty"`
@@ -55,8 +57,8 @@ type updateCache struct {
 	LastVersion string `yaml:"lastVersion,omitempty"`
 }
 
-// readConfig returns the configuration for the updater
-func readConfig() (*config, error) {
+// ReadConfig loads the configuration for the updater.
+func ReadConfig() (*Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -64,10 +66,10 @@ func readConfig() (*config, error) {
 
 	confPath := filepath.Join(homeDir, ConfigFile)
 	if _, err := os.Stat(confPath); os.IsNotExist(err) {
-		return &config{
+		return &Config{
 			Version:                    ConfigVersion,
-			GlobalConfig:               &updateConfiguration{},
-			PerRepositoryConfiguration: make(map[string]*updateConfiguration),
+			GlobalConfig:               &UpdateConfiguration{},
+			PerRepositoryConfiguration: make(map[string]*UpdateConfiguration),
 			UpdaterCache:               make(map[string]updateCache),
 		}, nil
 	}
@@ -78,17 +80,17 @@ func readConfig() (*config, error) {
 	}
 	defer f.Close()
 
-	var conf config
+	var conf Config
 	if err := yaml.NewDecoder(f).Decode(&conf); err != nil {
 		return nil, err
 	}
 
 	if conf.GlobalConfig == nil {
-		conf.GlobalConfig = &updateConfiguration{}
+		conf.GlobalConfig = &UpdateConfiguration{}
 	}
 
 	if conf.PerRepositoryConfiguration == nil {
-		conf.PerRepositoryConfiguration = make(map[string]*updateConfiguration)
+		conf.PerRepositoryConfiguration = make(map[string]*UpdateConfiguration)
 	}
 
 	if conf.UpdaterCache == nil {
@@ -98,28 +100,43 @@ func readConfig() (*config, error) {
 	return &conf, err
 }
 
-// Get returns a copy of a specific repository's configuration
-func (c *config) Get(repoURL string) (updateConfiguration, bool) {
+// Get returns a copy of a specific repository's configuration.
+func (c *Config) Get(repoURL string) (UpdateConfiguration, bool) {
 	if c.PerRepositoryConfiguration == nil {
-		return updateConfiguration{}, false
+		return UpdateConfiguration{}, false
 	}
 
 	v, ok := c.PerRepositoryConfiguration[repoURL]
 	if !ok {
-		return updateConfiguration{}, false
+		return UpdateConfiguration{}, false
 	}
 
 	return *v, true
 }
 
-// Set updates a repository's configuration, call Save() to
-// save the changes
-func (c *config) Set(repoURL string, conf *updateConfiguration) {
+// / GetGlobal returns a copy of the global configuration.
+func (c *Config) GetGlobal() UpdateConfiguration {
+	if c.GlobalConfig == nil {
+		return UpdateConfiguration{}
+	}
+
+	return *c.GlobalConfig
+}
+
+// Set updates a repository's configuration. Call Save() to
+// save the changes.
+func (c *Config) Set(repoURL string, conf *UpdateConfiguration) {
 	c.PerRepositoryConfiguration[repoURL] = conf
 }
 
-// Save saves the changes to the configuration
-func (c *config) Save() error {
+// SetGlobal updates the global configuration. Call Save() to
+// save the changes.
+func (c *Config) SetGlobal(conf *UpdateConfiguration) {
+	c.GlobalConfig = conf
+}
+
+// Save saves the changes to the configuration.
+func (c *Config) Save() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
