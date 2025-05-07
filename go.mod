@@ -8,8 +8,8 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/briandowns/spinner v1.23.2
-	github.com/charmbracelet/glamour v0.8.0
-	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/log v0.4.1
 	github.com/creack/pty v1.1.23
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -57,7 +57,8 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
+	github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
@@ -117,8 +118,8 @@ require (
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/stretchr/testify v1.10.0
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/yuin/goldmark v1.7.4 // indirect
-	github.com/yuin/goldmark-emoji v1.0.3 // indirect
+	github.com/yuin/goldmark v1.7.8 // indirect
+	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
