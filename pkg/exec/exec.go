@@ -27,9 +27,9 @@ func ResolveExecutable(path string) (string, error) {
 	return filepath.Abs(path)
 }
 
-// ResolveExecuable is a wrapper for ResolveExecutable. This is the
-// original function which was misspelled. At some point in the future,
-// this will be deprecated and then removed.
+// ResolveExecuable is a wrapper for ResolveExecutable.
+//
+// Deprecated: use ResolveExecutable.
 func ResolveExecuable(path string) (string, error) {
 	return ResolveExecutable(path)
 }
