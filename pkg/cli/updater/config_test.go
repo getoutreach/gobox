@@ -14,16 +14,16 @@ import (
 func Test_readConfig(t *testing.T) {
 	tests := []struct {
 		name    string
-		want    *config
-		config  *config
+		want    *Config
+		config  *Config
 		wantErr bool
 	}{
 		{
 			name: "should load a default config",
-			want: &config{
+			want: &Config{
 				Version:                    ConfigVersion,
-				GlobalConfig:               &updateConfiguration{},
-				PerRepositoryConfiguration: map[string]*updateConfiguration{},
+				GlobalConfig:               &UpdateConfiguration{},
+				PerRepositoryConfiguration: map[string]*UpdateConfiguration{},
 				UpdaterCache:               map[string]updateCache{},
 			},
 		},
@@ -39,7 +39,7 @@ func Test_readConfig(t *testing.T) {
 				}
 			}
 
-			got, err := readConfig()
+			got, err := ReadConfig()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("readConfig() error = %v, wantErr %v", err, tt.wantErr)
 				return
