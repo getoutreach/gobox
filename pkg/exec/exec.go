@@ -12,7 +12,7 @@ import (
 
 // ResolveExecutable find the absolute path to a given binary.
 // This is meant to be used with os.Args[0]
-func ResolveExecuable(path string) (string, error) {
+func ResolveExecutable(path string) (string, error) {
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path), nil
 	}
@@ -25,4 +25,11 @@ func ResolveExecuable(path string) (string, error) {
 
 	// otherwise we should just return the absolute path (resolve it)
 	return filepath.Abs(path)
+}
+
+// ResolveExecuable is a wrapper for ResolveExecutable.
+//
+// Deprecated: use ResolveExecutable.
+func ResolveExecuable(path string) (string, error) {
+	return ResolveExecutable(path)
 }

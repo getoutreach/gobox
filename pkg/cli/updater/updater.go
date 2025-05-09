@@ -152,7 +152,7 @@ func (u *updater) defaultOptions() error {
 
 	if u.executablePath == "" {
 		var err error
-		u.executablePath, err = exec.ResolveExecuable(os.Args[0])
+		u.executablePath, err = exec.ResolveExecutable(os.Args[0])
 		if err != nil {
 			u.hookSkipUpdateIntoCLI()
 			return err
