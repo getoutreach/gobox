@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	cliV2 "github.com/urfave/cli/v2"
+	cliV3 "github.com/urfave/cli/v3"
 )
 
 // Options configures an updater
@@ -85,10 +86,17 @@ func WithForceCheck(forceCheck bool) Option {
 	}
 }
 
-// WithApp sets the cli.App to setup commands on.
-func WithApp(app *cli.App) Option {
+// WithApp sets the cli/v2.App to setup commands on.
+func WithApp(app *cliV2.App) Option {
 	return func(u *updater) {
 		u.app = app
+	}
+}
+
+// WithApp sets the cli/v3.App to setup commands on.
+func WithAppV3(cmd *cliV3.Command) Option {
+	return func(u *updater) {
+		u.appV3 = cmd
 	}
 }
 

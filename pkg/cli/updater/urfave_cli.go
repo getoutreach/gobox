@@ -22,19 +22,25 @@ import (
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	cliV2 "github.com/urfave/cli/v2"
 )
 
-// The urfave flags the updater will inject.
-var UpdaterFlags = []cli.Flag{
-	&cli.BoolFlag{
-		Name:  "skip-update",
-		Usage: "skips the updater check",
-	},
-	&cli.BoolFlag{
-		Name:  "force-update-check",
-		Usage: "Force checking for an update",
-	},
+// SkipFlag is a CLI flag used to skip the updater check.
+var SkipFlag = BoolFlag{
+	Name:  "skip-update",
+	Usage: "Skips the updater check",
+}
+
+// ForceFlag is a CLI flag used to force the updater check.
+var ForceFlag = BoolFlag{
+	Name:  "force-update-check",
+	Usage: "Force checking for an update",
+}
+
+// The urfave (V2) flags the updater will inject.
+var UpdaterFlags = []cliV2.Flag{
+	SkipFlag.ToUrfaveV2(),
+	ForceFlag.ToUrfaveV2(),
 }
 
 func (u *updater) hookSkipUpdateIntoCLI() {
@@ -44,14 +50,14 @@ func (u *updater) hookSkipUpdateIntoCLI() {
 	}
 }
 
-// hookIntoCLI hooks into a urfave/cli.App to add updater support
-func (u *updater) hookIntoCLI() {
+// hookIntoCLIV2 hooks into a urfave/cli/v2.App to add updater support
+func (u *updater) hookIntoCLIV2() {
 	oldBefore := u.app.Before
 
 	// append the standard flags
 	u.app.Flags = append(u.app.Flags, UpdaterFlags...)
 
-	u.app.Before = func(c *cli.Context) error {
+	u.app.Before = func(c *cliV2.Context) error {
 		// Handle deprecations and parse the flags onto our updater struct
 		for _, f := range c.FlagNames() {
 			if strings.EqualFold(f, "force-update-check") {
@@ -86,34 +92,34 @@ func (u *updater) hookIntoCLI() {
 			// We handle these after the switch.
 		default:
 			u.log.Infof("%s has been updated, please re-run your command", u.app.Name)
-			return cli.Exit("", 0)
+			return cliV2.Exit("", 0)
 		}
 
 		binPath, err := goboxexec.ResolveExecutable(os.Args[0])
 		if err != nil {
 			u.log.WithError(err).Warn("Failed to find binary location, please re-run your command manually")
-			return cli.Exit("", 0)
+			return cliV2.Exit("", 0)
 		}
 
 		u.log.Infof("%s has been updated, re-running automatically", u.app.Name)
 
 		//nolint:gosec // Why: We're passing in os.Args
 		if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
-			return cli.Exit("failed to re-run binary, please re-run your command manually", 1)
+			return cliV2.Exit("failed to re-run binary, please re-run your command manually", 1)
 		}
 
-		return cli.Exit("", 0)
+		return cliV2.Exit("", 0)
 	}
 
-	u.app.Commands = append(u.app.Commands, newUpdaterCommand(u))
+	u.app.Commands = append(u.app.Commands, newUpdaterCommand(u).ToUrfaveV2())
 }
 
-// newUpdaterCommand creates a new cli.Command that interacts with the updater
-func newUpdaterCommand(u *updater) *cli.Command {
-	return &cli.Command{
+// newUpdaterCommand creates a new Command that interacts with the updater
+func newUpdaterCommand(u *updater) *Command {
+	return &Command{
 		Name:  "updater",
 		Usage: "Commands for interacting with the built-in updater",
-		Subcommands: []*cli.Command{
+		Commands: []*Command{
 			newSetChannel(u),
 			newGetChannels(u),
 			newRollbackCommand(u),
@@ -148,53 +154,53 @@ func cliInstallVersion(ctx context.Context, u *updater, version string, rollback
 	return nil
 }
 
-// newRollbackCommand creates a new cli.Command that rolls back to the previous version
+// newRollbackCommand creates a new Command that rolls back to the previous version
 // or to the specified version
-func newRollbackCommand(u *updater) *cli.Command {
+func newRollbackCommand(u *updater) *Command {
 	conf, _ := ReadConfig() //nolint:errcheck // Why: Handled below
 	repoCache := conf.UpdaterCache[u.repoURL]
 
-	return &cli.Command{
+	return &Command{
 		Name:  "rollback",
 		Usage: "Rollback to the previous version",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
+		Flags: []Flag{
+			&StringFlag{
 				Name:  "version",
 				Usage: "The version to rollback to",
 				Value: repoCache.LastVersion,
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx context.Context, c *CLICmd) error {
 			ver := c.String("version")
 			if ver == "" {
 				return fmt.Errorf("no previous version to rollback to, must be set with --version")
 			}
 
-			return cliInstallVersion(c.Context, u, ver, true)
+			return cliInstallVersion(ctx, u, ver, true)
 		},
 	}
 }
 
-// new creates a new cli.Command that replaces the current binary with
+// new creates a new Command that replaces the current binary with
 // a specific version of the binary.
-func newUseCommand(u *updater) *cli.Command {
-	return &cli.Command{
+func newUseCommand(u *updater) *Command {
+	return &Command{
 		Name:  "use",
 		Usage: "Use a specific version of the application",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
+		Flags: []Flag{
+			&BoolFlag{
 				Name:  "list",
 				Usage: "List available versions",
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx context.Context, c *CLICmd) error {
 			if c.Bool("list") {
 				if ghPath, err := exec.LookPath("gh"); ghPath == "" || err != nil {
 					return errors.New("gh is not installed, please install it to use this command")
 				}
 
 				//nolint:gosec // Why: This is OK.
-				cmd := exec.CommandContext(c.Context, "gh", "-R", u.repoURL, "release",
+				cmd := exec.CommandContext(ctx, "gh", "-R", u.repoURL, "release",
 					"list", "-L", "20")
 				cmd.Stderr = os.Stderr
 				cmd.Stdout = os.Stdout
@@ -207,23 +213,23 @@ func newUseCommand(u *updater) *cli.Command {
 				return fmt.Errorf("no version specified")
 			}
 
-			return cliInstallVersion(c.Context, u, ver, false)
+			return cliInstallVersion(ctx, u, ver, false)
 		},
 	}
 }
 
-// newSetChannel creates a new cli.Command that sets the channel
-func newSetChannel(u *updater) *cli.Command {
-	return &cli.Command{
+// newSetChannel creates a new Command that sets the channel
+func newSetChannel(u *updater) *Command {
+	return &Command{
 		Name:  "set-channel",
 		Usage: "Set the channel to check for updates",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
+		Flags: []Flag{
+			&BoolFlag{
 				Name:  "reset",
 				Usage: "Reset the channel to the default",
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx context.Context, c *CLICmd) error {
 			conf, err := ReadConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to read config")
@@ -244,7 +250,7 @@ func newSetChannel(u *updater) *cli.Command {
 				return fmt.Errorf("channel must be provided")
 			}
 
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL, false)
+			versions, err := resolver.GetVersions(ctx, u.ghToken, u.repoURL, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}
@@ -262,7 +268,7 @@ func newSetChannel(u *updater) *cli.Command {
 
 			u.forceCheck = true
 			u.channel = channel
-			updated, err := u.check(c.Context)
+			updated, err := u.check(ctx)
 			if err != nil {
 				return errors.Wrap(err, "failed to check for updates")
 			}
@@ -277,14 +283,14 @@ func newSetChannel(u *updater) *cli.Command {
 	}
 }
 
-// newGetChannels creates a new cli.Command that returns the channels for the
+// newGetChannels creates a new Command that returns the channels for the
 // current application
-func newGetChannels(u *updater) *cli.Command {
-	return &cli.Command{
+func newGetChannels(u *updater) *Command {
+	return &Command{
 		Name:  "get-channels",
 		Usage: "Returns the valid channels",
-		Action: func(c *cli.Context) error {
-			versions, err := resolver.GetVersions(c.Context, u.ghToken, u.repoURL, false)
+		Action: func(ctx context.Context, c *CLICmd) error {
+			versions, err := resolver.GetVersions(ctx, u.ghToken, u.repoURL, false)
 			if err != nil {
 				return errors.Wrap(err, "failed to determine channels from remote")
 			}
@@ -297,19 +303,19 @@ func newGetChannels(u *updater) *cli.Command {
 	}
 }
 
-// newStatusCommand creates a new cli.Command that returns the current
+// newStatusCommand creates a new cliV2.Command that returns the current
 // status of the updater
-func newStatusCommand(u *updater) *cli.Command {
-	return &cli.Command{
+func newStatusCommand(u *updater) *Command {
+	return &Command{
 		Name:  "status",
 		Usage: "Returns the current status of the updater",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
+		Flags: []Flag{
+			&BoolFlag{
 				Name:  "debug",
 				Usage: "Show debug information",
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(ctx context.Context, c *CLICmd) error {
 			conf, err := ReadConfig()
 			if err != nil {
 				return errors.Wrap(err, "failed to read config")
@@ -338,7 +344,7 @@ func newStatusCommand(u *updater) *cli.Command {
 			if !disabled {
 				fmt.Println()
 				fmt.Println("Remote Information:")
-				v, err := resolver.Resolve(c.Context, u.ghToken, &resolver.Criteria{
+				v, err := resolver.Resolve(ctx, u.ghToken, &resolver.Criteria{
 					URL:     u.repoURL,
 					Channel: u.channel,
 				})

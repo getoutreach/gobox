@@ -59,7 +59,7 @@ func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) boo
 		if err != nil {
 			log.WithError(err).Warn("Failed to render release notes, using raw release notes")
 		}
-	} else if err != nil {
+	} else {
 		log.WithError(err).Warn("Failed to create markdown render, using raw release notes")
 	}
 	fmt.Println(out)

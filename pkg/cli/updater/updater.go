@@ -29,7 +29,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	cliV2 "github.com/urfave/cli/v2"
+	cliV3 "github.com/urfave/cli/v3"
 	"golang.org/x/term"
 )
 
@@ -118,8 +119,11 @@ type updater struct {
 	// noProgressBar disables the progress bar if set
 	noProgressBar bool
 
-	// app is a cli.App to setup commands on
-	app *cli.App
+	// app is a cli/v2.App to setup commands on
+	app *cliV2.App
+
+	// app is a cli/v2.App to setup commands on
+	appV3 *cliV3.Command
 }
 
 // defaultOptions configures the default options for the updater if
@@ -179,8 +183,11 @@ func (u *updater) defaultOptions() error {
 	}
 
 	// setup the updater
-	if u.app != nil {
-		u.hookIntoCLI()
+	switch {
+	case u.app != nil:
+		u.hookIntoCLIV2()
+	case u.appV3 != nil:
+		u.hookIntoCLIV3()
 	}
 
 	// read the user's config and mutate the options based on that
