@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/getoutreach/gobox/pkg/cli/updater"
-	"github.com/urfave/cli/v2"
+	cliV2 "github.com/urfave/cli/v2"
 )
 
 // Returns true if the last argument to the program is
@@ -28,10 +28,10 @@ func isFishCompletion(lastArg string) bool {
 	return lastArg == "--generate-fish-completion"
 }
 
-// Attemps to generate shell completion.
-// Returns an error if genration fails, or if the last of the given args doesn't
+// generateShellCompletion Attempts to generate shell completion.
+// Returns an error if generation fails, or if the last of the given args doesn't
 // match a completion flag.
-func generateShellCompletion(ctx context.Context, a *cli.App, args []string) error {
+func generateShellCompletion(ctx context.Context, a *cliV2.App, args []string) error {
 	// First, inject the updater flags so that they show up in the help.
 	a.Flags = append(a.Flags, updater.UpdaterFlags...)
 	lastArg := args[len(args)-1]
