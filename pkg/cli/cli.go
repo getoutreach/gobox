@@ -2,8 +2,9 @@
 
 // Description: See package comment
 
-// Package cli contains various cli utilities that are useful for building
-// cli applications with gobox based applications
+// Package cli contains various utilities that are useful for building
+// CLI applications with gobox based applications. Support is available
+// for both urfave/cli/v2 and urfave/cli/v3.
 package cli
 
 import (
@@ -93,6 +94,7 @@ func setupRun(
 	return cFuncs, exitCode, osExiter
 }
 
+// runFailure is called when the CLI library returns an error.
 func runFailure(ctx context.Context, logger logrus.FieldLogger, exitCode *int, err error) {
 	logger.Errorf("failed to run: %v", err)
 	//nolint:errcheck // Why: We're attaching the error to the trace.
