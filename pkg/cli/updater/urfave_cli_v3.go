@@ -12,7 +12,6 @@ import (
 	"syscall"
 
 	goboxexec "github.com/getoutreach/gobox/pkg/exec"
-	cliV2 "github.com/urfave/cli/v2"
 	cliV3 "github.com/urfave/cli/v3"
 )
 
@@ -65,13 +64,13 @@ func (u *updater) hookIntoCLIV3() {
 			// We handle these after the switch.
 		default:
 			u.log.Infof("%s has been updated, please re-run your command", u.appV3.Name)
-			return ctx, cliV2.Exit("", 0)
+			return ctx, cliV3.Exit("", 0)
 		}
 
 		binPath, err := goboxexec.ResolveExecutable(os.Args[0])
 		if err != nil {
 			u.log.WithError(err).Warn("Failed to find binary location, please re-run your command manually")
-			return ctx, cliV2.Exit("", 0)
+			return ctx, cliV3.Exit("", 0)
 		}
 
 		u.log.Infof("%s has been updated, re-running automatically", u.appV3.Name)
