@@ -1,7 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-// Description: This file contains the urfave/cli.App integration
-// for the updater.
+// Description: This file contains the urfave/cli integration
+// for the updater, agnostic of major version of the library.
 
 package updater
 
@@ -11,18 +11,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/color"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
-	goboxexec "github.com/getoutreach/gobox/pkg/exec"
 	"github.com/pkg/errors"
-	cliV2 "github.com/urfave/cli/v2"
 )
 
 // SkipFlag is a CLI flag used to skip the updater check.
@@ -37,81 +33,11 @@ var ForceFlag = BoolFlag{
 	Usage: "Force checking for an update",
 }
 
-// The urfave (V2) flags the updater will inject.
-var UpdaterFlags = []cliV2.Flag{
-	SkipFlag.ToUrfaveV2(),
-	ForceFlag.ToUrfaveV2(),
-}
-
 func (u *updater) hookSkipUpdateIntoCLI() {
 	// append the skip-update flag
 	if u.app != nil {
 		u.app.Flags = append(u.app.Flags, UpdaterFlags[0])
 	}
-}
-
-// hookIntoCLIV2 hooks into a urfave/cli/v2.App to add updater support
-func (u *updater) hookIntoCLIV2() {
-	oldBefore := u.app.Before
-
-	// append the standard flags
-	u.app.Flags = append(u.app.Flags, UpdaterFlags...)
-
-	u.app.Before = func(c *cliV2.Context) error {
-		// Handle deprecations and parse the flags onto our updater struct
-		for _, f := range c.FlagNames() {
-			if strings.EqualFold(f, "force-update-check") {
-				u.forceCheck = true
-			}
-
-			if strings.EqualFold(f, "skip-update") {
-				u.disabled = true
-				u.disabledReason = "skip-update flag set"
-			}
-		}
-
-		// handle an older before if it was set
-		if oldBefore != nil {
-			if err := oldBefore(c); err != nil {
-				return err
-			}
-		}
-
-		// restart when updated
-		needsUpdate, err := u.check(c.Context)
-		if err != nil {
-			u.log.WithError(err).Warn("Failed to handle updates")
-			return nil
-		}
-		if !needsUpdate {
-			return nil
-		}
-
-		switch runtime.GOOS {
-		case "linux", "darwin":
-			// We handle these after the switch.
-		default:
-			u.log.Infof("%s has been updated, please re-run your command", u.app.Name)
-			return cliV2.Exit("", 0)
-		}
-
-		binPath, err := goboxexec.ResolveExecutable(os.Args[0])
-		if err != nil {
-			u.log.WithError(err).Warn("Failed to find binary location, please re-run your command manually")
-			return cliV2.Exit("", 0)
-		}
-
-		u.log.Infof("%s has been updated, re-running automatically", u.app.Name)
-
-		//nolint:gosec // Why: We're passing in os.Args
-		if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
-			return cliV2.Exit("failed to re-run binary, please re-run your command manually", 1)
-		}
-
-		return cliV2.Exit("", 0)
-	}
-
-	u.app.Commands = append(u.app.Commands, newUpdaterCommand(u).ToUrfaveV2())
 }
 
 // newUpdaterCommand creates a new Command that interacts with the updater
@@ -303,7 +229,7 @@ func newGetChannels(u *updater) *Command {
 	}
 }
 
-// newStatusCommand creates a new cliV2.Command that returns the current
+// newStatusCommand creates a new Command that returns the current
 // status of the updater
 func newStatusCommand(u *updater) *Command {
 	return &Command{
