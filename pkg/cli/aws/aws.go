@@ -238,7 +238,7 @@ func refreshCredsViaOktaAWSCLI(
 	}
 
 	if b.AWS.Okta.SessionDuration > 0 {
-		args = append(args, "--session-duration", fmt.Sprint(b.AWS.Okta.SessionDuration))
+		args = append(args, "--aws-session-duration", fmt.Sprint(b.AWS.Okta.SessionDuration))
 	}
 
 	if !copts.chooseRoleInteractively() {
@@ -255,7 +255,7 @@ func refreshCredsViaOktaAWSCLI(
 		}
 		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
-		args = append(args, "--write-aws-credentials")
+		args = append(args, "--write-aws-credentials", "--expiry-aws-variables")
 	}
 
 	if acopts.Debug {
