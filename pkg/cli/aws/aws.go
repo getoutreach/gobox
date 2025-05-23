@@ -255,7 +255,7 @@ func refreshCredsViaOktaAWSCLI(
 		}
 		args = append(args, "--format", string(credentialProviderFormat(isCLIVersion1)))
 	} else {
-		args = append(args, "--write-aws-credentials")
+		args = append(args, "--write-aws-credentials", "--expiry-aws-variables")
 	}
 
 	if acopts.Debug {
