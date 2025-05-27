@@ -148,10 +148,11 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, cmp.Contains(msg, "--aws-iam-role "))
 		assert.Assert(t, cmp.Contains(msg, "--write-aws-credentials"))
+		assert.Assert(t, cmp.Contains(msg, "--expiry-aws-variables"))
 		assert.Assert(t, cmp.Contains(msg, "--org-domain example.okta.com"))
 		assert.Assert(t, cmp.Contains(msg, "--oidc-client-id 0oExample"))
 		assert.Assert(t, cmp.Contains(msg, "--aws-acct-fed-app-id 0oFedExample"))
-		assert.Assert(t, !strings.Contains(msg, "--session-duration"))
+		assert.Assert(t, !strings.Contains(msg, "--aws-session-duration"))
 	})
 
 	t.Run("session duration", func(t *testing.T) {
@@ -179,7 +180,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
-		assert.Assert(t, cmp.Contains(msg, "--session-duration 1234"))
+		assert.Assert(t, cmp.Contains(msg, "--aws-session-duration 1234"))
 	})
 
 	t.Run("interactive role selection", func(t *testing.T) {
@@ -229,6 +230,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 		msg := hook.LastEntry().Message
 		assert.Assert(t, strings.HasPrefix(msg, "Dry Run: okta-aws-cli"))
 		assert.Assert(t, !strings.Contains(msg, "--write-aws-credentials"))
+		assert.Assert(t, !strings.Contains(msg, "--expiry-aws-variables"))
 		assert.Assert(t, cmp.Contains(msg, "--format process-credentials"))
 		assert.Assert(t, cmp.Contains(msg, "--aws-iam-idp arn:aws:iam::123456789012:saml-provider/okta"))
 	})
