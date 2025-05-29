@@ -173,6 +173,12 @@ type SnapshotConfig struct {
 	WriteAWSRole string `yaml:"writeAWSRole"`
 }
 
+// Crucible is the configuration for the `crucible` Stencil regression tool.
+type Crucible struct {
+	// CIContexts is the CircleCI contexts used in `crucible run` CircleCI jobs.
+	CIContexts []string `yaml:"ciContexts"`
+}
+
 // Engdocs is the configuration for engdocs.
 type Engdocs struct {
 	// URL is the base URL to the engdocs instance.
@@ -198,6 +204,9 @@ type Config struct {
 
 	// CD is the configuration
 	CD CD `yaml:"cd"`
+
+	// Crucible is the configuration for the `crucible` tool.
+	Crucible Crucible `yaml:"crucible"`
 
 	// Docker is the configuration for pull/push registries
 	Docker Docker `yaml:"docker"`
