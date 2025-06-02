@@ -283,3 +283,64 @@ func Test_updater_getVersionInfo(t *testing.T) {
 		})
 	}
 }
+
+func Test_updater_skipPaths(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	cfg, err := ReadConfig()
+	assert.NilError(t, err)
+	cfg.GlobalConfig.SkipPaths = []string{
+		"/usr/local/Cellar/",
+		"/.local/share/mise/installs/",
+	}
+	assert.NilError(t, cfg.Save())
+	tests := []struct {
+		name           string
+		executablePath string
+		expectDisabled bool
+	}{
+		{
+			name:           "Homebrew path should disable updater",
+			executablePath: "/usr/local/Cellar/gobox/0.0.0/bin/gobox",
+			expectDisabled: true,
+		},
+		{
+			name:           "Mise path should disable updater",
+			executablePath: "/home/username/.local/share/mise/installs/gobox/0.0.0/gobox",
+			expectDisabled: true,
+		},
+		{
+			name:           "Non-skip path should not disable updater",
+			executablePath: "/usr/local/bin/gobox",
+			expectDisabled: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &updater{
+				repoURL:        "https://github.com/getoutreach/gobox",
+				version:        "v0.0.0",
+				executablePath: tt.executablePath,
+				skipInstall:    true,
+				noProgressBar:  true,
+			}
+			err = u.defaultOptions()
+			assert.NilError(t, err)
+			var reason string
+			if tt.expectDisabled {
+				reason = "updater should be disabled due to skip paths"
+			} else {
+				reason = "updater should not be disabled but was: " + u.disabledReason
+			}
+			assert.Equal(t, u.disabled, tt.expectDisabled, reason)
+			if tt.expectDisabled {
+				assert.Equal(
+					t,
+					u.disabledReason,
+					"install path indicates an external installation method",
+					"updater should be disabled due to skip paths",
+				)
+			}
+		})
+	}
+
+}
