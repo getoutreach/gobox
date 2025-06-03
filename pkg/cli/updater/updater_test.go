@@ -342,5 +342,4 @@ func Test_updater_skipPaths(t *testing.T) {
 			}
 		})
 	}
-
 }
