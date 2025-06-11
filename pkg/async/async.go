@@ -36,7 +36,9 @@ package async
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -77,7 +79,10 @@ func (t *Tasks) Run(ctx context.Context, r Runner) {
 	go func() {
 		defer t.WaitGroup.Done()
 		ctx2 := trace.StartSpan(ctx, t.Name)
-		defer trace.End(ctx2)
+		defer func(ctx context.Context) {
+			fmt.Println(string(debug.Stack()))
+			trace.End(ctx)
+		}(ctx2)
 		if err := r.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error(ctx2, t.Name, events.NewErrorInfo(err))
 		}
