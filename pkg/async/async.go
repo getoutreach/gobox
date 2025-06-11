@@ -36,9 +36,7 @@ package async
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -80,13 +78,15 @@ func (t *Tasks) Run(ctx context.Context, r Runner) {
 		defer t.WaitGroup.Done()
 		ctx2 := trace.StartSpan(ctx, t.Name)
 		defer func(ctx context.Context) {
-			fmt.Println(string(debug.Stack()))
+			log.Debug(ctx2, "defer ctx2 cancel")
 			trace.End(ctx)
 		}(ctx2)
+		log.Debug(ctx2, "before run")
 		if err := r.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error(ctx2, t.Name, events.NewErrorInfo(err))
 		}
 	}()
+	log.Debug(ctx, "after run")
 }
 
 // Loop repeatedly executes the provided task until it returns false
