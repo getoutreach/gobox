@@ -64,3 +64,22 @@ func (l Link) otelOption() trace.SpanStartOption {
 	link := trace.LinkFromContext(l.linkContext)
 	return trace.WithLinks(link)
 }
+
+// NewRoot is a conveyance for otel's `trace.WithNewRoot()`
+type NewRoot struct{}
+
+// _ makes sure NewRoot confirms with the SpanStartOption interface
+var _ SpanStartOption = NewRoot{}
+
+// otelOption generates a otel compatible option
+func (nr NewRoot) otelOption() trace.SpanStartOption {
+	return trace.WithNewRoot()
+}
+
+// WithNewRoot conveys the choice to otel that this span should start with a new root span
+// See go.opentelemetry.io/otel/trace.WithNewRoot
+//
+// This is useful in conjunction with a Link pointing to the parent span
+func WithNewRoot() NewRoot {
+	return NewRoot{}
+}
