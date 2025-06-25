@@ -170,14 +170,13 @@ func TestStartsWithNewRootSpan(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	defer recorder.Close()
 
-	// don't care about specific ids but make sure same IDs are used in both settings
-	newRootTraceID, linkID := differs.CaptureString(), differs.CaptureString()
+	newRootTraceID, spanID := differs.CaptureString(), differs.CaptureString()
 
 	expected := []map[string]interface{}{
 		{
 			"name":                   "new-root-span",
 			"spanContext.traceID":    newRootTraceID,
-			"spanContext.spanID":     linkID,
+			"spanContext.spanID":     spanID,
 			"spanContext.traceFlags": "01",
 			"parent.traceID":         "00000000000000000000000000000000",
 			"parent.spanID":          "0000000000000000",
