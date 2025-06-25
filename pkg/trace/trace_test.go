@@ -166,6 +166,45 @@ func TestNestedSpan(t *testing.T) {
 	}
 }
 
+func TestStartsWithNewRootSpan(t *testing.T) {
+	recorder := tracetest.NewSpanRecorder()
+	defer recorder.Close()
+
+	// don't care about specific ids but make sure same IDs are used in both settings
+	newRootTraceID, linkID := differs.CaptureString(), differs.CaptureString()
+
+	expected := []map[string]interface{}{
+		{
+			"name":                   "new-root-span",
+			"spanContext.traceID":    newRootTraceID,
+			"spanContext.spanID":     linkID,
+			"spanContext.traceFlags": "01",
+			"parent.traceID":         "00000000000000000000000000000000",
+			"parent.spanID":          "0000000000000000",
+			"parent.traceFlags":      "00",
+			"parent.remote":          false,
+			"spanKind":               "internal",
+			"startTime":              differs.AnyString(),
+			"endTime":                differs.AnyString(),
+			"attributes.app.version": "testing",
+			"SampleRate":             int64(1),
+		},
+	}
+
+	rootCtx := trace.StartSpan(context.Background(), "root-span")
+	trace.AddInfo(rootCtx, log.F{"trace": "outermost"})
+
+	// Using rootCtx but WithNewRoot will not have a parent spanID
+	newRootCtx := trace.StartSpanWithOptions(rootCtx, "new-root-span", []trace.SpanStartOption{trace.WithNewRoot()})
+
+	trace.End(newRootCtx)
+
+	ev := recorder.Ended()
+	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
+		t.Fatal("unexpected events", diff)
+	}
+}
+
 func TestIncludesDevEmail(t *testing.T) {
 	defer app.SetName(app.Info().Name)
 	app.SetName("gobox")
