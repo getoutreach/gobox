@@ -38,6 +38,11 @@ type tracer interface {
 
 	addInfo(ctx context.Context, args ...log.Marshaler)
 
+	// sendEvent sends an event in the span.
+	// an event is a marker in the span that *something* happened, commonly an exception or
+	// something of interest.
+	sendEvent(ctx context.Context, name string, attributes ...log.Marshaler)
+
 	spanID(ctx context.Context) string
 
 	// Deprecated: Will be removed with full migration to OpenTelemetry.

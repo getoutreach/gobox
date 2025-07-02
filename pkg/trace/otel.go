@@ -248,6 +248,16 @@ func (t *otelTracer) end(ctx context.Context) {
 	}
 }
 
+// sendEvent sends an event in the span.
+//
+// This is a wrapper around span.AddEvent that marshals the attributes to
+// OpenTelemetry attributes.
+func (t *otelTracer) sendEvent(ctx context.Context, name string, attributes ...log.Marshaler) {
+	if span := trace.SpanFromContext(ctx); span != nil {
+		span.AddEvent(name, trace.WithAttributes(marshalToKeyValue(log.Many(attributes))...))
+	}
+}
+
 func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
 		for _, arg := range args {

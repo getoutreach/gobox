@@ -255,6 +255,18 @@ func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) con
 	return newCtx
 }
 
+// SendEvent sends an event in the span.
+//
+// This is a wrapper around span.AddEvent that marshals the attributes to
+// OpenTelemetry attributes.
+func SendEvent(ctx context.Context, name string, attributes ...log.Marshaler) {
+	if defaultTracer == nil {
+		return
+	}
+
+	defaultTracer.sendEvent(ctx, name, attributes...)
+}
+
 // End ends a span (or a trace started via StartTrace).
 func End(ctx context.Context) {
 	if defaultTracer == nil {
