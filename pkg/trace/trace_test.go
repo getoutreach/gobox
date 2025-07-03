@@ -162,7 +162,7 @@ func TestNestedSpan(t *testing.T) {
 
 	ev := recorder.Ended()
 	if diff := cmp.Diff(expected, ev, differs.Custom()); diff != "" {
-		t.Fatal("unexpected events", diff)
+		t.Fatal("unexpected attributes", diff)
 	}
 }
 

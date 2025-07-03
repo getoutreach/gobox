@@ -1,5 +1,3 @@
-//go:build !or_e2e
-
 package trace_test
 
 import (
@@ -10,11 +8,12 @@ import (
 	"time"
 
 	"github.com/getoutreach/gobox/pkg/differs"
-	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"go.opentelemetry.io/otel/codes"
 	"gotest.tools/v3/assert"
 )
 
@@ -25,45 +24,97 @@ func (mf MarshalFunc) MarshalLog(addField func(key string, v interface{})) {
 }
 
 type marshalableError struct {
-	e error
+	Err error
 }
 
 func (m *marshalableError) MarshalLog(addField func(key string, v interface{})) {
 	if m == nil {
 		return
 	}
-	addField("err", m.e.Error())
+	addField("err", m.Err.Error())
+}
+
+func (m *marshalableError) Error() string {
+	if m.Err != nil {
+		return m.Err.Error()
+	}
+	return ""
+}
+
+func TestEvent(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	defer sr.Close()
+	ctx := context.Background()
+
+	ctx = trace.StartSpan(ctx, "testspan")
+	trace.SendEvent(ctx, "event", log.F{
+		"hi": "friends",
+	})
+	trace.End(ctx)
+
+	ended := sr.Recorder.Ended()
+	if len(ended) > 1 {
+		t.Fatal("expected a single span; got", len(ended))
+	}
+
+	for _, item := range ended {
+		evs := item.Events()
+		assert.Equal(t, len(evs), 1)
+		for i := range evs {
+			assert.Equal(t, evs[i].Name, "event")
+			assert.Equal(t, string(evs[i].Attributes[0].Key), "hi")
+			assert.Equal(t, evs[i].Attributes[0].Value.AsString(), "friends")
+		}
+	}
 }
 
 func TestTraceError(t *testing.T) {
-	sr := tracetest.NewSpanRecorder()
-	defer sr.Close()
-
 	err := fmt.Errorf("test error")
-	ctx := context.Background()
-	var errorInfo *events.ErrorInfo
+	var customError = &marshalableError{
+		Err: fmt.Errorf("party"),
+	}
 
-	ctx = trace.StartSpan(ctx, "testspan")
+	type testArgs struct {
+		input    error
+		expected any
+	}
 
-	var customError *marshalableError
-	trace.AddInfo(ctx, customError)
-	assert.ErrorIs(t, err, trace.Error(ctx, err))
-	assert.NilError(t, trace.Error(ctx, nil))
-	trace.AddInfo(ctx, events.NewErrorInfo(err))
-	trace.AddInfo(ctx, events.NewErrorInfo(nil))
-	trace.AddSpanInfo(ctx, log.F{"example": events.NewErrorInfo(nil)})
-	trace.AddSpanInfo(ctx, log.F{"hi": "friends"}, errorInfo)
-	assert.NilError(t, trace.Error(ctx, error(nil)))
-	trace.AddInfo(ctx, log.F{"hi": errorInfo})
-	trace.AddSpanInfo(ctx, log.F{"hi": errorInfo})
-	assert.NilError(t, trace.Error(ctx, nil))
-	trace.AddInfo(ctx, nil)
-	trace.AddInfo(ctx, errorInfo)
-	trace.AddInfo(ctx, &marshalableError{err})
-	trace.End(ctx)
+	orErr := orerr.New(fmt.Errorf("oh no"), orerr.WithInfo(log.F{"details": "juice"}))
+	cases := map[string]testArgs{
+		"custom":     {customError, customError},
+		"fmt.Errorf": {err, err},
+		"orerr":      {orErr, orErr},
+	}
 
-	ev := sr.Ended()
-	t.Log(ev)
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			sr := tracetest.NewSpanRecorder()
+			defer sr.Close()
+			ctx := trace.StartSpan(context.Background(), "test")
+			err := trace.Error(ctx, v.input)
+			assert.DeepEqual(t, err.Error(), v.input.Error())
+			trace.End(ctx)
+
+			ended := sr.Recorder.Ended()
+			if len(ended) > 1 {
+				t.Fatal("expected a single span; got", len(ended))
+			}
+
+			for _, item := range ended {
+				assert.Equal(t, item.Status().Code, codes.Error)
+				assert.Equal(t, item.Status().Description, v.input.Error())
+				for _, ev := range item.Events() {
+					assert.Equal(t, ev.Name, "exception")
+					attrs := map[string]string{}
+					for _, a := range ev.Attributes {
+						attrs[string(a.Key)] = a.Value.Emit()
+					}
+					assert.Check(t, attrs["exception.message"] != "")
+					assert.Check(t, attrs["exception.type"] != "")
+				}
+			}
+		})
+	}
 }
 
 func TestOtelAddInfo(t *testing.T) {

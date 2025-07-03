@@ -255,6 +255,18 @@ func StartSpanAsync(ctx context.Context, name string, args ...log.Marshaler) con
 	return newCtx
 }
 
+// SendEvent sends an event in the span.
+//
+// This is a wrapper around span.AddEvent that marshals the attributes to
+// OpenTelemetry attributes.
+func SendEvent(ctx context.Context, name string, attributes ...log.Marshaler) {
+	if defaultTracer == nil {
+		return
+	}
+
+	defaultTracer.sendEvent(ctx, name, attributes...)
+}
+
 // End ends a span (or a trace started via StartTrace).
 func End(ctx context.Context) {
 	if defaultTracer == nil {
@@ -278,11 +290,29 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 }
 
 // Error is a convenience for attaching an error to a span.
-func Error(ctx context.Context, err error) error {
-	if err == nil {
+//
+// for the ultimate format, we conform to the specification:
+// https://opentelemetry.io/docs/specs/otel/trace/exceptions/#recording-an-exception
+func Error(ctx context.Context, err error, opts ...RecordErrorOption) error {
+	// if the error is nil we no-op
+	// if tracing is not enabled, no-op
+	if err == nil || defaultTracer == nil {
 		return nil
 	}
-	AddInfo(ctx, events.NewErrorInfo(err))
+
+	// conform to outreach specific expectations:
+	defaultTracer.addInfo(ctx, events.Err(err))
+
+	// if the error was also a log marshaler, respect that
+	if m, ok := err.(log.Marshaler); ok {
+		defaultTracer.addInfo(ctx, m)
+	}
+
+	defaultTracer.recordError(ctx, err, opts...)
+	// https://opentelemetry.io/docs/languages/go/instrumentation/#record-errors
+	// docs say you gotto set the status too, so we do so
+	defaultTracer.setStatus(ctx, SpanStatusError, err.Error())
+
 	return err
 }
 
