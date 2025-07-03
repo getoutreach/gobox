@@ -258,6 +258,29 @@ func (t *otelTracer) sendEvent(ctx context.Context, name string, attributes ...l
 	}
 }
 
+// recordError records an error in conformance with opentelemetry specifications
+func (t *otelTracer) recordError(ctx context.Context, err error, options ...RecordErrorOption) {
+	config := &recordErrorConfig{}
+	for _, o := range options {
+		o.addErrOpt(config)
+	}
+	if span := trace.SpanFromContext(ctx); span != nil {
+		span.RecordError(err,
+			trace.WithAttributes(
+				marshalToKeyValue(config.Many)...,
+			),
+			trace.WithStackTrace(config.includeStacktrace),
+		)
+	}
+}
+
+// setStatus implements tracer.
+func (t *otelTracer) setStatus(ctx context.Context, status SpanStatus, description string) {
+	if span := trace.SpanFromContext(ctx); span != nil {
+		span.SetStatus(status.toOtel(), description)
+	}
+}
+
 func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 	if span := trace.SpanFromContext(ctx); span != nil {
 		for _, arg := range args {

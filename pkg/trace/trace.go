@@ -100,7 +100,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -290,11 +289,26 @@ func AddInfo(ctx context.Context, args ...log.Marshaler) {
 }
 
 // Error is a convenience for attaching an error to a span.
-func Error(ctx context.Context, err error) error {
-	if err == nil {
+//
+// for the ultimate format, we conform to the specification:
+// https://opentelemetry.io/docs/specs/otel/trace/exceptions/#recording-an-exception
+func Error(ctx context.Context, err error, opts ...RecordErrorOption) error {
+	// if the error is nil we no-op
+	// if tracing is not enabled, no-op
+	if err == nil || defaultTracer == nil {
 		return nil
 	}
-	AddInfo(ctx, events.NewErrorInfo(err))
+
+	// if the error was also a log marshaler, respect that
+	if m, ok := err.(log.Marshaler); ok {
+		defaultTracer.addInfo(ctx, m)
+	}
+
+	defaultTracer.recordError(ctx, err, opts...)
+	// https://opentelemetry.io/docs/languages/go/instrumentation/#record-errors
+	// docs say you gotto set the status too, so we do so
+	defaultTracer.setStatus(ctx, SpanStatusError, err.Error())
+
 	return err
 }
 

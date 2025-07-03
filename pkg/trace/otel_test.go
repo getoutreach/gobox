@@ -1,5 +1,3 @@
-//go:build !or_e2e
-
 package trace_test
 
 import (
@@ -10,11 +8,12 @@ import (
 	"time"
 
 	"github.com/getoutreach/gobox/pkg/differs"
-	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"go.opentelemetry.io/otel/codes"
 	"gotest.tools/v3/assert"
 )
 
@@ -59,21 +58,18 @@ func TestEvent(t *testing.T) {
 	}
 
 	for _, item := range ended {
-		events := item.Events()
-		assert.Equal(t, len(events), 1)
-		for i := range events {
-			assert.Equal(t, events[i].Name, "event")
-			assert.Equal(t, string(events[i].Attributes[0].Key), "hi")
-			assert.Equal(t, events[i].Attributes[0].Value.AsString(), "friends")
+		evs := item.Events()
+		assert.Equal(t, len(evs), 1)
+		for i := range evs {
+			assert.Equal(t, evs[i].Name, "event")
+			assert.Equal(t, string(evs[i].Attributes[0].Key), "hi")
+			assert.Equal(t, evs[i].Attributes[0].Value.AsString(), "friends")
 		}
 	}
 }
 
 func TestTraceError(t *testing.T) {
 	err := fmt.Errorf("test error")
-	ctx := context.Background()
-	var errorInfo *events.ErrorInfo
-
 	var customError = &marshalableError{
 		Err: fmt.Errorf("party"),
 	}
@@ -83,8 +79,11 @@ func TestTraceError(t *testing.T) {
 		expected any
 	}
 
+	orErr := orerr.New(fmt.Errorf("oh no"), orerr.WithInfo(log.F{"details": "juice"}))
 	cases := map[string]testArgs{
-		"custom": {customError, customError},
+		"custom":     {customError, customError},
+		"fmt.Errorf": {err, err},
+		"orerr":      {orErr, orErr},
 	}
 
 	for k, v := range cases {
@@ -92,10 +91,9 @@ func TestTraceError(t *testing.T) {
 			sr := tracetest.NewSpanRecorder()
 			defer sr.Close()
 			ctx := trace.StartSpan(context.Background(), "test")
-			trace.End(ctx)
-
 			err := trace.Error(ctx, v.input)
 			assert.DeepEqual(t, err.Error(), v.input.Error())
+			trace.End(ctx)
 
 			ended := sr.Recorder.Ended()
 			if len(ended) > 1 {
@@ -103,32 +101,20 @@ func TestTraceError(t *testing.T) {
 			}
 
 			for _, item := range ended {
-				events := item.Events()
-				assert.Equal(t, len(events), 1)
-				for i := range events {
-					assert.Equal(t, events[i].Name, "event")
-					assert.Equal(t, string(events[i].Attributes[0].Key), "hi")
-					assert.Equal(t, events[i].Attributes[0].Value.AsString(), "friends")
+				assert.Equal(t, item.Status().Code, codes.Error)
+				assert.Equal(t, item.Status().Description, v.input.Error())
+				for _, ev := range item.Events() {
+					assert.Equal(t, ev.Name, "exception")
+					attrs := map[string]string{}
+					for _, a := range ev.Attributes {
+						attrs[string(a.Key)] = a.Value.Emit()
+					}
+					assert.Check(t, attrs["exception.message"] != "")
+					assert.Check(t, attrs["exception.type"] != "")
 				}
 			}
-
 		})
-
 	}
-
-	assert.ErrorIs(t, err, trace.Error(ctx, err))
-	assert.NilError(t, trace.Error(ctx, nil))
-	trace.AddInfo(ctx, events.NewErrorInfo(err))
-	trace.AddInfo(ctx, events.NewErrorInfo(nil))
-	trace.AddSpanInfo(ctx, log.F{"example": events.NewErrorInfo(nil)})
-	trace.AddSpanInfo(ctx, log.F{"hi": "friends"}, errorInfo)
-	assert.NilError(t, trace.Error(ctx, error(nil)))
-	trace.AddInfo(ctx, log.F{"hi": errorInfo})
-	trace.AddSpanInfo(ctx, log.F{"hi": errorInfo})
-	assert.NilError(t, trace.Error(ctx, nil))
-	trace.AddInfo(ctx, nil)
-	trace.AddInfo(ctx, errorInfo)
-	trace.AddInfo(ctx, &marshalableError{err})
 
 }
 
