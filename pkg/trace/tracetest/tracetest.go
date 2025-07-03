@@ -22,7 +22,7 @@ type Options struct {
 }
 
 type SpanRecorder struct {
-	recorder *tracetest.SpanRecorder
+	Recorder *tracetest.SpanRecorder
 	cleanup  func()
 }
 
@@ -63,8 +63,8 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 	name := "log-testing"
 	_ = trace.InitTracer(ctx, name) // nolint: errcheck
 
-	sr.recorder = tracetest.NewSpanRecorder()
-	trace.RegisterSpanProcessor(sr.recorder)
+	sr.Recorder = tracetest.NewSpanRecorder()
+	trace.RegisterSpanProcessor(sr.Recorder)
 
 	sr.cleanup = func() {
 		// We know that CloseTracer will timeout waiting to flush pending
@@ -89,8 +89,8 @@ func (sr *SpanRecorder) Close() {
 func (sr *SpanRecorder) Ended() []map[string]interface{} {
 	var ended []oteltrace.ReadOnlySpan
 
-	if sr.recorder != nil {
-		ended = sr.recorder.Ended()
+	if sr.Recorder != nil {
+		ended = sr.Recorder.Ended()
 	}
 
 	result := make([]map[string]interface{}, 0, len(ended))
@@ -154,7 +154,6 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 			}
 			spanInfo["links"] = linksInfo
 		}
-
 		result = append(result, spanInfo)
 	}
 

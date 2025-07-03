@@ -25,28 +25,97 @@ func (mf MarshalFunc) MarshalLog(addField func(key string, v interface{})) {
 }
 
 type marshalableError struct {
-	e error
+	Err error
 }
 
 func (m *marshalableError) MarshalLog(addField func(key string, v interface{})) {
 	if m == nil {
 		return
 	}
-	addField("err", m.e.Error())
+	addField("err", m.Err.Error())
+}
+
+func (m *marshalableError) Error() string {
+	if m.Err != nil {
+		return m.Err.Error()
+	}
+	return ""
+}
+
+func TestEvent(t *testing.T) {
+	sr := tracetest.NewSpanRecorder()
+	defer sr.Close()
+	ctx := context.Background()
+
+	ctx = trace.StartSpan(ctx, "testspan")
+	trace.SendEvent(ctx, "event", log.F{
+		"hi": "friends",
+	})
+	trace.End(ctx)
+
+	ended := sr.Recorder.Ended()
+	if len(ended) > 1 {
+		t.Fatal("expected a single span; got", len(ended))
+	}
+
+	for _, item := range ended {
+		events := item.Events()
+		assert.Equal(t, len(events), 1)
+		for i := range events {
+			assert.Equal(t, events[i].Name, "event")
+			assert.Equal(t, string(events[i].Attributes[0].Key), "hi")
+			assert.Equal(t, events[i].Attributes[0].Value.AsString(), "friends")
+		}
+	}
 }
 
 func TestTraceError(t *testing.T) {
-	sr := tracetest.NewSpanRecorder()
-	defer sr.Close()
-
 	err := fmt.Errorf("test error")
 	ctx := context.Background()
 	var errorInfo *events.ErrorInfo
 
-	ctx = trace.StartSpan(ctx, "testspan")
+	var customError = &marshalableError{
+		Err: fmt.Errorf("party"),
+	}
 
-	var customError *marshalableError
-	trace.AddInfo(ctx, customError)
+	type testArgs struct {
+		input    error
+		expected any
+	}
+
+	cases := map[string]testArgs{
+		"custom": {customError, customError},
+	}
+
+	for k, v := range cases {
+		t.Run(k, func(t *testing.T) {
+			sr := tracetest.NewSpanRecorder()
+			defer sr.Close()
+			ctx := trace.StartSpan(context.Background(), "test")
+			trace.End(ctx)
+
+			err := trace.Error(ctx, v.input)
+			assert.DeepEqual(t, err.Error(), v.input.Error())
+
+			ended := sr.Recorder.Ended()
+			if len(ended) > 1 {
+				t.Fatal("expected a single span; got", len(ended))
+			}
+
+			for _, item := range ended {
+				events := item.Events()
+				assert.Equal(t, len(events), 1)
+				for i := range events {
+					assert.Equal(t, events[i].Name, "event")
+					assert.Equal(t, string(events[i].Attributes[0].Key), "hi")
+					assert.Equal(t, events[i].Attributes[0].Value.AsString(), "friends")
+				}
+			}
+
+		})
+
+	}
+
 	assert.ErrorIs(t, err, trace.Error(ctx, err))
 	assert.NilError(t, trace.Error(ctx, nil))
 	trace.AddInfo(ctx, events.NewErrorInfo(err))
@@ -60,10 +129,7 @@ func TestTraceError(t *testing.T) {
 	trace.AddInfo(ctx, nil)
 	trace.AddInfo(ctx, errorInfo)
 	trace.AddInfo(ctx, &marshalableError{err})
-	trace.End(ctx)
 
-	ev := sr.Ended()
-	t.Log(ev)
 }
 
 func TestOtelAddInfo(t *testing.T) {
