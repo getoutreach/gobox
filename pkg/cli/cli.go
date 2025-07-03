@@ -120,7 +120,7 @@ func Run(ctx context.Context, cancel context.CancelFunc, a *cliV2.App, conf *Con
 	}
 
 	cFuncs, exitCode, osExiter := setupRun(ctx, cancel, conf, logger, a.Name)
-	defer cFuncs.All()
+	defer cFuncs.All()()
 
 	if _, err := updater.UseUpdater(ctx, updater.WithApp(a), updater.WithLogger(logger)); err != nil {
 		logger.WithError(err).Warn("Failed to setup automatic updater")
@@ -166,7 +166,7 @@ func RunV3(ctx context.Context, cancel context.CancelFunc, c *cliV3.Command, con
 	}
 
 	cFuncs, exitCode, osExiter := setupRun(ctx, cancel, conf, logger, c.Name)
-	defer cFuncs.All()
+	defer cFuncs.All()()
 
 	if _, err := updater.UseUpdater(ctx, updater.WithAppV3(c), updater.WithLogger(logger)); err != nil {
 		logger.WithError(err).Warn("Failed to setup automatic updater")
