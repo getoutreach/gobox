@@ -115,7 +115,6 @@ func TestTraceError(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestOtelAddInfo(t *testing.T) {

@@ -30,7 +30,7 @@ const (
 )
 
 // MarshalLog implements logf.Marshaler.
-func (s SpanStatus) MarshalLog(addField func(key string, v interface{})) {
+func (s SpanStatus) MarshalLog(addField func(key string, v any)) {
 	addField("span.status", s.String())
 }
 
@@ -46,6 +46,8 @@ func (s SpanStatus) toOtel() codes.Code {
 		return codes.Error
 	case SpanStatusOK:
 		return codes.Ok
+	case SpanStatusUnset:
+		return codes.Unset
 	default:
 		return codes.Unset
 	}

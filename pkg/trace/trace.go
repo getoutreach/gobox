@@ -100,6 +100,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -298,6 +299,9 @@ func Error(ctx context.Context, err error, opts ...RecordErrorOption) error {
 	if err == nil || defaultTracer == nil {
 		return nil
 	}
+
+	// conform to outreach specific expectations:
+	defaultTracer.addInfo(ctx, events.Err(err))
 
 	// if the error was also a log marshaler, respect that
 	if m, ok := err.(log.Marshaler); ok {
