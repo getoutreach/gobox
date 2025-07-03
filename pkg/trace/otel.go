@@ -430,6 +430,8 @@ func marshalToKeyValue(arg log.Marshaler) []attribute.KeyValue {
 			// or floats without units attached would
 			// be harder to interpret.
 			res = append(res, attribute.String(key, v.Format(time.RFC3339Nano)))
+		case log.Marshaler:
+			res = append(res, marshalToKeyValue(v)...)
 		default:
 			res = append(res, attribute.String(key, fmt.Sprintf("%v", v)))
 		}
