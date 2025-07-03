@@ -102,7 +102,10 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
+	"github.com/jdbaldry/go-language-server-protocol/span"
+	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // nolint:gochecknoglobals // Why: need to allow overriding
@@ -314,6 +317,17 @@ func Error(ctx context.Context, err error, opts ...RecordErrorOption) error {
 	defaultTracer.setStatus(ctx, SpanStatusError, err.Error())
 
 	return err
+}
+
+// SetAttributes is an escape hatch to directly set otel attributes on a span
+//
+// this is useful if, for example, you want to use [semantic conventions]
+//
+// [semantic conventions]: https://opentelemetry.io/docs/concepts/semantic-conventions/
+func SetAttributes(ctx context.Context, kvs ...attribute.KeyValue) {
+	if span := trace.SpanFromContext(ctx); span != nil {
+		span.SetAttributes(kvs...)
+	}
 }
 
 // ID returns an ID for use with external services to propagate
