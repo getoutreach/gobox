@@ -297,7 +297,7 @@ func Error(ctx context.Context, err error, opts ...RecordErrorOption) error {
 	// if the error is nil we no-op
 	// if tracing is not enabled, no-op
 	if err == nil || defaultTracer == nil {
-		return nil
+		return err
 	}
 
 	// conform to outreach specific expectations:
