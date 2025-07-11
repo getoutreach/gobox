@@ -227,6 +227,18 @@ func TestResolve(t *testing.T) {
 			want: newTestingVersion("v0.9.1-rc.2"),
 		},
 		{
+			name: "should support comparing an stable constraint with an RC version",
+			c:    Criteria{Constraints: []string{"v1.0.0-rc.1", ">=0.9.1"}},
+			versions: map[string][]Version{
+				StableChannel: {},
+				"rc": {
+					newTestingVersion("v0.9.0-rc.1"),
+					newTestingVersion("v1.0.0-rc.1"),
+				},
+			},
+			want: newTestingVersion("v1.0.0-rc.1"),
+		},
+		{
 			name: "should support branches",
 			c:    Criteria{Channel: "main", AllowBranches: true},
 			versions: map[string][]Version{

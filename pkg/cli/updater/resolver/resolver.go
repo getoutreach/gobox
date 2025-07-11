@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -287,7 +288,7 @@ func getVersions(ctx context.Context, token cfg.SecretData, url string, allowBra
 // semver library used. In order to support this we parse the constraints to determine the allowed channels. By
 // default `stable` is always considered, with whatever pre-release (e.g. `>=1.0.0-alpha` -> `alpha`) is specified
 // in the pre-release constraint being added to the allowed channels. If a channel is specified, it is also added
-// to the allowed channels. Due to this '&&' and '||' are not supported in constraints.
+// to the allowed channels.
 func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, error) {
 	versions, err := GetVersions(ctx, token, c.URL, c.AllowBranches)
 	if err != nil {
@@ -306,16 +307,6 @@ func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, 
 	return getLatestVersion(versions, c)
 }
 
-// stringInSlice returns true if the string is in the slice
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 // getLatestSatisfyingConstraint returns the latest version that satisfies the constraint
 func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (*Version, error) {
 	allowedChannels := []string{c.Channel}
@@ -327,19 +318,8 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 	// we have a constraint, so find the latest version that satisfies it
 	constraints := make([]*semver.Constraints, len(c.Constraints))
 	for i, constraintStr := range c.Constraints {
-		// Limit the ability to use && and || in constraints so we can mutate the constraint
-		// to allow pre-releases
-		if strings.Contains(constraintStr, "&&") || strings.Contains(constraintStr, "||") {
-			return nil, errors.Errorf("multiple constraints within a single constraint are not supported")
-		}
-
 		// strip space from the constraint
 		constraintStr = strings.TrimSpace(constraintStr)
-		if constraintStr == "*" {
-			// for some reason * doesn't work with the prereleases hack we use below,
-			// so convert * into >= 0.0.0, it's equivalent.
-			constraintStr = ">=0.0.0"
-		}
 
 		// extract allowed channels from the constraint if there is one
 		exampleVer := oprStripRegex.ReplaceAllString(constraintStr, "$1")
@@ -347,25 +327,17 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 			channel := strings.Split(exampleVerSem.Prerelease(), ".")[0]
 
 			if channel != "" {
-				alreadyHasChannel := stringInSlice(channel, allowedChannels)
-				if !alreadyHasChannel {
+				if !slices.Contains(allowedChannels, channel) {
 					allowedChannels = append(allowedChannels, channel)
 				}
 			}
-		}
-
-		// If we're allowing channels other than the stable channel then we need to
-		// mutate the constraint to allow pre-releases. The constraint matching doesn't
-		// allow you to specify which pre-releases to allow, so we just allow all here
-		// and filter it down later.
-		if c.Channel != StableChannel && !strings.Contains(constraintStr, "-") {
-			constraintStr += "-prereleases"
 		}
 
 		constraint, err := semver.NewConstraint(constraintStr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse constraint %q", constraintStr)
 		}
+		constraint.IncludePrerelease = true
 
 		constraints[i] = constraint
 	}
@@ -374,7 +346,7 @@ func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (
 	allVersions := make([]*Version, 0)
 	for channel, vers := range versions {
 		// skip channels that aren't allowed from the constraint / channel argument
-		if !stringInSlice(channel, allowedChannels) {
+		if !slices.Contains(allowedChannels, channel) {
 			continue
 		}
 
