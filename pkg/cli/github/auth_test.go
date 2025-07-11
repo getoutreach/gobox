@@ -9,7 +9,6 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-//nolint:gocritic // Why: It's obvious.
 func setupEnv(t *testing.T) string {
 	t.Helper()
 	tempDir := t.TempDir()
