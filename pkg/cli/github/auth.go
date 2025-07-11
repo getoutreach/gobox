@@ -162,7 +162,7 @@ func ghCLIToken() (cfg.SecretData, error) {
 }
 
 // ghCmd is a helper function to create a `exec.Cmd` for the `gh` CLI.
-// If `mise` exists, it will try running via `mise exec` first.
+// If `mise` exists, it will grab the `gh` path from `mise which`.
 func ghCmd(args ...string) (*exec.Cmd, error) {
 	var err error
 	if ghPath == "" {
