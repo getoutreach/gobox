@@ -168,7 +168,6 @@ func ghCmd(args ...string) (*exec.Cmd, error) {
 	if ghPath == "" {
 		misePath, err := exec.LookPath("mise")
 		if err == nil && misePath != "" {
-			// nolint: gosec // Why: misePath is only set in this function
 			cmd := exec.Command(misePath, "which", "gh")
 			whichPath, err := cmd.CombinedOutput()
 			if err != nil {
