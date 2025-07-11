@@ -21,6 +21,9 @@ import (
 // in the gh config
 const githubKey = "github.com"
 
+// ghPath is a memoized path to the `gh` CLI.
+var ghPath = ""
+
 // authAccessor is a function that returns a github token if
 // available via this method.
 type authAccessor func() (cfg.SecretData, error)
@@ -82,11 +85,10 @@ func envToken() (cfg.SecretData, error) {
 // ghCLIAuthToken is a helper function to get the token from the gh CLI
 // using the 'gh auth token' command.
 func ghCLIAuthToken() (cfg.SecretData, error) {
-	if path, err := exec.LookPath("gh"); err != nil || path == "" {
-		return "", fmt.Errorf("failed to find 'gh' CLI")
+	cmd, err := ghCmd("auth", "token")
+	if err != nil {
+		return "", err
 	}
-
-	cmd := exec.Command("gh", "auth", "token")
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get token via gh CLI (try 'gh auth login?'): %s", string(b))
@@ -99,19 +101,21 @@ func ghCLIAuthToken() (cfg.SecretData, error) {
 // ghCLIToken gets a token from gh, or informs the user how to setup
 // a github token via gh, or install gh if not found
 func ghCLIToken() (cfg.SecretData, error) {
-	if path, err := exec.LookPath("gh"); err != nil || path == "" {
-		return "", fmt.Errorf("failed to find 'gh' CLI")
-	}
-
 	// Mostly just for tests that fake the value
 	if os.Getenv("GOBOX_SKIP_VALIDATE_AUTH") != "true" {
-		cmd := exec.Command("gh", "auth", "status")
+		cmd, err := ghCmd("auth", "status")
+		if err != nil {
+			return "", err
+		}
 		if _, err := cmd.CombinedOutput(); err != nil {
-			cmd := exec.Command("gh", "auth", "login")
+			cmd, err := ghCmd("auth", "login")
+			if err != nil {
+				return "", err
+			}
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			cmd.Stdin = os.Stdin
-			if err != nil {
+			if err := cmd.Run(); err != nil {
 				return "", errors.Wrap(err, "failed to login via gh CLI")
 			}
 		}
@@ -155,4 +159,28 @@ func ghCLIToken() (cfg.SecretData, error) {
 	}
 
 	return cfg.SecretData(token), nil
+}
+
+// ghCmd is a helper function to create a `exec.Cmd` for the `gh` CLI.
+// If `mise` exists, it will grab the `gh` path from `mise which`.
+func ghCmd(args ...string) (*exec.Cmd, error) {
+	var err error
+	if ghPath == "" {
+		misePath, err := exec.LookPath("mise")
+		if err == nil && misePath != "" {
+			cmd := exec.Command(misePath, "which", "gh")
+			whichPath, err := cmd.CombinedOutput()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to find 'gh' CLI via 'mise which gh'")
+			}
+			ghPath = strings.TrimSpace(string(whichPath))
+		}
+	}
+	if ghPath == "" {
+		ghPath, err = exec.LookPath("gh")
+	}
+	if err != nil || ghPath == "" {
+		return nil, errors.New("failed to find 'gh' CLI")
+	}
+	return exec.Command(ghPath, args...), nil
 }

@@ -9,18 +9,17 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-//nolint:gocritic // Why: It's obvious.
-func setupEnv(t *testing.T) (string, func()) {
+func setupEnv(t *testing.T) string {
+	t.Helper()
 	tempDir := t.TempDir()
 	t.Setenv("HOME", tempDir)
 	t.Setenv("GITHUB_TOKEN", "")
 	t.Setenv("OUTREACH_GITHUB_TOKEN", "")
-	return tempDir, func() {}
+	return tempDir
 }
 
 func Test_GetToken_outreachDirToken(t *testing.T) {
-	home, cleanup := setupEnv(t)
-	defer cleanup()
+	home := setupEnv(t)
 
 	dummyValue := "i wanna be the very best"
 
@@ -36,10 +35,9 @@ func Test_GetToken_outreachDirToken(t *testing.T) {
 }
 
 func Test_GetToken_ghCLIToken(t *testing.T) {
-	home, cleanup := setupEnv(t)
-	defer cleanup()
+	home := setupEnv(t)
 
-	os.Setenv("GOBOX_SKIP_VALIDATE_AUTH", "true")
+	t.Setenv("GOBOX_SKIP_VALIDATE_AUTH", "true")
 
 	dummyValue := "like no one ever was"
 	fakeYAML := "github.com:\n  user: jaredallard\n  oauth_token: " + dummyValue
@@ -51,21 +49,18 @@ func Test_GetToken_ghCLIToken(t *testing.T) {
 		"expected writing token setup to succeed")
 
 	token, err := github.GetToken()
-	os.Setenv("GOBOX_SKIP_VALIDATE_AUTH", "")
 	assert.NilError(t, err, "expected GetToken() to succeed")
 	assert.Equal(t, string(token), dummyValue, "expected set token to be returned by GetToken()")
 }
 
 func Test_GetToken_envToken(t *testing.T) {
-	_, cleanup := setupEnv(t)
-	defer cleanup()
+	setupEnv(t)
 
 	dummyValue := "to catch them is my real test"
 
-	os.Setenv("GITHUB_TOKEN", dummyValue)
+	t.Setenv("GITHUB_TOKEN", dummyValue)
 
 	token, err := github.GetToken()
-	os.Setenv("GITHUB_TOKEN", "")
 
 	assert.NilError(t, err, "expected GetToken() to succeed")
 	assert.Equal(t, string(token), dummyValue, "expected set token to be returned by GetToken()")
