@@ -24,9 +24,6 @@ const githubKey = "github.com"
 // ghPath is a memoized path to the `gh` CLI.
 var ghPath = ""
 
-// misePath is a memoized path to the `mise` CLI.
-var misePath = ""
-
 // authAccessor is a function that returns a github token if
 // available via this method.
 type authAccessor func() (cfg.SecretData, error)
@@ -168,12 +165,17 @@ func ghCLIToken() (cfg.SecretData, error) {
 // If `mise` exists, it will try running via `mise exec` first.
 func ghCmd(args ...string) (*exec.Cmd, error) {
 	var err error
-	if misePath == "" {
-		misePath, err = exec.LookPath("mise")
-	}
-	if err == nil && misePath != "" {
-		// nolint: gosec // Why: misePath is only set in this function
-		return exec.Command(misePath, append([]string{"exec", "--", "gh"}, args...)...), nil
+	if ghPath == "" {
+		misePath, err := exec.LookPath("mise")
+		if err == nil && misePath != "" {
+			// nolint: gosec // Why: misePath is only set in this function
+			cmd := exec.Command(misePath, "which", "gh")
+			whichPath, err := cmd.CombinedOutput()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to find 'gh' CLI via 'mise which gh'")
+			}
+			ghPath = strings.TrimSpace(string(whichPath))
+		}
 	}
 	if ghPath == "" {
 		ghPath, err = exec.LookPath("gh")
