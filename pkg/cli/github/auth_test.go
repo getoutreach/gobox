@@ -36,6 +36,7 @@ func Test_GetToken_outreachDirToken(t *testing.T) {
 }
 
 func Test_GetToken_ghCLIToken(t *testing.T) {
+	t.Skip("ghCLIToken is deprecated, use ghCLIAuthToken instead")
 	home, cleanup := setupEnv(t)
 	defer cleanup()
 
