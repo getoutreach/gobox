@@ -132,7 +132,7 @@ type F = logf.F
 // slogIt produces a slog structured log at the appropriate level.
 func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
 	once.Do(setupSlog)
-	slog.LogAttrs(ctx, lvl, message, slogAttrs(m)...)
+	log.LogAttrs(ctx, lvl, message, slogAttrs(m)...)
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
