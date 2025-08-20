@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"runtime/debug"
 	"sort"
@@ -60,11 +61,9 @@ var (
 
 	// once to ensure we only initialize the slog.Logger once.
 	once = sync.Once{}
+	mu   = sync.Mutex{}
 	// log is a structured logger instance.
 	log *slog.Logger
-
-	// useSlog is true if the GOBOX_AS_SLOG_FACADE environment variable is true.
-	_, useSlog = os.LookupEnv("GOBOX_AS_SLOG_FACADE")
 
 	// dbgEntries is essentially a buffer of entries
 	dbgEntries = entries.New()
@@ -72,7 +71,17 @@ var (
 
 // setupSlog initializes a global slogger
 func setupSlog() {
+	mu.Lock()
+	defer mu.Unlock()
 	log = olog.New()
+}
+
+// useSlog returns true if slog facade should be used, checking both initialization and runtime
+func useSlog() bool {
+	// Check both the initialization value and runtime environment
+	// This allows tests to set environment variables after package init
+	_, runtimeUseSlog := os.LookupEnv("GOBOX_AS_SLOG_FACADE")
+	return runtimeUseSlog
 }
 
 // Marshaler is the interface to be implemented by items that can be logged.
@@ -103,8 +112,10 @@ func SetOutput(w io.Writer) {
 	stdOutLock.Lock()
 	defer stdOutLock.Unlock()
 
-	if useSlog {
+	if useSlog() {
 		olog.SetOutput(w)
+		// Force re-initialization of the slog logger with the new output
+		setupSlog()
 	}
 	stdOut = w
 }
@@ -139,7 +150,7 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog {
+	if useSlog() {
 		slogIt(ctx, slog.LevelDebug, message, m)
 		return
 	}
@@ -148,7 +159,7 @@ func Debug(ctx context.Context, message string, m ...Marshaler) {
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog {
+	if useSlog() {
 		slogIt(ctx, slog.LevelInfo, message, m)
 		return
 	}
@@ -159,7 +170,7 @@ func Info(ctx context.Context, message string, m ...Marshaler) {
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog {
+	if useSlog() {
 		slogIt(ctx, slog.LevelWarn, message, m)
 		return
 	}
@@ -170,7 +181,7 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog {
+	if useSlog() {
 		slogIt(ctx, slog.LevelError, message, m)
 		return
 	}
@@ -182,7 +193,7 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog {
+	if useSlog() {
 		slogIt(ctx, slog.LevelError, message, m)
 		os.Exit(1)
 		return
@@ -336,17 +347,46 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 			// We can't guarantee that uint64 or uint can be safely casted
 			// to int64.  We let them fall through to be strings.  :/
 		case float32:
-			res = append(res, slog.Float64(kv.key, float64(v)))
+			f64 := float64(v)
+			// Handle special float values that cause JSON encoding issues
+			if math.IsInf(f64, 0) || math.IsNaN(f64) {
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				res = append(res, slog.Float64(kv.key, f64))
+			}
 		case float64:
-			res = append(res, slog.Float64(kv.key, v))
+			// Handle special float values that cause JSON encoding issues
+			if math.IsInf(v, 0) || math.IsNaN(v) {
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				res = append(res, slog.Float64(kv.key, v))
+			}
 		case string:
 			res = append(res, slog.String(kv.key, v))
 		case time.Duration:
 			res = append(res, slog.Duration(kv.key, v))
 		case time.Time:
-			res = append(res, slog.String(kv.key, v.Format(time.RFC3339Nano)))
+			res = append(res, slog.String(kv.key, v.Format(time.RFC3339)))
 		case slog.Value:
 			res = append(res, slog.Attr{Key: kv.key, Value: v})
+		case error:
+			// Handle errors explicitly - convert to string representation
+			res = append(res, slog.String(kv.key, v.Error()))
+		case Marshaler:
+			// Handle log.Marshaler with recursion - create nested attributes
+			nestedAttrs := slogAttrs([]Marshaler{v})
+			if len(nestedAttrs) == 0 {
+				// If marshaler produces no attributes, use string representation
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				// If marshaler produces multiple attributes, create a group
+				res = append(
+					res,
+					slog.Attr{
+						Key:   kv.key,
+						Value: slog.GroupValue(nestedAttrs...),
+					})
+			}
 		default:
 			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		}
