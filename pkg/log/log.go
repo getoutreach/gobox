@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -37,11 +38,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
+	"github.com/getoutreach/gobox/pkg/olog"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // packageSourceInfoSkips lists the packages that we will skip when calculating caller info
-var packageSourceInfoSkips = map[string]interface{}{
+var packageSourceInfoSkips = map[string]any{
 	"github.com/getoutreach/gobox/pkg/log":   nil,
 	"github.com/getoutreach/gobox/pkg/trace": nil,
 }
@@ -55,8 +57,22 @@ var (
 	stdOut     io.Writer = &syncWriter{w: os.Stdout}
 	errOut     io.Writer = &syncWriter{w: os.Stderr}
 
+	// once to ensure we only initialize the slog.Logger once.
+	once = sync.Once{}
+	// log is a structured logger instance.
+	log *slog.Logger
+
+	// useSlog is true if the GOBOX_AS_SLOG_FACADE environment variable is true.
+	_, useSlog = os.LookupEnv("GOBOX_AS_SLOG_FACADE")
+
+	// dbgEntries is essentially a buffer of entries
 	dbgEntries = entries.New()
 )
+
+// setupSlog initializes a global slogger
+func setupSlog() {
+	log = olog.New()
+}
 
 // Marshaler is the interface to be implemented by items that can be logged.
 //
@@ -85,6 +101,10 @@ func (sw *syncWriter) Write(b []byte) (int, error) {
 func SetOutput(w io.Writer) {
 	stdOutLock.Lock()
 	defer stdOutLock.Unlock()
+
+	if useSlog {
+		olog.SetOutput(w)
+	}
 	stdOut = w
 }
 
@@ -109,14 +129,29 @@ func Write(s string) {
 //	log.Error(ctx, "some failure", events.Err(err))
 type F = logf.F
 
+// slogIt produces a slog structured log at the appropriate level.
+func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
+	once.Do(setupSlog)
+	slog.LogAttrs(ctx, lvl, message, slogAttrs(m)...)
+}
+
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
+	if useSlog {
+		slogIt(ctx, slog.LevelDebug, message, m)
+		return
+	}
 	dbgEntries.Append(format(ctx, message, "DEBUG", time.Now(), app.Info(), m))
+
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
+	if useSlog {
+		slogIt(ctx, slog.LevelInfo, message, m)
+		return
+	}
 	s := format(ctx, message, "INFO", time.Now(), app.Info(), m)
 
 	Write(s)
@@ -124,6 +159,10 @@ func Info(ctx context.Context, message string, m ...Marshaler) {
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
+	if useSlog {
+		slogIt(ctx, slog.LevelWarn, message, m)
+		return
+	}
 	s := format(ctx, message, "WARN", time.Now(), app.Info(), m)
 
 	Write(s)
@@ -131,6 +170,10 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
+	if useSlog {
+		slogIt(ctx, slog.LevelError, message, m)
+		return
+	}
 	dbgEntries.Flush(Write)
 	s := format(ctx, message, "ERROR", time.Now(), app.Info(), m)
 
@@ -139,6 +182,11 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
+	if useSlog {
+		slogIt(ctx, slog.LevelError, message, m)
+		os.Exit(1)
+		return
+	}
 	dbgEntries.Flush(Write)
 	s := format(ctx, message, "FATAL", time.Now(), app.Info(), m)
 
@@ -241,4 +289,48 @@ func generateFatalFields(entry F) {
 	}
 	entry["error.message"] = "fatal occurred"
 	entry["error.stack"] = string(debug.Stack())
+}
+
+// nolint:gocyclo // Why: It's a big case statement that's hard to split.
+func slogAttrs(arg logf.Many) []slog.Attr {
+	res := []slog.Attr{}
+
+	logf.Marshal("", logf.Many(arg), func(key string, value any) {
+		switch v := value.(type) {
+		case bool:
+			res = append(res, slog.Bool(key, v))
+		case int:
+			res = append(res, slog.Int(key, v))
+		case int8:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int16:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int32:
+			res = append(res, slog.Int64(key, int64(v)))
+		case int64:
+			res = append(res, slog.Int64(key, v))
+		case uint8:
+			res = append(res, slog.Int64(key, int64(v)))
+		case uint16:
+			res = append(res, slog.Int64(key, int64(v)))
+		case uint32:
+			res = append(res, slog.Int64(key, int64(v)))
+			// We can't guarantee that uint64 or uint can be safely casted
+			// to int64.  We let them fall through to be strings.  :/
+		case float32:
+			res = append(res, slog.Float64(key, float64(v)))
+		case float64:
+			res = append(res, slog.Float64(key, v))
+		case string:
+			res = append(res, slog.String(key, v))
+		case time.Duration:
+			res = append(res, slog.Duration(key, v))
+		case time.Time:
+			res = append(res, slog.String(key, v.Format(time.RFC3339Nano)))
+		default:
+			res = append(res, slog.String(key, fmt.Sprintf("%v", v)))
+		}
+	})
+
+	return res
 }
