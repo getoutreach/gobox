@@ -143,7 +143,6 @@ func Debug(ctx context.Context, message string, m ...Marshaler) {
 		return
 	}
 	dbgEntries.Append(format(ctx, message, "DEBUG", time.Now(), app.Info(), m))
-
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
@@ -295,7 +294,7 @@ func generateFatalFields(entry F) {
 func slogAttrs(arg logf.Many) []slog.Attr {
 	res := []slog.Attr{}
 
-	logf.Marshal("", logf.Many(arg), func(key string, value any) {
+	logf.Marshal("", arg, func(key string, value any) {
 		switch v := value.(type) {
 		case bool:
 			res = append(res, slog.Bool(key, v))
