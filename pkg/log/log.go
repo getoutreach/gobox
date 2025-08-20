@@ -30,6 +30,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime/debug"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -290,46 +291,66 @@ func generateFatalFields(entry F) {
 	entry["error.stack"] = string(debug.Stack())
 }
 
+// slogAttrs converts a logf.Many into a slice of slog.Attr
 // nolint:gocyclo // Why: It's a big case statement that's hard to split.
 func slogAttrs(arg logf.Many) []slog.Attr {
-	res := []slog.Attr{}
+	// maps are unsorted, so we create a slice we can sort
+	type keyValue struct {
+		key   string
+		value any
+	}
+
+	var kvs []keyValue
 
 	logf.Marshal("", arg, func(key string, value any) {
-		switch v := value.(type) {
+		kvs = append(kvs, keyValue{key: key, value: value})
+	})
+
+	// Sort by key to ensure consistent ordering
+	sort.Slice(kvs, func(i, j int) bool {
+		return kvs[i].key < kvs[j].key
+	})
+
+	res := make([]slog.Attr, 0, len(kvs))
+
+	for _, kv := range kvs {
+		switch v := kv.value.(type) {
 		case bool:
-			res = append(res, slog.Bool(key, v))
+			res = append(res, slog.Bool(kv.key, v))
 		case int:
-			res = append(res, slog.Int(key, v))
+			res = append(res, slog.Int(kv.key, v))
 		case int8:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 		case int16:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 		case int32:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 		case int64:
-			res = append(res, slog.Int64(key, v))
+			res = append(res, slog.Int64(kv.key, v))
 		case uint8:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 		case uint16:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 		case uint32:
-			res = append(res, slog.Int64(key, int64(v)))
+			res = append(res, slog.Int64(kv.key, int64(v)))
 			// We can't guarantee that uint64 or uint can be safely casted
 			// to int64.  We let them fall through to be strings.  :/
 		case float32:
-			res = append(res, slog.Float64(key, float64(v)))
+			res = append(res, slog.Float64(kv.key, float64(v)))
 		case float64:
-			res = append(res, slog.Float64(key, v))
+			res = append(res, slog.Float64(kv.key, v))
 		case string:
-			res = append(res, slog.String(key, v))
+			res = append(res, slog.String(kv.key, v))
 		case time.Duration:
-			res = append(res, slog.Duration(key, v))
+			res = append(res, slog.Duration(kv.key, v))
 		case time.Time:
-			res = append(res, slog.String(key, v.Format(time.RFC3339Nano)))
+			res = append(res, slog.String(kv.key, v.Format(time.RFC3339Nano)))
+		case slog.Value:
+			res = append(res, slog.Attr{Key: kv.key, Value: v})
 		default:
-			res = append(res, slog.String(key, fmt.Sprintf("%v", v)))
+			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		}
-	})
+	}
 
 	return res
 }
