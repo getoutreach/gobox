@@ -24,7 +24,7 @@ type SlogTestEvent struct {
 	SomeField string
 }
 
-func (m SlogTestEvent) MarshalLog(addField func(field string, value interface{})) {
+func (m SlogTestEvent) MarshalLog(addField func(field string, value any)) {
 	addField("myevent_field", m.SomeField)
 }
 
@@ -32,15 +32,16 @@ func (m SlogTestEvent) MarshalLog(addField func(field string, value interface{})
 func setupSlogTest(t *testing.T) func() {
 	t.Helper()
 
-	// Save original environment
-	originalEnv, wasSet := os.LookupEnv("GOBOX_AS_SLOG_FACADE")
+	// Save original variable
 
 	// Save original log output
 	originalOutput := log.Output()
 
 	// Enable slog facade
-	err := os.Setenv("GOBOX_AS_SLOG_FACADE", "true")
-	assert.Check(t, err)
+	log.Mu.Lock()
+	original := log.UseSlogByDefault
+	log.UseSlogByDefault = true
+	log.Mu.Unlock()
 
 	// Return cleanup function
 	return func() {
@@ -49,11 +50,10 @@ func setupSlogTest(t *testing.T) func() {
 
 		// Then restore environment
 		var err error
-		if wasSet {
-			err = os.Setenv("GOBOX_AS_SLOG_FACADE", originalEnv)
-		} else {
-			err = os.Unsetenv("GOBOX_AS_SLOG_FACADE")
-		}
+
+		log.Mu.Lock()
+		log.UseSlogByDefault = original
+		log.Mu.Unlock()
 		assert.Check(t, err)
 	}
 }
