@@ -61,7 +61,9 @@ var (
 
 	// once to ensure we only initialize the slog.Logger once.
 	once = sync.Once{}
-	mu   = sync.Mutex{}
+	Mu   = sync.Mutex{}
+	// use Mu to avoid races with use slog by default
+	UseSlogByDefault = false
 	// log is a structured logger instance.
 	log *slog.Logger
 
@@ -71,17 +73,14 @@ var (
 
 // setupSlog initializes a global slogger
 func setupSlog() {
-	mu.Lock()
-	defer mu.Unlock()
+	Mu.Lock()
+	defer Mu.Unlock()
 	log = olog.New()
 }
 
 // useSlog returns true if slog facade should be used, checking both initialization and runtime
 func useSlog() bool {
-	// Check both the initialization value and runtime environment
-	// This allows tests to set environment variables after package init
-	_, runtimeUseSlog := os.LookupEnv("GOBOX_AS_SLOG_FACADE")
-	return runtimeUseSlog
+	return UseSlogByDefault
 }
 
 // Marshaler is the interface to be implemented by items that can be logged.
@@ -150,7 +149,7 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog() {
+	if UseSlogByDefault {
 		slogIt(ctx, slog.LevelDebug, message, m)
 		return
 	}
@@ -159,7 +158,7 @@ func Debug(ctx context.Context, message string, m ...Marshaler) {
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog() {
+	if UseSlogByDefault {
 		slogIt(ctx, slog.LevelInfo, message, m)
 		return
 	}
@@ -170,7 +169,7 @@ func Info(ctx context.Context, message string, m ...Marshaler) {
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog() {
+	if UseSlogByDefault {
 		slogIt(ctx, slog.LevelWarn, message, m)
 		return
 	}
@@ -181,7 +180,7 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog() {
+	if UseSlogByDefault {
 		slogIt(ctx, slog.LevelError, message, m)
 		return
 	}
@@ -193,7 +192,7 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
-	if useSlog() {
+	if UseSlogByDefault {
 		slogIt(ctx, slog.LevelError, message, m)
 		os.Exit(1)
 		return
