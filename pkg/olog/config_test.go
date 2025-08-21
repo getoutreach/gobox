@@ -42,7 +42,7 @@ func TestConfigFromFile(t *testing.T) {
 	configBytes, err := yaml.Marshal(c)
 	assert.NilError(t, err)
 
-	err = os.WriteFile(dir+"/olog.yaml", configBytes, 0644)
+	err = os.WriteFile(dir+"/olog.yaml", configBytes, 0o644)
 	assert.NilError(t, err)
 
 	err = ConfigureFromFile(dir + "/olog.yaml")
@@ -115,14 +115,14 @@ func TestPollConfigurationFile(t *testing.T) {
 			count++
 		}()
 		if errors.Is(err, os.ErrNotExist) {
-			err := os.WriteFile(file, []byte(info), 0644)
+			err := os.WriteFile(file, []byte(info), 0o644)
 			return err == nil
 		}
 
 		if count == 1 && err == nil {
 			t.Log(globalLevelRegistry.ByAddress)
 			assert.Equal(t, *globalLevelRegistry.Get("module"), slog.LevelInfo)
-			err := os.WriteFile(file, []byte(warn), 0644)
+			err := os.WriteFile(file, []byte(warn), 0o644)
 			return err == nil
 		}
 		if count == 2 && err == nil {

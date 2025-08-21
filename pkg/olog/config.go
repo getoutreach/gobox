@@ -1,3 +1,7 @@
+// Copyright 2023 Outreach Corporation. All Rights Reserved.
+
+// Description: Implements configuration loading and watching for olog.
+
 package olog
 
 import (
@@ -64,7 +68,8 @@ func ConfigureFromFile(path string) error {
 //   - if Poll encounters an error or successfully loads a config, fn is called. If the errFunc returns false,
 //     poller exits
 //
-// This is useful, for example, to watch a file mounted by a configmap for changes: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically
+// This is useful, for example, to watch a file mounted by a configmap for changes:
+// https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically
 func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInterval time.Duration, fn func(err error) bool) {
 	lastModTime := time.Time{}
 	for ctx.Err() == nil {
