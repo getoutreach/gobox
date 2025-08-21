@@ -38,10 +38,8 @@ func setupSlogTest(t *testing.T) func() {
 	originalOutput := log.Output()
 
 	// Enable slog facade
-	log.Mu.Lock()
-	original := log.UseSlogByDefault
-	log.UseSlogByDefault = true
-	log.Mu.Unlock()
+	original := log.ShouldUseSlog()
+	log.SetShouldUseSlog(true)
 
 	// Return cleanup function
 	return func() {
@@ -51,9 +49,7 @@ func setupSlogTest(t *testing.T) func() {
 		// Then restore environment
 		var err error
 
-		log.Mu.Lock()
-		log.UseSlogByDefault = original
-		log.Mu.Unlock()
+		log.SetShouldUseSlog(original)
 		assert.Check(t, err)
 	}
 }
@@ -513,7 +509,7 @@ func (c *CustomError) Error() string {
 	return fmt.Sprintf("error %d: %s", c.Code, c.Message)
 }
 
-func (c *CustomError) MarshalLog(addField func(field string, value interface{})) {
+func (c *CustomError) MarshalLog(addField func(field string, value any)) {
 	addField("custom.code", c.Code)
 	addField("custom.message", c.Message)
 }
