@@ -1,7 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-//go:build or_dev || or_test || or_e2e
-// +build or_dev or_test or_e2e
+//go:build or_dev || or_test || or_e2e || or_int
+// +build or_dev or_test or_e2e or_int
 
 // Description: Provides configuration readers for various environments
 
