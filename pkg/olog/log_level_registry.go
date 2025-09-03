@@ -20,7 +20,7 @@ type levelRegistry struct {
 	mu sync.RWMutex
 
 	// ByAddress contains a map of all logger addresses to their
-	// corresponding log-level overrides. The `addressedLeveler` function
+	// corresponding log-level overrides. The `leveler` struct
 	// reads from this to determine the log-level for a logger via the
 	// `levelRegistry` global.
 	ByAddress map[string]slog.Level
