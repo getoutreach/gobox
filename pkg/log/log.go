@@ -77,8 +77,10 @@ func setupSlog() {
 	log = olog.New()
 }
 
-// ShouldUseSlog returns true if slog facade should be used, checking both initialization and runtime
+// ShouldUseSlog returns true if slog facade should be used
 func ShouldUseSlog() bool {
+	slogLock.Lock()
+	defer slogLock.Unlock()
 	return shouldSlog
 }
 
@@ -346,13 +348,13 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 		case int64:
 			res = append(res, slog.Int64(kv.key, v))
 		case uint8:
-			res = append(res, slog.Int64(kv.key, int64(v)))
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
 		case uint16:
-			res = append(res, slog.Int64(kv.key, int64(v)))
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
 		case uint32:
-			res = append(res, slog.Int64(kv.key, int64(v)))
-			// We can't guarantee that uint64 or uint can be safely casted
-			// to int64.  We let them fall through to be strings.  :/
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
+		case uint64:
+			res = append(res, slog.Uint64(kv.key, v))
 		case float32:
 			f64 := float64(v)
 			// Handle special float values that cause JSON encoding issues
