@@ -1,7 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
-//go:build !or_test && !or_dev && !or_e2e
-// +build !or_test,!or_dev,!or_e2e
+//go:build !or_test && !or_dev && !or_e2e && !or_int
+// +build !or_test,!or_dev,!or_e2e,!or_int
 
 // Package env provides environment specific overrides
 //
