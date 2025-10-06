@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -196,6 +197,9 @@ func Test_updater_installVersion(t *testing.T) {
 }
 
 func TestE2EUpdater(t *testing.T) {
+	token, err := github.GetToken()
+	assert.NilError(t, err)
+
 	t.Setenv("HOME", t.TempDir())
 
 	u, err := UseUpdater(context.Background(),
@@ -211,6 +215,8 @@ func TestE2EUpdater(t *testing.T) {
 		t.Errorf("UseUpdater() error = %v", err)
 		return
 	}
+
+	u.ghToken = token
 
 	updated, err := u.check(context.Background())
 	if err != nil {
