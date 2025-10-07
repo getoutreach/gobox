@@ -174,8 +174,8 @@ func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marsha
 		// do it in a JSON object so parsers have a better chance of understanding it
 		err = json.NewEncoder(&b).Encode(map[string]string{
 			"message": fmt.Sprintf(
-				"gobox/log: failed to JSON encode log entry of type %T; err=%v",
-				entry,
+				"gobox/log: failed to JSON encode log entry %s; err=%v",
+				msg,
 				err,
 			),
 			"level":      "ERROR",
