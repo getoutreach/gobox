@@ -312,7 +312,8 @@ func generateFatalFields(entry F) {
 }
 
 // slogAttrs converts a logf.Many into a slice of slog.Attr
-// nolint:gocyclo // Why: It's a big case statement that's hard to split.
+//
+//nolint:gocyclo,funlen //Why: It's a big case statement that's hard to split.
 func slogAttrs(arg logf.Many) []slog.Attr {
 	// maps are unsorted, so we create a slice we can sort
 	type keyValue struct {
