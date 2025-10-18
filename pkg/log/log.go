@@ -23,6 +23,7 @@ package log
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,7 +31,9 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"runtime"
 	"runtime/debug"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -153,7 +156,13 @@ type F = logf.F
 // slogIt produces a slog structured log at the appropriate level.
 func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
 	once.Do(setupSlog)
-	log.LogAttrs(ctx, lvl, message, slogAttrs(m)...)
+	var pcs [1]uintptr
+
+	runtime.Callers(3, pcs[:]) // skip [Callers, slogIt, gobox log function]
+
+	r := slog.NewRecord(time.Now(), lvl, message, pcs[0])
+	r.AddAttrs(slogAttrs(m)...)
+	_ = log.Handler().Handle(ctx, r)
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
@@ -401,6 +410,10 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		}
 	}
+	// maps are in random order, so sort before logging for consistent output
+	slices.SortFunc(res, func(a, b slog.Attr) int {
+		return cmp.Compare(string(a.Key), string(b.Key))
+	})
 
 	return res
 }
