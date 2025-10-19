@@ -162,7 +162,7 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 
 	r := slog.NewRecord(time.Now(), lvl, message, pcs[0])
 	r.AddAttrs(slogAttrs(m)...)
-	_ = log.Handler().Handle(ctx, r)
+	_ = log.Handler().Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
@@ -412,7 +412,7 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 	}
 	// maps are in random order, so sort before logging for consistent output
 	slices.SortFunc(res, func(a, b slog.Attr) int {
-		return cmp.Compare(string(a.Key), string(b.Key))
+		return cmp.Compare(a.Key, b.Key)
 	})
 
 	return res
