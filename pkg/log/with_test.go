@@ -70,3 +70,30 @@ func (withSuite) TestWith(t *testing.T) {
 		t.Fatal("unexpected log entries", diff)
 	}
 }
+
+func (withSuite) TestWithChaining(t *testing.T) {
+	logs := logtest.NewLogRecorder(t)
+	defer logs.Close()
+
+	logger := log.With(log.F{"first": "value1"}).With(log.F{"second": "value2"})
+	ctx := context.Background()
+
+	logger.Info(ctx, "Chained message", log.F{"third": "value3"})
+
+	expected := []log.F{
+		{
+			"@timestamp":  differs.RFC3339NanoTime(),
+			"app.version": "testing",
+			"level":       "INFO",
+			"message":     "Chained message",
+			"first":       "value1",
+			"second":      "value2",
+			"third":       "value3",
+			"module":      "github.com/getoutreach/gobox",
+		},
+	}
+
+	if diff := cmp.Diff(expected, logs.Entries(), differs.Custom()); diff != "" {
+		t.Fatal("unexpected log entries", diff)
+	}
+}
