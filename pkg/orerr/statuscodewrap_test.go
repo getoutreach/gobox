@@ -27,12 +27,12 @@ func (suite) TestBasics(t *testing.T) {
 }
 
 func (suite) TestIs(t *testing.T) {
-	unwrappedError := errors.New("bad")
-	wrappedError := orerr.NewErrorStatus(unwrappedError, statuscodes.Forbidden)
-	doubleWrappedError := errors.Wrap(wrappedError, "bad 2")
+	simpleError := errors.New("bad")
+	orerrWrappedError := orerr.NewErrorStatus(simpleError, statuscodes.Forbidden)
+	orerrReWrappedError := errors.Wrap(orerrWrappedError, "bad 2")
 
-	assert.Assert(t, errors.Is(wrappedError, &orerr.StatusCodeWrapper{}))
-	assert.Assert(t, errors.Is(doubleWrappedError, &orerr.StatusCodeWrapper{}))
-	assert.Assert(t, !errors.Is(unwrappedError, &orerr.StatusCodeWrapper{}))
+	assert.Assert(t, errors.Is(orerrWrappedError, &orerr.StatusCodeWrapper{}))
+	assert.Assert(t, errors.Is(orerrReWrappedError, &orerr.StatusCodeWrapper{}))
+	assert.Assert(t, !errors.Is(simpleError, &orerr.StatusCodeWrapper{}))
 	assert.Assert(t, !errors.Is(nil, &orerr.StatusCodeWrapper{}))
 }
