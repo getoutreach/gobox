@@ -31,6 +31,11 @@ func (w *StatusCodeWrapper) Unwrap() error {
 	return w.wrappedErr
 }
 
+func (w *StatusCodeWrapper) Is(target error) bool {
+	_, ok := target.(*StatusCodeWrapper)
+	return ok
+}
+
 func NewErrorStatus(errToWrap error, errCode statuscodes.StatusCode) error {
 	return &StatusCodeWrapper{wrappedErr: errToWrap, code: errCode}
 }
