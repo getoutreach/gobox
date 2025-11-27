@@ -37,6 +37,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
+	"github.com/getoutreach/mint/pkg/authn"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -156,6 +157,11 @@ func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marsha
 	// cannot use gobox/trace due to circular import. just copy paste for simplicity
 	if span := trace.SpanFromContext(ctx); span != nil && span.SpanContext().TraceID().IsValid() {
 		entry.Set("traceID", span.SpanContext().TraceID().String())
+	}
+
+	authContext := authn.FromContext(ctx)
+	if authContext != nil {
+		mm = append(mm, authContext)
 	}
 
 	addSource(entry)
