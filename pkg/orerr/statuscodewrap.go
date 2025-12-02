@@ -31,7 +31,7 @@ func (w *StatusCodeWrapper) Unwrap() error {
 	return w.wrappedErr
 }
 
-// Is allows to use errors.Is(err, &orerr.StatusCodeWrapper{}) to check whether an error is already wrapped by StatusCodeWrapper
+// Is implements the `errors.Is` interface to check whether an error is wrapped by `StatusCodeWrapper`.
 func (w *StatusCodeWrapper) Is(target error) bool {
 	_, ok := target.(*StatusCodeWrapper)
 	return ok
