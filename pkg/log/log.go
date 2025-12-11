@@ -23,12 +23,18 @@ package log
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"math"
 	"os"
+	"runtime"
 	"runtime/debug"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -37,11 +43,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 	"github.com/getoutreach/gobox/pkg/log/internal/entries"
+	"github.com/getoutreach/gobox/pkg/olog"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // packageSourceInfoSkips lists the packages that we will skip when calculating caller info
-var packageSourceInfoSkips = map[string]interface{}{
+var packageSourceInfoSkips = map[string]any{
 	"github.com/getoutreach/gobox/pkg/log":   nil,
 	"github.com/getoutreach/gobox/pkg/trace": nil,
 }
@@ -55,8 +62,39 @@ var (
 	stdOut     io.Writer = &syncWriter{w: os.Stdout}
 	errOut     io.Writer = &syncWriter{w: os.Stderr}
 
+	// once to ensure we only initialize the slog.Logger once.
+	once          = sync.Once{}
+	slogLock      = sync.Mutex{}
+	_, shouldSlog = os.LookupEnv("GOBOX_AS_SLOG_FACADE")
+	// log is a structured logger instance.
+	log *slog.Logger
+
+	// dbgEntries is essentially a buffer of entries
 	dbgEntries = entries.New()
 )
+
+// setupSlog initializes a global slogger
+func setupSlog() {
+	slogLock.Lock()
+	defer slogLock.Unlock()
+	log = olog.New()
+}
+
+// ShouldUseSlog returns true if slog facade should be used
+func ShouldUseSlog() bool {
+	slogLock.Lock()
+	defer slogLock.Unlock()
+	return shouldSlog
+}
+
+// SetShouldUseSlog modifies whether calls to log methods will use slog or the
+// vintage custom outreach writer.
+func SetShouldUseSlog(val bool) {
+	slogLock.Lock()
+	defer slogLock.Unlock()
+	shouldSlog = val
+	log = olog.New()
+}
 
 // Marshaler is the interface to be implemented by items that can be logged.
 //
@@ -85,6 +123,12 @@ func (sw *syncWriter) Write(b []byte) (int, error) {
 func SetOutput(w io.Writer) {
 	stdOutLock.Lock()
 	defer stdOutLock.Unlock()
+
+	if ShouldUseSlog() {
+		olog.SetOutput(w)
+		// Force re-initialization of the slog logger with the new output
+		setupSlog()
+	}
 	stdOut = w
 }
 
@@ -109,14 +153,34 @@ func Write(s string) {
 //	log.Error(ctx, "some failure", events.Err(err))
 type F = logf.F
 
+// slogIt produces a slog structured log at the appropriate level.
+func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
+	once.Do(setupSlog)
+	var pcs [1]uintptr
+
+	runtime.Callers(3, pcs[:]) // skip [Callers, slogIt, gobox log function]
+
+	r := slog.NewRecord(time.Now(), lvl, message, pcs[0])
+	r.AddAttrs(slogAttrs(m)...)
+	_ = log.Handler().Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
+}
+
 // Debug emits a log at DEBUG level but only if an error or fatal happens
 // within 2min of this event
 func Debug(ctx context.Context, message string, m ...Marshaler) {
+	if ShouldUseSlog() {
+		slogIt(ctx, slog.LevelDebug, message, m)
+		return
+	}
 	dbgEntries.Append(format(ctx, message, "DEBUG", time.Now(), app.Info(), m))
 }
 
 // Info emits a log at INFO level. This is not filtered and meant for non-debug information.
 func Info(ctx context.Context, message string, m ...Marshaler) {
+	if ShouldUseSlog() {
+		slogIt(ctx, slog.LevelInfo, message, m)
+		return
+	}
 	s := format(ctx, message, "INFO", time.Now(), app.Info(), m)
 
 	Write(s)
@@ -124,6 +188,10 @@ func Info(ctx context.Context, message string, m ...Marshaler) {
 
 // Warn emits a log at WARN level. Warn logs are meant to be investigated if they reach high volumes.
 func Warn(ctx context.Context, message string, m ...Marshaler) {
+	if ShouldUseSlog() {
+		slogIt(ctx, slog.LevelWarn, message, m)
+		return
+	}
 	s := format(ctx, message, "WARN", time.Now(), app.Info(), m)
 
 	Write(s)
@@ -131,6 +199,10 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 
 // Error emits a log at ERROR level.  Error logs must be investigated
 func Error(ctx context.Context, message string, m ...Marshaler) {
+	if ShouldUseSlog() {
+		slogIt(ctx, slog.LevelError, message, m)
+		return
+	}
 	dbgEntries.Flush(Write)
 	s := format(ctx, message, "ERROR", time.Now(), app.Info(), m)
 
@@ -139,6 +211,11 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
+	if ShouldUseSlog() {
+		slogIt(ctx, slog.LevelError, message, m)
+		os.Exit(1)
+		return
+	}
 	dbgEntries.Flush(Write)
 	s := format(ctx, message, "FATAL", time.Now(), app.Info(), m)
 
@@ -241,4 +318,102 @@ func generateFatalFields(entry F) {
 	}
 	entry["error.message"] = "fatal occurred"
 	entry["error.stack"] = string(debug.Stack())
+}
+
+// slogAttrs converts a logf.Many into a slice of slog.Attr
+//
+//nolint:gocyclo,funlen //Why: It's a big case statement that's hard to split.
+func slogAttrs(arg logf.Many) []slog.Attr {
+	// maps are unsorted, so we create a slice we can sort
+	type keyValue struct {
+		key   string
+		value any
+	}
+
+	var kvs []keyValue
+
+	logf.Marshal("", arg, func(key string, value any) {
+		kvs = append(kvs, keyValue{key: key, value: value})
+	})
+
+	// Sort by key to ensure consistent ordering
+	sort.Slice(kvs, func(i, j int) bool {
+		return kvs[i].key < kvs[j].key
+	})
+
+	res := make([]slog.Attr, 0, len(kvs))
+
+	for _, kv := range kvs {
+		switch v := kv.value.(type) {
+		case bool:
+			res = append(res, slog.Bool(kv.key, v))
+		case int:
+			res = append(res, slog.Int(kv.key, v))
+		case int8:
+			res = append(res, slog.Int64(kv.key, int64(v)))
+		case int16:
+			res = append(res, slog.Int64(kv.key, int64(v)))
+		case int32:
+			res = append(res, slog.Int64(kv.key, int64(v)))
+		case int64:
+			res = append(res, slog.Int64(kv.key, v))
+		case uint8:
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
+		case uint16:
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
+		case uint32:
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
+		case uint64:
+			res = append(res, slog.Uint64(kv.key, v))
+		case float32:
+			f64 := float64(v)
+			// Handle special float values that cause JSON encoding issues
+			if math.IsInf(f64, 0) || math.IsNaN(f64) {
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				res = append(res, slog.Float64(kv.key, f64))
+			}
+		case float64:
+			// Handle special float values that cause JSON encoding issues
+			if math.IsInf(v, 0) || math.IsNaN(v) {
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				res = append(res, slog.Float64(kv.key, v))
+			}
+		case string:
+			res = append(res, slog.String(kv.key, v))
+		case time.Duration:
+			res = append(res, slog.Duration(kv.key, v))
+		case time.Time:
+			res = append(res, slog.String(kv.key, v.Format(time.RFC3339)))
+		case slog.Value:
+			res = append(res, slog.Attr{Key: kv.key, Value: v})
+		case error:
+			// Handle errors explicitly - convert to string representation
+			res = append(res, slog.String(kv.key, v.Error()))
+		case Marshaler:
+			// Handle log.Marshaler with recursion - create nested attributes
+			nestedAttrs := slogAttrs([]Marshaler{v})
+			if len(nestedAttrs) == 0 {
+				// If marshaler produces no attributes, use string representation
+				res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			} else {
+				// If marshaler produces multiple attributes, create a group
+				res = append(
+					res,
+					slog.Attr{
+						Key:   kv.key,
+						Value: slog.GroupValue(nestedAttrs...),
+					})
+			}
+		default:
+			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+		}
+	}
+	// maps are in random order, so sort before logging for consistent output
+	slices.SortFunc(res, func(a, b slog.Attr) int {
+		return cmp.Compare(a.Key, b.Key)
+	})
+
+	return res
 }
