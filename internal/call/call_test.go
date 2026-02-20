@@ -137,7 +137,7 @@ func TestTracker_reportLatency(t *testing.T) {
 			}
 			if status != "ok" {
 				need["statuscategory"] = "CategoryServerError"
-				need["statuscode"] = "UnknownError"
+				need["statuscode"] = "InternalServerError"
 			}
 
 			got := map[string]string{}
