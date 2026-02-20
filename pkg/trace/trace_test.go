@@ -135,10 +135,10 @@ func TestNestedSpan(t *testing.T) {
 	recorder := tracetest.NewSpanRecorder()
 	defer recorder.Close()
 
-	rootCtx := trace.StartSpan(context.Background(), "root-span")
+	rootCtx := trace.StartSpan(t.Context(), "root-span")
 	trace.AddInfo(rootCtx, log.F{"trace": "outermost"})
 
-	linkCtx := trace.StartSpan(context.Background(), "link-span")
+	linkCtx := trace.StartSpan(t.Context(), "link-span")
 	linkHeaders := trace.ToHeaders(linkCtx)
 
 	inner := trace.StartSpan(rootCtx, "inner", log.F{"from": "inner_span"})
@@ -190,7 +190,7 @@ func TestStartsWithNewRootSpan(t *testing.T) {
 		},
 	}
 
-	rootCtx := trace.StartSpan(context.Background(), "root-span")
+	rootCtx := trace.StartSpan(t.Context(), "root-span")
 	trace.AddInfo(rootCtx, log.F{"trace": "outermost"})
 
 	// Using rootCtx but WithNewRoot will not have a parent spanID
@@ -323,10 +323,10 @@ func TestIncludesDevEmail(t *testing.T) {
 		})
 	defer recorder.Close()
 
-	rootCtx := trace.StartSpan(context.Background(), "root-span")
+	rootCtx := trace.StartSpan(t.Context(), "root-span")
 	trace.AddInfo(rootCtx, log.F{"trace": "outermost"})
 
-	linkCtx := trace.StartSpan(context.Background(), "link-span")
+	linkCtx := trace.StartSpan(t.Context(), "link-span")
 	linkHeaders := trace.ToHeaders(linkCtx)
 
 	inner := trace.StartSpan(rootCtx, "inner", log.F{"from": "inner_span"})

@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -141,7 +140,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -175,7 +174,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -195,7 +194,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -219,7 +218,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			Output: OutputCredentialProvider,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		expectedEntryCount := 2
 		if os.Getenv("CI") != "" {
@@ -248,7 +247,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			DryRun: true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message
@@ -270,7 +269,7 @@ func Test_refreshCredsViaOktaAWSCLI(t *testing.T) {
 			DryRun:        true,
 		}
 
-		err := refreshCredsViaOktaAWSCLI(context.Background(), copts, acopts, b, "")
+		err := refreshCredsViaOktaAWSCLI(t.Context(), copts, acopts, b, "")
 		assert.NilError(t, err)
 		assert.Equal(t, len(hook.Entries), 2)
 		msg := hook.LastEntry().Message

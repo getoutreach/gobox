@@ -1,7 +1,6 @@
 package region
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 )
 
 func TestCustomCloud_Regions_Nearest(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	tempDir, err := os.MkdirTemp("", "regionpicker-cache-*")
 	assert.NilError(t, err, "failed to create tempdir")

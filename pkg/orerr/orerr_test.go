@@ -91,12 +91,12 @@ func (suite) TestWithInfo(t *testing.T) {
 
 func (suite) TestCancelWithError(t *testing.T) {
 	err := errors.New("something went wrong")
-	ctx, cancel := orerr.CancelWithError(context.Background())
+	ctx, cancel := orerr.CancelWithError(t.Context())
 	cancel(err)
 	<-ctx.Done()
 	assert.Equal(t, ctx.Err(), err)
 
-	ctx, cancel = orerr.CancelWithError(context.Background())
+	ctx, cancel = orerr.CancelWithError(t.Context())
 	cancel(nil)
 	<-ctx.Done()
 	assert.Assert(t, errors.Is(ctx.Err(), context.Canceled))

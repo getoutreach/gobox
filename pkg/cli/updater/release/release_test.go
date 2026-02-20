@@ -8,7 +8,6 @@
 package release_test
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -114,7 +113,7 @@ func TestFetch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, name, _, err := release.Fetch(context.Background(), token, tt.args.opts)
+			got, name, _, err := release.Fetch(t.Context(), token, tt.args.opts)
 			if tt.wantErr {
 				assert.Assert(t, err != nil, "Fetch() expected err to not be nil, got nil")
 			} else {
@@ -158,7 +157,7 @@ func TestGetReleaseNotes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := release.GetReleaseNotes(context.Background(), token, tt.args.opts)
+			got, err := release.GetReleaseNotes(t.Context(), token, tt.args.opts)
 			if tt.wantErr {
 				assert.Assert(t, err != nil, "GetReleaseNotes() expected err to not be nil, got nil")
 				assert.Equal(t, got, "", "GetReleaseNotes() should return empty string")

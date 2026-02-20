@@ -3,7 +3,6 @@
 package log_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -24,7 +23,7 @@ func (fatalSuite) TestFatal(t *testing.T) {
 	// Instead, we call regular log.Error but override "level" to
 	// "FATAL".  This goes through all the motions of log.Fatal
 	// except for os.Exit(1)
-	log.Error(context.Background(), "example", log.F{"level": "FATAL"})
+	log.Error(t.Context(), "example", log.F{"level": "FATAL"})
 
 	got := logs.Entries()
 	want := []log.F{{
@@ -55,7 +54,7 @@ func (fatalSuite) TestFatalWithError(t *testing.T) {
 	// "FATAL".  This goes through all the motions of log.Fatal
 	// except for os.Exit(1)
 	err := errors.New("my error")
-	log.Error(context.Background(), "example", log.F{"level": "FATAL"}, events.NewErrorInfo(err))
+	log.Error(t.Context(), "example", log.F{"level": "FATAL"}, events.NewErrorInfo(err))
 
 	got := logs.Entries()
 	want := []log.F{{

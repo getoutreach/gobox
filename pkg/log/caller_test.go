@@ -3,7 +3,6 @@
 package log_test
 
 import (
-	"context"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -19,7 +18,7 @@ func (callerSuite) TestCaller(t *testing.T) {
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	log.Info(ctx, "caller test", log.Caller())
 
 	expected := []log.F{{

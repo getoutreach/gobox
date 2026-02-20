@@ -183,7 +183,7 @@ func otelInitRoundTripperState(t *testing.T) *roundtripperState {
 }
 
 func otelCallRoundTripper(t *testing.T, state *roundtripperState) []map[string]interface{} {
-	ctx := trace.StartTrace(context.Background(), "trace-rt")
+	ctx := trace.StartTrace(t.Context(), "trace-rt")
 	inner := trace.StartSpan(ctx, "inner")
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
@@ -222,7 +222,7 @@ func (suite) TestHeadersRoundtripper(t *testing.T) {
 	state := (suite{}).initHeaderRoundTripperState(t)
 	defer state.Close()
 
-	ctx := trace.StartSpan(context.Background(), "trace-rt")
+	ctx := trace.StartSpan(t.Context(), "trace-rt")
 	inner := trace.StartSpan(ctx, "inner")
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 

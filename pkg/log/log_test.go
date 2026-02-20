@@ -20,7 +20,7 @@ func TestUnmarshalableValues(t *testing.T) {
 	t.Run("Infinity", func(t *testing.T) {
 		var b bytes.Buffer
 		log.SetOutput(&b)
-		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": math.Inf(1)})
+		log.Info(t.Context(), "infinity is not fine but not a problem", log.F{"party": math.Inf(1)})
 		assert.Assert(t, b.Len() > 0, "log should not be empty")
 		f := log.F{}
 		err := json.Unmarshal(b.Bytes(), &f)
@@ -30,7 +30,7 @@ func TestUnmarshalableValues(t *testing.T) {
 	})
 
 	t.Run("Func", func(t *testing.T) {
-		log.Info(context.Background(), "infinity is not fine but not a problem", log.F{"party": func() {}})
+		log.Info(t.Context(), "infinity is not fine but not a problem", log.F{"party": func() {}})
 	})
 }
 

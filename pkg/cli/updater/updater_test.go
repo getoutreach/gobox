@@ -1,7 +1,6 @@
 package updater
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -189,7 +188,7 @@ func Test_updater_installVersion(t *testing.T) {
 				return
 			}
 
-			if err := u.installVersion(context.Background(), tt.args.version); (err != nil) != tt.wantErr {
+			if err := u.installVersion(t.Context(), tt.args.version); (err != nil) != tt.wantErr {
 				t.Errorf("updater.installVersion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -202,7 +201,7 @@ func TestE2EUpdater(t *testing.T) {
 
 	t.Setenv("HOME", t.TempDir())
 
-	u, err := UseUpdater(context.Background(),
+	u, err := UseUpdater(t.Context(),
 		WithRepoURL("https://github.com/getoutreach/stencil"),
 		WithVersion("v0.0.0"),
 		WithExecutableName("stencil"),
@@ -218,7 +217,7 @@ func TestE2EUpdater(t *testing.T) {
 
 	u.ghToken = token
 
-	updated, err := u.check(context.Background())
+	updated, err := u.check(t.Context())
 	if err != nil {
 		t.Errorf("updater.check() error = %v", err)
 	}

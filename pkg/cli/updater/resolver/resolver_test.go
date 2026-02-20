@@ -270,7 +270,7 @@ func TestResolve(t *testing.T) {
 				}
 			}
 
-			gotPtr, err := Resolve(context.Background(), token, &tt.c)
+			gotPtr, err := Resolve(t.Context(), token, &tt.c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Resolve() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -323,7 +323,7 @@ func Test_getVersions(t *testing.T) {
 				return
 			}
 
-			got, err := getVersions(context.Background(), token, tt.args.url, false)
+			got, err := getVersions(t.Context(), token, tt.args.url, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getVersions() error = %v, wantErr %v", err, tt.wantErr)
 				return
