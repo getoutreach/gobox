@@ -38,6 +38,7 @@ func (fatalSuite) TestFatal(t *testing.T) {
 		"level":       "FATAL",
 		"message":     "example",
 		"module":      "github.com/getoutreach/gobox",
+		"modulever":   "testing",
 	}}
 
 	if diff := cmp.Diff(want, got, differs.Custom()); diff != "" {
@@ -71,6 +72,7 @@ func (fatalSuite) TestFatalWithError(t *testing.T) {
 		"message":             "example",
 		"level":               "FATAL",
 		"module":              "github.com/getoutreach/gobox",
+		"modulever":           "testing",
 	}}
 
 	if diff := cmp.Diff(want, got, differs.Custom()); diff != "" {

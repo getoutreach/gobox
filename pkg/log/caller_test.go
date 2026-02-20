@@ -29,6 +29,7 @@ func (callerSuite) TestCaller(t *testing.T) {
 		"level":       "INFO",
 		"message":     "caller test",
 		"module":      "github.com/getoutreach/gobox",
+		"modulever":   "testing",
 	}}
 
 	assert.DeepEqual(t, expected, logs.Entries(), differs.Custom())

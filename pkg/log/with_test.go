@@ -35,6 +35,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Info message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -44,6 +45,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Warn message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -53,6 +55,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Debug message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -62,6 +65,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Warn message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 	}
