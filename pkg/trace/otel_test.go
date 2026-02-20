@@ -1,7 +1,6 @@
 package trace_test
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"testing"
