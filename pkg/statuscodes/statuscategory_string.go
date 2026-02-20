@@ -18,9 +18,9 @@ const _StatusCategory_name = "CategoryOKCategoryClientErrorCategoryServerError"
 var _StatusCategory_index = [...]uint8{0, 10, 29, 48}
 
 func (i StatusCategory) String() string {
-	i -= 1
-	if i < 0 || i >= StatusCategory(len(_StatusCategory_index)-1) {
-		return "StatusCategory(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_StatusCategory_index)-1 {
+		return "StatusCategory(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _StatusCategory_name[_StatusCategory_index[i]:_StatusCategory_index[i+1]]
+	return _StatusCategory_name[_StatusCategory_index[idx]:_StatusCategory_index[idx+1]]
 }
