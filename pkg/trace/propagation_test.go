@@ -3,7 +3,6 @@
 package trace_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
