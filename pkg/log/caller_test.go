@@ -24,7 +24,7 @@ func (callerSuite) TestCaller(t *testing.T) {
 	expected := []log.F{{
 		"@timestamp":  differs.RFC3339NanoTime(),
 		"app.version": "testing",
-		"caller":      "gobox/pkg/log/caller_test.go:23",
+		"caller":      "gobox/pkg/log/caller_test.go:22",
 		"level":       "INFO",
 		"message":     "caller test",
 		"module":      "github.com/getoutreach/gobox",
