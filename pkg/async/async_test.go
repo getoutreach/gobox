@@ -38,7 +38,7 @@ func (r *runWithCloser) Close(c context.Context) error {
 }
 
 func (suite) TestRunGroupErrorPropagation(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	r1 := async.Func(func(c context.Context) error {
 		return fmt.Errorf("oh no")
 	})
@@ -50,7 +50,7 @@ func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 }
 
 func (suite) TestRunCancelPropagation(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	async.Run(ctx, async.Func(func(ctx context.Context) error {
 		<-ctx.Done()
 		return nil
@@ -61,7 +61,7 @@ func (suite) TestRunCancelPropagation(t *testing.T) {
 }
 
 func (suite) TestRunDeadlinePropagation(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	async.Run(ctx, async.Func(func(ctx context.Context) error {
 		if _, ok := ctx.Deadline(); !ok {
 			t.Fatal("no deadline!")
@@ -76,19 +76,19 @@ func (suite) TestRunDeadlinePropagation(t *testing.T) {
 func (suite) TestSleepUntil(t *testing.T) {
 	now := time.Now()
 	sleepTime := 50 * time.Millisecond
-	async.SleepUntil(context.Background(), time.Now().Add(sleepTime))
+	async.SleepUntil(t.Context(), time.Now().Add(sleepTime))
 	assert.Assert(t, time.Since(now) >= sleepTime, "slept too short")
 }
 
 func (suite) TestMutexWithContext_EarlyCancel(t *testing.T) {
 	mutex := async.NewMutexWithContext()
-	ctx1 := context.Background()
+	ctx1 := t.Context()
 
 	err := mutex.Lock(ctx1)
 	assert.NilError(t, err, "first lock acquisition should not fail")
 	t.Cleanup(mutex.Unlock)
 
-	ctx2 := context.Background()
+	ctx2 := t.Context()
 	ctx2, cancel2 := context.WithCancel(ctx2)
 
 	// Cancel right away, before second wait starts.
@@ -100,13 +100,13 @@ func (suite) TestMutexWithContext_EarlyCancel(t *testing.T) {
 
 func (suite) TestMutexWithContext_LateCancel(t *testing.T) {
 	mutex := async.NewMutexWithContext()
-	ctx1 := context.Background()
+	ctx1 := t.Context()
 
 	err := mutex.Lock(ctx1)
 	assert.NilError(t, err, "first lock acquisition should not fail")
 	t.Cleanup(mutex.Unlock)
 
-	ctx2 := context.Background()
+	ctx2 := t.Context()
 	ctx2, cancel2 := context.WithTimeout(ctx2, time.Millisecond)
 	t.Cleanup(cancel2)
 
@@ -123,7 +123,7 @@ func (suite) TestMutexWithContext_LateCancel(t *testing.T) {
 
 func (suite) TestMutexWithContext_ExtraUnlock(t *testing.T) {
 	mutex := async.NewMutexWithContext()
-	ctx1 := context.Background()
+	ctx1 := t.Context()
 
 	err := mutex.Lock(ctx1)
 	assert.NilError(t, err, "first lock acquisition should not fail")

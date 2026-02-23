@@ -62,7 +62,7 @@ func ExtractErrorStatusCode(err error) statuscodes.StatusCode {
 	if errors.As(err, &scw) {
 		return scw.StatusCode()
 	}
-	return statuscodes.UnknownError
+	return statuscodes.InternalServerError
 }
 
 func ExtractErrorStatusCategory(err error) statuscodes.StatusCategory {

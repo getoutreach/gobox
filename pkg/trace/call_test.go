@@ -211,7 +211,7 @@ func TestNestedCall(t *testing.T) {
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	//  most functions should look like this
 	doSomeTableUpdate := func(ctx context.Context, rowID string, logs ...log.Marshaler) error {
@@ -283,7 +283,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	httpCall := func(ctx context.Context) error {
 		ctx = trace.StartCall(ctx, "test", trace.AsHTTPCall())
@@ -350,10 +350,10 @@ func TestReportLatencyMetrics(t *testing.T) {
 func TestEndCallDoesNotPanicWithNilError(t *testing.T) {
 	t.Skip("requires method to clear metrics between tests")
 
-	ctx := trace.StartCall(context.Background(), "")
+	ctx := trace.StartCall(t.Context(), "")
 	trace.EndCall(ctx)
 }
 
 func TestSetCallStatusDoesNotPanicWithNilInfo(t *testing.T) {
-	trace.SetCallStatus(context.Background(), errors.New(""))
+	trace.SetCallStatus(t.Context(), errors.New(""))
 }

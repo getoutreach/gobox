@@ -1,7 +1,7 @@
 module github.com/getoutreach/gobox/pkg/ometrics
 
-go 1.22
-toolchain go1.23.4
+go 1.25.0
+toolchain go1.25.7
 
 require (
 	github.com/getoutreach/gobox v1.85.0

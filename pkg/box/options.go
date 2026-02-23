@@ -16,6 +16,7 @@ type LoadBoxOptions struct {
 
 	// DefaultBoxSources is a list of URLs to present to the user
 	// as being the default locations of box configuration.
+	//
 	// Deprecated: Configure before running an application instead.
 	DefaultBoxSources []string
 
@@ -40,6 +41,7 @@ func WithMinVersion(version float32) LoadBoxOption {
 
 // WithDefaults sets the default URLs to provided to a user when
 // a box configuration doesn't exist locally.
+//
 // Deprecated: Do not use. See field on LoadBoxOptions
 func WithDefaults(defaults []string) LoadBoxOption {
 	return func(opts *LoadBoxOptions) {

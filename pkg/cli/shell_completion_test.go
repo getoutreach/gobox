@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"os"
 	"regexp"
 	"strings"
@@ -41,7 +40,7 @@ func TestGenerateShellCompletion(t *testing.T) {
 		}
 		app.EnableBashCompletion = true
 		app.Writer = &sb
-		ctx := context.Background()
+		ctx := t.Context()
 
 		fullArgs := []string{"test-app"}
 		fullArgs = append(fullArgs, fixture.args...)

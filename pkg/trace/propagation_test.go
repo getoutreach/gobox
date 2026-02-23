@@ -3,7 +3,6 @@
 package trace_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,7 +26,7 @@ func TestForceTracingByHeader(t *testing.T) {
 	state := propagationInitRoundTripperState(t, recorder)
 	defer state.Close()
 
-	ctx := trace.StartSpan(context.Background(), "trace-test")
+	ctx := trace.StartSpan(t.Context(), "trace-test")
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
 	req, err := http.NewRequestWithContext(ctx, "GET", state.Server.URL+"/myendpoint", http.NoBody)
@@ -116,7 +115,7 @@ func TestHeadersForceTracingByHeader(t *testing.T) {
 
 	header.Set(trace.HeaderForceTracing, "true")
 
-	ctx := trace.FromHeaders(context.Background(), header, "trace-test")
+	ctx := trace.FromHeaders(t.Context(), header, "trace-test")
 
 	traceID := trace.ID(ctx)
 	rootID := differs.CaptureString()
@@ -180,7 +179,7 @@ func TestForceTracing(t *testing.T) {
 	state := propagationInitRoundTripperState(t, recorder)
 	defer state.Close()
 
-	ctx := trace.ForceTracing(context.Background())
+	ctx := trace.ForceTracing(t.Context())
 	ctx = trace.StartSpan(ctx, "trace-test")
 
 	client := http.Client{Transport: trace.NewTransport(nil)}

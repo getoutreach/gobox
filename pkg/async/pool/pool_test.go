@@ -44,7 +44,7 @@ type testState struct {
 }
 
 func TestHasCorrectOutput(t *testing.T) {
-	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
+	s := runPool(t.Context(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Pool.Close()
 	defer s.Cancel()
 	assert.Assert(t, WithinDuration(time.Now(), s.StartedAt, 100*time.Millisecond))
@@ -55,7 +55,7 @@ func TestHasCorrectOutput(t *testing.T) {
 }
 
 func TestWeCantEnqueueWhenStopped(t *testing.T) {
-	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(10)})
+	s := runPool(t.Context(), &testState{Items: 10, Size: pool.ConstantSize(10)})
 	defer s.Cancel()
 	s.Pool.Close()
 	wg := new(sync.WaitGroup)
@@ -77,7 +77,7 @@ func TestWeCantEnqueueWhenStopped(t *testing.T) {
 
 func TestGracefullyStops(t *testing.T) {
 	size := 10
-	s := runPool(context.Background(), &testState{Items: 10, Size: pool.ConstantSize(size)})
+	s := runPool(t.Context(), &testState{Items: 10, Size: pool.ConstantSize(size)})
 	defer s.Cancel()
 
 	// When pool was running there were pool goroutines
@@ -112,7 +112,7 @@ func TestPoolGrows(t *testing.T) {
 		}),
 		ResizeEvery: 1 * time.Millisecond,
 	}
-	runPool(context.Background(), s)
+	runPool(t.Context(), s)
 
 	defer s.Cancel()
 	defer s.Pool.Close()
@@ -151,7 +151,7 @@ func waitForWorkers(t *testing.T, num int) bool {
 
 // Test that an empty pool with a zero-length buffer rejects all tasks.
 func TestPoolWithZeroBuffer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 
 	jobs := 10
 

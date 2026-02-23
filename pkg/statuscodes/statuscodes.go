@@ -41,6 +41,7 @@ const (
 	// Conflict should be used for when there is a conflict between the incoming data and the data existing in a
 	// storage system (database, etc.), very similar to a BadRequest call (and it is similarly not expected to be
 	// successfully retriable unless someone changes the data in the source system via another call).
+	//
 	// Deprecated: In retrospect, this inclusion is a mistake compared to just having it be a nuance of BadRequest.
 	Conflict StatusCode = 704
 	// RateLimited is expected to be used when the client (or a set of clients) is/are sending too many requests that
@@ -67,6 +68,7 @@ const (
 	// unavailable.  This error is potentially retriable, but the duration for backoff is unknown.
 	Unavailable StatusCode = 802
 	// UnknownError was intended to be a catchall error type for server-side issues.
+	//
 	// Deprecated: In reality server-side errors should fall into one of the above 3 errors, and this inclusion was
 	// a mistake.  It's not worth a breaking change to revoke at this time, though, so it shall live on.
 	UnknownError StatusCode = 803
@@ -75,7 +77,7 @@ const (
 	DeadlineExceeded StatusCode = 804
 )
 
-//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.24.0 -type=StatusCode
+//go:generate ../../scripts/shell-wrapper.sh mise.sh exec go:golang.org/x/tools/cmd/stringer@v0.42.0 -- stringer -type=StatusCode
 
 // StatusCodes map directly into StatusCategories by the numeric range of the status code.  See StatusCode comments
 // for more details.
@@ -87,7 +89,7 @@ const (
 	CategoryServerError StatusCategory = 3
 )
 
-//go:generate ../../scripts/shell-wrapper.sh gobin.sh golang.org/x/tools/cmd/stringer@v0.24.0 -type=StatusCategory
+//go:generate ../../scripts/shell-wrapper.sh mise.sh exec go:golang.org/x/tools/cmd/stringer@v0.42.0 -- stringer -type=StatusCategory
 
 func (re StatusCode) Category() StatusCategory {
 	if re >= 600 && re <= 699 {

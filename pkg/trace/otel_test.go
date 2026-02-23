@@ -1,7 +1,6 @@
 package trace_test
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"testing"
@@ -44,7 +43,7 @@ func (m *marshalableError) Error() string {
 func TestEvent(t *testing.T) {
 	sr := tracetest.NewSpanRecorder()
 	defer sr.Close()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ctx = trace.StartSpan(ctx, "testspan")
 	trace.SendEvent(ctx, "event", log.F{
@@ -90,7 +89,7 @@ func TestTraceError(t *testing.T) {
 		t.Run(k, func(t *testing.T) {
 			sr := tracetest.NewSpanRecorder()
 			defer sr.Close()
-			ctx := trace.StartSpan(context.Background(), "test")
+			ctx := trace.StartSpan(t.Context(), "test")
 			err := trace.Error(ctx, v.input)
 			assert.DeepEqual(t, err.Error(), v.input.Error())
 			trace.End(ctx)
@@ -121,7 +120,7 @@ func TestOtelAddInfo(t *testing.T) {
 	sr := tracetest.NewSpanRecorder()
 	defer sr.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// OTel only understands a limited set of types (bool, string int64,
 	// float64, and slices of these), so some casting is expected.

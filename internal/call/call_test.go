@@ -1,7 +1,6 @@
 package call_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ import (
 
 func TestTracker_nestedCall(t *testing.T) {
 	tracker := &call.Tracker{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	outer := tracker.StartCall(ctx, "outer", logf.Many{logf.F{"outer": true}})
 	outerInfo := tracker.Info(outer)
@@ -64,7 +63,7 @@ func TestTracker_nestedCall(t *testing.T) {
 
 func TestTracker_panic(t *testing.T) {
 	tracker := &call.Tracker{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	outer := tracker.StartCall(ctx, "outer", logf.Many{logf.F{"outer": true}})
 	outerInfo := tracker.Info(outer)
@@ -95,7 +94,7 @@ func TestTracker_panic(t *testing.T) {
 
 func TestTracker_reportLatency(t *testing.T) {
 	tracker := &call.Tracker{}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	types := []call.Type{call.TypeHTTP, call.TypeGRPC, call.TypeOutbound}
 	statuses := []string{"ok", "failed"}
@@ -137,7 +136,7 @@ func TestTracker_reportLatency(t *testing.T) {
 			}
 			if status != "ok" {
 				need["statuscategory"] = "CategoryServerError"
-				need["statuscode"] = "UnknownError"
+				need["statuscode"] = "InternalServerError"
 			}
 
 			got := map[string]string{}

@@ -95,9 +95,10 @@ func (t *tarArchive) Next() (*Header, io.ReadCloser, error) {
 		Mode: th.Mode,
 	}
 
-	if th.Typeflag == tar.TypeReg {
+	switch th.Typeflag {
+	case tar.TypeReg:
 		h.Type = HeaderTypeFile
-	} else if th.Typeflag == tar.TypeDir {
+	case tar.TypeDir:
 		h.Type = HeaderTypeDirectory
 	}
 

@@ -13,7 +13,7 @@ import (
 
 //nolint:unparam
 func benchmarkWorkerN(b *testing.B, size, items int) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(b.Context())
 	defer cancel()
 
 	p := pool.New(ctx, pool.ConstantSize(size))
