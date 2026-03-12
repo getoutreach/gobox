@@ -441,8 +441,19 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 		return errors.Wrap(err, "failed to open temp file")
 	}
 
+	// The binary name inside the archive follows the convention of the repo name
+	// (e.g. "localizer" for github.com/getoutreach/localizer), regardless of what
+	// the executable may be named on disk (e.g. "localizer-v1.15.2" when installed
+	// by a version-aware downloader). We try both names so that the updater works
+	// correctly whether the binary is stored under its plain repo name or a
+	// versioned name on disk.
+	repoName := filepath.Base(u.repoURL)
+	execName := filepath.Base(u.executablePath)
 	bin, header, err := archive.Extract(ctx, aName, tmpF,
-		archive.WithFilePath(filepath.Base(u.executablePath)),
+		archive.WithFilePathSelector(func(name string) bool {
+			base := filepath.Base(name)
+			return base == repoName || base == execName
+		}),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract release")
