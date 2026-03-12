@@ -173,6 +173,22 @@ func Test_updater_installVersion(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Regression test for DT-4923: when a binary is stored on disk with a
+			// versioned name (e.g. "stencil-v1.25.1") that differs from the name of
+			// the binary inside the release archive (e.g. "stencil"), the updater
+			// should still be able to extract the correct binary from the archive.
+			name: "should fetch a version when executable has versioned name on disk",
+			fields: fields{
+				repoURL:        "https://github.com/getoutreach/stencil",
+				executablePath: "stencil-v1.25.0",
+			},
+			args: args{
+				version: &resolver.Version{
+					Tag: "v1.25.1",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
