@@ -441,8 +441,12 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 		return errors.Wrap(err, "failed to open temp file")
 	}
 
+	// Assets inside the archive follow the repo name convention (e.g. "localizer"
+	// for github.com/getoutreach/localizer), regardless of what the executable
+	// may be named on disk (e.g. "localizer-v1.15.2" when installed by devenv).
+	// This must be consistent with the AssetName pattern used in release.Fetch above.
 	bin, header, err := archive.Extract(ctx, aName, tmpF,
-		archive.WithFilePath(filepath.Base(u.executablePath)),
+		archive.WithFilePath(filepath.Base(u.repoURL)),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to extract release")
