@@ -3,7 +3,6 @@
 package log_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,7 +19,7 @@ func (withSuite) TestWith(t *testing.T) {
 	defer logs.Close()
 
 	logger := log.With(log.F{"with": "hey"})
-	ctx := context.Background()
+	ctx := t.Context()
 
 	logger.Debug(ctx, "Debug message", log.F{"some": "thing"})
 	logger.Info(ctx, "Info message", log.F{"some": "thing"})
@@ -35,6 +34,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Info message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -44,6 +44,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Warn message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -53,6 +54,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Debug message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 		{
@@ -62,6 +64,7 @@ func (withSuite) TestWith(t *testing.T) {
 			"message":     "Warn message",
 			"some":        "thing",
 			"module":      "github.com/getoutreach/gobox",
+			"modulever":   "testing",
 			"with":        "hey",
 		},
 	}

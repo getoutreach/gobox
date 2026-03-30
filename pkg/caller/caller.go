@@ -17,11 +17,15 @@ var trimPathsRe = regexp.MustCompile(`(github\.com(/getoutreach?)|golang\.org|go
 
 // FileLine returns the caller file:line, skipping the specified number of frames.
 func FileLine(skip int) string {
-	pc := []uintptr{0}
-	if runtime.Callers(skip, pc) == 1 {
-		// due to being acquired by runtime.Callers, pc is offset by 1
-		file, line, _ := FileLineNameForPC(pc[0] - 1)
-		return fmt.Sprintf("%s:%d", file, line)
+	pc := make([]uintptr, 1)
+	if n := runtime.Callers(skip, pc); n > 0 {
+		for _, progCounter := range pc[:n] {
+			if progCounter > 0 {
+				// due to being acquired by runtime.Callers, pc is offset by 1
+				file, line, _ := FileLineNameForPC(progCounter - 1)
+				return fmt.Sprintf("%s:%d", file, line)
+			}
+		}
 	}
 	return "unknown:0"
 }

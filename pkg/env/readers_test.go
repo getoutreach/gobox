@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"testing"
 
-	requirepkg "github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 	"gotest.tools/v3/assert"
 )
@@ -85,16 +84,16 @@ func TestFakeTestConfigWithErrorMultipleConfigs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := requirepkg.New(t)
 			var deserializedExample TestConfig
 			configInputMarshal, _ := yaml.Marshal(tt.args.config)
 			err := yaml.Unmarshal(configInputMarshal, &deserializedExample)
-			require.NoError(err, "converting hard-coded example to YAML not fail")
+			assert.NilError(t, err, "converting hard-coded example to YAML should not fail")
 
 			_, err = FakeTestConfigWithError(tt.args.fName, deserializedExample)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TestFakeTestConfigWithErrorMultipleConfigs() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				assert.Error(t, err, fmt.Sprintf("repeated test override of '%s'", tt.args.fName))
+			} else {
+				assert.NilError(t, err)
 			}
 		})
 	}
@@ -127,11 +126,10 @@ func TestFakeTestConfigWithErrorRepeatedTestOverride(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := requirepkg.New(t)
 			var deserializedExample TestConfig
 			configInputMarshal, _ := yaml.Marshal(tt.args.config)
 			err := yaml.Unmarshal(configInputMarshal, &deserializedExample)
-			require.NoError(err, "converting hard-coded example to YAML not fail")
+			assert.NilError(t, err, "converting hard-coded example to YAML should not fail")
 
 			// first config call should be successful
 			deleteFunc, err := FakeTestConfigWithError(tt.args.fName, deserializedExample)
@@ -139,13 +137,12 @@ func TestFakeTestConfigWithErrorRepeatedTestOverride(t *testing.T) {
 
 			// second config call should be unsuccessful and throw an error
 			_, err = FakeTestConfigWithError(tt.args.fName, deserializedExample)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("TestFakeTestConfigWithErrorRepeatedTestOverride error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				// expect an error as the second FakeTestConfigWithError call should fail
+				assert.Error(t, err, fmt.Sprintf("repeated test override of '%s'", tt.args.fName))
+			} else {
+				assert.NilError(t, err)
 			}
-
-			// expect an error as the second FakeTestConfigWithError call should fail
-			assert.Error(t, err, fmt.Sprintf("repeated test override of '%s'", tt.args.fName))
 
 			defer deleteFunc()
 		})

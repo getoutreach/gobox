@@ -3,7 +3,6 @@
 package secrets_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -22,14 +21,14 @@ type suite struct{}
 func (suite) TestSecretsDevEnvRedirect(t *testing.T) {
 	defer secretstest.Fake("/etc/mysecret", "fake value")()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	if val, err := secrets.Config(ctx, "/etc/mysecret"); err != nil || val != "fake value" {
 		t.Fatal("unexpected config failure", err, val)
 	}
 }
 
 func (suite) TestSecretsFetchFile(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	if x := secrets.MustConfig(ctx, "testdata/sample.txt"); strings.TrimSpace(x) != "sample" {
 		t.Error("Secrets fetch failed", x)

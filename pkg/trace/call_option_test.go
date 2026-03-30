@@ -1,7 +1,6 @@
 package trace_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -17,10 +16,10 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func startCall(opt call.Option) *call.Info {
+func startCall(t *testing.T, opt call.Option) *call.Info {
 	var callInfo *call.Info
 	trace.StartCall(
-		context.Background(),
+		t.Context(),
 		"test",
 		call.Option(func(c *call.Info) {
 			callInfo = c
@@ -32,17 +31,17 @@ func startCall(opt call.Option) *call.Info {
 
 func TestWithOptions(t *testing.T) {
 	scheduledAt := time.Now()
-	callInfo := startCall(trace.WithScheduledTime(scheduledAt))
+	callInfo := startCall(t, trace.WithScheduledTime(scheduledAt))
 	assert.Equal(t, scheduledAt, callInfo.Times.Scheduled)
 }
 
 func TestAsGRPCCall(t *testing.T) {
-	callInfo := startCall(trace.AsGRPCCall())
+	callInfo := startCall(t, trace.AsGRPCCall())
 	assert.Equal(t, call.TypeGRPC, callInfo.Type)
 }
 
 func TestAsOutboundCall(t *testing.T) {
-	callInfo := startCall(trace.AsOutboundCall())
+	callInfo := startCall(t, trace.AsOutboundCall())
 	assert.Equal(t, call.TypeOutbound, callInfo.Type)
 }
 
@@ -57,19 +56,19 @@ func ignoreVariableFields() cmp.Option {
 
 func TestWithInfoLoggingManuallyEnabled(t *testing.T) {
 	// Test that the default is false
-	callInfo := startCall(func(c *call.Info) {})
+	callInfo := startCall(t, func(c *call.Info) {})
 	assert.Equal(t, false, callInfo.Opts.EnableInfoLogging)
 
 	// Test that trace.WithInfoLoggingEnabled() sets the EnableInfoLogging
 	// option to true.
-	callInfo = startCall(trace.WithInfoLoggingEnabled())
+	callInfo = startCall(t, trace.WithInfoLoggingEnabled())
 	assert.Equal(t, true, callInfo.Opts.EnableInfoLogging)
 
 	// Make a call and ensure that info logs are not emitted.
 	recorder := logtest.NewLogRecorder(t)
 	defer recorder.Close()
 
-	ctx := trace.StartCall(context.Background(), "test")
+	ctx := trace.StartCall(t.Context(), "test")
 	trace.EndCall(ctx)
 
 	if diff := cmp.Diff([]logf.F(nil), recorder.Entries(), differs.Custom()); diff != "" {
@@ -78,7 +77,7 @@ func TestWithInfoLoggingManuallyEnabled(t *testing.T) {
 
 	// now make a call with info logging enabled and ensure that info logs are
 	// emitted.
-	ctx = trace.StartCall(context.Background(), "test", trace.WithInfoLoggingEnabled())
+	ctx = trace.StartCall(t.Context(), "test", trace.WithInfoLoggingEnabled())
 	trace.EndCall(ctx)
 
 	expected := []log.F{
@@ -91,6 +90,7 @@ func TestWithInfoLoggingManuallyEnabled(t *testing.T) {
 			"level":               "INFO",
 			"message":             "test",
 			"module":              "github.com/getoutreach/gobox",
+			"modulever":           "testing",
 			"timing.dequeued_at":  differs.AnyString(),
 			"timing.finished_at":  differs.AnyString(),
 			"timing.scheduled_at": differs.AnyString(),
@@ -112,19 +112,19 @@ func TestWithInfoLoggingManuallyDisabled(t *testing.T) {
 	defer spanRecorder.Close()
 
 	// Test that the default is true.
-	callInfo := startCall(func(c *call.Info) {})
+	callInfo := startCall(t, func(c *call.Info) {})
 	assert.Equal(t, true, callInfo.Opts.EnableInfoLogging)
 
 	// Test that trace.WithInfoLoggingDisabled() sets the EnableInfoLogging
 	// option to false.
-	callInfo = startCall(trace.WithInfoLoggingDisabled())
+	callInfo = startCall(t, trace.WithInfoLoggingDisabled())
 	assert.Equal(t, false, callInfo.Opts.EnableInfoLogging)
 
 	// Make a call and ensure that info logs are not emitted.
 	logRecorder := logtest.NewLogRecorder(t)
 	defer logRecorder.Close()
 
-	ctx := trace.StartCall(context.Background(), "test", trace.WithInfoLoggingDisabled())
+	ctx := trace.StartCall(t.Context(), "test", trace.WithInfoLoggingDisabled())
 	trace.EndCall(ctx)
 
 	if diff := cmp.Diff([]logf.F(nil), logRecorder.Entries(), differs.Custom()); diff != "" {
@@ -132,7 +132,7 @@ func TestWithInfoLoggingManuallyDisabled(t *testing.T) {
 	}
 
 	// Make a call with info and ensure that info logs are emitted.
-	ctx = trace.StartCall(context.Background(), "test")
+	ctx = trace.StartCall(t.Context(), "test")
 	trace.EndCall(ctx)
 
 	expected := []log.F{
@@ -145,6 +145,7 @@ func TestWithInfoLoggingManuallyDisabled(t *testing.T) {
 			"level":               "INFO",
 			"message":             "test",
 			"module":              "github.com/getoutreach/gobox",
+			"modulever":           "testing",
 			"timing.dequeued_at":  differs.AnyString(),
 			"timing.finished_at":  differs.AnyString(),
 			"timing.scheduled_at": differs.AnyString(),
@@ -160,7 +161,7 @@ func TestWithInfoLoggingManuallyDisabled(t *testing.T) {
 }
 
 func TestWithNoCallInfo(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	recorder := logtest.NewLogRecorder(t)
 	defer recorder.Close()

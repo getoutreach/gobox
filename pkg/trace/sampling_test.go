@@ -43,7 +43,7 @@ func TestForceTraceHeaderSampler(t *testing.T) {
 	}{
 		{
 			name: "force trace header set",
-			ctx:  trace.ForceTracing(context.Background()),
+			ctx:  trace.ForceTracing(t.Context()),
 			expected: sdktrace.SamplingResult{
 				Decision: sdktrace.RecordAndSample,
 				Attributes: []attribute.KeyValue{
@@ -54,7 +54,7 @@ func TestForceTraceHeaderSampler(t *testing.T) {
 		},
 		{
 			name:     "force trace header not set",
-			ctx:      context.Background(),
+			ctx:      t.Context(),
 			expected: sdktrace.SamplingResult{Decision: sdktrace.Drop},
 		},
 	}
@@ -125,7 +125,7 @@ func TestHoneycombDeterministicSampler(t *testing.T) {
 			spanID, err := oteltrace.SpanIDFromHex("00f067aa0ba902b7")
 			assert.NilError(t, err)
 			parentCtx := oteltrace.ContextWithSpanContext(
-				context.Background(),
+				t.Context(),
 				oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 					TraceID: traceID,
 					SpanID:  spanID,
@@ -207,7 +207,7 @@ func TestSampleRateTaggingSampler(t *testing.T) {
 			spanID, _ := oteltrace.SpanIDFromHex("00f067aa0ba902b7")
 			var flags oteltrace.TraceFlags
 			parentCtx := oteltrace.ContextWithSpanContext(
-				context.Background(),
+				t.Context(),
 				oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
 					TraceID:    traceID,
 					SpanID:     spanID,

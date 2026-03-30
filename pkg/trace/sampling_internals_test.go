@@ -3,14 +3,13 @@
 package trace
 
 import (
-	"context"
 	"testing"
 
 	"gotest.tools/v3/assert"
 )
 
 func TestContextForceTrace(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.Assert(t, !isTracingForced(ctx))
 
 	ctx = forceTracing(ctx)

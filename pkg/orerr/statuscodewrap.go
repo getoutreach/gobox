@@ -31,6 +31,12 @@ func (w *StatusCodeWrapper) Unwrap() error {
 	return w.wrappedErr
 }
 
+// Is implements the `errors.Is` interface to check whether an error is wrapped by `StatusCodeWrapper`.
+func (w *StatusCodeWrapper) Is(target error) bool {
+	_, ok := target.(*StatusCodeWrapper)
+	return ok
+}
+
 func NewErrorStatus(errToWrap error, errCode statuscodes.StatusCode) error {
 	return &StatusCodeWrapper{wrappedErr: errToWrap, code: errCode}
 }
@@ -56,7 +62,7 @@ func ExtractErrorStatusCode(err error) statuscodes.StatusCode {
 	if errors.As(err, &scw) {
 		return scw.StatusCode()
 	}
-	return statuscodes.UnknownError
+	return statuscodes.InternalServerError
 }
 
 func ExtractErrorStatusCategory(err error) statuscodes.StatusCategory {

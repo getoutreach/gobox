@@ -1,11 +1,11 @@
 package updater
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
@@ -173,6 +173,23 @@ func Test_updater_installVersion(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Regression test for DT-4923: when a binary is stored on disk with a
+			// versioned name (e.g. "stencil-v1.25.0") that differs from the binary
+			// name inside the release archive (e.g. "stencil"), the updater should
+			// still be able to extract the correct binary from the archive by using
+			// the repo name rather than the on-disk executable name.
+			name: "should fetch a version when executable has versioned name on disk",
+			fields: fields{
+				repoURL:        "https://github.com/getoutreach/stencil",
+				executablePath: "stencil-v1.25.0",
+			},
+			args: args{
+				version: &resolver.Version{
+					Tag: "v1.25.1",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -188,7 +205,7 @@ func Test_updater_installVersion(t *testing.T) {
 				return
 			}
 
-			if err := u.installVersion(context.Background(), tt.args.version); (err != nil) != tt.wantErr {
+			if err := u.installVersion(t.Context(), tt.args.version); (err != nil) != tt.wantErr {
 				t.Errorf("updater.installVersion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -196,9 +213,12 @@ func Test_updater_installVersion(t *testing.T) {
 }
 
 func TestE2EUpdater(t *testing.T) {
+	token, err := github.GetToken()
+	assert.NilError(t, err)
+
 	t.Setenv("HOME", t.TempDir())
 
-	u, err := UseUpdater(context.Background(),
+	u, err := UseUpdater(t.Context(),
 		WithRepoURL("https://github.com/getoutreach/stencil"),
 		WithVersion("v0.0.0"),
 		WithExecutableName("stencil"),
@@ -212,7 +232,9 @@ func TestE2EUpdater(t *testing.T) {
 		return
 	}
 
-	updated, err := u.check(context.Background())
+	u.ghToken = token
+
+	updated, err := u.check(t.Context())
 	if err != nil {
 		t.Errorf("updater.check() error = %v", err)
 	}

@@ -63,7 +63,7 @@ For example, given this snippet,
 ```golang
 package painkiller
 
-//go:generate ./scripts/gobin.sh golang.org/x/tools/cmd/stringer@v0.1.0 -type=Pill
+//go:generate ./scripts/shell-wrapper.sh mise.sh exec go:golang.org/x/tools/cmd/stringer@v0.42.0 -- stringer -type=Pill
 type Pill int
 
 const (

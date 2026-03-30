@@ -3,7 +3,6 @@
 package log_test
 
 import (
-	"context"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -19,16 +18,17 @@ func (callerSuite) TestCaller(t *testing.T) {
 	logs := logtest.NewLogRecorder(t)
 	defer logs.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	log.Info(ctx, "caller test", log.Caller())
 
 	expected := []log.F{{
 		"@timestamp":  differs.RFC3339NanoTime(),
 		"app.version": "testing",
-		"caller":      "gobox/pkg/log/caller_test.go:23",
+		"caller":      "gobox/pkg/log/caller_test.go:22",
 		"level":       "INFO",
 		"message":     "caller test",
 		"module":      "github.com/getoutreach/gobox",
+		"modulever":   "testing",
 	}}
 
 	assert.DeepEqual(t, expected, logs.Entries(), differs.Custom())

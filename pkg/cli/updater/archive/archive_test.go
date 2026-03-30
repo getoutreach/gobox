@@ -56,7 +56,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support find file by name",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar",
 				r:           bytes.NewReader(testdataTar),
 				optFns: []ExtractOptionFunc{
@@ -70,7 +70,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support find file with function",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar",
 				r:           bytes.NewReader(testdataTar),
 				optFns: []ExtractOptionFunc{
@@ -86,7 +86,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should return error when file not found",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar",
 				r:           bytes.NewReader(testdataTar),
 				optFns: []ExtractOptionFunc{
@@ -100,7 +100,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should return correct file",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar_with_multiple_files.tar",
 				r:           bytes.NewReader(testdataTarWithMultipleFiles),
 				optFns: []ExtractOptionFunc{
@@ -119,7 +119,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should return file at directory",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar_with_dir.tar",
 				r:           bytes.NewReader(testdataTarWithADir),
 				optFns: []ExtractOptionFunc{
@@ -138,7 +138,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should return error when unsupported archive type",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "7z.7z",
 				r:           nil,
 				optFns:      []ExtractOptionFunc{},
@@ -150,7 +150,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should return error when filepath or selector is nil",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "7z.7z",
 				r:           nil,
 				optFns:      []ExtractOptionFunc{},
@@ -162,7 +162,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support support tar bz2",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar.bz2",
 				r:           bytes.NewReader(testdataTarBz2),
 				optFns: []ExtractOptionFunc{
@@ -176,7 +176,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support support tar gz",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar.gz",
 				r:           bytes.NewReader(testdataTarGz),
 				optFns: []ExtractOptionFunc{
@@ -190,7 +190,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support support tgz",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tgz",
 				r:           bytes.NewReader(testdataTarGz),
 				optFns: []ExtractOptionFunc{
@@ -204,7 +204,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support support tar xz",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "tar.tar.xz",
 				r:           bytes.NewReader(testdataTarXz),
 				optFns: []ExtractOptionFunc{
@@ -218,7 +218,7 @@ func TestExtract(t *testing.T) {
 		{
 			name: "should support support zip",
 			args: args{
-				ctx:         context.Background(),
+				ctx:         t.Context(),
 				archiveName: "zip.zip",
 				r:           bytes.NewReader(testdataZip),
 				optFns: []ExtractOptionFunc{
