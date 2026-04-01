@@ -14,7 +14,7 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // githubKey is the standard host used for github.com

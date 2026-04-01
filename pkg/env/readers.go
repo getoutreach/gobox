@@ -16,7 +16,7 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 type testOverrides struct {
