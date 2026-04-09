@@ -23,7 +23,6 @@ package log
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,7 +32,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -62,7 +60,10 @@ var (
 	stdOut     io.Writer = &syncWriter{w: os.Stdout}
 	errOut     io.Writer = &syncWriter{w: os.Stderr}
 
-	// once to ensure we only initialize the slog.Logger once.
+	// once to ensure we only initialize the slog.Logger once on first use.
+	// Note: once only protects the first implicit initialization in slogIt().
+	// SetShouldUseSlog() and SetOutput() handle explicit re-initialization
+	// independently under slogLock, bypassing the once guard.
 	once          = sync.Once{}
 	slogLock      = sync.Mutex{}
 	_, shouldSlog = os.LookupEnv("GOBOX_AS_SLOG_FACADE")
@@ -154,6 +155,8 @@ func Write(s string) {
 type F = logf.F
 
 // slogIt produces a slog structured log at the appropriate level.
+// It captures the caller's program counter (skipping internal log frames)
+// and passes it to slog for accurate source location reporting.
 func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
 	once.Do(setupSlog)
 	var pcs [1]uintptr
@@ -162,7 +165,13 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 
 	r := slog.NewRecord(time.Now(), lvl, message, pcs[0])
 	r.AddAttrs(slogAttrs(m)...)
-	_ = log.Handler().Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
+
+	// Acquire lock to safely read the log variable
+	slogLock.Lock()
+	handler := log.Handler()
+	slogLock.Unlock()
+
+	_ = handler.Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
@@ -212,7 +221,10 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
 	if ShouldUseSlog() {
-		slogIt(ctx, slog.LevelError, message, m)
+		// Use OpenTelemetry FATAL level (21) as recommended by slog documentation
+		// See https://pkg.go.dev/log/slog#Level
+		const LevelFatal = slog.Level(21)
+		slogIt(ctx, LevelFatal, message, m)
 		os.Exit(1)
 		return
 	}
@@ -357,6 +369,8 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 			res = append(res, slog.Int64(kv.key, int64(v)))
 		case int64:
 			res = append(res, slog.Int64(kv.key, v))
+		case uint:
+			res = append(res, slog.Uint64(kv.key, uint64(v)))
 		case uint8:
 			res = append(res, slog.Uint64(kv.key, uint64(v)))
 		case uint16:
@@ -410,10 +424,6 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		}
 	}
-	// maps are in random order, so sort before logging for consistent output
-	slices.SortFunc(res, func(a, b slog.Attr) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
 
 	return res
 }

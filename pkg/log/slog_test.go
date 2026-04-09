@@ -46,11 +46,8 @@ func setupSlogTest(t *testing.T) func() {
 		// Restore original log output first
 		log.SetOutput(originalOutput)
 
-		// Then restore environment
-		var err error
-
+		// Then restore slog setting
 		log.SetShouldUseSlog(original)
-		assert.Check(t, err)
 	}
 }
 
