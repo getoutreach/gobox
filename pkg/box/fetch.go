@@ -20,8 +20,8 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.yaml.in/yaml/v3"
 	"golang.org/x/crypto/ssh/agent"
-	"gopkg.in/yaml.v3"
 )
 
 var (

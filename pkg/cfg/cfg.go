@@ -76,7 +76,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // the default read is a prod reader which looks for
