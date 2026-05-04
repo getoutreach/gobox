@@ -171,7 +171,9 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 	handler := log.Handler()
 	slogLock.Unlock()
 
-	_ = handler.Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
+	if handler.Enabled(ctx, lvl) {
+		_ = handler.Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error
+	}
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
