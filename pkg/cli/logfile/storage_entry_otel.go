@@ -192,7 +192,7 @@ func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 	// Value types get encoded as string
 	switch kv.Value.Type {
-	case attribute.INVALID.String():
+	case attribute.EMPTY.String():
 		return attribute.KeyValue{}, errors.New("invalid value type")
 	case attribute.BOOL.String():
 		return attribute.Bool(kv.Key, kv.Value.Value.(bool)), nil
