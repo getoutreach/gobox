@@ -121,7 +121,7 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 			key := fmt.Sprintf("attributes.%s", a.Key)
 
 			switch a.Value.Type() {
-			case attribute.INVALID:
+			case attribute.EMPTY:
 				spanInfo[key] = nil
 			case attribute.BOOL:
 				spanInfo[key] = a.Value.AsBool()
