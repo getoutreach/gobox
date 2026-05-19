@@ -22,7 +22,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/honeycombio/beeline-go v1.19.0
+	github.com/honeycombio/beeline-go v1.20.0
 	github.com/json-iterator/go v1.1.12
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mitchellh/go-homedir v1.1.0
