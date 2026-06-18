@@ -106,7 +106,7 @@ func TestTraceError(t *testing.T) {
 					assert.Equal(t, ev.Name, "exception")
 					attrs := map[string]string{}
 					for _, a := range ev.Attributes {
-						attrs[string(a.Key)] = a.Value.Emit()
+						attrs[string(a.Key)] = a.Value.String()
 					}
 					assert.Check(t, attrs["exception.message"] != "")
 					assert.Check(t, attrs["exception.type"] != "")
