@@ -139,6 +139,10 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 				spanInfo[key] = a.Value.AsFloat64Slice()
 			case attribute.STRINGSLICE:
 				spanInfo[key] = a.Value.AsStringSlice()
+			case attribute.BYTESLICE:
+				spanInfo[key] = a.Value.AsByteSlice()
+			case attribute.SLICE:
+				spanInfo[key] = a.Value.AsSlice()
 			}
 		}
 
