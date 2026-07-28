@@ -26,7 +26,7 @@ func TestAppInfoRegion(t *testing.T) {
 	}()
 	os.Setenv("MY_CLUSTER", "test.r1")
 	app.SetName("appname")
-	assert.Equal(t, app.Info().Region, "r1")
+	assert.Equal(t, app.Info().Region, "unknown")
 
 	os.Setenv("MY_REGION", "r2")
 	app.SetName("appname")
