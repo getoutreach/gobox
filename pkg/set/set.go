@@ -101,14 +101,9 @@ func (s Set[T]) DeleteAll(seq iter.Seq[T]) bool {
 // DeleteFunc removes every element for which f reports true and reports
 // whether the set shrank.
 func (s Set[T]) DeleteFunc(f func(T) bool) bool {
-	shrank := false
-	for v := range s {
-		if f(v) {
-			delete(s, v)
-			shrank = true
-		}
-	}
-	return shrank
+	before := len(s)
+	maps.DeleteFunc(s, func(v T, _ struct{}) bool { return f(v) })
+	return len(s) != before
 }
 
 // Contains reports whether v is a member of s.
@@ -170,20 +165,17 @@ func (s Set[T]) All() iter.Seq[T] {
 // Union returns a new set containing every element of s and o.
 func (s Set[T]) Union(o Set[T]) Set[T] {
 	r := make(Set[T], len(s)+len(o))
-	for v := range s {
-		r[v] = struct{}{}
-	}
-	for v := range o {
-		r[v] = struct{}{}
-	}
+	maps.Copy(r, s)
+	maps.Copy(r, o)
 	return r
 }
 
 // UnionWith adds every element of o to s in place, allocating s if it is nil.
 func (s *Set[T]) UnionWith(o Set[T]) {
-	for v := range o {
-		s.Insert(v)
+	if *s == nil {
+		*s = make(Set[T], len(o))
 	}
+	maps.Copy(*s, o)
 }
 
 // Intersection returns a new set containing the elements present in both s
@@ -204,11 +196,10 @@ func (s Set[T]) Intersection(o Set[T]) Set[T] {
 
 // IntersectionWith removes every element of s that is not also in o.
 func (s Set[T]) IntersectionWith(o Set[T]) {
-	for v := range s {
-		if _, ok := o[v]; !ok {
-			delete(s, v)
-		}
-	}
+	maps.DeleteFunc(s, func(v T, _ struct{}) bool {
+		_, ok := o[v]
+		return !ok
+	})
 }
 
 // Difference returns a new set containing the elements of s that are not in
@@ -275,24 +266,13 @@ func (s Set[T]) Intersects(o Set[T]) bool {
 
 // Equal reports whether s and o contain the same elements.
 func (s Set[T]) Equal(o Set[T]) bool {
-	if len(s) != len(o) {
-		return false
-	}
-	for v := range s {
-		if _, ok := o[v]; !ok {
-			return false
-		}
-	}
-	return true
+	return maps.Equal(s, o)
 }
 
-// Slice returns the elements of s as a slice, in unspecified order.
+// Slice returns the elements of s as a slice, in unspecified order. It
+// returns nil if s is empty.
 func (s Set[T]) Slice() []T {
-	r := make([]T, 0, len(s))
-	for v := range s {
-		r = append(r, v)
-	}
-	return r
+	return slices.Collect(s.All())
 }
 
 // Subset reports whether every element of a is also in b.
@@ -313,12 +293,8 @@ func Superset[T comparable](a, b Set[T]) bool {
 	return Subset(b, a)
 }
 
-// Sorted returns the elements of s as an ascending sorted slice.
+// Sorted returns the elements of s as an ascending sorted slice. It returns
+// nil if s is empty.
 func Sorted[T cmp.Ordered](s Set[T]) []T {
-	r := make([]T, 0, len(s))
-	for v := range s {
-		r = append(r, v)
-	}
-	slices.Sort(r)
-	return r
+	return slices.Sorted(s.All())
 }

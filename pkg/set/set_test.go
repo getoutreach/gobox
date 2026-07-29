@@ -167,7 +167,7 @@ func TestIntersection(t *testing.T) {
 	a := Of("a", "b", "c")
 	b := Of("b", "c", "d")
 	assert.DeepEqual(t, []string{"b", "c"}, Sorted(a.Intersection(b)))
-	assert.DeepEqual(t, []string{}, Sorted(Of("a").Intersection(Of("b"))))
+	assert.DeepEqual(t, []string(nil), Sorted(Of("a").Intersection(Of("b"))))
 }
 
 func TestIntersectionWith(t *testing.T) {
@@ -181,7 +181,7 @@ func TestDifference(t *testing.T) {
 	a := Of("a", "b", "c")
 	b := Of("b", "c", "d")
 	assert.DeepEqual(t, []string{"a"}, Sorted(a.Difference(b)))
-	assert.DeepEqual(t, []string{}, Sorted(Of("a").Difference(Of("a"))))
+	assert.DeepEqual(t, []string(nil), Sorted(Of("a").Difference(Of("a"))))
 }
 
 func TestDifferenceWith(t *testing.T) {
@@ -244,7 +244,7 @@ func TestSubsetSuperset(t *testing.T) {
 func TestSorted(t *testing.T) {
 	s := Of(3, 1, 2)
 	assert.DeepEqual(t, []int{1, 2, 3}, Sorted(s))
-	assert.DeepEqual(t, []int{}, Sorted(Set[int]{}))
+	assert.DeepEqual(t, []int(nil), Sorted(Set[int]{}))
 }
 
 // TestNilZeroValueReads validates that every read method on a nil Set
@@ -253,7 +253,7 @@ func TestNilZeroValueReads(t *testing.T) {
 	var s Set[string]
 	assert.Assert(t, !s.Contains("a"))
 	assert.Equal(t, 0, s.Len())
-	assert.DeepEqual(t, []string{}, s.Slice())
+	assert.DeepEqual(t, []string(nil), s.Slice())
 	var count int
 	for range s.All() {
 		count++
