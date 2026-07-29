@@ -142,18 +142,24 @@ func (s Set[T]) Clear() {
 	clear(s)
 }
 
-// Clone returns a shallow copy of s.
+// Clone returns a shallow copy of s. Unlike maps.Clone, Clone always returns
+// a non-nil set, even if s is nil.
 func (s Set[T]) Clone() Set[T] {
+	if s == nil {
+		return make(Set[T])
+	}
 	return maps.Clone(s)
 }
 
-// String returns a "{a, b, c}"-style representation of s, in unspecified
-// order.
+// String returns a "{a, b, c}"-style representation of s. Elements are
+// sorted by their fmt.Sprint representation, so the result is deterministic
+// (though not necessarily in numeric order for numeric T).
 func (s Set[T]) String() string {
 	elems := make([]string, 0, len(s))
 	for v := range s {
 		elems = append(elems, fmt.Sprint(v))
 	}
+	slices.Sort(elems)
 	return "{" + strings.Join(elems, ", ") + "}"
 }
 

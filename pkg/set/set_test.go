@@ -118,10 +118,23 @@ func TestClone(t *testing.T) {
 	assert.Assert(t, !s.Contains("z"))
 }
 
+func TestCloneNil(t *testing.T) {
+	var s Set[string]
+	c := s.Clone()
+	assert.Assert(t, c != nil)
+	assert.Equal(t, 0, c.Len())
+}
+
 func TestString(t *testing.T) {
 	s := Of("a")
 	assert.Equal(t, "{a}", s.String())
 	assert.Equal(t, "{}", Set[string]{}.String())
+}
+
+func TestStringSortedDeterministic(t *testing.T) {
+	s := Of("c", "a", "b")
+	assert.Equal(t, "{a, b, c}", s.String())
+	assert.Equal(t, s.String(), s.String())
 }
 
 func TestAll(t *testing.T) {
