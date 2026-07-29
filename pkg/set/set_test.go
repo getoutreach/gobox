@@ -25,19 +25,21 @@ func TestCollect(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	var s Set[string]
+	s := Of[string]()
 	assert.Assert(t, s.Insert("a"))
 	assert.Assert(t, !s.Insert("a"))
 	assert.Assert(t, s.Insert("b"))
 	assert.Equal(t, 2, s.Len())
 }
 
-func TestInsertNilReceiver(t *testing.T) {
+func TestInsertPanicsOnNil(t *testing.T) {
 	var s Set[string]
-	assert.Assert(t, s == nil)
+	defer func() {
+		if recover() == nil {
+			t.Error("Insert on a nil Set did not panic")
+		}
+	}()
 	s.Insert("a")
-	assert.Assert(t, s != nil)
-	assert.Assert(t, s.Contains("a"))
 }
 
 func TestInsertAll(t *testing.T) {
@@ -47,6 +49,22 @@ func TestInsertAll(t *testing.T) {
 	assert.Equal(t, 3, s.Len())
 
 	grew = s.InsertAll(slices.Values([]string{"a", "b", "c"}))
+	assert.Assert(t, !grew)
+}
+
+func TestInsertAllPanicsOnNilWithNonEmptySeq(t *testing.T) {
+	var s Set[string]
+	defer func() {
+		if recover() == nil {
+			t.Error("InsertAll on a nil Set did not panic")
+		}
+	}()
+	s.InsertAll(slices.Values([]string{"a"}))
+}
+
+func TestInsertAllNoPanicOnNilWithEmptySeq(t *testing.T) {
+	var s Set[string]
+	grew := s.InsertAll(slices.Values([]string{}))
 	assert.Assert(t, !grew)
 }
 
@@ -170,10 +188,20 @@ func TestUnionWith(t *testing.T) {
 	assert.DeepEqual(t, []string{"a", "b", "c"}, Sorted(a))
 }
 
-func TestUnionWithNilReceiver(t *testing.T) {
+func TestUnionWithPanicsOnNilWithNonEmptyOperand(t *testing.T) {
 	var s Set[string]
+	defer func() {
+		if recover() == nil {
+			t.Error("UnionWith on a nil Set did not panic")
+		}
+	}()
 	s.UnionWith(Of("a", "b"))
-	assert.DeepEqual(t, []string{"a", "b"}, Sorted(s))
+}
+
+func TestUnionWithNoPanicOnNilWithEmptyOperand(t *testing.T) {
+	var s Set[string]
+	s.UnionWith(Set[string]{})
+	assert.Equal(t, 0, s.Len())
 }
 
 func TestIntersection(t *testing.T) {
@@ -217,10 +245,20 @@ func TestSymmetricDifferenceWith(t *testing.T) {
 	assert.DeepEqual(t, []string{"a", "d"}, Sorted(a))
 }
 
-func TestSymmetricDifferenceWithNilReceiver(t *testing.T) {
+func TestSymmetricDifferenceWithPanicsOnNilWithNonEmptyOperand(t *testing.T) {
 	var s Set[string]
+	defer func() {
+		if recover() == nil {
+			t.Error("SymmetricDifferenceWith on a nil Set did not panic")
+		}
+	}()
 	s.SymmetricDifferenceWith(Of("a", "b"))
-	assert.DeepEqual(t, []string{"a", "b"}, Sorted(s))
+}
+
+func TestSymmetricDifferenceWithNoPanicOnNilWithEmptyOperand(t *testing.T) {
+	var s Set[string]
+	s.SymmetricDifferenceWith(Set[string]{})
+	assert.Equal(t, 0, s.Len())
 }
 
 func TestIntersects(t *testing.T) {
