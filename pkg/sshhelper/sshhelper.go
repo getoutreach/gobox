@@ -13,7 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
+	"charm.land/bubbles/v2/textinput"
+	"github.com/getoutreach/gobox/pkg/cli/prompt"
 	"github.com/getoutreach/gobox/pkg/sshconfig"
 	gogitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/mitchellh/go-homedir"
@@ -126,10 +127,12 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 
 		for {
 			if pass, err = keyring.Get(serviceName, user); err != nil {
-				err = survey.AskOne(&survey.Password{
-					Message: "Please enter your SSH Key Password:",
-					Help:    fmt.Sprintf("SSH Key: %s", keyPath),
-				}, &pass, survey.WithValidator(survey.Required))
+				pass, err = prompt.Ask(prompt.Config{
+					Message:  "Please enter your SSH Key Password:",
+					Help:     fmt.Sprintf("SSH Key: %s", keyPath),
+					EchoMode: textinput.EchoPassword,
+					Validate: prompt.Required,
+				})
 				if err != nil {
 					return err
 				}
