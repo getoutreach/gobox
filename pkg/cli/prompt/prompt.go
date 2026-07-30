@@ -50,32 +50,33 @@ type Config struct {
 }
 
 var (
-	messageStyle = lipgloss.NewStyle().Bold(true)
-	helpStyle    = lipgloss.NewStyle().Faint(true)
-	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	messageStyle  = lipgloss.NewStyle().Bold(true)
+	helpStyle     = lipgloss.NewStyle().Faint(true)
+	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	selectedStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212"))
 )
 
-// model is the Bubble Tea model backing Ask.
-type model struct {
+// inputModel is the Bubble Tea model backing Ask.
+type inputModel struct {
 	cfg     Config
 	input   textinput.Model
 	initCmd tea.Cmd
 	err     error
 }
 
-func newModel(cfg Config) model {
+func newInputModel(cfg Config) inputModel {
 	ti := textinput.New()
 	ti.Prompt = "> "
 	ti.EchoMode = cfg.EchoMode
 
-	return model{cfg: cfg, input: ti, initCmd: ti.Focus()}
+	return inputModel{cfg: cfg, input: ti, initCmd: ti.Focus()}
 }
 
-func (m model) Init() tea.Cmd {
+func (m inputModel) Init() tea.Cmd {
 	return m.initCmd
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
 		case "ctrl+c", "esc":
@@ -97,7 +98,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() tea.View {
+func (m inputModel) View() tea.View {
 	var b strings.Builder
 
 	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
@@ -115,15 +116,103 @@ func (m model) View() tea.View {
 // Ask displays a single-field terminal prompt and returns the entered
 // value. It returns ErrAborted if the user cancels the prompt.
 func Ask(cfg Config) (string, error) {
-	finalModel, err := tea.NewProgram(newModel(cfg)).Run()
+	finalModel, err := tea.NewProgram(newInputModel(cfg)).Run()
 	if err != nil {
 		return "", err
 	}
 
-	m := finalModel.(model) //nolint:forcetypeassert // Why: we control the only model given to this Program.
+	m := finalModel.(inputModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
 	if m.err != nil {
 		return "", m.err
 	}
 
 	return m.input.Value(), nil
+}
+
+// SelectConfig describes a single-choice prompt.
+type SelectConfig struct {
+	// Message is the question shown to the user.
+	Message string
+
+	// Help, if set, is displayed underneath the message.
+	Help string
+
+	// Options are the choices presented to the user, selectable with the
+	// up/down (or j/k) arrow keys.
+	Options []string
+}
+
+// selectModel is the Bubble Tea model backing Select.
+type selectModel struct {
+	cfg    SelectConfig
+	cursor int
+	err    error
+}
+
+func (m selectModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+		switch keyMsg.String() {
+		case "ctrl+c", "esc":
+			m.err = ErrAborted
+			return m, tea.Quit
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		case "down", "j":
+			if m.cursor < len(m.cfg.Options)-1 {
+				m.cursor++
+			}
+		case "enter":
+			return m, tea.Quit
+		}
+	}
+
+	return m, nil
+}
+
+func (m selectModel) View() tea.View {
+	var b strings.Builder
+
+	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
+	if m.cfg.Help != "" {
+		fmt.Fprintln(&b, helpStyle.Render(m.cfg.Help))
+	}
+
+	for i, opt := range m.cfg.Options {
+		marker := "  "
+		style := lipgloss.NewStyle()
+		if i == m.cursor {
+			marker = "> "
+			style = selectedStyle
+		}
+		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(opt))
+	}
+
+	return tea.NewView(b.String())
+}
+
+// Select displays a single-choice terminal prompt and returns the chosen
+// option. It returns ErrAborted if the user cancels the prompt, or if no
+// options are provided.
+func Select(cfg SelectConfig) (string, error) {
+	if len(cfg.Options) == 0 {
+		return "", ErrAborted
+	}
+
+	finalModel, err := tea.NewProgram(selectModel{cfg: cfg}).Run()
+	if err != nil {
+		return "", err
+	}
+
+	m := finalModel.(selectModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
+	if m.err != nil {
+		return "", m.err
+	}
+
+	return m.cfg.Options[m.cursor], nil
 }
