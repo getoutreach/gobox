@@ -75,7 +75,7 @@ func TestSelectModel(t *testing.T) {
 func TestSelectNoOptions(t *testing.T) {
 	// No options is rejected before a Program is ever started, so this is
 	// safe to call directly without a TTY.
-	if _, err := Select(SelectConfig{}); !errors.Is(err, ErrAborted) {
+	if _, err := Select(t.Context(), SelectConfig{}); !errors.Is(err, ErrAborted) {
 		t.Errorf("err = %v, want ErrAborted", err)
 	}
 }

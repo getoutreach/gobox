@@ -127,7 +127,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 
 		for {
 			if pass, err = keyring.Get(serviceName, user); err != nil {
-				pass, err = prompt.Ask(prompt.Config{
+				pass, err = prompt.Ask(context.Background(), prompt.Config{
 					Message:  "Please enter your SSH Key Password:",
 					Help:     fmt.Sprintf("SSH Key: %s", keyPath),
 					EchoMode: textinput.EchoPassword,

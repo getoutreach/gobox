@@ -284,7 +284,7 @@ func SaveBox(_ context.Context, s *Storage) error {
 // downloads it and then saves it to disk. In general EnsureBox
 // should be used over this function.
 func InitializeBox(ctx context.Context, _ []string) error {
-	gitRepo, err := prompt.Ask(prompt.Config{
+	gitRepo, err := prompt.Ask(ctx, prompt.Config{
 		Message: "Please enter your box configuration git URL",
 		Help:    "This is the repository that contains your box.yaml and will be used for outreach tooling",
 	})

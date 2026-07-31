@@ -356,7 +356,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 
 	// handle major versions by prompting the user if this is one
 	if !u.skipMajorVersionPrompt {
-		if shouldContinue := handleMajorVersion(u.log, u.version, v.String(), relNotes); !shouldContinue {
+		if shouldContinue := handleMajorVersion(ctx, u.log, u.version, v.String(), relNotes); !shouldContinue {
 			return false, nil
 		}
 	}

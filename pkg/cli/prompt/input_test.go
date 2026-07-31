@@ -23,6 +23,25 @@ func TestInputModel(t *testing.T) {
 		}
 	})
 
+	t.Run("default is used unmodified on bare enter", func(t *testing.T) {
+		m := newInputModel(Config{Message: "test", Default: "octocat"})
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		if got := m.input.Value(); got != "octocat" {
+			t.Errorf("Value() = %q, want %q", got, "octocat")
+		}
+	})
+
+	t.Run("default can be edited before submit", func(t *testing.T) {
+		m := newInputModel(Config{Message: "test", Default: "octocat"})
+		typeString(m, "-fork")
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		if got := m.input.Value(); got != "octocat-fork" {
+			t.Errorf("Value() = %q, want %q", got, "octocat-fork")
+		}
+	})
+
 	t.Run("ctrl+c aborts", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test"})
 		m.Update(ctrlCKeypress())
