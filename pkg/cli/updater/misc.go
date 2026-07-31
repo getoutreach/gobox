@@ -11,7 +11,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/charmbracelet/glamour"
-	"github.com/manifoldco/promptui"
+	"github.com/getoutreach/gobox/pkg/cli/prompt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,11 +65,10 @@ func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) boo
 	fmt.Println(out)
 
 	log.Infof("Detected major version upgrade (%d -> %d). Would you like to upgrade?", cver.Major, nver.Major)
-	prompt := promptui.Select{
-		Label: "Select",
-		Items: []string{"Yes", "No"},
-	}
-	_, resp, err := prompt.Run()
+	resp, err := prompt.Select(prompt.SelectConfig{
+		Message: "Select",
+		Options: []string{"Yes", "No"},
+	})
 	if err != nil {
 		return false
 	}
