@@ -504,14 +504,26 @@ type pickerModel[T any] struct {
 // title.
 func newPickerModel[T any](title string, options []Option[T]) *pickerModel[T] {
 	items := make([]list.Item, len(options))
+	hasDescription := false
 	for i, o := range options {
 		items[i] = pickerItem[T]{label: o.Label, description: o.Description, disabled: o.Disabled, value: o.Value}
+		if o.Description != "" {
+			hasDescription = true
+		}
+	}
+
+	// Only reserve a second line per item for descriptions if at least
+	// one option actually has one. Otherwise every item would render
+	// with a pointless blank line under it.
+	delegate := list.NewDefaultDelegate()
+	if !hasDescription {
+		delegate.ShowDescription = false
 	}
 
 	// 80x20 is a placeholder size for the first frame. Bubble Tea sends
 	// the real terminal size in a tea.WindowSizeMsg right after startup,
 	// and Update resizes the list once that arrives.
-	l := list.New(items, list.NewDefaultDelegate(), 80, 20)
+	l := list.New(items, delegate, 80, 20)
 	l.Title = title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)

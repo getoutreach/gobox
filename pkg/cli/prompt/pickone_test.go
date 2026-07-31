@@ -3,6 +3,7 @@
 package prompt
 
 import (
+	"strings"
 	"testing"
 
 	"charm.land/bubbles/v2/list"
@@ -36,6 +37,48 @@ func TestNewPickerModel(t *testing.T) {
 		if item.value != options[i].Value {
 			t.Errorf("item %d: value = %q, want %q", i, item.value, options[i].Value)
 		}
+	}
+}
+
+// lineIndexContaining returns the index of the first line in view
+// containing substr, or -1 if none does.
+func lineIndexContaining(view, substr string) int {
+	for i, line := range strings.Split(view, "\n") {
+		if strings.Contains(line, substr) {
+			return i
+		}
+	}
+	return -1
+}
+
+// TestPickerModelSkipsDescriptionLineWhenUnused checks that no option
+// reserves a blank description line when none of the options have a
+// Description. bubbles/list pads its View() to a fixed height, so the
+// gap between two items' lines (rather than total line count) is what
+// actually reveals whether a description line is being reserved.
+func TestPickerModelSkipsDescriptionLineWhenUnused(t *testing.T) {
+	without := newPickerModel("title", []Option[string]{
+		{Label: "aaa", Value: "a"},
+		{Label: "bbb", Value: "b"},
+	})
+	without.list.SetSize(80, 20)
+
+	with := newPickerModel("title", []Option[string]{
+		{Label: "aaa", Description: "d1", Value: "a"},
+		{Label: "bbb", Value: "b"},
+	})
+	with.list.SetSize(80, 20)
+
+	gapWithout := lineIndexContaining(without.list.View(), "bbb") - lineIndexContaining(without.list.View(), "aaa")
+	gapWith := lineIndexContaining(with.list.View(), "bbb") - lineIndexContaining(with.list.View(), "aaa")
+
+	if gapWithout <= 0 || gapWith <= 0 {
+		t.Fatalf("could not locate both items in either view: gapWithout=%d, gapWith=%d", gapWithout, gapWith)
+	}
+	// Giving aaa a description adds exactly one line under it (its own
+	// description), even though bbb still has none of its own.
+	if gapWith != gapWithout+1 {
+		t.Errorf("gap between items with a description = %d, want %d (without a description: %d)", gapWith, gapWithout+1, gapWithout)
 	}
 }
 
