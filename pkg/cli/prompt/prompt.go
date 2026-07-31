@@ -64,6 +64,7 @@ type inputModel struct {
 	err     error
 }
 
+// newInputModel builds an inputModel for cfg and focuses the field.
 func newInputModel(cfg Config) *inputModel {
 	ti := textinput.New()
 	ti.Prompt = "> "
@@ -76,6 +77,9 @@ func (m *inputModel) Init() tea.Cmd {
 	return m.initCmd
 }
 
+// Update handles a key press: ctrl+c and esc abort; enter submits,
+// running Validate first and re-prompting on failure; anything else is
+// forwarded to the underlying text input.
 func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
@@ -118,7 +122,7 @@ func (m *inputModel) View() tea.View {
 func Ask(cfg Config) (string, error) {
 	finalModel, err := tea.NewProgram(newInputModel(cfg)).Run()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("running input prompt: %w", err)
 	}
 
 	m := finalModel.(*inputModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
@@ -153,6 +157,9 @@ func (m *selectModel) Init() tea.Cmd {
 	return nil
 }
 
+// Update handles a key press: ctrl+c and esc abort; up/k and down/j
+// move the cursor, clamped to the option list; enter picks the
+// highlighted option.
 func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
@@ -206,7 +213,7 @@ func Select(cfg SelectConfig) (string, error) {
 
 	finalModel, err := tea.NewProgram(&selectModel{cfg: cfg}).Run()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("running selection prompt: %w", err)
 	}
 
 	m := finalModel.(*selectModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
