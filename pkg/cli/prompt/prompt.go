@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"charm.land/bubbles/v2/list"
@@ -504,17 +505,19 @@ type pickerModel[T any] struct {
 // title.
 func newPickerModel[T any](title string, options []Option[T]) *pickerModel[T] {
 	items := make([]list.Item, len(options))
-	hasDescription := false
 	for i, o := range options {
 		items[i] = pickerItem[T]{label: o.Label, description: o.Description, disabled: o.Disabled, value: o.Value}
-		if o.Description != "" {
-			hasDescription = true
-		}
 	}
 
 	// Only reserve a second line per item for descriptions if at least
-	// one option actually has one. Otherwise every item would render
-	// with a pointless blank line under it.
+	// one enabled option actually uses one as a persistent annotation.
+	// A disabled option's Description is its "why can't I pick this"
+	// status message instead (see Update below), shown only when
+	// picking it is attempted, so it alone shouldn't force every other
+	// item to render with a pointless blank line under it.
+	hasDescription := slices.ContainsFunc(options, func(o Option[T]) bool {
+		return !o.Disabled && o.Description != ""
+	})
 	delegate := list.NewDefaultDelegate()
 	if !hasDescription {
 		delegate.ShowDescription = false

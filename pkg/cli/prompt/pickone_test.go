@@ -82,6 +82,36 @@ func TestPickerModelSkipsDescriptionLineWhenUnused(t *testing.T) {
 	}
 }
 
+// TestPickerModelDisabledDescriptionDoesNotForceDescriptionLine checks
+// that a disabled option's Description, used as its "why can't I pick
+// this" status message, does not by itself force every other,
+// undescribed option to reserve a blank description line. This is the
+// realistic shape of a PickOne call: one disabled "current" choice
+// explaining itself, and plain choices with no description at all.
+func TestPickerModelDisabledDescriptionDoesNotForceDescriptionLine(t *testing.T) {
+	m := newPickerModel("title", []Option[string]{
+		{Label: "current", Description: "already the current choice", Disabled: true, Value: "current"},
+		{Label: "older", Value: "older"},
+		{Label: "oldest", Value: "oldest"},
+	})
+	m.list.SetSize(80, 20)
+
+	view := m.list.View()
+	olderIdx := lineIndexContaining(view, "older")
+	oldestIdx := lineIndexContaining(view, "oldest")
+
+	if olderIdx < 0 || oldestIdx < 0 {
+		t.Fatalf("could not locate both items in view (older at %d, oldest at %d)", olderIdx, oldestIdx)
+	}
+	// "oldest" is listed right after "older". Normal item spacing (no
+	// description line reserved) puts one blank line between them, for
+	// a gap of 2; a reserved-but-empty description line would add one
+	// more.
+	if gap := oldestIdx - olderIdx; gap != 2 {
+		t.Errorf("gap between undescribed items = %d, want 2 (no reserved description line)", gap)
+	}
+}
+
 func TestPickerModel(t *testing.T) {
 	type item struct{ n int }
 
