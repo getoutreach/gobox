@@ -21,6 +21,14 @@ import (
 // Ctrl+C or Esc.
 var ErrAborted = errors.New("prompt aborted")
 
+// Key names matched against tea.KeyPressMsg.String() across every model
+// in this package.
+const (
+	keyCtrlC = "ctrl+c"
+	keyEsc   = "esc"
+	keyEnter = "enter"
+)
+
 // Required is a Validate function that rejects empty (or whitespace-only)
 // input.
 func Required(s string) error {
@@ -83,10 +91,10 @@ func (m *inputModel) Init() tea.Cmd {
 func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
-		case "ctrl+c", "esc":
+		case keyCtrlC, keyEsc:
 			m.err = ErrAborted
 			return m, tea.Quit
-		case "enter":
+		case keyEnter:
 			if m.cfg.Validate != nil {
 				if err := m.cfg.Validate(m.input.Value()); err != nil {
 					m.input.Err = err
@@ -163,7 +171,7 @@ func (m *selectModel) Init() tea.Cmd {
 func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
-		case "ctrl+c", "esc":
+		case keyCtrlC, keyEsc:
 			m.err = ErrAborted
 			return m, tea.Quit
 		case "up", "k":
@@ -174,7 +182,7 @@ func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.cfg.Options)-1 {
 				m.cursor++
 			}
-		case "enter":
+		case keyEnter:
 			return m, tea.Quit
 		}
 	}
