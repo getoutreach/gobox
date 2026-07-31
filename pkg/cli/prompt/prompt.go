@@ -64,19 +64,19 @@ type inputModel struct {
 	err     error
 }
 
-func newInputModel(cfg Config) inputModel {
+func newInputModel(cfg Config) *inputModel {
 	ti := textinput.New()
 	ti.Prompt = "> "
 	ti.EchoMode = cfg.EchoMode
 
-	return inputModel{cfg: cfg, input: ti, initCmd: ti.Focus()}
+	return &inputModel{cfg: cfg, input: ti, initCmd: ti.Focus()}
 }
 
-func (m inputModel) Init() tea.Cmd {
+func (m *inputModel) Init() tea.Cmd {
 	return m.initCmd
 }
 
-func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
 		case "ctrl+c", "esc":
@@ -98,7 +98,7 @@ func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m inputModel) View() tea.View {
+func (m *inputModel) View() tea.View {
 	var b strings.Builder
 
 	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
@@ -121,7 +121,7 @@ func Ask(cfg Config) (string, error) {
 		return "", err
 	}
 
-	m := finalModel.(inputModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
+	m := finalModel.(*inputModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
 	if m.err != nil {
 		return "", m.err
 	}
@@ -149,11 +149,11 @@ type selectModel struct {
 	err    error
 }
 
-func (m selectModel) Init() tea.Cmd {
+func (m *selectModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
 		case "ctrl+c", "esc":
@@ -175,7 +175,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m selectModel) View() tea.View {
+func (m *selectModel) View() tea.View {
 	var b strings.Builder
 
 	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
@@ -204,12 +204,12 @@ func Select(cfg SelectConfig) (string, error) {
 		return "", ErrAborted
 	}
 
-	finalModel, err := tea.NewProgram(selectModel{cfg: cfg}).Run()
+	finalModel, err := tea.NewProgram(&selectModel{cfg: cfg}).Run()
 	if err != nil {
 		return "", err
 	}
 
-	m := finalModel.(selectModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
+	m := finalModel.(*selectModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
 	if m.err != nil {
 		return "", m.err
 	}
