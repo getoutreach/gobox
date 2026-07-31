@@ -4,6 +4,7 @@
 package updater
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"runtime/debug"
@@ -34,7 +35,7 @@ func getRepoFromBuild() (string, error) {
 
 // handleMajorVersion prompts the user when a new major version is available, returns
 // true if we should continue, or false if we shouldn't
-func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) bool {
+func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, curV, newV, relNotes string) bool {
 	// we skip errors because the above logic already parsed these version strings
 	cver, err := semver.NewVersion(curV)
 	if err != nil {
@@ -65,7 +66,7 @@ func handleMajorVersion(log logrus.FieldLogger, curV, newV, relNotes string) boo
 	fmt.Println(out)
 
 	log.Infof("Detected major version upgrade (%d -> %d). Would you like to upgrade?", cver.Major, nver.Major)
-	resp, err := prompt.Select(prompt.SelectConfig{
+	resp, err := prompt.Select(ctx, prompt.SelectConfig{
 		Message: "Select",
 		Options: []string{"Yes", "No"},
 	})
