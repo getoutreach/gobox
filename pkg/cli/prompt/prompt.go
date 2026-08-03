@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"charm.land/bubbles/v2/list"
@@ -508,10 +509,24 @@ func newPickerModel[T any](title string, options []Option[T]) *pickerModel[T] {
 		items[i] = pickerItem[T]{label: o.Label, description: o.Description, disabled: o.Disabled, value: o.Value}
 	}
 
+	// Only reserve a second line per item for descriptions if at least
+	// one enabled option actually uses one as a persistent annotation.
+	// A disabled option's Description is its "why can't I pick this"
+	// status message instead (see Update below), shown only when
+	// picking it is attempted, so it alone shouldn't force every other
+	// item to render with a pointless blank line under it.
+	hasDescription := slices.ContainsFunc(options, func(o Option[T]) bool {
+		return !o.Disabled && o.Description != ""
+	})
+	delegate := list.NewDefaultDelegate()
+	if !hasDescription {
+		delegate.ShowDescription = false
+	}
+
 	// 80x20 is a placeholder size for the first frame. Bubble Tea sends
 	// the real terminal size in a tea.WindowSizeMsg right after startup,
 	// and Update resizes the list once that arrives.
-	l := list.New(items, list.NewDefaultDelegate(), 80, 20)
+	l := list.New(items, delegate, 80, 20)
 	l.Title = title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
