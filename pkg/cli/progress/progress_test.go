@@ -46,12 +46,7 @@ func fakeClock(step time.Duration) func() time.Time {
 
 func newTestBytes(total int64, isTerm bool, now func() time.Time) (*Bytes, *bytes.Buffer) {
 	var buf bytes.Buffer
-	b := NewBytes(total, "test")
-	b.isTerm = isTerm
-	b.out = &buf
-	b.now = now
-	b.start = b.now()
-	return b, &buf
+	return newBytes(total, "test", &buf, isTerm, now), &buf
 }
 
 func TestBytesWriteThrottlesRedraws(t *testing.T) {

@@ -28,12 +28,19 @@ func TestSpinnerStopWithoutStartIsSafe(t *testing.T) {
 	s.Stop() // must not block or panic
 }
 
-func TestSpinnerTerminalAnimatesAndClearsOnStop(t *testing.T) {
+// newTestSpinner returns a Spinner wired to a buffer with a fast frame
+// rate, so animation tests don't need to wait for a real spinner cadence.
+func newTestSpinner(description string) (*Spinner, *bytes.Buffer) {
 	var buf bytes.Buffer
-	s := New("Checking for updates...")
+	s := New(description)
 	s.out = &buf
 	s.isTerm = true
 	s.model.Spinner.FPS = time.Millisecond
+	return s, &buf
+}
+
+func TestSpinnerTerminalAnimatesAndClearsOnStop(t *testing.T) {
+	s, buf := newTestSpinner("Checking for updates...")
 
 	s.Start()
 	time.Sleep(10 * time.Millisecond) // let a few frames render
@@ -49,11 +56,7 @@ func TestSpinnerTerminalAnimatesAndClearsOnStop(t *testing.T) {
 }
 
 func TestSpinnerDoubleStopIsSafe(t *testing.T) {
-	var buf bytes.Buffer
-	s := New("test")
-	s.out = &buf
-	s.isTerm = true
-	s.model.Spinner.FPS = time.Millisecond
+	s, _ := newTestSpinner("test")
 
 	s.Start()
 	s.Stop()
@@ -61,11 +64,7 @@ func TestSpinnerDoubleStopIsSafe(t *testing.T) {
 }
 
 func TestSpinnerDoubleStartIsSafe(t *testing.T) {
-	var buf bytes.Buffer
-	s := New("test")
-	s.out = &buf
-	s.isTerm = true
-	s.model.Spinner.FPS = time.Millisecond
+	s, _ := newTestSpinner("test")
 
 	s.Start()
 	s.Start() // must not spawn a second goroutine or panic

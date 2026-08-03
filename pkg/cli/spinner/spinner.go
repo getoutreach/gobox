@@ -16,7 +16,7 @@ import (
 	"time"
 
 	barspinner "charm.land/bubbles/v2/spinner"
-	"golang.org/x/term"
+	"github.com/getoutreach/gobox/pkg/cli/internal/term"
 )
 
 // Spinner animates a labeled spinner on os.Stderr while a blocking
@@ -42,7 +42,7 @@ func New(description string) *Spinner {
 	return &Spinner{
 		description: description,
 		model:       barspinner.New(barspinner.WithSpinner(barspinner.Line)),
-		isTerm:      term.IsTerminal(int(os.Stderr.Fd())),
+		isTerm:      term.IsTerminal(os.Stderr),
 		out:         os.Stderr,
 	}
 }
@@ -87,11 +87,11 @@ func (s *Spinner) run() {
 	for {
 		select {
 		case <-s.stop:
-			fmt.Fprint(s.out, "\r\033[K") //nolint:errcheck // Why: Best effort
+			fmt.Fprint(s.out, term.ClearLine) //nolint:errcheck // Why: Best effort
 			return
 		case <-ticker.C:
 			s.model, _ = s.model.Update(s.model.Tick())
-			fmt.Fprintf(s.out, "\r\033[K%s %s", s.model.View(), s.description) //nolint:errcheck // Why: Best effort
+			fmt.Fprint(s.out, term.ClearLine, s.model.View(), " ", s.description) //nolint:errcheck // Why: Best effort
 		}
 	}
 }

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	barprogress "charm.land/bubbles/v2/progress"
-	"golang.org/x/term"
+	"github.com/getoutreach/gobox/pkg/cli/internal/term"
 )
 
 const (
@@ -45,6 +45,7 @@ const (
 type Bytes struct {
 	description string
 	total       int64
+	totalStr    string
 	isTerm      bool
 	bar         barprogress.Model
 	out         io.Writer
@@ -60,13 +61,21 @@ type Bytes struct {
 // (pass <= 0 if the size isn't known ahead of time), labeled with
 // description.
 func NewBytes(total int64, description string) *Bytes {
+	return newBytes(total, description, os.Stderr, term.IsTerminal(os.Stderr), time.Now)
+}
+
+// newBytes builds a Bytes with explicit out/isTerm/now, so tests can
+// substitute a buffer and a controllable clock without going through
+// NewBytes' os.Stderr/time.Now defaults.
+func newBytes(total int64, description string, out io.Writer, isTerm bool, now func() time.Time) *Bytes {
 	b := &Bytes{
 		description: description,
 		total:       total,
-		isTerm:      term.IsTerminal(int(os.Stderr.Fd())),
+		totalStr:    formatBytes(total),
+		isTerm:      isTerm,
 		bar:         barprogress.New(barprogress.WithDefaultBlend()),
-		out:         os.Stderr,
-		now:         time.Now,
+		out:         out,
+		now:         now,
 	}
 	b.start = b.now()
 	return b
@@ -113,15 +122,22 @@ func (b *Bytes) draw(force bool) {
 		rate = int64(float64(b.written) / elapsed)
 	}
 
-	line := fmt.Sprintf("%s %s  %s/s", b.description, formatBytes(b.written), formatBytes(rate))
-	if b.total > 0 {
+	var line string
+	switch {
+	case b.total > 0 && b.isTerm:
+		// The styled bar is only worth rendering when it'll actually be
+		// shown; skip it in the plain, non-terminal case below.
 		percent := min(1, float64(b.written)/float64(b.total))
 		line = fmt.Sprintf("%s %s  %s/%s  %s/s",
-			b.description, b.bar.ViewAs(percent), formatBytes(b.written), formatBytes(b.total), formatBytes(rate))
+			b.description, b.bar.ViewAs(percent), formatBytes(b.written), b.totalStr, formatBytes(rate))
+	case b.total > 0:
+		line = fmt.Sprintf("%s %s/%s  %s/s", b.description, formatBytes(b.written), b.totalStr, formatBytes(rate))
+	default:
+		line = fmt.Sprintf("%s %s  %s/s", b.description, formatBytes(b.written), formatBytes(rate))
 	}
 
 	if b.isTerm {
-		fmt.Fprint(b.out, "\r\033[K"+line) //nolint:errcheck // Why: Best effort
+		fmt.Fprint(b.out, term.ClearLine, line) //nolint:errcheck // Why: Best effort
 	} else {
 		fmt.Fprintln(b.out, line) //nolint:errcheck // Why: Best effort
 	}
