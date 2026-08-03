@@ -31,7 +31,7 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/sirupsen/logrus v1.9.4
-	github.com/ulikunitz/xz v0.5.15
+	github.com/ulikunitz/xz v0.5.16
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/versent/saml2aws/v2 v2.36.19
