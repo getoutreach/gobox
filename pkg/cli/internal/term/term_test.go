@@ -12,7 +12,7 @@ func TestIsTerminalFalseForRegularFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTemp: %v", err)
 	}
-	defer f.Close() //nolint:errcheck // Why: Best effort
+	t.Cleanup(func() { f.Close() }) //nolint:errcheck // Why: Best effort
 
 	if IsTerminal(f) {
 		t.Error("IsTerminal(regular file) = true, want false")
