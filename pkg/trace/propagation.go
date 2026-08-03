@@ -53,16 +53,10 @@ func WithPublicEndpointFn(fn func(*http.Request) bool) HandlerOption {
 	}
 }
 
-// spanNameFormatter preserves the pre-v0.69.0 otelhttp default of naming the
-// span after the operation passed to NewHandler, rather than "{method} {route}".
-func spanNameFormatter(operation string, _ *http.Request) string {
-	return operation
-}
-
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var startOptions oteltrace.SpanStartEventOption
 
-	handler := otelhttp.NewHandler(h.handler, h.operation, otelhttp.WithSpanNameFormatter(spanNameFormatter))
+	handler := otelhttp.NewHandler(h.handler, h.operation)
 
 	force := r.Header.Get(HeaderForceTracing)
 	if force != "" {
@@ -70,7 +64,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handler = otelhttp.NewHandler(h.handler, h.operation,
 			otelhttp.WithSpanOptions(startOptions),
 			otelhttp.WithPublicEndpointFn(h.publicEndpointFn), // passing nil function is equivalent to "not configured"
-			otelhttp.WithSpanNameFormatter(spanNameFormatter),
 		)
 		r = r.WithContext(forceTracing(r.Context()))
 	}
