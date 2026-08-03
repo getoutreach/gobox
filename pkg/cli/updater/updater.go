@@ -21,6 +21,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/getoutreach/gobox/pkg/cli/internal/term"
 	"github.com/getoutreach/gobox/pkg/cli/progress"
 	"github.com/getoutreach/gobox/pkg/cli/spinner"
 	"github.com/getoutreach/gobox/pkg/cli/updater/archive"
@@ -31,7 +32,6 @@ import (
 	"github.com/sirupsen/logrus"
 	cliV2 "github.com/urfave/cli/v2"
 	cliV3 "github.com/urfave/cli/v3"
-	"golang.org/x/term"
 )
 
 // Disabled globally disables the automatic updater.
@@ -281,7 +281,7 @@ func (u *updater) getVersionInfo(v *semver.Version) (channel string, locallyBuil
 func (u *updater) check(ctx context.Context) (bool, error) {
 	// Never update when device is not a terminal, or when in a CI environment. However,
 	// we allow forceCheck to override this.
-	if u.disabled || (!u.forceCheck && (!term.IsTerminal(int(os.Stdin.Fd())) || os.Getenv("CI") != "")) {
+	if u.disabled || (!u.forceCheck && (!term.IsTerminal(os.Stdin) || os.Getenv("CI") != "")) {
 		return false, nil
 	}
 
