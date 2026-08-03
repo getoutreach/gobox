@@ -50,6 +50,7 @@ type Bytes struct {
 	bar         barprogress.Model
 	out         io.Writer
 	now         func() time.Time
+	termWidth   func() (width int, ok bool)
 
 	written  int64
 	start    time.Time
@@ -61,13 +62,16 @@ type Bytes struct {
 // (pass <= 0 if the size isn't known ahead of time), labeled with
 // description.
 func NewBytes(total int64, description string) *Bytes {
-	return newBytes(total, description, os.Stderr, term.IsTerminal(os.Stderr), time.Now)
+	termWidth := func() (int, bool) { return term.Width(os.Stderr) }
+	return newBytes(total, description, os.Stderr, term.IsTerminal(os.Stderr), time.Now, termWidth)
 }
 
-// newBytes builds a Bytes with explicit out/isTerm/now, so tests can
-// substitute a buffer and a controllable clock without going through
-// NewBytes' os.Stderr/time.Now defaults.
-func newBytes(total int64, description string, out io.Writer, isTerm bool, now func() time.Time) *Bytes {
+// newBytes builds a Bytes with explicit out/isTerm/now/termWidth, so
+// tests can substitute a buffer, a controllable clock, and a fixed
+// terminal width without going through NewBytes' os.Stderr defaults.
+func newBytes(
+	total int64, description string, out io.Writer, isTerm bool, now func() time.Time, termWidth func() (int, bool),
+) *Bytes {
 	b := &Bytes{
 		description: description,
 		total:       total,
@@ -76,6 +80,7 @@ func newBytes(total int64, description string, out io.Writer, isTerm bool, now f
 		bar:         barprogress.New(barprogress.WithDefaultBlend()),
 		out:         out,
 		now:         now,
+		termWidth:   termWidth,
 	}
 	b.start = b.now()
 	return b
@@ -127,9 +132,18 @@ func (b *Bytes) draw(force bool) {
 	case b.total > 0 && b.isTerm:
 		// The styled bar is only worth rendering when it'll actually be
 		// shown; skip it in the plain, non-terminal case below.
+		suffix := fmt.Sprintf("  %s/%s  %s/s", formatBytes(b.written), b.totalStr, formatBytes(rate))
+
+		// Re-check the terminal width on every redraw (not just once at
+		// construction) and size the bar to fill the remaining space, so
+		// the line keeps fitting the terminal across resizes the same
+		// way github.com/schollz/progressbar's OptionFullWidth did.
+		if width, ok := b.termWidth(); ok {
+			b.bar.SetWidth(width - len(b.description) - 1 - len(suffix))
+		}
+
 		percent := min(1, float64(b.written)/float64(b.total))
-		line = fmt.Sprintf("%s %s  %s/%s  %s/s",
-			b.description, b.bar.ViewAs(percent), formatBytes(b.written), b.totalStr, formatBytes(rate))
+		line = b.description + " " + b.bar.ViewAs(percent) + suffix
 	case b.total > 0:
 		line = fmt.Sprintf("%s %s/%s  %s/s", b.description, formatBytes(b.written), b.totalStr, formatBytes(rate))
 	default:

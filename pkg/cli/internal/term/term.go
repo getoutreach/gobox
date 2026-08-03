@@ -22,3 +22,15 @@ const ClearLine = "\r\033[K"
 func IsTerminal(f *os.File) bool {
 	return term.IsTerminal(int(f.Fd()))
 }
+
+// Width returns f's current terminal column width, and whether it could
+// be determined at all (e.g. f might not be a terminal). Callers that
+// redraw a line in place should re-check this on every redraw rather
+// than caching it, so output keeps fitting the terminal across resizes.
+func Width(f *os.File) (width int, ok bool) {
+	w, _, err := term.GetSize(int(f.Fd()))
+	if err != nil || w <= 0 {
+		return 0, false
+	}
+	return w, true
+}

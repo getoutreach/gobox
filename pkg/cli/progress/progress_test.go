@@ -44,9 +44,13 @@ func fakeClock(step time.Duration) func() time.Time {
 	}
 }
 
+// unknownWidth reports that the terminal width can't be determined,
+// matching what term.Width returns for a non-terminal file.
+func unknownWidth() (int, bool) { return 0, false }
+
 func newTestBytes(total int64, isTerm bool, now func() time.Time) (*Bytes, *bytes.Buffer) {
 	var buf bytes.Buffer
-	return newBytes(total, "test", &buf, isTerm, now), &buf
+	return newBytes(total, "test", &buf, isTerm, now, unknownWidth), &buf
 }
 
 func TestBytesWriteThrottlesRedraws(t *testing.T) {
@@ -116,6 +120,39 @@ func TestBytesNonTerminalUsesPlainLines(t *testing.T) {
 	}
 	if !strings.HasSuffix(buf.String(), "\n") {
 		t.Errorf("non-terminal output should be newline-terminated: %q", buf.String())
+	}
+}
+
+func TestBytesKeepsDefaultBarWidthWhenTerminalWidthUnknown(t *testing.T) {
+	const defaultBarWidth = 40 // charm.land/bubbles/v2/progress's unexported defaultWidth
+
+	b, _ := newTestBytes(100, true, fakeClock(time.Millisecond))
+
+	if _, err := b.Write([]byte("x")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	if got := b.bar.Width(); got != defaultBarWidth {
+		t.Errorf("bar width = %d, want unchanged default %d when terminal width can't be determined", got, defaultBarWidth)
+	}
+}
+
+func TestBytesResizesBarToTerminalWidth(t *testing.T) {
+	const defaultBarWidth = 40 // charm.land/bubbles/v2/progress's unexported defaultWidth
+
+	var buf bytes.Buffer
+	narrow := func() (int, bool) { return 20, true }
+	b := newBytes(100, "dl", &buf, true, fakeClock(time.Millisecond), narrow)
+
+	if _, err := b.Write([]byte(strings.Repeat("x", 10))); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	// A 20-column terminal can't fit "dl" plus a 40-char bar plus the
+	// byte-count/rate suffix; the bar must shrink to fit, the way
+	// schollz/progressbar's OptionFullWidth did across resizes.
+	if got := b.bar.Width(); got >= defaultBarWidth {
+		t.Errorf("bar width = %d, want it shrunk below the unfitted default (%d) for a 20-column terminal", got, defaultBarWidth)
 	}
 }
 
