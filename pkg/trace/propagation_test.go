@@ -49,7 +49,7 @@ func TestForceTracingByHeader(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"name":                                 "ep",
+			"name":                                 "GET",
 			"spanContext.traceID":                  traceID,
 			"spanContext.spanID":                   differs.AnyString(),
 			"spanContext.traceFlags":               "01",
@@ -200,7 +200,7 @@ func TestForceTracing(t *testing.T) {
 
 	expected := []map[string]interface{}{
 		{
-			"name":                                 "ep",
+			"name":                                 "GET",
 			"spanContext.traceID":                  traceID,
 			"spanContext.spanID":                   differs.AnyString(),
 			"spanContext.traceFlags":               "01",

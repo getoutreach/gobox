@@ -37,7 +37,7 @@ func TestRoundtripper(t *testing.T) {
 			expectedGen: func(traceID, rootID, middleID differs.CustomComparer) []map[string]interface{} {
 				return []map[string]interface{}{
 					{
-						"name":                                 "ep",
+						"name":                                 "GET",
 						"spanContext.traceID":                  traceID,
 						"spanContext.spanID":                   differs.AnyString(),
 						"spanContext.traceFlags":               "01",
