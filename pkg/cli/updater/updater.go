@@ -17,12 +17,12 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/briandowns/spinner"
 	"github.com/fynelabs/selfupdate"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
 	"github.com/getoutreach/gobox/pkg/cli/progress"
+	"github.com/getoutreach/gobox/pkg/cli/spinner"
 	"github.com/getoutreach/gobox/pkg/cli/updater/archive"
 	"github.com/getoutreach/gobox/pkg/cli/updater/release"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
@@ -316,8 +316,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	}
 
 	// Start the checking for updates spinner
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond,
-		spinner.WithSuffix(" Checking for updates..."))
+	spin := spinner.New("Checking for updates...")
 	spin.Start()
 
 	v, err := resolver.Resolve(ctx, u.ghToken, &resolver.Criteria{
