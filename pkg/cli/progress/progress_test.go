@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestFormatBytes(t *testing.T) {
@@ -25,9 +28,7 @@ func TestFormatBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatBytes(tt.n); got != tt.want {
-				t.Errorf("formatBytes(%d) = %q, want %q", tt.n, got, tt.want)
-			}
+			assert.Equal(t, formatBytes(tt.n), tt.want)
 		})
 	}
 }
@@ -60,38 +61,27 @@ func TestBytesWriteThrottlesRedraws(t *testing.T) {
 	b, buf := newTestBytes(100, true, fakeClock(time.Millisecond))
 
 	for range 5 {
-		if _, err := b.Write([]byte("x")); err != nil {
-			t.Fatalf("Write: %v", err)
-		}
+		_, err := b.Write([]byte("x"))
+		assert.NilError(t, err)
 	}
 
-	if n := strings.Count(buf.String(), "\r"); n != 1 {
-		t.Errorf("got %d redraws, want 1 (throttled)", n)
-	}
+	assert.Equal(t, strings.Count(buf.String(), "\r"), 1)
 }
 
 func TestBytesCloseIsIdempotent(t *testing.T) {
 	b, buf := newTestBytes(100, true, fakeClock(time.Millisecond))
 
-	if _, err := b.Write([]byte(strings.Repeat("x", 100))); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	_, err := b.Write([]byte(strings.Repeat("x", 100)))
+	assert.NilError(t, err)
 
-	if err := b.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
-	}
+	assert.NilError(t, b.Close())
 	afterFirstClose := buf.String()
 
-	if err := b.Close(); err != nil {
-		t.Fatalf("second Close: %v", err)
-	}
+	assert.NilError(t, b.Close())
 
-	if buf.String() != afterFirstClose {
-		t.Errorf("second Close produced more output: got %q, want %q", buf.String(), afterFirstClose)
-	}
-	if !strings.HasSuffix(afterFirstClose, "\n") {
-		t.Errorf("Close output %q does not end with a trailing newline", afterFirstClose)
-	}
+	assert.Equal(t, buf.String(), afterFirstClose)
+	assert.Assert(t, strings.HasSuffix(afterFirstClose, "\n"),
+		"Close output %q does not end with a trailing newline", afterFirstClose)
 }
 
 func TestBytesUnknownTotal(t *testing.T) {
@@ -99,28 +89,23 @@ func TestBytesUnknownTotal(t *testing.T) {
 	// should still report the transferred count, without a bar.
 	b, buf := newTestBytes(0, false, fakeClock(2*time.Second))
 
-	if _, err := b.Write([]byte(strings.Repeat("x", 2048))); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	_, err := b.Write([]byte(strings.Repeat("x", 2048)))
+	assert.NilError(t, err)
 
-	if got := buf.String(); !strings.Contains(got, "test") || !strings.Contains(got, "2.0 KiB") {
-		t.Errorf("unexpected output for unknown total: %q", got)
-	}
+	assert.Assert(t, cmp.Contains(buf.String(), "test"))
+	assert.Assert(t, cmp.Contains(buf.String(), "2.0 KiB"))
 }
 
 func TestBytesNonTerminalUsesPlainLines(t *testing.T) {
 	b, buf := newTestBytes(100, false, fakeClock(2*time.Second))
 
-	if _, err := b.Write([]byte(strings.Repeat("x", 50))); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	_, err := b.Write([]byte(strings.Repeat("x", 50)))
+	assert.NilError(t, err)
 
-	if strings.Contains(buf.String(), "\r") {
-		t.Errorf("non-terminal output should not contain carriage returns: %q", buf.String())
-	}
-	if !strings.HasSuffix(buf.String(), "\n") {
-		t.Errorf("non-terminal output should be newline-terminated: %q", buf.String())
-	}
+	assert.Assert(t, !strings.Contains(buf.String(), "\r"),
+		"non-terminal output should not contain carriage returns: %q", buf.String())
+	assert.Assert(t, strings.HasSuffix(buf.String(), "\n"),
+		"non-terminal output should be newline-terminated: %q", buf.String())
 }
 
 func TestBytesKeepsDefaultBarWidthWhenTerminalWidthUnknown(t *testing.T) {
@@ -128,13 +113,10 @@ func TestBytesKeepsDefaultBarWidthWhenTerminalWidthUnknown(t *testing.T) {
 
 	b, _ := newTestBytes(100, true, fakeClock(time.Millisecond))
 
-	if _, err := b.Write([]byte("x")); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	_, err := b.Write([]byte("x"))
+	assert.NilError(t, err)
 
-	if got := b.bar.Width(); got != defaultBarWidth {
-		t.Errorf("bar width = %d, want unchanged default %d when terminal width can't be determined", got, defaultBarWidth)
-	}
+	assert.Equal(t, b.bar.Width(), defaultBarWidth)
 }
 
 func TestBytesResizesBarToTerminalWidth(t *testing.T) {
@@ -144,16 +126,14 @@ func TestBytesResizesBarToTerminalWidth(t *testing.T) {
 	narrow := func() (int, bool) { return 20, true }
 	b := newBytes(100, "dl", &buf, true, fakeClock(time.Millisecond), narrow)
 
-	if _, err := b.Write([]byte(strings.Repeat("x", 10))); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	_, err := b.Write([]byte(strings.Repeat("x", 10)))
+	assert.NilError(t, err)
 
 	// A 20-column terminal can't fit "dl" plus a 40-char bar plus the
 	// byte-count/rate suffix; the bar must shrink to fit, the way
 	// schollz/progressbar's OptionFullWidth did across resizes.
-	if got := b.bar.Width(); got >= defaultBarWidth {
-		t.Errorf("bar width = %d, want it shrunk below the unfitted default (%d) for a 20-column terminal", got, defaultBarWidth)
-	}
+	assert.Assert(t, b.bar.Width() < defaultBarWidth,
+		"bar width = %d, want it shrunk below the unfitted default (%d) for a 20-column terminal", b.bar.Width(), defaultBarWidth)
 }
 
 var _ io.WriteCloser = (*Bytes)(nil)
