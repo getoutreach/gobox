@@ -31,6 +31,18 @@ type Config struct {
 
 // TelemetryConfig is the configuration for telemetry for the CLI
 type TelemetryConfig struct {
+	// Disabled intentionally turns off all telemetry for the CLI, regardless of
+	// UseDelibird, Otel, or a mounted trace.yaml.
+	//
+	// This framework normally overrides the mounted trace.yaml with a synthesized
+	// config that always enables OpenTelemetry tracing to Honeycomb using an API
+	// key compiled into the binary. CLIs that don't have a valid Honeycomb API key
+	// (for example, cron jobs built with stencil-golang) should set this instead of
+	// relying on trace.yaml, since that file is otherwise ignored here and setting
+	// `OpenTelemetry.Enabled: false` in it has no effect, producing continuous
+	// "unknown API key" export errors. Takes priority over UseDelibird.
+	Disabled bool
+
 	// UseDelibird enables the delibird integration, which logs all output to a
 	// file as frames (writes to the terminal) as well as records traces.
 	//
@@ -41,6 +53,12 @@ type TelemetryConfig struct {
 
 	// Otel is the configuration for telemetry when delibird is not in use.
 	Otel TelemetryOtelConfig
+}
+
+// useDelibird reports whether delibird-based telemetry should be used.
+// Disabled always takes priority over UseDelibird.
+func (t TelemetryConfig) useDelibird() bool {
+	return !t.Disabled && t.UseDelibird
 }
 
 // TelemetryOtelConfig is the configuration for telemetry when delibird is not in use.
@@ -82,7 +100,7 @@ func useEmbeddedHoneycombAPIKey(honeycombAPIKey cfg.SecretData) {
 // overrideConfigLoaders fakes certain parts of the config that usually get pulled
 // in via mechanisms that don't make sense to use in CLIs.
 func overrideConfigLoaders(conf *Config) {
-	if !conf.Telemetry.UseDelibird {
+	if !conf.Telemetry.Disabled && !conf.Telemetry.UseDelibird {
 		useEmbeddedHoneycombAPIKey(conf.Telemetry.Otel.HoneycombAPIKey)
 	}
 
@@ -91,7 +109,12 @@ func overrideConfigLoaders(conf *Config) {
 		// try to use fake file first
 		if fileName == "trace.yaml" {
 			var traceConfig *trace.Config
-			if conf.Telemetry.UseDelibird {
+			switch {
+			case conf.Telemetry.Disabled:
+				// Report every tracer as off so gobox never attempts to connect
+				// anywhere, instead of hardcoding OpenTelemetry on below.
+				traceConfig = &trace.Config{}
+			case conf.Telemetry.useDelibird():
 				portStr := os.Getenv(logfile.TracePortEnvironmentVariable)
 				if portStr == "" {
 					return nil, fmt.Errorf("delibird enabled, but %s not set", logfile.TracePortEnvironmentVariable)
@@ -108,7 +131,7 @@ func overrideConfigLoaders(conf *Config) {
 						Port:    port,
 					},
 				}
-			} else {
+			default:
 				traceConfig = &trace.Config{
 					Otel: trace.Otel{
 						Enabled:  true,
