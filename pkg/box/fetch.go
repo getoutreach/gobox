@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/getoutreach/gobox/pkg/cli/prompt"
 	"github.com/getoutreach/gobox/pkg/sshhelper"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -284,12 +284,10 @@ func SaveBox(_ context.Context, s *Storage) error {
 // downloads it and then saves it to disk. In general EnsureBox
 // should be used over this function.
 func InitializeBox(ctx context.Context, _ []string) error {
-	gitRepo := ""
-
-	err := survey.AskOne(&survey.Input{
+	gitRepo, err := prompt.Ask(ctx, prompt.Config{
 		Message: "Please enter your box configuration git URL",
 		Help:    "This is the repository that contains your box.yaml and will be used for outreach tooling",
-	}, &gitRepo)
+	})
 	if err != nil {
 		return err
 	}
