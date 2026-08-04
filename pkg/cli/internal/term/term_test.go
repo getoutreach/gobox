@@ -5,22 +5,18 @@ package term
 import (
 	"os"
 	"testing"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestIsTerminalFalseForRegularFile(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "term-test")
-	if err != nil {
-		t.Fatalf("CreateTemp: %v", err)
-	}
-	t.Cleanup(func() { f.Close() }) //nolint:errcheck // Why: Best effort
+	assert.NilError(t, err)
+	t.Cleanup(func() { assert.NilError(t, f.Close()) })
 
-	if IsTerminal(f) {
-		t.Error("IsTerminal(regular file) = true, want false")
-	}
+	assert.Equal(t, IsTerminal(f), false)
 }
 
 func TestClearLine(t *testing.T) {
-	if want := "\r\033[K"; ClearLine != want {
-		t.Errorf("ClearLine = %q, want %q", ClearLine, want)
-	}
+	assert.Equal(t, ClearLine, "\r\033[K")
 }
