@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestSpinnerNonTerminalPrintsDescriptionOnce(t *testing.T) {
@@ -18,9 +21,7 @@ func TestSpinnerNonTerminalPrintsDescriptionOnce(t *testing.T) {
 	s.Start()
 	s.Stop()
 
-	if got := buf.String(); got != "Checking for updates...\n" {
-		t.Errorf("got %q, want a single description line", got)
-	}
+	assert.Equal(t, buf.String(), "Checking for updates...\n")
 }
 
 func TestSpinnerStopWithoutStartIsSafe(t *testing.T) {
@@ -30,7 +31,9 @@ func TestSpinnerStopWithoutStartIsSafe(t *testing.T) {
 
 // newTestSpinner returns a Spinner wired to a buffer with a fast frame
 // rate, so animation tests don't need to wait for a real spinner cadence.
-func newTestSpinner(description string) (*Spinner, *bytes.Buffer) {
+func newTestSpinner(t *testing.T, description string) (*Spinner, *bytes.Buffer) {
+	t.Helper()
+
 	var buf bytes.Buffer
 	s := New(description)
 	s.out = &buf
@@ -40,23 +43,20 @@ func newTestSpinner(description string) (*Spinner, *bytes.Buffer) {
 }
 
 func TestSpinnerTerminalAnimatesAndClearsOnStop(t *testing.T) {
-	s, buf := newTestSpinner("Checking for updates...")
+	s, buf := newTestSpinner(t, "Checking for updates...")
 
 	s.Start()
 	time.Sleep(10 * time.Millisecond) // let a few frames render
 	s.Stop()
 
 	got := buf.String()
-	if !strings.Contains(got, "Checking for updates...") {
-		t.Errorf("output %q does not contain the description", got)
-	}
-	if !strings.HasSuffix(got, "\r\033[K") {
-		t.Errorf("output %q does not end with the line-clear sequence", got)
-	}
+	assert.Assert(t, cmp.Contains(got, "Checking for updates..."))
+	assert.Assert(t, strings.HasSuffix(got, "\r\033[K"),
+		"output %q does not end with the line-clear sequence", got)
 }
 
 func TestSpinnerDoubleStopIsSafe(t *testing.T) {
-	s, _ := newTestSpinner("test")
+	s, _ := newTestSpinner(t, "test")
 
 	s.Start()
 	s.Stop()
@@ -64,7 +64,7 @@ func TestSpinnerDoubleStopIsSafe(t *testing.T) {
 }
 
 func TestSpinnerDoubleStartIsSafe(t *testing.T) {
-	s, _ := newTestSpinner("test")
+	s, _ := newTestSpinner(t, "test")
 
 	s.Start()
 	s.Start() // must not spawn a second goroutine or panic
