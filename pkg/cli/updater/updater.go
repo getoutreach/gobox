@@ -17,21 +17,21 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/briandowns/spinner"
 	"github.com/fynelabs/selfupdate"
 	"github.com/getoutreach/gobox/pkg/app"
 	"github.com/getoutreach/gobox/pkg/cfg"
 	"github.com/getoutreach/gobox/pkg/cli/github"
+	"github.com/getoutreach/gobox/pkg/cli/internal/term"
+	"github.com/getoutreach/gobox/pkg/cli/progress"
+	"github.com/getoutreach/gobox/pkg/cli/spinner"
 	"github.com/getoutreach/gobox/pkg/cli/updater/archive"
 	"github.com/getoutreach/gobox/pkg/cli/updater/release"
 	"github.com/getoutreach/gobox/pkg/cli/updater/resolver"
 	"github.com/getoutreach/gobox/pkg/exec"
 	"github.com/pkg/errors"
-	"github.com/schollz/progressbar/v3"
 	"github.com/sirupsen/logrus"
 	cliV2 "github.com/urfave/cli/v2"
 	cliV3 "github.com/urfave/cli/v3"
-	"golang.org/x/term"
 )
 
 // Disabled globally disables the automatic updater.
@@ -281,7 +281,7 @@ func (u *updater) getVersionInfo(v *semver.Version) (channel string, locallyBuil
 func (u *updater) check(ctx context.Context) (bool, error) {
 	// Never update when device is not a terminal, or when in a CI environment. However,
 	// we allow forceCheck to override this.
-	if u.disabled || (!u.forceCheck && (!term.IsTerminal(int(os.Stdin.Fd())) || os.Getenv("CI") != "")) {
+	if u.disabled || (!u.forceCheck && (!term.IsTerminal(os.Stdin) || os.Getenv("CI") != "")) {
 		return false, nil
 	}
 
@@ -316,8 +316,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 	}
 
 	// Start the checking for updates spinner
-	spin := spinner.New(spinner.CharSets[9], 100*time.Millisecond,
-		spinner.WithSuffix(" Checking for updates..."))
+	spin := spinner.New("Checking for updates...")
 	spin.Start()
 
 	v, err := resolver.Resolve(ctx, u.ghToken, &resolver.Criteria{
@@ -424,7 +423,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 
 	var w io.Writer = tmpF
 	if !u.noProgressBar {
-		pb := progressbar.DefaultBytes(aSize, "Downloading Update")
+		pb := progress.NewBytes(aSize, "Downloading Update")
 		defer pb.Close()
 
 		w = io.MultiWriter(tmpF, pb)
@@ -461,7 +460,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 	var r io.Reader = bin
 	if !u.noProgressBar {
 		// There's an empty space here to make it align with the first progress bar.
-		pb := progressbar.DefaultBytes(header.Size, "Extracting Update ")
+		pb := progress.NewBytes(header.Size, "Extracting Update ")
 		defer pb.Close()
 
 		r = io.TeeReader(bin, pb)
