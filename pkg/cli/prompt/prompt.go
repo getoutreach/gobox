@@ -177,8 +177,9 @@ type SelectConfig struct {
 	Help string
 
 	// Options are the choices presented to the user. Move between them
-	// with the up/down arrow keys, narrow them down by typing a filter,
-	// and pick the highlighted one with Enter.
+	// with the up/down arrow keys, PageUp/PageDown and Home/End, narrow
+	// them down by typing a filter, and pick the highlighted one with
+	// Enter.
 	Options []string
 }
 
@@ -206,9 +207,9 @@ type MultiSelectConfig struct {
 	Help string
 
 	// Options are the choices presented to the user. Move between them
-	// with the up/down arrow keys, narrow them down by typing a filter,
-	// toggle the highlighted one with Space, and confirm the current set
-	// of selections with Enter.
+	// with the up/down arrow keys, PageUp/PageDown and Home/End, narrow
+	// them down by typing a filter, toggle the highlighted one with
+	// Space, and confirm the current set of selections with Enter.
 	Options []string
 }
 
@@ -240,7 +241,7 @@ func newMultiSelectModel(cfg MultiSelectConfig) *multiSelectModel {
 func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, m.updateFilter(msg)
+		return m, m.handleMsg(msg)
 	}
 
 	key := keyMsg.String()
@@ -284,7 +285,7 @@ func (m *multiSelectModel) View() tea.View {
 	}
 	fmt.Fprintln(&b, helpStyle.Render(m.footer(hints...)))
 
-	return tea.NewView(b.String())
+	return m.view(&b)
 }
 
 // writeCheckbox renders one option's line and its selection box.
@@ -294,7 +295,7 @@ func (m *multiSelectModel) writeCheckbox(b *strings.Builder, index int, highligh
 		box = "[x]"
 	}
 
-	marker, label := optionLabel(m.options[index], highlighted)
+	marker, label := m.optionRow(m.options[index], highlighted, markerWidth+len(box)+1)
 	fmt.Fprintf(b, "%s%s %s\n", marker, box, label)
 }
 
@@ -470,6 +471,16 @@ const maxVisibleOptions = 7
 // where the movement and selection hints would describe an empty list.
 const noMatchesNote = "(no options match the filter, esc to clear it)"
 
+// ellipsis marks a label the terminal is too narrow to show in full.
+const ellipsis = "\u2026"
+
+// markerWidth is the columns a row spends on the cursor marker before its
+// label; descriptionIndent those a description is indented by.
+const (
+	markerWidth       = 2
+	descriptionIndent = 4
+)
+
 // keyResult is what optionList.handleKey did with a key press.
 type keyResult int
 
@@ -505,6 +516,10 @@ type optionList[T any] struct {
 	cursor int
 	offset int
 
+	// width is the terminal's, as of the last resize, and 0 until the
+	// first one arrives. Labels are truncated to it.
+	width int
+
 	// aborted records that the user abandoned the prompt.
 	aborted bool
 }
@@ -524,6 +539,18 @@ func newOptionList[T any](message, help string, options []Option[T]) optionList[
 
 func (l *optionList[T]) Init() tea.Cmd {
 	return l.initCmd
+}
+
+// handleMsg handles the messages that aren't key presses: a resize sets
+// the width labels are truncated to, and anything else goes to the filter
+// field.
+func (l *optionList[T]) handleMsg(msg tea.Msg) tea.Cmd {
+	if resize, ok := msg.(tea.WindowSizeMsg); ok {
+		l.width = resize.Width
+		return nil
+	}
+
+	return l.updateFilter(msg)
 }
 
 // handleKey handles the presses that work the list itself: moving the
@@ -552,8 +579,22 @@ func (l *optionList[T]) handleKey(key string) keyResult {
 	case "down", "ctrl+n":
 		l.moveCursor(1)
 		return keyHandled
+	case "pgup":
+		l.moveCursor(-maxVisibleOptions)
+		return keyHandled
+	case "pgdown":
+		l.moveCursor(maxVisibleOptions)
+		return keyHandled
+	case "home":
+		l.moveCursor(-len(l.matches))
+		return keyHandled
+	case "end":
+		l.moveCursor(len(l.matches))
+		return keyHandled
 	}
 
+	// Vim's g and G are not bound to the ends of the list: typing filters
+	// here, so they are filter text.
 	return keyIgnored
 }
 
@@ -648,6 +689,26 @@ func (l *optionList[T]) writeOptions(b *strings.Builder, row func(b *strings.Bui
 	}
 }
 
+// view returns the assembled prompt, clamped to the terminal width. A
+// line wider than the terminal wraps, which makes the prompt taller than
+// the window budgets for it — the footer and the message as much as an
+// option's label.
+func (l *optionList[T]) view(b *strings.Builder) tea.View {
+	if l.width <= 0 {
+		return tea.NewView(b.String())
+	}
+
+	// One line at a time: lipgloss pads a whole block out to its widest
+	// line, leaving trailing spaces on every other one.
+	clamp := lipgloss.NewStyle().MaxWidth(l.width)
+	lines := strings.Split(b.String(), "\n")
+	for i, line := range lines {
+		lines[i] = clamp.Render(line)
+	}
+
+	return tea.NewView(strings.Join(lines, "\n"))
+}
+
 // footer renders the line under the options: which part of the list is on
 // screen, and what the keys do. hints are the enclosing model's own,
 // listed last.
@@ -672,19 +733,39 @@ func (l *optionList[T]) footer(hints ...string) string {
 	return "(" + strings.Join(clauses, ", ") + ")"
 }
 
-// optionLabel returns the marker drawn before an option and its label,
-// highlighted under the cursor and dimmed if the option is disabled. A
-// plain label skips lipgloss, whose Render costs microseconds per row to
-// return the bytes it was given.
-func optionLabel[T any](option Option[T], highlighted bool) (marker, label string) {
+// optionRow returns the marker drawn before an option and its label,
+// highlighted under the cursor and dimmed if the option is disabled. The
+// label is truncated to the columns left after the row spends prefix of
+// them, the marker included. A plain label skips lipgloss, whose Render
+// costs microseconds per row to return the bytes it was given.
+func (l *optionList[T]) optionRow(option Option[T], highlighted bool, prefix int) (marker, label string) {
+	label = l.truncate(option.Label, prefix)
+
 	switch {
 	case highlighted:
-		return "> ", selectedStyle.Render(option.Label)
+		return "> ", selectedStyle.Render(label)
 	case option.Disabled:
-		return "  ", helpStyle.Render(option.Label)
+		return "  ", helpStyle.Render(label)
 	default:
-		return "  ", option.Label
+		return "  ", label
 	}
+}
+
+// truncate shortens s to the columns left on a line after prefix of them
+// are spent, marking a shortened string with an ellipsis. A line longer
+// than the terminal wraps, which would make a row taller than the one
+// line the window budgets for it. s is returned unchanged until the first
+// resize arrives.
+func (l *optionList[T]) truncate(s string, prefix int) string {
+	space := l.width - prefix
+	if l.width <= 0 || lipgloss.Width(s) <= space {
+		return s
+	}
+	if space <= 1 {
+		return ellipsis
+	}
+
+	return lipgloss.NewStyle().MaxWidth(space-1).Render(s) + ellipsis
 }
 
 // stringOptions builds the options for a prompt whose choices are plain
@@ -723,7 +804,7 @@ func newListModel[T any](message, help string, options []Option[T]) *listModel[T
 func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, m.updateFilter(msg)
+		return m, m.handleMsg(msg)
 	}
 
 	// The status answered the previous key press.
@@ -769,7 +850,7 @@ func (m *listModel[T]) View() tea.View {
 		fmt.Fprintln(&b, errorStyle.Render(m.status))
 	}
 
-	return tea.NewView(b.String())
+	return m.view(&b)
 }
 
 // writeOption renders one option's line, plus a second line for a
@@ -778,20 +859,21 @@ func (m *listModel[T]) View() tea.View {
 func (m *listModel[T]) writeOption(b *strings.Builder, index int, highlighted bool) {
 	option := m.options[index]
 
-	marker, label := optionLabel(option, highlighted)
+	marker, label := m.optionRow(option, highlighted, markerWidth)
 	fmt.Fprintf(b, "%s%s\n", marker, label)
 
 	if option.Description != "" && !option.Disabled {
-		fmt.Fprintf(b, "    %s\n", helpStyle.Render(option.Description))
+		fmt.Fprintf(b, "    %s\n", helpStyle.Render(m.truncate(option.Description, descriptionIndent)))
 	}
 }
 
 // PickOne shows options in an interactive list, under the given title.
 // Type to narrow the list down to the options whose Label contains what
-// was typed, use the arrow keys to move, and press enter to pick the
-// highlighted option. A list longer than a screenful scrolls a window
-// over the options rather than rendering all of them. Disabled options
-// cannot be picked.
+// was typed, move with the arrow keys, PageUp/PageDown or Home/End, and
+// press enter to pick the highlighted option. A list longer than a
+// screenful scrolls a window over the options rather than rendering all
+// of them, and a label wider than the terminal is truncated. Disabled
+// options cannot be picked.
 //
 // PickOne returns the Value of the picked option. ok is false if the
 // user canceled instead of picking an option (via Esc or Ctrl+C); this

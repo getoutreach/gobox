@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // matchedLabels returns the Labels of the options l currently has
@@ -473,4 +474,120 @@ func pickedValue[T any](t *testing.T, m *listModel[T]) T {
 	}
 
 	return m.chosen.Value
+}
+
+func TestListModelPaging(t *testing.T) {
+	options := stringOptions(numberedLabels("instance", 40)...)
+
+	for _, tt := range []struct {
+		name string
+		keys []tea.KeyPressMsg
+		want string
+	}{
+		{name: "pgdown moves a windowful on", keys: []tea.KeyPressMsg{codeKeypress(tea.KeyPgDown)}, want: "instance-07"},
+		{
+			name: "pgup moves a windowful back",
+			keys: []tea.KeyPressMsg{codeKeypress(tea.KeyPgDown), codeKeypress(tea.KeyPgDown), codeKeypress(tea.KeyPgUp)},
+			want: "instance-07",
+		},
+		{name: "end jumps to the last option", keys: []tea.KeyPressMsg{codeKeypress(tea.KeyEnd)}, want: "instance-39"},
+		{
+			name: "home jumps back to the first",
+			keys: []tea.KeyPressMsg{codeKeypress(tea.KeyEnd), codeKeypress(tea.KeyHome)},
+			want: "instance-00",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newListModel("", "", options)
+			for _, key := range tt.keys {
+				m.Update(key)
+			}
+
+			if got := m.highlightedLabel(); got != tt.want {
+				t.Errorf("highlighted = %q, want %q", got, tt.want)
+			}
+			if view := m.View().Content; !strings.Contains(view, tt.want) {
+				t.Errorf("highlighted option is not in view:\n%s", view)
+			}
+		})
+	}
+
+	// g and G page in vim and in bubbles/list, but typing filters here.
+	t.Run("g is filter text, not a jump", func(t *testing.T) {
+		m := newListModel("", "", stringOptions("alpha", "gamma"))
+		m.Update(keypress('g'))
+
+		if got, want := m.filter.Value(), "g"; got != want {
+			t.Errorf("filter = %q, want %q", got, want)
+		}
+		if got := m.highlightedLabel(); got != "gamma" {
+			t.Errorf("highlighted = %q, want %q", got, "gamma")
+		}
+	})
+}
+
+// TestListModelTruncation covers labels wider than the terminal: left
+// whole they wrap, and a wrapped row is taller than the one line the
+// window budgets for it.
+func TestListModelTruncation(t *testing.T) {
+	const label = "i-0123456789abcdef (some-very-long-service-name-here)"
+
+	t.Run("a label is left alone until a resize arrives", func(t *testing.T) {
+		m := newListModel("", "", stringOptions(label))
+
+		if view := m.View().Content; !strings.Contains(view, label) {
+			t.Errorf("label was truncated with no known width:\n%s", view)
+		}
+	})
+
+	t.Run("a label wider than the terminal is truncated with an ellipsis", func(t *testing.T) {
+		m := newListModel("", "", stringOptions(label))
+		m.Update(tea.WindowSizeMsg{Width: 24, Height: 20})
+
+		view := m.View().Content
+		if strings.Contains(view, label) {
+			t.Errorf("label was not truncated:\n%s", view)
+		}
+		if !strings.Contains(view, ellipsis) {
+			t.Errorf("truncated label is not marked with an ellipsis:\n%s", view)
+		}
+		for _, line := range strings.Split(strings.TrimRight(view, "\n"), "\n") {
+			if got := lipgloss.Width(line); got > 24 {
+				t.Errorf("line is %d columns wide, want at most 24: %q", got, line)
+			}
+		}
+	})
+
+	t.Run("a label that fits is left whole", func(t *testing.T) {
+		m := newListModel("", "", stringOptions("short"))
+		m.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
+
+		if view := m.View().Content; !strings.Contains(view, "short") {
+			t.Errorf("label that fits was altered:\n%s", view)
+		}
+	})
+
+	t.Run("a checkbox row leaves room for its box", func(t *testing.T) {
+		m := newMultiSelectModel(MultiSelectConfig{Options: []string{label}})
+		m.Update(tea.WindowSizeMsg{Width: 30, Height: 20})
+
+		for _, line := range strings.Split(strings.TrimRight(m.View().Content, "\n"), "\n") {
+			if got := lipgloss.Width(line); got > 30 {
+				t.Errorf("line is %d columns wide, want at most 30: %q", got, line)
+			}
+		}
+	})
+}
+
+// TestListModelClampsEveryLine covers the lines that aren't options: a
+// message or footer wider than the terminal wraps just as a label does.
+func TestListModelClampsEveryLine(t *testing.T) {
+	m := newListModel("A question far longer than the terminal it is asked in", "help that is also too long", stringOptions("a", "b"))
+	m.Update(tea.WindowSizeMsg{Width: 20, Height: 20})
+
+	for _, line := range strings.Split(strings.TrimRight(m.View().Content, "\n"), "\n") {
+		if got := lipgloss.Width(line); got > 20 {
+			t.Errorf("line is %d columns wide, want at most 20: %q", got, line)
+		}
+	}
 }
