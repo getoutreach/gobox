@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"gotest.tools/v3/assert"
 )
 
 func TestConfirmModel(t *testing.T) {
@@ -67,12 +68,8 @@ func TestConfirmModel(t *testing.T) {
 				m.Update(key)
 			}
 
-			if got := m.cursor == 0; got != tt.want {
-				t.Errorf("confirmed = %v, want %v", got, tt.want)
-			}
-			if m.err != nil {
-				t.Errorf("err = %v, want nil", m.err)
-			}
+			assert.Equal(t, m.cursor == 0, tt.want)
+			assert.NilError(t, m.err)
 		})
 	}
 }
@@ -82,17 +79,13 @@ func TestConfirmModelAbort(t *testing.T) {
 		m := newConfirmModel(ConfirmConfig{Message: "test"})
 		m.Update(ctrlCKeypress())
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
-		}
+		assert.Assert(t, errors.Is(m.err, ErrAborted))
 	})
 
 	t.Run("esc aborts", func(t *testing.T) {
 		m := newConfirmModel(ConfirmConfig{Message: "test"})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
-		}
+		assert.Assert(t, errors.Is(m.err, ErrAborted))
 	})
 }
