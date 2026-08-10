@@ -22,25 +22,26 @@ func stringOptions(labels ...string) []Option[string] {
 	return options
 }
 
-// labels returns the Labels of the options m currently has matching its
-// filter, in order.
-func matchedLabels[T any](m *listModel[T]) []string {
-	matched := make([]string, 0, len(m.matches))
-	for _, idx := range m.matches {
-		matched = append(matched, m.options[idx].Label)
+// matchedLabels returns the Labels of the options l currently has
+// matching its filter, in order.
+func matchedLabels[T any](l *optionList[T]) []string {
+	matched := make([]string, 0, len(l.matches))
+	for _, idx := range l.matches {
+		matched = append(matched, l.options[idx].Label)
 	}
 
 	return matched
 }
 
-// highlightedLabel returns the Label of the option m has highlighted, or
-// "" if nothing matches the filter.
-func highlightedLabel[T any](m *listModel[T]) string {
-	if len(m.matches) == 0 {
+// highlightedLabel returns the Label of the option l has highlighted, or
+// "" if nothing matches its filter.
+func highlightedLabel[T any](l *optionList[T]) string {
+	option, _, ok := l.highlighted()
+	if !ok {
 		return ""
 	}
 
-	return m.options[m.matches[m.cursor]].Label
+	return option.Label
 }
 
 // lineIndexContaining returns the index of the first line in view
@@ -65,7 +66,7 @@ func TestNewListModel(t *testing.T) {
 	if got := len(m.matches); got != len(options) {
 		t.Fatalf("matched %d options, want all %d", got, len(options))
 	}
-	if got, want := matchedLabels(m), []string{"current", "older"}; !slices.Equal(got, want) {
+	if got, want := matchedLabels(&m.optionList), []string{"current", "older"}; !slices.Equal(got, want) {
 		t.Errorf("matched %v, want %v", got, want)
 	}
 	if m.chosen != nil {
@@ -122,7 +123,7 @@ func TestListModelCursor(t *testing.T) {
 		m.Update(ctrlKeypress('n'))
 		m.Update(ctrlKeypress('p'))
 
-		if got := highlightedLabel(m); got != "b" {
+		if got := highlightedLabel(&m.optionList); got != "b" {
 			t.Errorf("highlighted = %q, want %q", got, "b")
 		}
 	})
@@ -179,7 +180,7 @@ func TestListModelFilter(t *testing.T) {
 		typeString(m, "kafka")
 
 		want := []string{"kafka-broker-1", "kafka-broker-2"}
-		if got := matchedLabels(m); !slices.Equal(got, want) {
+		if got := matchedLabels(&m.optionList); !slices.Equal(got, want) {
 			t.Errorf("matched %v, want %v", got, want)
 		}
 	})
@@ -268,7 +269,7 @@ func TestListModelFilter(t *testing.T) {
 		if m.cursor != 0 {
 			t.Errorf("cursor = %d, want 0", m.cursor)
 		}
-		if got := highlightedLabel(m); got != "postgres-main" {
+		if got := highlightedLabel(&m.optionList); got != "postgres-main" {
 			t.Errorf("highlighted = %q, want %q", got, "postgres-main")
 		}
 	})
@@ -282,7 +283,7 @@ func TestListModelFilter(t *testing.T) {
 		if got, want := m.filter.Value(), "/"; got != want {
 			t.Errorf("filter = %q, want %q", got, want)
 		}
-		if got := matchedLabels(m); !slices.Equal(got, []string{"with/slash"}) {
+		if got := matchedLabels(&m.optionList); !slices.Equal(got, []string{"with/slash"}) {
 			t.Errorf("matched %v, want [with/slash]", got)
 		}
 	})

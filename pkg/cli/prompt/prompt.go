@@ -220,81 +220,132 @@ type MultiSelectConfig struct {
 	// Help, if set, is displayed underneath the message.
 	Help string
 
-	// Options are the choices presented to the user. Toggle an option
-	// with Space, move with the up/down (or j/k) arrow keys, and confirm
-	// the current set of selections with Enter.
+	// Options are the choices presented to the user. Move between them
+	// with the up/down arrow keys, narrow them down by typing a filter,
+	// toggle the highlighted one with Space, and confirm the current set
+	// of selections with Enter.
 	Options []string
 }
 
-// multiSelectModel is the Bubble Tea model backing MultiSelect.
+// multiSelectModel is the Bubble Tea model backing MultiSelect: a list of
+// options, any number of which can be selected.
 type multiSelectModel struct {
-	cfg      MultiSelectConfig
-	cursor   int
+	optionList[string]
+
+	// selected holds the indexes into options of the selected options.
+	// Indexing by position in the full list, rather than in the filtered
+	// view, is what lets a selection survive a change of filter.
 	selected map[int]bool
-	err      error
+
+	err error
 }
 
 // newMultiSelectModel builds a multiSelectModel for cfg, with every
 // option initially unselected.
 func newMultiSelectModel(cfg MultiSelectConfig) *multiSelectModel {
-	return &multiSelectModel{cfg: cfg, selected: make(map[int]bool, len(cfg.Options))}
+	options := make([]Option[string], len(cfg.Options))
+	for i, opt := range cfg.Options {
+		options[i] = Option[string]{Label: opt, Value: opt}
+	}
+
+	return &multiSelectModel{
+		optionList: newOptionList(cfg.Message, cfg.Help, options),
+		selected:   make(map[int]bool, len(options)),
+	}
 }
 
 func (m *multiSelectModel) Init() tea.Cmd {
-	return nil
+	return m.initCmd
 }
 
-// Update handles a key press: ctrl+c and esc abort; up/k and down/j
-// move the cursor; space toggles the highlighted option; enter
-// confirms the current set of selections.
+// Update handles the key presses the list itself doesn't: space toggles
+// the highlighted option and enter confirms the current set of
+// selections. Anything else is forwarded to the filter field.
+//
+// Space toggles rather than filters, so a filter cannot contain a space;
+// matching a single word of a multi-word option narrows the list just as
+// well.
 func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
-		switch keyMsg.String() {
-		case keyCtrlC, keyEsc:
-			m.err = ErrAborted
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.cfg.Options)-1 {
-				m.cursor++
-			}
-		case "space":
-			m.selected[m.cursor] = !m.selected[m.cursor]
-		case keyEnter:
-			return m, tea.Quit
-		}
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m, m.updateFilter(msg)
 	}
 
-	return m, nil
+	switch m.handleKey(keyMsg.String()) {
+	case keyAborted:
+		m.err = ErrAborted
+		return m, tea.Quit
+	case keyHandled:
+		return m, nil
+	case keyIgnored:
+	}
+
+	switch keyMsg.String() {
+	case "space":
+		// Nothing is highlighted to toggle while the filter matches
+		// nothing.
+		if _, index, ok := m.highlighted(); ok {
+			m.selected[index] = !m.selected[index]
+		}
+
+		return m, nil
+	case keyEnter:
+		// Confirming with nothing selected is a valid answer, so this
+		// doesn't check the selection first. It also doesn't clear the
+		// filter: what was selected is selected whether or not it
+		// currently matches.
+		return m, tea.Quit
+	}
+
+	return m, m.updateFilter(msg)
 }
 
 func (m *multiSelectModel) View() tea.View {
 	var b strings.Builder
 
-	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
-	if m.cfg.Help != "" {
-		fmt.Fprintln(&b, helpStyle.Render(m.cfg.Help))
+	m.writeHeader(&b)
+
+	if len(m.matches) == 0 {
+		fmt.Fprintln(&b, helpStyle.Render("(no options match the filter, esc to clear it)"))
+	} else {
+		_, highlighted, _ := m.highlighted()
+		for _, idx := range m.visible() {
+			marker, style := "  ", lipgloss.NewStyle()
+			if idx == highlighted {
+				marker, style = "> ", selectedStyle
+			}
+
+			box := "[ ]"
+			if m.selected[idx] {
+				box = "[x]"
+			}
+
+			fmt.Fprintf(&b, "%s%s %s\n", marker, box, style.Render(m.options[idx].Label))
+		}
 	}
 
-	for i, opt := range m.cfg.Options {
-		marker := "  "
-		box := "[ ]"
-		style := lipgloss.NewStyle()
-		if m.selected[i] {
-			box = "[x]"
-		}
-		if i == m.cursor {
-			marker = "> "
-			style = selectedStyle
-		}
-		fmt.Fprintf(&b, "%s%s %s\n", marker, box, style.Render(opt))
+	hints := []string{"space to toggle", "enter to confirm"}
+	// A selection the filter or the window has scrolled out of sight is
+	// still a selection, so the count is worth saying out loud.
+	if n := len(m.selectedOptions()); n > 0 {
+		hints = append(hints, fmt.Sprintf("%d selected", n))
 	}
-	fmt.Fprintln(&b, helpStyle.Render("(space to toggle, enter to confirm)"))
+	fmt.Fprintln(&b, helpStyle.Render(m.footer(hints...)))
 
 	return tea.NewView(b.String())
+}
+
+// selectedOptions returns the selected options' Labels, in the order they
+// were listed in the config.
+func (m *multiSelectModel) selectedOptions() []string {
+	var selected []string
+	for i, option := range m.options {
+		if m.selected[i] {
+			selected = append(selected, option.Label)
+		}
+	}
+
+	return selected
 }
 
 // MultiSelect displays a multiple-choice terminal prompt and returns the
@@ -316,14 +367,7 @@ func MultiSelect(ctx context.Context, cfg MultiSelectConfig) ([]string, error) {
 		return nil, m.err
 	}
 
-	var result []string
-	for i, opt := range m.cfg.Options {
-		if m.selected[i] {
-			result = append(result, opt)
-		}
-	}
-
-	return result, nil
+	return m.selectedOptions(), nil
 }
 
 // ConfirmConfig describes a yes/no confirmation prompt.
@@ -451,11 +495,29 @@ const maxVisibleOptions = 7
 // filterPrompt labels the field holding the filter text.
 const filterPrompt = "filter: "
 
-// listModel is the Bubble Tea model backing PickOne, and through it
-// Select. It scrolls a window over the options matching the filter the
-// user has typed.
-type listModel[T any] struct {
-	title   string
+// keyResult is what optionList.handleKey did with a key press.
+type keyResult int
+
+const (
+	// keyIgnored means the press was not one the list itself handles, and
+	// is the enclosing model's to interpret.
+	keyIgnored keyResult = iota
+
+	// keyHandled means the list consumed the press.
+	keyHandled
+
+	// keyAborted means the press asked to abandon the prompt.
+	keyAborted
+)
+
+// optionList is the filtering, scrolling core shared by the prompts that
+// offer a list of options. It tracks which options match the filter the
+// user has typed and which window of them is on screen, and renders
+// everything around the options themselves: the message, the help line,
+// the filter field and the footer. Enclosing models supply the meaning of
+// Enter, and how an option is drawn.
+type optionList[T any] struct {
+	message string
 	help    string
 	options []Option[T]
 
@@ -467,8 +529,9 @@ type listModel[T any] struct {
 	// matches holds the indexes into options of the options matching
 	// filter, in their original order, and every index while filter is
 	// empty. Options are tracked by index, rather than by their position
-	// in a narrowed-down copy, so that the option picked is always the
-	// one the cursor was on.
+	// in a narrowed-down copy, so that the option acted on is always the
+	// one the cursor was on, and so that a selection survives a change of
+	// filter.
 	matches []int
 
 	// cursor is the position in matches of the highlighted option, and
@@ -477,6 +540,154 @@ type listModel[T any] struct {
 	// matches.
 	cursor int
 	offset int
+}
+
+// newOptionList builds an optionList over options, with every option
+// initially matching and the filter field focused.
+func newOptionList[T any](message, help string, options []Option[T]) optionList[T] {
+	ti := textinput.New()
+	ti.Prompt = filterPrompt
+
+	l := optionList[T]{message: message, help: help, options: options, filter: ti}
+	l.initCmd = l.filter.Focus()
+	l.applyFilter()
+
+	return l
+}
+
+// handleKey handles the key presses that work the list itself: ctrl+c
+// abandons the prompt, esc clears the filter or abandons the prompt if
+// there is none, and up and down (or ctrl+p and ctrl+n) move the cursor
+// through the matching options.
+func (l *optionList[T]) handleKey(key string) keyResult {
+	switch key {
+	case keyCtrlC:
+		return keyAborted
+	case keyEsc:
+		// Esc backs out of filtering first, so that a filter matching
+		// nothing can be undone without losing the prompt itself; only
+		// an unfiltered list is abandoned.
+		if l.filter.Value() != "" {
+			l.filter.SetValue("")
+			l.applyFilter()
+
+			return keyHandled
+		}
+
+		return keyAborted
+	case "up", "ctrl+p":
+		l.moveCursor(-1)
+		return keyHandled
+	case "down", "ctrl+n":
+		l.moveCursor(1)
+		return keyHandled
+	}
+
+	return keyIgnored
+}
+
+// updateFilter forwards msg to the filter field, re-narrowing the
+// options if it changed the filter text.
+func (l *optionList[T]) updateFilter(msg tea.Msg) tea.Cmd {
+	before := l.filter.Value()
+
+	var cmd tea.Cmd
+	l.filter, cmd = l.filter.Update(msg)
+	if l.filter.Value() != before {
+		l.applyFilter()
+	}
+
+	return cmd
+}
+
+// applyFilter re-narrows matches to the options whose Label contains the
+// filter text, case-insensitively, and returns the window to the top of
+// the list: the previously highlighted option may not have survived the
+// change, and for freshly typed text the best match is as likely to be
+// the first one as any other.
+func (l *optionList[T]) applyFilter() {
+	needle := strings.ToLower(l.filter.Value())
+
+	l.matches = make([]int, 0, len(l.options))
+	for i, option := range l.options {
+		if needle == "" || strings.Contains(strings.ToLower(option.Label), needle) {
+			l.matches = append(l.matches, i)
+		}
+	}
+
+	l.cursor = 0
+	l.offset = 0
+}
+
+// moveCursor moves the cursor delta options through the matching ones,
+// clamped to the ends of the list, scrolling the visible window as far
+// as it takes to keep the cursor inside it.
+func (l *optionList[T]) moveCursor(delta int) {
+	l.cursor = min(max(l.cursor+delta, 0), max(len(l.matches)-1, 0))
+
+	switch {
+	case l.cursor < l.offset:
+		l.offset = l.cursor
+	case l.cursor >= l.offset+maxVisibleOptions:
+		l.offset = l.cursor - maxVisibleOptions + 1
+	}
+}
+
+// highlighted returns the option the cursor is on, and its index in
+// options. ok is false if the filter currently matches nothing, in which
+// case there is no highlighted option.
+func (l *optionList[T]) highlighted() (option Option[T], index int, ok bool) {
+	if len(l.matches) == 0 {
+		var zero Option[T]
+		return zero, 0, false
+	}
+
+	index = l.matches[l.cursor]
+
+	return l.options[index], index, true
+}
+
+// visible returns the indexes in options of the options on screen, in
+// the order they are rendered.
+func (l *optionList[T]) visible() []int {
+	end := min(l.offset+maxVisibleOptions, len(l.matches))
+	return l.matches[l.offset:end]
+}
+
+// writeHeader renders everything above the options: the message, the
+// help line, and the filter field once there is anything in it.
+func (l *optionList[T]) writeHeader(b *strings.Builder) {
+	fmt.Fprintln(b, messageStyle.Render(l.message))
+	if l.help != "" {
+		fmt.Fprintln(b, helpStyle.Render(l.help))
+	}
+	if l.filter.Value() != "" {
+		fmt.Fprintln(b, l.filter.View())
+	}
+}
+
+// footer renders the line under the options: where in the list the
+// window is, when it doesn't hold all of them, and what the keys do. The
+// given hints are the enclosing model's own, listed last.
+func (l *optionList[T]) footer(hints ...string) string {
+	clauses := make([]string, 0, len(hints)+2)
+
+	if len(l.matches) > maxVisibleOptions {
+		end := min(l.offset+maxVisibleOptions, len(l.matches))
+		clauses = append(clauses, fmt.Sprintf("showing %d-%d of %d", l.offset+1, end, len(l.matches)))
+	} else {
+		clauses = append(clauses, "up/down to move")
+	}
+	clauses = append(clauses, "type to filter")
+	clauses = append(clauses, hints...)
+
+	return "(" + strings.Join(clauses, ", ") + ")"
+}
+
+// listModel is the Bubble Tea model backing PickOne, and through it
+// Select: a list of options, one of which can be picked.
+type listModel[T any] struct {
+	optionList[T]
 
 	// status explains why the last Enter press didn't pick anything. It
 	// is cleared by the next key press.
@@ -487,67 +698,46 @@ type listModel[T any] struct {
 	chosen *Option[T]
 }
 
-// newListModel builds a listModel offering options under title, with
-// every option initially matching and the filter field focused. help, if
+// newListModel builds a listModel offering options under title. help, if
 // set, is shown under the title.
 func newListModel[T any](title, help string, options []Option[T]) *listModel[T] {
-	ti := textinput.New()
-	ti.Prompt = filterPrompt
-
-	m := &listModel[T]{title: title, help: help, options: options, filter: ti}
-	m.initCmd = m.filter.Focus()
-	m.applyFilter()
-
-	return m
+	return &listModel[T]{optionList: newOptionList(title, help, options)}
 }
 
 func (m *listModel[T]) Init() tea.Cmd {
 	return m.initCmd
 }
 
-// Update handles a key press: ctrl+c cancels; esc clears the filter, or
-// cancels if there is none; up and down move the cursor within the
-// matching options; enter picks the highlighted option, unless it is
-// disabled. Anything else is forwarded to the filter field.
+// Update handles the key presses the list itself doesn't: enter picks the
+// highlighted option, unless it is disabled. Anything else is forwarded
+// to the filter field.
 func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m.updateFilter(msg)
+		return m, m.updateFilter(msg)
 	}
 
 	// Any key press means the user has moved on from whatever the last
 	// one was refused for.
 	m.status = ""
 
-	switch keyMsg.String() {
-	case keyCtrlC:
+	switch m.handleKey(keyMsg.String()) {
+	case keyAborted:
 		return m, tea.Quit
-	case keyEsc:
-		// Esc backs out of filtering first, so that a filter matching
-		// nothing can be undone without losing the prompt itself; only
-		// an unfiltered list cancels.
-		if m.filter.Value() != "" {
-			m.filter.SetValue("")
-			m.applyFilter()
-			return m, nil
-		}
+	case keyHandled:
+		return m, nil
+	case keyIgnored:
+	}
 
-		return m, tea.Quit
-	case "up", "ctrl+p":
-		m.moveCursor(-1)
-		return m, nil
-	case "down", "ctrl+n":
-		m.moveCursor(1)
-		return m, nil
-	case keyEnter:
+	if keyMsg.String() == keyEnter {
 		// Enter has no option to return while the filter matches
 		// nothing, so it waits for the filter to be loosened instead of
 		// picking something the cursor was never on.
-		if len(m.matches) == 0 {
+		option, _, ok := m.highlighted()
+		if !ok {
 			return m, nil
 		}
 
-		option := m.options[m.matches[m.cursor]]
 		if option.Disabled {
 			m.status = option.Description
 			if m.status == "" {
@@ -562,78 +752,25 @@ func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	return m.updateFilter(msg)
-}
-
-// updateFilter forwards msg to the filter field, re-narrowing the
-// options if it changed the filter text.
-func (m *listModel[T]) updateFilter(msg tea.Msg) (tea.Model, tea.Cmd) {
-	before := m.filter.Value()
-
-	var cmd tea.Cmd
-	m.filter, cmd = m.filter.Update(msg)
-	if m.filter.Value() != before {
-		m.applyFilter()
-	}
-
-	return m, cmd
-}
-
-// applyFilter re-narrows matches to the options whose Label contains the
-// filter text, case-insensitively, and returns the window to the top of
-// the list: the previously highlighted option may not have survived the
-// change, and for freshly typed text the best match is as likely to be
-// the first one as any other.
-func (m *listModel[T]) applyFilter() {
-	needle := strings.ToLower(m.filter.Value())
-
-	m.matches = make([]int, 0, len(m.options))
-	for i, option := range m.options {
-		if needle == "" || strings.Contains(strings.ToLower(option.Label), needle) {
-			m.matches = append(m.matches, i)
-		}
-	}
-
-	m.cursor = 0
-	m.offset = 0
-}
-
-// moveCursor moves the cursor delta options through the matching ones,
-// clamped to the ends of the list, scrolling the visible window as far
-// as it takes to keep the cursor inside it.
-func (m *listModel[T]) moveCursor(delta int) {
-	m.cursor = min(max(m.cursor+delta, 0), max(len(m.matches)-1, 0))
-
-	switch {
-	case m.cursor < m.offset:
-		m.offset = m.cursor
-	case m.cursor >= m.offset+maxVisibleOptions:
-		m.offset = m.cursor - maxVisibleOptions + 1
-	}
+	return m, m.updateFilter(msg)
 }
 
 func (m *listModel[T]) View() tea.View {
 	var b strings.Builder
 
-	fmt.Fprintln(&b, messageStyle.Render(m.title))
-	if m.help != "" {
-		fmt.Fprintln(&b, helpStyle.Render(m.help))
-	}
-	if m.filter.Value() != "" {
-		fmt.Fprintln(&b, m.filter.View())
-	}
+	m.writeHeader(&b)
 
 	if len(m.matches) == 0 {
 		fmt.Fprintln(&b, helpStyle.Render("(no options match the filter, esc to clear it)"))
 		return tea.NewView(b.String())
 	}
 
-	end := min(m.offset+maxVisibleOptions, len(m.matches))
-	for _, idx := range m.matches[m.offset:end] {
-		m.writeOption(&b, m.options[idx], idx == m.matches[m.cursor])
+	_, highlighted, _ := m.highlighted()
+	for _, idx := range m.visible() {
+		m.writeOption(&b, m.options[idx], idx == highlighted)
 	}
 
-	fmt.Fprintln(&b, helpStyle.Render(m.footer(end)))
+	fmt.Fprintln(&b, helpStyle.Render(m.footer("enter to select")))
 	if m.status != "" {
 		fmt.Fprintln(&b, errorStyle.Render(m.status))
 	}
@@ -661,17 +798,6 @@ func (m *listModel[T]) writeOption(b *strings.Builder, option Option[T], highlig
 	if option.Description != "" && !option.Disabled {
 		fmt.Fprintf(b, "    %s\n", helpStyle.Render(option.Description))
 	}
-}
-
-// footer renders the line under the options, which says how to work the
-// prompt and, when they don't all fit on screen at once, how much of the
-// list is showing.
-func (m *listModel[T]) footer(end int) string {
-	if len(m.matches) > maxVisibleOptions {
-		return fmt.Sprintf("(showing %d-%d of %d, type to filter, enter to select)", m.offset+1, end, len(m.matches))
-	}
-
-	return "(up/down to move, type to filter, enter to select)"
 }
 
 // PickOne shows options in an interactive list, under the given title.
