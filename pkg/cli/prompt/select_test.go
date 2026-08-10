@@ -3,7 +3,6 @@
 package prompt
 
 import (
-	"errors"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -14,5 +13,5 @@ func TestSelectNoOptions(t *testing.T) {
 	// safe to call directly without a TTY. Select's other behavior is the
 	// shared list model's, covered by list_test.go.
 	_, err := Select(t.Context(), SelectConfig{})
-	assert.Assert(t, errors.Is(err, ErrAborted))
+	assert.ErrorIs(t, err, ErrAborted)
 }

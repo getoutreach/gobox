@@ -174,14 +174,14 @@ func TestListModelCancel(t *testing.T) {
 		m := newListModel("", "", options)
 		m.Update(ctrlCKeypress())
 
-		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Nil(m.chosen))
 	})
 
 	t.Run("esc cancels without picking", func(t *testing.T) {
 		m := newListModel("", "", options)
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Nil(m.chosen))
 	})
 
 	t.Run("ctrl+c cancels even with a filter typed, unlike esc", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestListModelCancel(t *testing.T) {
 		typeString(m, "a")
 
 		_, cmd := m.Update(codeKeypress(tea.KeyEscape))
-		assert.Assert(t, cmd == nil, "esc with a filter typed should clear the filter, not quit")
+		assert.Assert(t, cmp.Nil(cmd), "esc with a filter typed should clear the filter, not quit")
 
 		typeString(m, "a")
 		_, cmd = m.Update(ctrlCKeypress())
@@ -233,8 +233,8 @@ func TestListModelFilter(t *testing.T) {
 		typeString(m, "nonexistent")
 		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
 
-		assert.Assert(t, cmd == nil, "the prompt should stay open")
-		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Nil(cmd), "the prompt should stay open")
+		assert.Assert(t, cmp.Nil(m.chosen))
 		assert.Assert(t, cmp.Contains(m.View().Content, "no options match"))
 	})
 
@@ -243,15 +243,15 @@ func TestListModelFilter(t *testing.T) {
 		typeString(m, "kafka")
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Nil(m.chosen))
 		assert.Equal(t, m.filter.Value(), "")
-		assert.Equal(t, len(m.matches), len(options))
+		assert.Assert(t, cmp.Len(m.matches, len(options)))
 	})
 
 	t.Run("backspace re-widens the list", func(t *testing.T) {
 		m := newListModel("", "", options)
 		typeString(m, "kafka-broker-1")
-		assert.Equal(t, len(m.matches), 1)
+		assert.Assert(t, cmp.Len(m.matches, 1))
 
 		for range len("-1") {
 			m.Update(codeKeypress(tea.KeyBackspace))
@@ -359,7 +359,7 @@ func TestListModelDisabledOptions(t *testing.T) {
 	t.Run("enter on a disabled option does not pick it", func(t *testing.T) {
 		m := newListModel("Choose", "", newOptions())
 		m.Update(codeKeypress(tea.KeyEnter))
-		assert.Assert(t, m.chosen == nil, "the option is disabled")
+		assert.Assert(t, cmp.Nil(m.chosen), "the option is disabled")
 
 		m.Update(codeKeypress(tea.KeyDown))
 		m.Update(codeKeypress(tea.KeyEnter))
@@ -383,7 +383,7 @@ func TestListModelDisabledOptions(t *testing.T) {
 		m := newListModel("Choose", "", []Option[item]{{Label: "nope", Disabled: true, Value: item{1}}})
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Nil(m.chosen))
 		assert.Assert(t, cmp.Contains(m.View().Content, "cannot be picked"))
 	})
 }

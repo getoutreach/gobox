@@ -3,11 +3,11 @@
 package prompt
 
 import (
-	"errors"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestInputModel(t *testing.T) {
@@ -39,14 +39,14 @@ func TestInputModel(t *testing.T) {
 		m := newInputModel(Config{Message: "test"})
 		m.Update(ctrlCKeypress())
 
-		assert.Assert(t, errors.Is(m.err, ErrAborted))
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 
 	t.Run("esc aborts", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test"})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		assert.Assert(t, errors.Is(m.err, ErrAborted))
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 
 	t.Run("validate rejects empty submission, then accepts once valid", func(t *testing.T) {
@@ -54,7 +54,7 @@ func TestInputModel(t *testing.T) {
 		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
 
 		assert.NilError(t, m.err, "want a re-prompt, not an abort")
-		assert.Assert(t, cmd == nil, "want the prompt to stay open")
+		assert.Assert(t, cmp.Nil(cmd), "want the prompt to stay open")
 		assert.Assert(t, m.input.Err != nil, "want a validation error displayed")
 
 		typeString(m, "ok")

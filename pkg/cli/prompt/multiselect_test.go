@@ -3,7 +3,6 @@
 package prompt
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -53,7 +52,7 @@ func TestMultiSelectNoOptions(t *testing.T) {
 	// No options is rejected before a Program is ever started, so this is
 	// safe to call directly without a TTY.
 	_, err := MultiSelect(t.Context(), MultiSelectConfig{})
-	assert.Assert(t, errors.Is(err, ErrAborted))
+	assert.ErrorIs(t, err, ErrAborted)
 }
 
 // TestMultiSelectModelFilter covers what a multiple-choice prompt has to

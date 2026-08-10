@@ -3,7 +3,6 @@
 package prompt
 
 import (
-	"errors"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -79,13 +78,13 @@ func TestConfirmModelAbort(t *testing.T) {
 		m := newConfirmModel(ConfirmConfig{Message: "test"})
 		m.Update(ctrlCKeypress())
 
-		assert.Assert(t, errors.Is(m.err, ErrAborted))
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 
 	t.Run("esc aborts", func(t *testing.T) {
 		m := newConfirmModel(ConfirmConfig{Message: "test"})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		assert.Assert(t, errors.Is(m.err, ErrAborted))
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 }
