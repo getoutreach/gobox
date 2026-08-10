@@ -17,9 +17,15 @@ func codeKeypress(code rune) tea.KeyPressMsg {
 	return tea.KeyPressMsg(tea.Key{Code: code})
 }
 
+// ctrlKeypress builds the key press for a Ctrl+<r> combination, such as
+// the ctrl+n and ctrl+p cursor movements.
+func ctrlKeypress(r rune) tea.KeyPressMsg {
+	return tea.KeyPressMsg(tea.Key{Code: r, Mod: tea.ModCtrl})
+}
+
 // ctrlCKeypress builds the key press for Ctrl+C.
 func ctrlCKeypress() tea.KeyPressMsg {
-	return tea.KeyPressMsg(tea.Key{Code: 'c', Mod: tea.ModCtrl})
+	return ctrlKeypress('c')
 }
 
 // typeString drives m.Update with a keypress for each rune in s, in order.
