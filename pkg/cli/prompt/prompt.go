@@ -169,45 +169,164 @@ type SelectConfig struct {
 	// Help, if set, is displayed underneath the message.
 	Help string
 
-	// Options are the choices presented to the user, selectable with the
-	// up/down (or j/k) arrow keys.
+	// Options are the choices presented to the user. Move between them
+	// with the up/down arrow keys, narrow them down by typing a filter,
+	// and pick the highlighted one with Enter.
 	Options []string
 }
 
+// maxVisibleOptions caps how many of a Select's options are on screen at
+// once, matching the page size the archived survey package used. A
+// longer list scrolls a window of this size rather than rendering every
+// option: a list taller than the terminal pushes the message, and the
+// options above the fold, out of view entirely.
+const maxVisibleOptions = 7
+
+// filterPrompt labels the field holding a Select's filter text.
+const filterPrompt = "filter: "
+
 // selectModel is the Bubble Tea model backing Select.
 type selectModel struct {
-	cfg    SelectConfig
+	cfg SelectConfig
+
+	// filter holds the text the options are narrowed down by. It is only
+	// rendered once non-empty; until then the footer advertises it.
+	filter  textinput.Model
+	initCmd tea.Cmd
+
+	// matches holds the indexes into cfg.Options of the options matching
+	// filter, in their original order, and every index while filter is
+	// empty. Options are tracked by index, rather than by their position
+	// in a narrowed-down copy, so that the option Select returns is
+	// always the one the cursor was on.
+	matches []int
+
+	// cursor is the position in matches of the highlighted option, and
+	// offset the position in matches of the first option rendered:
+	// together they scroll a maxVisibleOptions-sized window over the
+	// matches.
 	cursor int
-	err    error
+	offset int
+
+	// chosen is the option the user picked, and picked records that they
+	// picked one at all, as opposed to aborting the prompt.
+	chosen string
+	picked bool
+
+	err error
+}
+
+// newSelectModel builds a selectModel for cfg, with every option
+// initially matching and the filter field focused.
+func newSelectModel(cfg SelectConfig) *selectModel {
+	ti := textinput.New()
+	ti.Prompt = filterPrompt
+
+	m := &selectModel{cfg: cfg, filter: ti}
+	m.initCmd = m.filter.Focus()
+	m.applyFilter()
+
+	return m
 }
 
 func (m *selectModel) Init() tea.Cmd {
-	return nil
+	return m.initCmd
 }
 
-// Update handles a key press: ctrl+c and esc abort; up/k and down/j
-// move the cursor, clamped to the option list; enter picks the
-// highlighted option.
+// Update handles a key press: ctrl+c aborts; esc clears the filter, or
+// aborts if there is none; up and down move the cursor within the
+// matching options; enter picks the highlighted option. Anything else is
+// forwarded to the filter field.
 func (m *selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
-		switch keyMsg.String() {
-		case keyCtrlC, keyEsc:
-			m.err = ErrAborted
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.cfg.Options)-1 {
-				m.cursor++
-			}
-		case keyEnter:
-			return m, tea.Quit
+	keyMsg, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m.updateFilter(msg)
+	}
+
+	switch keyMsg.String() {
+	case keyCtrlC:
+		m.err = ErrAborted
+		return m, tea.Quit
+	case keyEsc:
+		// Esc backs out of filtering first, so that a filter matching
+		// nothing can be undone without losing the prompt itself; only
+		// an unfiltered list aborts.
+		if m.filter.Value() != "" {
+			m.filter.SetValue("")
+			m.applyFilter()
+			return m, nil
+		}
+
+		m.err = ErrAborted
+		return m, tea.Quit
+	case "up", "ctrl+p":
+		m.moveCursor(-1)
+		return m, nil
+	case "down", "ctrl+n":
+		m.moveCursor(1)
+		return m, nil
+	case keyEnter:
+		// Enter has no option to return while the filter matches
+		// nothing, so it waits for the filter to be loosened instead of
+		// picking something the cursor was never on.
+		if len(m.matches) == 0 {
+			return m, nil
+		}
+
+		m.chosen = m.cfg.Options[m.matches[m.cursor]]
+		m.picked = true
+
+		return m, tea.Quit
+	}
+
+	return m.updateFilter(msg)
+}
+
+// updateFilter forwards msg to the filter field, re-narrowing the
+// options if it changed the filter text.
+func (m *selectModel) updateFilter(msg tea.Msg) (tea.Model, tea.Cmd) {
+	before := m.filter.Value()
+
+	var cmd tea.Cmd
+	m.filter, cmd = m.filter.Update(msg)
+	if m.filter.Value() != before {
+		m.applyFilter()
+	}
+
+	return m, cmd
+}
+
+// applyFilter re-narrows matches to the options containing the filter
+// text, case-insensitively, and returns the window to the top of the
+// list: the previously highlighted option may not have survived the
+// change, and for freshly typed text the best match is as likely to be
+// the first one as any other.
+func (m *selectModel) applyFilter() {
+	needle := strings.ToLower(m.filter.Value())
+
+	m.matches = make([]int, 0, len(m.cfg.Options))
+	for i, opt := range m.cfg.Options {
+		if needle == "" || strings.Contains(strings.ToLower(opt), needle) {
+			m.matches = append(m.matches, i)
 		}
 	}
 
-	return m, nil
+	m.cursor = 0
+	m.offset = 0
+}
+
+// moveCursor moves the cursor delta options through the matching ones,
+// clamped to the ends of the list, scrolling the visible window as far
+// as it takes to keep the cursor inside it.
+func (m *selectModel) moveCursor(delta int) {
+	m.cursor = min(max(m.cursor+delta, 0), max(len(m.matches)-1, 0))
+
+	switch {
+	case m.cursor < m.offset:
+		m.offset = m.cursor
+	case m.cursor >= m.offset+maxVisibleOptions:
+		m.offset = m.cursor - maxVisibleOptions + 1
+	}
 }
 
 func (m *selectModel) View() tea.View {
@@ -217,29 +336,54 @@ func (m *selectModel) View() tea.View {
 	if m.cfg.Help != "" {
 		fmt.Fprintln(&b, helpStyle.Render(m.cfg.Help))
 	}
+	if m.filter.Value() != "" {
+		fmt.Fprintln(&b, m.filter.View())
+	}
 
-	for i, opt := range m.cfg.Options {
+	if len(m.matches) == 0 {
+		fmt.Fprintln(&b, helpStyle.Render("(no options match the filter, esc to clear it)"))
+		return tea.NewView(b.String())
+	}
+
+	end := min(m.offset+maxVisibleOptions, len(m.matches))
+	for _, idx := range m.matches[m.offset:end] {
 		marker := "  "
 		style := lipgloss.NewStyle()
-		if i == m.cursor {
+		if idx == m.matches[m.cursor] {
 			marker = "> "
 			style = selectedStyle
 		}
-		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(opt))
+		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(m.cfg.Options[idx]))
 	}
+	fmt.Fprintln(&b, helpStyle.Render(m.footer(end)))
 
 	return tea.NewView(b.String())
 }
 
+// footer renders the line under the options, which says how to work the
+// prompt and, when they don't all fit on screen at once, how much of
+// the list is showing.
+func (m *selectModel) footer(end int) string {
+	if len(m.matches) > maxVisibleOptions {
+		return fmt.Sprintf("(showing %d-%d of %d, type to filter, enter to select)", m.offset+1, end, len(m.matches))
+	}
+
+	return "(up/down to move, type to filter, enter to select)"
+}
+
 // Select displays a single-choice terminal prompt and returns the chosen
-// option. It returns ErrAborted if the user cancels the prompt, if ctx is
+// option. Options longer than a screenful scroll a window over the list;
+// typing narrows the list down to the options containing what was typed,
+// and Esc clears that filter again.
+//
+// It returns ErrAborted if the user cancels the prompt, if ctx is
 // canceled while the prompt is running, or if no options are provided.
 func Select(ctx context.Context, cfg SelectConfig) (string, error) {
 	if len(cfg.Options) == 0 {
 		return "", ErrAborted
 	}
 
-	finalModel, err := tea.NewProgram(&selectModel{cfg: cfg}, tea.WithContext(ctx)).Run()
+	finalModel, err := tea.NewProgram(newSelectModel(cfg), tea.WithContext(ctx)).Run()
 	if err != nil {
 		return "", fmt.Errorf("running selection prompt: %w", err)
 	}
@@ -248,8 +392,11 @@ func Select(ctx context.Context, cfg SelectConfig) (string, error) {
 	if m.err != nil {
 		return "", m.err
 	}
+	if !m.picked {
+		return "", ErrAborted
+	}
 
-	return m.cfg.Options[m.cursor], nil
+	return m.chosen, nil
 }
 
 // MultiSelectConfig describes a multiple-choice prompt.
