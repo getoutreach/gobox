@@ -4,12 +4,13 @@ package prompt
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 // matchedLabels returns the Labels of the options l currently has
@@ -55,6 +56,26 @@ func lineIndexContaining(view, substr string) int {
 	return -1
 }
 
+// pickedValue returns the Value m settled on, failing the test if it was
+// canceled or picked nothing.
+func pickedValue[T any](t *testing.T, m *listModel[T]) T {
+	t.Helper()
+
+	assert.Assert(t, m.chosen != nil, "chosen is nil, want a picked option")
+
+	return m.chosen.Value
+}
+
+// assertLinesFit fails the test for every line of view wider than width.
+func assertLinesFit(t *testing.T, view string, width int) {
+	t.Helper()
+
+	for _, line := range strings.Split(strings.TrimRight(view, "\n"), "\n") {
+		assert.Assert(t, lipgloss.Width(line) <= width,
+			"line is %d columns wide, want at most %d: %q", lipgloss.Width(line), width, line)
+	}
+}
+
 func TestNewListModel(t *testing.T) {
 	options := []Option[string]{
 		{Label: "current", Description: "cannot pick this", Disabled: true, Value: "current"},
@@ -63,9 +84,7 @@ func TestNewListModel(t *testing.T) {
 
 	m := newListModel("title", "", options)
 
-	if got, want := m.matchedLabels(), []string{"current", "older"}; !slices.Equal(got, want) {
-		t.Errorf("matched %v, want %v", got, want)
-	}
+	assert.DeepEqual(t, m.matchedLabels(), []string{"current", "older"})
 }
 
 func TestListModelCursor(t *testing.T) {
@@ -93,9 +112,7 @@ func TestListModelCursor(t *testing.T) {
 				m.Update(key)
 			}
 
-			if got := m.highlightedLabel(); got != tt.want {
-				t.Errorf("highlighted = %q, want %q", got, tt.want)
-			}
+			assert.Equal(t, m.highlightedLabel(), tt.want)
 		})
 	}
 
@@ -104,376 +121,8 @@ func TestListModelCursor(t *testing.T) {
 		m.Update(codeKeypress(tea.KeyDown))
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got := pickedValue(t, m); got != "b" {
-			t.Errorf("picked = %q, want %q", got, "b")
-		}
+		assert.Equal(t, pickedValue(t, m), "b")
 	})
-}
-
-func TestListModelCancel(t *testing.T) {
-	options := stringOptions("a", "b")
-
-	t.Run("ctrl+c cancels without picking", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(ctrlCKeypress())
-
-		if m.chosen != nil {
-			t.Errorf("chosen = %+v, want nil", m.chosen)
-		}
-	})
-
-	t.Run("esc cancels without picking", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(codeKeypress(tea.KeyEscape))
-
-		if m.chosen != nil {
-			t.Errorf("chosen = %+v, want nil", m.chosen)
-		}
-	})
-
-	t.Run("ctrl+c cancels even with a filter typed, unlike esc", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "a")
-
-		_, cmd := m.Update(codeKeypress(tea.KeyEscape))
-		if cmd != nil {
-			t.Error("esc with a filter typed returned a command, want nil (it clears the filter)")
-		}
-
-		typeString(m, "a")
-		_, cmd = m.Update(ctrlCKeypress())
-		if cmd == nil {
-			t.Fatal("expected a quit command, got nil")
-		}
-		if msg := cmd(); msg != (tea.QuitMsg{}) {
-			t.Errorf("cmd() = %#v, want tea.QuitMsg{}", msg)
-		}
-	})
-}
-
-// TestListModelFilter covers narrowing a list down by typing, which is
-// what makes a list too long to read usable.
-func TestListModelFilter(t *testing.T) {
-	options := stringOptions("kafka-broker-1", "redis-cache", "kafka-broker-2", "postgres-main")
-
-	t.Run("typing narrows the options to those containing the text", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "kafka")
-
-		want := []string{"kafka-broker-1", "kafka-broker-2"}
-		if got := m.matchedLabels(); !slices.Equal(got, want) {
-			t.Errorf("matched %v, want %v", got, want)
-		}
-	})
-
-	t.Run("filtering is case-insensitive", func(t *testing.T) {
-		m := newListModel("", "", stringOptions("Bento-Alpha", "bento-beta", "other"))
-		typeString(m, "BENTO")
-
-		if got := len(m.matches); got != 2 {
-			t.Errorf("matched %d options, want 2", got)
-		}
-	})
-
-	// Picking by cursor position alone would return whichever option sits
-	// at that index in the full list.
-	t.Run("enter picks the highlighted match, not the option at its index", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "kafka")
-		m.Update(codeKeypress(tea.KeyDown))
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if got := pickedValue(t, m); got != "kafka-broker-2" {
-			t.Errorf("picked = %q, want %q", got, "kafka-broker-2")
-		}
-	})
-
-	t.Run("enter does nothing while no option matches", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "nonexistent")
-		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
-
-		if cmd != nil {
-			t.Error("enter returned a command, want nil (the prompt stays open)")
-		}
-		if m.chosen != nil {
-			t.Errorf("chosen = %+v, want nil", m.chosen)
-		}
-		if view := m.View().Content; !strings.Contains(view, "no options match") {
-			t.Errorf("view does not say the filter matches nothing:\n%s", view)
-		}
-	})
-
-	t.Run("esc clears the filter instead of cancelling", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "kafka")
-		m.Update(codeKeypress(tea.KeyEscape))
-
-		if m.chosen != nil {
-			t.Errorf("chosen = %+v, want nil", m.chosen)
-		}
-		if m.filter.Value() != "" {
-			t.Errorf("filter = %q, want empty", m.filter.Value())
-		}
-		if len(m.matches) != len(options) {
-			t.Errorf("matched %d options, want all %d back", len(m.matches), len(options))
-		}
-	})
-
-	t.Run("backspace re-widens the list", func(t *testing.T) {
-		m := newListModel("", "", options)
-		typeString(m, "kafka-broker-1")
-
-		if got := len(m.matches); got != 1 {
-			t.Fatalf("matched %d options on the full name, want 1", got)
-		}
-
-		for range len("-1") {
-			m.Update(codeKeypress(tea.KeyBackspace))
-		}
-
-		if got, want := m.filter.Value(), "kafka-broker"; got != want {
-			t.Fatalf("filter = %q, want %q", got, want)
-		}
-		if got := len(m.matches); got != 2 {
-			t.Errorf("matched %d options, want both brokers back", got)
-		}
-	})
-
-	t.Run("a narrowed cursor returns to the top of the list", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(codeKeypress(tea.KeyDown))
-		m.Update(codeKeypress(tea.KeyDown))
-		typeString(m, "postgres")
-
-		if m.cursor != 0 {
-			t.Errorf("cursor = %d, want 0", m.cursor)
-		}
-		if got := m.highlightedLabel(); got != "postgres-main" {
-			t.Errorf("highlighted = %q, want %q", got, "postgres-main")
-		}
-	})
-
-	// The filter is typed directly rather than opened with a key, so "/"
-	// is filter text like any other character.
-	t.Run("slash is filter text, not a mode switch", func(t *testing.T) {
-		m := newListModel("", "", stringOptions("with/slash", "without"))
-		m.Update(keypress('/'))
-
-		if got, want := m.filter.Value(), "/"; got != want {
-			t.Errorf("filter = %q, want %q", got, want)
-		}
-		if got := m.matchedLabels(); !slices.Equal(got, []string{"with/slash"}) {
-			t.Errorf("matched %v, want [with/slash]", got)
-		}
-	})
-}
-
-// TestListModelScrolling covers the case the window exists for: more
-// options than fit on screen, which rendered in full push the prompt out
-// of the terminal.
-func TestListModelScrolling(t *testing.T) {
-	options := stringOptions(numberedLabels("instance", 40)...)
-
-	t.Run("only a windowful of options is rendered", func(t *testing.T) {
-		m := newListModel("pick one", "", options)
-
-		view := m.View().Content
-		if got := strings.Count(view, "instance-"); got != maxVisibleOptions {
-			t.Errorf("rendered %d options, want %d", got, maxVisibleOptions)
-		}
-		if !strings.Contains(view, "instance-00") || strings.Contains(view, "instance-39") {
-			t.Errorf("window is not at the top of the list:\n%s", view)
-		}
-	})
-
-	t.Run("the window follows the cursor down the list", func(t *testing.T) {
-		m := newListModel("", "", options)
-		for range len(options) {
-			m.Update(codeKeypress(tea.KeyDown))
-		}
-
-		if m.cursor != len(options)-1 {
-			t.Fatalf("cursor = %d, want %d", m.cursor, len(options)-1)
-		}
-
-		view := m.View().Content
-		if !strings.Contains(view, "instance-39") {
-			t.Errorf("last option is not in view:\n%s", view)
-		}
-		if strings.Contains(view, "instance-00") {
-			t.Errorf("window did not scroll away from the top:\n%s", view)
-		}
-		if got := strings.Count(view, "instance-"); got != maxVisibleOptions {
-			t.Errorf("rendered %d options, want %d", got, maxVisibleOptions)
-		}
-	})
-
-	t.Run("the window follows the cursor back up the list", func(t *testing.T) {
-		m := newListModel("", "", options)
-		for range len(options) {
-			m.Update(codeKeypress(tea.KeyDown))
-		}
-		for range len(options) {
-			m.Update(codeKeypress(tea.KeyUp))
-		}
-
-		if m.offset != 0 {
-			t.Errorf("offset = %d, want 0", m.offset)
-		}
-		if !strings.Contains(m.View().Content, "instance-00") {
-			t.Error("first option is not back in view")
-		}
-	})
-
-	t.Run("the footer says how much of the list is showing", func(t *testing.T) {
-		m := newListModel("", "", options)
-
-		if want := fmt.Sprintf("of %d", len(options)); !strings.Contains(m.View().Content, want) {
-			t.Errorf("view does not mention the full option count %q", want)
-		}
-	})
-
-	t.Run("a list that fits is rendered whole", func(t *testing.T) {
-		short := options[:3]
-		m := newListModel("", "", short)
-
-		if got := strings.Count(m.View().Content, "instance-"); got != len(short) {
-			t.Errorf("rendered %d options, want %d", got, len(short))
-		}
-	})
-}
-
-func TestListModelDisabledOptions(t *testing.T) {
-	type item struct{ n int }
-
-	newOptions := func() []Option[item] {
-		return []Option[item]{
-			{Label: "current", Description: "cannot pick", Disabled: true, Value: item{1}},
-			{Label: "older", Value: item{2}},
-			{Label: "oldest", Value: item{3}},
-		}
-	}
-
-	t.Run("enter picks the highlighted option", func(t *testing.T) {
-		m := newListModel("Choose", "", newOptions())
-		m.Update(codeKeypress(tea.KeyDown))
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if got := pickedValue(t, m); got.n != 2 {
-			t.Errorf("picked = %+v, want {n:2}", got)
-		}
-	})
-
-	t.Run("enter on a disabled option does not pick it", func(t *testing.T) {
-		m := newListModel("Choose", "", newOptions())
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if m.chosen != nil {
-			t.Fatalf("chosen = %+v, want nil (option is disabled)", m.chosen)
-		}
-
-		m.Update(codeKeypress(tea.KeyDown))
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if got := pickedValue(t, m); got.n != 2 {
-			t.Errorf("picked = %+v, want {n:2} after moving off the disabled option", got)
-		}
-	})
-
-	t.Run("a refused pick explains itself with the option's description", func(t *testing.T) {
-		m := newListModel("Choose", "", newOptions())
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if view := m.View().Content; !strings.Contains(view, "cannot pick") {
-			t.Errorf("view does not explain why the option was refused:\n%s", view)
-		}
-
-		// The explanation belongs to that key press, so the next one
-		// clears it.
-		m.Update(codeKeypress(tea.KeyDown))
-		if view := m.View().Content; strings.Contains(view, "cannot pick") {
-			t.Errorf("explanation outlived the key press it answered:\n%s", view)
-		}
-	})
-
-	t.Run("a disabled option with no description is still refused", func(t *testing.T) {
-		m := newListModel("Choose", "", []Option[item]{{Label: "nope", Disabled: true, Value: item{1}}})
-		m.Update(codeKeypress(tea.KeyEnter))
-
-		if m.chosen != nil {
-			t.Fatalf("chosen = %+v, want nil", m.chosen)
-		}
-		if view := m.View().Content; !strings.Contains(view, "cannot be picked") {
-			t.Errorf("view does not say the option is unpickable:\n%s", view)
-		}
-	})
-}
-
-func TestListModelDescriptions(t *testing.T) {
-	// A Description is a second line under its option's label.
-	t.Run("a description adds a line under its own option only", func(t *testing.T) {
-		m := newListModel("title", "", []Option[string]{
-			{Label: "aaa", Description: "d1", Value: "a"},
-			{Label: "bbb", Value: "b"},
-		})
-
-		// Undescribed options sit on consecutive lines, asserted by the
-		// sibling subtest, so only aaa's description can push bbb down.
-		view := m.View().Content
-		if got := lineIndexContaining(view, "bbb") - lineIndexContaining(view, "aaa"); got != 2 {
-			t.Errorf("gap between the options = %d, want 2 (label, description, label):\n%s", got, view)
-		}
-	})
-
-	// A disabled option's Description explains why it can't be picked and
-	// is shown only when picking it is attempted. This is the shape of a
-	// real PickOne call: one disabled "current" choice explaining itself,
-	// and plain choices with no description.
-	t.Run("a disabled option's description is not a line of its own", func(t *testing.T) {
-		m := newListModel("title", "", []Option[string]{
-			{Label: "current", Description: "already the current choice", Disabled: true, Value: "current"},
-			{Label: "older", Value: "older"},
-			{Label: "oldest", Value: "oldest"},
-		})
-
-		view := m.View().Content
-		if strings.Contains(view, "already the current choice") {
-			t.Errorf("disabled option's description is rendered as a line:\n%s", view)
-		}
-
-		olderIdx := lineIndexContaining(view, "older")
-		oldestIdx := lineIndexContaining(view, "oldest")
-		if olderIdx < 0 || oldestIdx < 0 {
-			t.Fatalf("could not locate both options in view (older at %d, oldest at %d)", olderIdx, oldestIdx)
-		}
-		if gap := oldestIdx - olderIdx; gap != 1 {
-			t.Errorf("gap between undescribed options = %d, want 1", gap)
-		}
-	})
-}
-
-func TestListModelHelp(t *testing.T) {
-	m := newListModel("Choose one", "this is the help text", stringOptions("a", "b"))
-
-	if view := m.View().Content; !strings.Contains(view, "this is the help text") {
-		t.Errorf("view does not include the help text:\n%s", view)
-	}
-}
-
-// pickedValue returns the Value m settled on, failing the test if it was
-// canceled or picked nothing.
-func pickedValue[T any](t *testing.T, m *listModel[T]) T {
-	t.Helper()
-
-	if m.chosen == nil {
-		var zero T
-		t.Fatal("chosen = nil, want a picked option")
-
-		return zero
-	}
-
-	return m.chosen.Value
 }
 
 func TestListModelPaging(t *testing.T) {
@@ -503,12 +152,8 @@ func TestListModelPaging(t *testing.T) {
 				m.Update(key)
 			}
 
-			if got := m.highlightedLabel(); got != tt.want {
-				t.Errorf("highlighted = %q, want %q", got, tt.want)
-			}
-			if view := m.View().Content; !strings.Contains(view, tt.want) {
-				t.Errorf("highlighted option is not in view:\n%s", view)
-			}
+			assert.Equal(t, m.highlightedLabel(), tt.want)
+			assert.Assert(t, cmp.Contains(m.View().Content, tt.want))
 		})
 	}
 
@@ -517,13 +162,271 @@ func TestListModelPaging(t *testing.T) {
 		m := newListModel("", "", stringOptions("alpha", "gamma"))
 		m.Update(keypress('g'))
 
-		if got, want := m.filter.Value(), "g"; got != want {
-			t.Errorf("filter = %q, want %q", got, want)
-		}
-		if got := m.highlightedLabel(); got != "gamma" {
-			t.Errorf("highlighted = %q, want %q", got, "gamma")
-		}
+		assert.Equal(t, m.filter.Value(), "g")
+		assert.Equal(t, m.highlightedLabel(), "gamma")
 	})
+}
+
+func TestListModelCancel(t *testing.T) {
+	options := stringOptions("a", "b")
+
+	t.Run("ctrl+c cancels without picking", func(t *testing.T) {
+		m := newListModel("", "", options)
+		m.Update(ctrlCKeypress())
+
+		assert.Assert(t, m.chosen == nil)
+	})
+
+	t.Run("esc cancels without picking", func(t *testing.T) {
+		m := newListModel("", "", options)
+		m.Update(codeKeypress(tea.KeyEscape))
+
+		assert.Assert(t, m.chosen == nil)
+	})
+
+	t.Run("ctrl+c cancels even with a filter typed, unlike esc", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "a")
+
+		_, cmd := m.Update(codeKeypress(tea.KeyEscape))
+		assert.Assert(t, cmd == nil, "esc with a filter typed should clear the filter, not quit")
+
+		typeString(m, "a")
+		_, cmd = m.Update(ctrlCKeypress())
+		assert.Assert(t, cmd != nil, "ctrl+c should quit")
+		assert.Equal(t, cmd(), tea.Msg(tea.QuitMsg{}))
+	})
+}
+
+// TestListModelFilter covers narrowing a list down by typing, which is
+// what makes a list too long to read usable.
+func TestListModelFilter(t *testing.T) {
+	options := stringOptions("kafka-broker-1", "redis-cache", "kafka-broker-2", "postgres-main")
+
+	t.Run("typing narrows the options to those containing the text", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "kafka")
+
+		assert.DeepEqual(t, m.matchedLabels(), []string{"kafka-broker-1", "kafka-broker-2"})
+	})
+
+	t.Run("filtering is case-insensitive", func(t *testing.T) {
+		m := newListModel("", "", stringOptions("Bento-Alpha", "bento-beta", "other"))
+		typeString(m, "BENTO")
+
+		assert.DeepEqual(t, m.matchedLabels(), []string{"Bento-Alpha", "bento-beta"})
+	})
+
+	// Picking by cursor position alone would return whichever option sits
+	// at that index in the full list.
+	t.Run("enter picks the highlighted match, not the option at its index", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "kafka")
+		m.Update(codeKeypress(tea.KeyDown))
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		assert.Equal(t, pickedValue(t, m), "kafka-broker-2")
+	})
+
+	t.Run("enter does nothing while no option matches", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "nonexistent")
+		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
+
+		assert.Assert(t, cmd == nil, "the prompt should stay open")
+		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Contains(m.View().Content, "no options match"))
+	})
+
+	t.Run("esc clears the filter instead of cancelling", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "kafka")
+		m.Update(codeKeypress(tea.KeyEscape))
+
+		assert.Assert(t, m.chosen == nil)
+		assert.Equal(t, m.filter.Value(), "")
+		assert.Equal(t, len(m.matches), len(options))
+	})
+
+	t.Run("backspace re-widens the list", func(t *testing.T) {
+		m := newListModel("", "", options)
+		typeString(m, "kafka-broker-1")
+		assert.Equal(t, len(m.matches), 1)
+
+		for range len("-1") {
+			m.Update(codeKeypress(tea.KeyBackspace))
+		}
+
+		assert.Equal(t, m.filter.Value(), "kafka-broker")
+		assert.DeepEqual(t, m.matchedLabels(), []string{"kafka-broker-1", "kafka-broker-2"})
+	})
+
+	t.Run("a narrowed cursor returns to the top of the list", func(t *testing.T) {
+		m := newListModel("", "", options)
+		m.Update(codeKeypress(tea.KeyDown))
+		m.Update(codeKeypress(tea.KeyDown))
+		typeString(m, "postgres")
+
+		assert.Equal(t, m.cursor, 0)
+		assert.Equal(t, m.highlightedLabel(), "postgres-main")
+	})
+
+	// The filter is typed directly rather than opened with a key, so "/"
+	// is filter text like any other character.
+	t.Run("slash is filter text, not a mode switch", func(t *testing.T) {
+		m := newListModel("", "", stringOptions("with/slash", "without"))
+		m.Update(keypress('/'))
+
+		assert.Equal(t, m.filter.Value(), "/")
+		assert.DeepEqual(t, m.matchedLabels(), []string{"with/slash"})
+	})
+}
+
+// TestListModelScrolling covers the case the window exists for: more
+// options than fit on screen, which rendered in full push the prompt out
+// of the terminal.
+func TestListModelScrolling(t *testing.T) {
+	options := stringOptions(numberedLabels("instance", 40)...)
+
+	t.Run("only a windowful of options is rendered", func(t *testing.T) {
+		m := newListModel("pick one", "", options)
+
+		view := m.View().Content
+		assert.Equal(t, strings.Count(view, "instance-"), maxVisibleOptions)
+		assert.Assert(t, cmp.Contains(view, "instance-00"))
+		assert.Assert(t, !strings.Contains(view, "instance-39"), "window is not at the top of the list")
+	})
+
+	t.Run("the window follows the cursor down the list", func(t *testing.T) {
+		m := newListModel("", "", options)
+		for range len(options) {
+			m.Update(codeKeypress(tea.KeyDown))
+		}
+		assert.Equal(t, m.cursor, len(options)-1)
+
+		view := m.View().Content
+		assert.Assert(t, cmp.Contains(view, "instance-39"))
+		assert.Assert(t, !strings.Contains(view, "instance-00"), "window did not scroll away from the top")
+		assert.Equal(t, strings.Count(view, "instance-"), maxVisibleOptions)
+	})
+
+	t.Run("the window follows the cursor back up the list", func(t *testing.T) {
+		m := newListModel("", "", options)
+		for range len(options) {
+			m.Update(codeKeypress(tea.KeyDown))
+		}
+		for range len(options) {
+			m.Update(codeKeypress(tea.KeyUp))
+		}
+
+		assert.Equal(t, m.offset, 0)
+		assert.Assert(t, cmp.Contains(m.View().Content, "instance-00"))
+	})
+
+	t.Run("the footer says how much of the list is showing", func(t *testing.T) {
+		m := newListModel("", "", options)
+
+		assert.Assert(t, cmp.Contains(m.View().Content, fmt.Sprintf("of %d", len(options))))
+	})
+
+	t.Run("a list that fits is rendered whole", func(t *testing.T) {
+		short := options[:3]
+		m := newListModel("", "", short)
+
+		assert.Equal(t, strings.Count(m.View().Content, "instance-"), len(short))
+	})
+}
+
+func TestListModelDisabledOptions(t *testing.T) {
+	type item struct{ n int }
+
+	newOptions := func() []Option[item] {
+		return []Option[item]{
+			{Label: "current", Description: "cannot pick", Disabled: true, Value: item{1}},
+			{Label: "older", Value: item{2}},
+			{Label: "oldest", Value: item{3}},
+		}
+	}
+
+	t.Run("enter picks the highlighted option", func(t *testing.T) {
+		m := newListModel("Choose", "", newOptions())
+		m.Update(codeKeypress(tea.KeyDown))
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		assert.Equal(t, pickedValue(t, m), item{2})
+	})
+
+	t.Run("enter on a disabled option does not pick it", func(t *testing.T) {
+		m := newListModel("Choose", "", newOptions())
+		m.Update(codeKeypress(tea.KeyEnter))
+		assert.Assert(t, m.chosen == nil, "the option is disabled")
+
+		m.Update(codeKeypress(tea.KeyDown))
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		assert.Equal(t, pickedValue(t, m), item{2})
+	})
+
+	t.Run("a refused pick explains itself with the option's description", func(t *testing.T) {
+		m := newListModel("Choose", "", newOptions())
+		m.Update(codeKeypress(tea.KeyEnter))
+		assert.Assert(t, cmp.Contains(m.View().Content, "cannot pick"))
+
+		// The explanation belongs to that key press, so the next one
+		// clears it.
+		m.Update(codeKeypress(tea.KeyDown))
+		assert.Assert(t, !strings.Contains(m.View().Content, "cannot pick"),
+			"explanation outlived the key press it answered")
+	})
+
+	t.Run("a disabled option with no description is still refused", func(t *testing.T) {
+		m := newListModel("Choose", "", []Option[item]{{Label: "nope", Disabled: true, Value: item{1}}})
+		m.Update(codeKeypress(tea.KeyEnter))
+
+		assert.Assert(t, m.chosen == nil)
+		assert.Assert(t, cmp.Contains(m.View().Content, "cannot be picked"))
+	})
+}
+
+func TestListModelDescriptions(t *testing.T) {
+	// A Description is a second line under its option's label.
+	t.Run("a description adds a line under its own option only", func(t *testing.T) {
+		m := newListModel("title", "", []Option[string]{
+			{Label: "aaa", Description: "d1", Value: "a"},
+			{Label: "bbb", Value: "b"},
+		})
+
+		// Undescribed options sit on consecutive lines, asserted by the
+		// sibling subtest, so only aaa's description can push bbb down.
+		view := m.View().Content
+		gap := lineIndexContaining(view, "bbb") - lineIndexContaining(view, "aaa")
+		assert.Equal(t, gap, 2, "want label, description, label:\n%s", view)
+	})
+
+	// A disabled option's Description explains why it can't be picked and
+	// is shown only when picking it is attempted. This is the shape of a
+	// real PickOne call: one disabled "current" choice explaining itself,
+	// and plain choices with no description.
+	t.Run("a disabled option's description is not a line of its own", func(t *testing.T) {
+		m := newListModel("title", "", []Option[string]{
+			{Label: "current", Description: "already the current choice", Disabled: true, Value: "current"},
+			{Label: "older", Value: "older"},
+			{Label: "oldest", Value: "oldest"},
+		})
+
+		view := m.View().Content
+		assert.Assert(t, !strings.Contains(view, "already the current choice"),
+			"a disabled option's description is rendered as a line")
+
+		gap := lineIndexContaining(view, "oldest") - lineIndexContaining(view, "older")
+		assert.Equal(t, gap, 1, "want consecutive lines:\n%s", view)
+	})
+}
+
+func TestListModelHelp(t *testing.T) {
+	m := newListModel("Choose one", "this is the help text", stringOptions("a", "b"))
+
+	assert.Assert(t, cmp.Contains(m.View().Content, "this is the help text"))
 }
 
 // TestListModelTruncation covers labels wider than the terminal: left
@@ -535,9 +438,7 @@ func TestListModelTruncation(t *testing.T) {
 	t.Run("a label is left alone until a resize arrives", func(t *testing.T) {
 		m := newListModel("", "", stringOptions(label))
 
-		if view := m.View().Content; !strings.Contains(view, label) {
-			t.Errorf("label was truncated with no known width:\n%s", view)
-		}
+		assert.Assert(t, cmp.Contains(m.View().Content, label))
 	})
 
 	t.Run("a label wider than the terminal is truncated with an ellipsis", func(t *testing.T) {
@@ -545,37 +446,23 @@ func TestListModelTruncation(t *testing.T) {
 		m.Update(tea.WindowSizeMsg{Width: 24, Height: 20})
 
 		view := m.View().Content
-		if strings.Contains(view, label) {
-			t.Errorf("label was not truncated:\n%s", view)
-		}
-		if !strings.Contains(view, ellipsis) {
-			t.Errorf("truncated label is not marked with an ellipsis:\n%s", view)
-		}
-		for _, line := range strings.Split(strings.TrimRight(view, "\n"), "\n") {
-			if got := lipgloss.Width(line); got > 24 {
-				t.Errorf("line is %d columns wide, want at most 24: %q", got, line)
-			}
-		}
+		assert.Assert(t, !strings.Contains(view, label), "label was not truncated")
+		assert.Assert(t, cmp.Contains(view, ellipsis))
+		assertLinesFit(t, view, 24)
 	})
 
 	t.Run("a label that fits is left whole", func(t *testing.T) {
 		m := newListModel("", "", stringOptions("short"))
 		m.Update(tea.WindowSizeMsg{Width: 80, Height: 20})
 
-		if view := m.View().Content; !strings.Contains(view, "short") {
-			t.Errorf("label that fits was altered:\n%s", view)
-		}
+		assert.Assert(t, cmp.Contains(m.View().Content, "short"))
 	})
 
 	t.Run("a checkbox row leaves room for its box", func(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: []string{label}})
 		m.Update(tea.WindowSizeMsg{Width: 30, Height: 20})
 
-		for _, line := range strings.Split(strings.TrimRight(m.View().Content, "\n"), "\n") {
-			if got := lipgloss.Width(line); got > 30 {
-				t.Errorf("line is %d columns wide, want at most 30: %q", got, line)
-			}
-		}
+		assertLinesFit(t, m.View().Content, 30)
 	})
 }
 
@@ -585,9 +472,5 @@ func TestListModelClampsEveryLine(t *testing.T) {
 	m := newListModel("A question far longer than the terminal it is asked in", "help that is also too long", stringOptions("a", "b"))
 	m.Update(tea.WindowSizeMsg{Width: 20, Height: 20})
 
-	for _, line := range strings.Split(strings.TrimRight(m.View().Content, "\n"), "\n") {
-		if got := lipgloss.Width(line); got > 20 {
-			t.Errorf("line is %d columns wide, want at most 20: %q", got, line)
-		}
-	}
+	assertLinesFit(t, m.View().Content, 20)
 }

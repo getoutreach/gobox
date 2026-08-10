@@ -4,11 +4,12 @@ package prompt
 
 import (
 	"errors"
-	"slices"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestMultiSelectModel(t *testing.T) {
@@ -22,9 +23,7 @@ func TestMultiSelectModel(t *testing.T) {
 		m.Update(codeKeypress(tea.KeySpace))
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got, want := m.selectedOptions(), []string{"a", "c"}; !slices.Equal(got, want) {
-			t.Errorf("selected = %v, want %v", got, want)
-		}
+		assert.DeepEqual(t, m.selectedOptions(), []string{"a", "c"})
 	})
 
 	t.Run("space toggles an option back off", func(t *testing.T) {
@@ -32,36 +31,29 @@ func TestMultiSelectModel(t *testing.T) {
 		m.Update(codeKeypress(tea.KeySpace))
 		m.Update(codeKeypress(tea.KeySpace))
 
-		if m.selected[0] {
-			t.Error("selected[0] = true, want false after toggling twice")
-		}
+		assert.Assert(t, !m.selected[0])
 	})
 
 	t.Run("ctrl+c aborts", func(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
 		m.Update(ctrlCKeypress())
 
-		if !m.aborted {
-			t.Error("aborted = false, want true")
-		}
+		assert.Assert(t, m.aborted)
 	})
 
 	t.Run("esc aborts", func(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		if !m.aborted {
-			t.Error("aborted = false, want true")
-		}
+		assert.Assert(t, m.aborted)
 	})
 }
 
 func TestMultiSelectNoOptions(t *testing.T) {
 	// No options is rejected before a Program is ever started, so this is
 	// safe to call directly without a TTY.
-	if _, err := MultiSelect(t.Context(), MultiSelectConfig{}); !errors.Is(err, ErrAborted) {
-		t.Errorf("err = %v, want ErrAborted", err)
-	}
+	_, err := MultiSelect(t.Context(), MultiSelectConfig{})
+	assert.Assert(t, errors.Is(err, ErrAborted))
 }
 
 // TestMultiSelectModelFilter covers what a multiple-choice prompt has to
@@ -76,9 +68,7 @@ func TestMultiSelectModelFilter(t *testing.T) {
 		typeString(m, "postgres")
 		m.Update(codeKeypress(tea.KeySpace))
 
-		if got, want := m.selectedOptions(), []string{"postgres-main"}; !slices.Equal(got, want) {
-			t.Errorf("selected = %v, want %v", got, want)
-		}
+		assert.DeepEqual(t, m.selectedOptions(), []string{"postgres-main"})
 	})
 
 	// Selections are held by position in the full list, so narrowing to
@@ -97,9 +87,7 @@ func TestMultiSelectModelFilter(t *testing.T) {
 
 		// In the order the options were listed, not the order they were
 		// selected.
-		if got, want := m.selectedOptions(), []string{"kafka-broker-2", "postgres-main"}; !slices.Equal(got, want) {
-			t.Errorf("selected = %v, want %v", got, want)
-		}
+		assert.DeepEqual(t, m.selectedOptions(), []string{"kafka-broker-2", "postgres-main"})
 	})
 
 	t.Run("space does nothing while no option matches", func(t *testing.T) {
@@ -107,9 +95,7 @@ func TestMultiSelectModelFilter(t *testing.T) {
 		typeString(m, "nonexistent")
 		m.Update(codeKeypress(tea.KeySpace))
 
-		if got := m.selectedOptions(); len(got) != 0 {
-			t.Errorf("selected = %v, want nothing", got)
-		}
+		assert.Equal(t, m.countSelected(), 0)
 	})
 
 	t.Run("enter confirms the selection even while filtered", func(t *testing.T) {
@@ -118,12 +104,8 @@ func TestMultiSelectModelFilter(t *testing.T) {
 		typeString(m, "nonexistent")
 
 		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
-		if cmd == nil {
-			t.Fatal("expected a quit command, got nil")
-		}
-		if got, want := m.selectedOptions(), []string{"kafka-broker-1"}; !slices.Equal(got, want) {
-			t.Errorf("selected = %v, want %v", got, want)
-		}
+		assert.Assert(t, cmd != nil, "enter should confirm")
+		assert.DeepEqual(t, m.selectedOptions(), []string{"kafka-broker-1"})
 	})
 
 	t.Run("the footer counts selections that scrolled out of sight", func(t *testing.T) {
@@ -132,12 +114,9 @@ func TestMultiSelectModelFilter(t *testing.T) {
 		typeString(m, "redis")
 
 		view := m.View().Content
-		if strings.Contains(view, "kafka-broker-1") {
-			t.Fatalf("the selected option is still on screen, so the count isn't what's under test:\n%s", view)
-		}
-		if !strings.Contains(view, "1 selected") {
-			t.Errorf("view does not count the off-screen selection:\n%s", view)
-		}
+		assert.Assert(t, !strings.Contains(view, "kafka-broker-1"),
+			"the selected option is still on screen, so the count is not what's under test")
+		assert.Assert(t, cmp.Contains(view, "1 selected"))
 	})
 }
 
@@ -154,10 +133,6 @@ func TestMultiSelectModelToggleAfterScrolling(t *testing.T) {
 	}
 	m.Update(codeKeypress(tea.KeySpace))
 
-	if view := m.View().Content; !strings.Contains(view, "template-39") {
-		t.Errorf("last option is not in view:\n%s", view)
-	}
-	if got, want := m.selectedOptions(), []string{"template-39"}; !slices.Equal(got, want) {
-		t.Errorf("selected = %v, want %v", got, want)
-	}
+	assert.Assert(t, cmp.Contains(m.View().Content, "template-39"))
+	assert.DeepEqual(t, m.selectedOptions(), []string{"template-39"})
 }
