@@ -4,6 +4,7 @@ package prompt
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -45,15 +46,18 @@ func numberedLabels(prefix string, n int) []string {
 	return labels
 }
 
+// viewLines splits a rendered view into its lines, without the empty one
+// the trailing newline leaves behind.
+func viewLines(view string) []string {
+	return strings.Split(strings.TrimRight(view, "\n"), "\n")
+}
+
 // lineIndexContaining returns the index of the first line in view
 // containing substr, or -1 if none does.
 func lineIndexContaining(view, substr string) int {
-	for i, line := range strings.Split(view, "\n") {
-		if strings.Contains(line, substr) {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(viewLines(view), func(line string) bool {
+		return strings.Contains(line, substr)
+	})
 }
 
 // pickedValue returns the Value m settled on, failing the test if it was
@@ -70,7 +74,7 @@ func pickedValue[T any](t *testing.T, m *listModel[T]) T {
 func assertLinesFit(t *testing.T, view string, width int) {
 	t.Helper()
 
-	for _, line := range strings.Split(strings.TrimRight(view, "\n"), "\n") {
+	for _, line := range viewLines(view) {
 		assert.Assert(t, lipgloss.Width(line) <= width,
 			"line is %d columns wide, want at most %d: %q", lipgloss.Width(line), width, line)
 	}
