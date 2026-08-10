@@ -97,7 +97,15 @@ func newInputModel(cfg Config) *inputModel {
 		ti.SetValue(cfg.Default)
 	}
 
-	return &inputModel{cfg: cfg, input: ti, initCmd: ti.Focus()}
+	// Focus is taken on the model's own copy of the field, rather than on
+	// ti inside the literal below: Go leaves the order of a composite
+	// literal's field values and the calls among them unspecified, so
+	// focusing ti there may or may not be reflected in the copy assigned
+	// to input.
+	m := &inputModel{cfg: cfg, input: ti}
+	m.initCmd = m.input.Focus()
+
+	return m
 }
 
 func (m *inputModel) Init() tea.Cmd {
