@@ -4,7 +4,6 @@ package prompt
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -42,8 +41,8 @@ func TestMultiSelectModel(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
 		m.Update(ctrlCKeypress())
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
+		if !m.aborted {
+			t.Error("aborted = false, want true")
 		}
 	})
 
@@ -51,8 +50,8 @@ func TestMultiSelectModel(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
+		if !m.aborted {
+			t.Error("aborted = false, want true")
 		}
 	})
 }
@@ -65,22 +64,12 @@ func TestMultiSelectNoOptions(t *testing.T) {
 	}
 }
 
-// TestMultiSelectModelFilter covers the filtering MultiSelect shares with
-// the single-choice prompts, and the one thing only a multiple-choice
-// prompt has to get right about it: a selection outliving the filter that
-// was used to find it.
+// TestMultiSelectModelFilter covers what a multiple-choice prompt has to
+// get right about filtering that a single-choice one doesn't: selections
+// outliving the filter used to find them. Narrowing itself belongs to the
+// shared core, covered once in list_test.go.
 func TestMultiSelectModelFilter(t *testing.T) {
 	options := []string{"kafka-broker-1", "redis-cache", "kafka-broker-2", "postgres-main"}
-
-	t.Run("typing narrows the options", func(t *testing.T) {
-		m := newMultiSelectModel(MultiSelectConfig{Options: options})
-		typeString(m, "kafka")
-
-		want := []string{"kafka-broker-1", "kafka-broker-2"}
-		if got := matchedLabels(&m.optionList); !slices.Equal(got, want) {
-			t.Errorf("matched %v, want %v", got, want)
-		}
-	})
 
 	t.Run("space toggles the highlighted match", func(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
@@ -152,42 +141,24 @@ func TestMultiSelectModelFilter(t *testing.T) {
 	})
 }
 
-// TestMultiSelectModelScrolling covers the long lists that motivated
-// windowing: rendered in full they push the prompt out of the terminal.
-func TestMultiSelectModelScrolling(t *testing.T) {
-	options := make([]string, 0, 40)
-	for i := range 40 {
-		options = append(options, fmt.Sprintf("template-%02d", i))
+// TestMultiSelectModelToggleAfterScrolling covers the one thing about a
+// long list that is MultiSelect's own rather than the shared core's: a
+// toggle after scrolling has to land on the option's index in the full
+// list, not its position in the window. The windowing itself is covered
+// once, in list_test.go.
+func TestMultiSelectModelToggleAfterScrolling(t *testing.T) {
+	options := numberedLabels("template", 40)
+
+	m := newMultiSelectModel(MultiSelectConfig{Options: options})
+	for range len(options) {
+		m.Update(codeKeypress(tea.KeyDown))
 	}
+	m.Update(codeKeypress(tea.KeySpace))
 
-	t.Run("only a windowful of options is rendered", func(t *testing.T) {
-		m := newMultiSelectModel(MultiSelectConfig{Options: options})
-
-		view := m.View().Content
-		if got := strings.Count(view, "template-"); got != maxVisibleOptions {
-			t.Errorf("rendered %d options, want %d", got, maxVisibleOptions)
-		}
-		if want := fmt.Sprintf("of %d", len(options)); !strings.Contains(view, want) {
-			t.Errorf("view does not mention the full option count %q", want)
-		}
-	})
-
-	t.Run("the window follows the cursor down the list", func(t *testing.T) {
-		m := newMultiSelectModel(MultiSelectConfig{Options: options})
-		for range len(options) {
-			m.Update(codeKeypress(tea.KeyDown))
-		}
-		m.Update(codeKeypress(tea.KeySpace))
-
-		view := m.View().Content
-		if !strings.Contains(view, "template-39") {
-			t.Errorf("last option is not in view:\n%s", view)
-		}
-		if strings.Contains(view, "template-00") {
-			t.Errorf("window did not scroll away from the top:\n%s", view)
-		}
-		if got, want := m.selectedOptions(), []string{"template-39"}; !slices.Equal(got, want) {
-			t.Errorf("selected = %v, want %v", got, want)
-		}
-	})
+	if view := m.View().Content; !strings.Contains(view, "template-39") {
+		t.Errorf("last option is not in view:\n%s", view)
+	}
+	if got, want := m.selectedOptions(), []string{"template-39"}; !slices.Equal(got, want) {
+		t.Errorf("selected = %v, want %v", got, want)
+	}
 }

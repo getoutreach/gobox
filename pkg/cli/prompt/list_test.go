@@ -11,20 +11,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// stringOptions builds a list of Options whose Values are their Labels,
-// which is the shape Select hands the model.
-func stringOptions(labels ...string) []Option[string] {
-	options := make([]Option[string], len(labels))
-	for i, label := range labels {
-		options[i] = Option[string]{Label: label, Value: label}
-	}
-
-	return options
-}
-
 // matchedLabels returns the Labels of the options l currently has
 // matching its filter, in order.
-func matchedLabels[T any](l *optionList[T]) []string {
+func (l *optionList[T]) matchedLabels() []string {
 	matched := make([]string, 0, len(l.matches))
 	for _, idx := range l.matches {
 		matched = append(matched, l.options[idx].Label)
@@ -35,13 +24,24 @@ func matchedLabels[T any](l *optionList[T]) []string {
 
 // highlightedLabel returns the Label of the option l has highlighted, or
 // "" if nothing matches its filter.
-func highlightedLabel[T any](l *optionList[T]) string {
+func (l *optionList[T]) highlightedLabel() string {
 	option, _, ok := l.highlighted()
 	if !ok {
 		return ""
 	}
 
 	return option.Label
+}
+
+// numberedLabels builds n labels of the form "<prefix>-00", for the lists
+// that need more options than fit on screen.
+func numberedLabels(prefix string, n int) []string {
+	labels := make([]string, 0, n)
+	for i := range n {
+		labels = append(labels, fmt.Sprintf("%s-%02d", prefix, i))
+	}
+
+	return labels
 }
 
 // lineIndexContaining returns the index of the first line in view
@@ -63,68 +63,49 @@ func TestNewListModel(t *testing.T) {
 
 	m := newListModel("title", "", options)
 
-	if got := len(m.matches); got != len(options) {
-		t.Fatalf("matched %d options, want all %d", got, len(options))
-	}
-	if got, want := matchedLabels(&m.optionList), []string{"current", "older"}; !slices.Equal(got, want) {
+	if got, want := m.matchedLabels(), []string{"current", "older"}; !slices.Equal(got, want) {
 		t.Errorf("matched %v, want %v", got, want)
-	}
-	if m.chosen != nil {
-		t.Errorf("chosen = %+v, want nil before anything is picked", m.chosen)
 	}
 }
 
 func TestListModelCursor(t *testing.T) {
 	options := stringOptions("a", "b", "c")
 
-	t.Run("enter picks the initial cursor position", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(codeKeypress(tea.KeyEnter))
+	for _, tt := range []struct {
+		name string
+		keys []tea.KeyPressMsg
+		want string
+	}{
+		{name: "starts on the first option", want: "a"},
+		{name: "down moves forward", keys: []tea.KeyPressMsg{codeKeypress(tea.KeyDown), codeKeypress(tea.KeyDown)}, want: "c"},
+		{name: "up moves back", keys: []tea.KeyPressMsg{codeKeypress(tea.KeyDown), codeKeypress(tea.KeyUp)}, want: "a"},
+		{name: "ctrl+n and ctrl+p move too", keys: []tea.KeyPressMsg{ctrlKeypress('n'), ctrlKeypress('n'), ctrlKeypress('p')}, want: "b"},
+		{
+			name: "stops at the last option",
+			keys: []tea.KeyPressMsg{codeKeypress(tea.KeyDown), codeKeypress(tea.KeyDown), codeKeypress(tea.KeyDown), codeKeypress(tea.KeyDown)},
+			want: "c",
+		},
+		{name: "stops at the first option", keys: []tea.KeyPressMsg{codeKeypress(tea.KeyUp), codeKeypress(tea.KeyUp)}, want: "a"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newListModel("", "", options)
+			for _, key := range tt.keys {
+				m.Update(key)
+			}
 
-		if got := pickedValue(t, m); got != "a" {
-			t.Errorf("picked = %q, want %q", got, "a")
-		}
-	})
+			if got := m.highlightedLabel(); got != tt.want {
+				t.Errorf("highlighted = %q, want %q", got, tt.want)
+			}
+		})
+	}
 
-	t.Run("down moves the cursor before picking", func(t *testing.T) {
+	t.Run("enter picks the highlighted option", func(t *testing.T) {
 		m := newListModel("", "", options)
 		m.Update(codeKeypress(tea.KeyDown))
-		m.Update(codeKeypress(tea.KeyDown))
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got := pickedValue(t, m); got != "c" {
-			t.Errorf("picked = %q, want %q", got, "c")
-		}
-	})
-
-	t.Run("cursor does not move past the last option", func(t *testing.T) {
-		m := newListModel("", "", options)
-		for range len(options) + 1 {
-			m.Update(codeKeypress(tea.KeyDown))
-		}
-
-		if m.cursor != len(options)-1 {
-			t.Errorf("cursor = %d, want %d", m.cursor, len(options)-1)
-		}
-	})
-
-	t.Run("cursor does not move before the first option", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(codeKeypress(tea.KeyUp))
-
-		if m.cursor != 0 {
-			t.Errorf("cursor = %d, want 0", m.cursor)
-		}
-	})
-
-	t.Run("ctrl+p and ctrl+n move the cursor too", func(t *testing.T) {
-		m := newListModel("", "", options)
-		m.Update(ctrlKeypress('n'))
-		m.Update(ctrlKeypress('n'))
-		m.Update(ctrlKeypress('p'))
-
-		if got := highlightedLabel(&m.optionList); got != "b" {
-			t.Errorf("highlighted = %q, want %q", got, "b")
+		if got := pickedValue(t, m); got != "b" {
+			t.Errorf("picked = %q, want %q", got, "b")
 		}
 	})
 }
@@ -180,7 +161,7 @@ func TestListModelFilter(t *testing.T) {
 		typeString(m, "kafka")
 
 		want := []string{"kafka-broker-1", "kafka-broker-2"}
-		if got := matchedLabels(&m.optionList); !slices.Equal(got, want) {
+		if got := m.matchedLabels(); !slices.Equal(got, want) {
 			t.Errorf("matched %v, want %v", got, want)
 		}
 	})
@@ -269,7 +250,7 @@ func TestListModelFilter(t *testing.T) {
 		if m.cursor != 0 {
 			t.Errorf("cursor = %d, want 0", m.cursor)
 		}
-		if got := highlightedLabel(&m.optionList); got != "postgres-main" {
+		if got := m.highlightedLabel(); got != "postgres-main" {
 			t.Errorf("highlighted = %q, want %q", got, "postgres-main")
 		}
 	})
@@ -283,7 +264,7 @@ func TestListModelFilter(t *testing.T) {
 		if got, want := m.filter.Value(), "/"; got != want {
 			t.Errorf("filter = %q, want %q", got, want)
 		}
-		if got := matchedLabels(&m.optionList); !slices.Equal(got, []string{"with/slash"}) {
+		if got := m.matchedLabels(); !slices.Equal(got, []string{"with/slash"}) {
 			t.Errorf("matched %v, want [with/slash]", got)
 		}
 	})
@@ -293,11 +274,7 @@ func TestListModelFilter(t *testing.T) {
 // all: many more options than fit on screen, which rendered in full push
 // the prompt itself out of the terminal.
 func TestListModelScrolling(t *testing.T) {
-	labels := make([]string, 0, 40)
-	for i := range 40 {
-		labels = append(labels, fmt.Sprintf("instance-%02d", i))
-	}
-	options := stringOptions(labels...)
+	options := stringOptions(numberedLabels("instance", 40)...)
 
 	t.Run("only a windowful of options is rendered", func(t *testing.T) {
 		m := newListModel("pick one", "", options)
@@ -438,20 +415,17 @@ func TestListModelDescriptions(t *testing.T) {
 	// An option's Description is a second line under its label, so a
 	// described option takes one line more than an undescribed one.
 	t.Run("a description adds a line under its own option only", func(t *testing.T) {
-		without := newListModel("title", "", stringOptions("aaa", "bbb"))
-		with := newListModel("title", "", []Option[string]{
+		m := newListModel("title", "", []Option[string]{
 			{Label: "aaa", Description: "d1", Value: "a"},
 			{Label: "bbb", Value: "b"},
 		})
 
-		gapWithout := lineIndexContaining(without.View().Content, "bbb") - lineIndexContaining(without.View().Content, "aaa")
-		gapWith := lineIndexContaining(with.View().Content, "bbb") - lineIndexContaining(with.View().Content, "aaa")
-
-		if gapWithout <= 0 || gapWith <= 0 {
-			t.Fatalf("could not locate both options in either view: gapWithout=%d, gapWith=%d", gapWithout, gapWith)
-		}
-		if gapWith != gapWithout+1 {
-			t.Errorf("gap between options with a description = %d, want %d (without: %d)", gapWith, gapWithout+1, gapWithout)
+		// Undescribed options sit on consecutive lines (asserted by the
+		// sibling subtest), so aaa's description is the only thing that
+		// can push bbb one line further down.
+		view := m.View().Content
+		if got := lineIndexContaining(view, "bbb") - lineIndexContaining(view, "aaa"); got != 2 {
+			t.Errorf("gap between the options = %d, want 2 (label, description, label):\n%s", got, view)
 		}
 	})
 

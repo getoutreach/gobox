@@ -5,11 +5,12 @@
 
 // Package prompt implements small terminal prompts (text input, yes/no
 // confirmation, single- and multi-choice selection, and a generic picker)
-// on top of github.com/charmbracelet/bubbletea. Select and PickOne share
-// one filterable, scrolling list; see PickOne.
+// on top of github.com/charmbracelet/bubbletea. Select, MultiSelect and
+// PickOne share one filterable, scrolling list; see PickOne.
 package prompt
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -152,8 +153,8 @@ func (m *inputModel) View() tea.View {
 }
 
 // Ask displays a single-field terminal prompt and returns the entered
-// value. It returns ErrAborted if the user cancels the prompt, or if ctx
-// is canceled while the prompt is running.
+// value. It returns ErrAborted if the user cancels the prompt, and a
+// non-nil error if ctx is canceled while the prompt is running.
 func Ask(ctx context.Context, cfg Config) (string, error) {
 	finalModel, err := tea.NewProgram(newInputModel(cfg), tea.WithContext(ctx)).Run()
 	if err != nil {
@@ -187,29 +188,15 @@ type SelectConfig struct {
 // scroll a window over the list, typing narrows them down to the ones
 // containing what was typed, and Esc clears that filter again.
 //
-// It returns ErrAborted if the user cancels the prompt, if ctx is
-// canceled while the prompt is running, or if no options are provided.
+// It returns ErrAborted if the user cancels the prompt or if no options
+// are provided, and a non-nil error if ctx is canceled while the prompt
+// is running.
 func Select(ctx context.Context, cfg SelectConfig) (string, error) {
 	if len(cfg.Options) == 0 {
 		return "", ErrAborted
 	}
 
-	options := make([]Option[string], len(cfg.Options))
-	for i, opt := range cfg.Options {
-		options[i] = Option[string]{Label: opt, Value: opt}
-	}
-
-	chosen, ok, err := pickOne(ctx, cfg.Message, cfg.Help, options)
-	if err != nil {
-		return "", err
-	}
-	// Select reports a cancel the way the rest of this package's prompts
-	// do, rather than the way PickOne does; see PickOne's doc comment.
-	if !ok {
-		return "", ErrAborted
-	}
-
-	return chosen, nil
+	return pickOne(ctx, cfg.Message, cfg.Help, stringOptions(cfg.Options...))
 }
 
 // MultiSelectConfig describes a multiple-choice prompt.
@@ -232,30 +219,20 @@ type MultiSelectConfig struct {
 type multiSelectModel struct {
 	optionList[string]
 
-	// selected holds the indexes into options of the selected options.
-	// Indexing by position in the full list, rather than in the filtered
-	// view, is what lets a selection survive a change of filter.
-	selected map[int]bool
-
-	err error
+	// selected says, for each option, whether it is selected, indexed as
+	// options is (see optionList.matches).
+	selected []bool
 }
 
 // newMultiSelectModel builds a multiSelectModel for cfg, with every
 // option initially unselected.
 func newMultiSelectModel(cfg MultiSelectConfig) *multiSelectModel {
-	options := make([]Option[string], len(cfg.Options))
-	for i, opt := range cfg.Options {
-		options[i] = Option[string]{Label: opt, Value: opt}
-	}
+	options := stringOptions(cfg.Options...)
 
 	return &multiSelectModel{
 		optionList: newOptionList(cfg.Message, cfg.Help, options),
-		selected:   make(map[int]bool, len(options)),
+		selected:   make([]bool, len(options)),
 	}
-}
-
-func (m *multiSelectModel) Init() tea.Cmd {
-	return m.initCmd
 }
 
 // Update handles the key presses the list itself doesn't: space toggles
@@ -271,29 +248,29 @@ func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.updateFilter(msg)
 	}
 
-	switch m.handleKey(keyMsg.String()) {
+	key := keyMsg.String()
+	switch m.handleKey(key) {
 	case keyAborted:
-		m.err = ErrAborted
 		return m, tea.Quit
 	case keyHandled:
 		return m, nil
 	case keyIgnored:
 	}
 
-	switch keyMsg.String() {
+	switch key {
 	case "space":
-		// Nothing is highlighted to toggle while the filter matches
-		// nothing.
-		if _, index, ok := m.highlighted(); ok {
+		// There is nothing to toggle while the filter matches nothing,
+		// and an option the list won't act on stays untoggled: reachable
+		// only for a typed list of Options, since MultiSelect builds
+		// its own from strings and can't disable one.
+		if option, index, ok := m.highlighted(); ok && !option.Disabled {
 			m.selected[index] = !m.selected[index]
 		}
 
 		return m, nil
 	case keyEnter:
 		// Confirming with nothing selected is a valid answer, so this
-		// doesn't check the selection first. It also doesn't clear the
-		// filter: what was selected is selected whether or not it
-		// currently matches.
+		// doesn't check the selection first.
 		return m, tea.Quit
 	}
 
@@ -304,35 +281,42 @@ func (m *multiSelectModel) View() tea.View {
 	var b strings.Builder
 
 	m.writeHeader(&b)
+	m.writeOptions(&b, m.writeCheckbox)
 
-	if len(m.matches) == 0 {
-		fmt.Fprintln(&b, helpStyle.Render("(no options match the filter, esc to clear it)"))
-	} else {
-		_, highlighted, _ := m.highlighted()
-		for _, idx := range m.visible() {
-			marker, style := "  ", lipgloss.NewStyle()
-			if idx == highlighted {
-				marker, style = "> ", selectedStyle
-			}
-
-			box := "[ ]"
-			if m.selected[idx] {
-				box = "[x]"
-			}
-
-			fmt.Fprintf(&b, "%s%s %s\n", marker, box, style.Render(m.options[idx].Label))
-		}
-	}
-
-	hints := []string{"space to toggle", "enter to confirm"}
+	hints := make([]string, 0, 3)
+	hints = append(hints, "space to toggle", "enter to confirm")
 	// A selection the filter or the window has scrolled out of sight is
 	// still a selection, so the count is worth saying out loud.
-	if n := len(m.selectedOptions()); n > 0 {
+	if n := m.countSelected(); n > 0 {
 		hints = append(hints, fmt.Sprintf("%d selected", n))
 	}
 	fmt.Fprintln(&b, helpStyle.Render(m.footer(hints...)))
 
 	return tea.NewView(b.String())
+}
+
+// writeCheckbox renders one option's line, with a box saying whether it
+// is selected.
+func (m *multiSelectModel) writeCheckbox(b *strings.Builder, index int, highlighted bool) {
+	box := "[ ]"
+	if m.selected[index] {
+		box = "[x]"
+	}
+
+	marker, label := optionLabel(m.options[index], highlighted)
+	fmt.Fprintf(b, "%s%s %s\n", marker, box, label)
+}
+
+// countSelected returns how many options are selected.
+func (m *multiSelectModel) countSelected() int {
+	n := 0
+	for _, on := range m.selected {
+		if on {
+			n++
+		}
+	}
+
+	return n
 }
 
 // selectedOptions returns the selected options' Labels, in the order they
@@ -350,8 +334,9 @@ func (m *multiSelectModel) selectedOptions() []string {
 
 // MultiSelect displays a multiple-choice terminal prompt and returns the
 // chosen options, in the order they were listed in cfg.Options. It
-// returns ErrAborted if the user cancels the prompt, if ctx is canceled
-// while the prompt is running, or if no options are provided.
+// returns ErrAborted if the user cancels the prompt or if no options are
+// provided, and a non-nil error if ctx is canceled while the prompt is
+// running.
 func MultiSelect(ctx context.Context, cfg MultiSelectConfig) ([]string, error) {
 	if len(cfg.Options) == 0 {
 		return nil, ErrAborted
@@ -363,8 +348,8 @@ func MultiSelect(ctx context.Context, cfg MultiSelectConfig) ([]string, error) {
 	}
 
 	m := finalModel.(*multiSelectModel) //nolint:forcetypeassert // Why: we control the only model given to this Program.
-	if m.err != nil {
-		return nil, m.err
+	if m.aborted {
+		return nil, ErrAborted
 	}
 
 	return m.selectedOptions(), nil
@@ -450,8 +435,8 @@ func (m *confirmModel) View() tea.View {
 
 // Confirm displays a yes/no terminal prompt and returns the user's
 // choice. Pressing Enter without typing y/n returns cfg.Default. It
-// returns ErrAborted if the user cancels the prompt, or if ctx is
-// canceled while the prompt is running.
+// returns ErrAborted if the user cancels the prompt, and a non-nil error
+// if ctx is canceled while the prompt is running.
 func Confirm(ctx context.Context, cfg ConfirmConfig) (bool, error) {
 	finalModel, err := tea.NewProgram(newConfirmModel(cfg), tea.WithContext(ctx)).Run()
 	if err != nil {
@@ -486,36 +471,36 @@ type Option[T any] struct {
 }
 
 // maxVisibleOptions caps how many options are on screen at once, matching
-// the page size the archived survey package used. A longer list scrolls a
-// window of this size rather than rendering every option: a list taller
-// than the terminal pushes the prompt itself, and the options above the
-// fold, out of view entirely.
+// the page size the archived survey package used: a list taller than the
+// terminal pushes the prompt itself out of view. The terminal's real
+// height (tea.WindowSizeMsg) is deliberately not consulted — these
+// prompts render inline, in the flow of the terminal's own scrollback,
+// rather than taking over the screen.
 const maxVisibleOptions = 7
 
-// filterPrompt labels the field holding the filter text.
-const filterPrompt = "filter: "
+// noMatchesNote takes the footer's place when the filter matches none of
+// the options: with nothing listed, how to move through the list and what
+// Enter would do are noise, and clearing the filter is the only thing
+// worth saying.
+const noMatchesNote = "(no options match the filter, esc to clear it)"
 
-// keyResult is what optionList.handleKey did with a key press.
+// keyResult is what optionList.handleKey did with a key press: the press
+// was none of its business, or it consumed it, or the press asked to
+// abandon the prompt.
 type keyResult int
 
 const (
-	// keyIgnored means the press was not one the list itself handles, and
-	// is the enclosing model's to interpret.
 	keyIgnored keyResult = iota
-
-	// keyHandled means the list consumed the press.
 	keyHandled
-
-	// keyAborted means the press asked to abandon the prompt.
 	keyAborted
 )
 
 // optionList is the filtering, scrolling core shared by the prompts that
 // offer a list of options. It tracks which options match the filter the
 // user has typed and which window of them is on screen, and renders
-// everything around the options themselves: the message, the help line,
+// everything except the options themselves: the message, the help line,
 // the filter field and the footer. Enclosing models supply the meaning of
-// Enter, and how an option is drawn.
+// Enter, and how one option is drawn.
 type optionList[T any] struct {
 	message string
 	help    string
@@ -528,10 +513,10 @@ type optionList[T any] struct {
 
 	// matches holds the indexes into options of the options matching
 	// filter, in their original order, and every index while filter is
-	// empty. Options are tracked by index, rather than by their position
-	// in a narrowed-down copy, so that the option acted on is always the
-	// one the cursor was on, and so that a selection survives a change of
-	// filter.
+	// empty. Tracking options by their index in the full list, rather
+	// than by their position in a narrowed-down copy, is what makes the
+	// option acted on always the one the cursor was on, and what lets a
+	// selection survive a change of filter.
 	matches []int
 
 	// cursor is the position in matches of the highlighted option, and
@@ -540,19 +525,27 @@ type optionList[T any] struct {
 	// matches.
 	cursor int
 	offset int
+
+	// aborted records that the user abandoned the prompt, as opposed to
+	// answering it.
+	aborted bool
 }
 
 // newOptionList builds an optionList over options, with every option
 // initially matching and the filter field focused.
 func newOptionList[T any](message, help string, options []Option[T]) optionList[T] {
 	ti := textinput.New()
-	ti.Prompt = filterPrompt
+	ti.Prompt = "filter: "
 
 	l := optionList[T]{message: message, help: help, options: options, filter: ti}
 	l.initCmd = l.filter.Focus()
 	l.applyFilter()
 
 	return l
+}
+
+func (l *optionList[T]) Init() tea.Cmd {
+	return l.initCmd
 }
 
 // handleKey handles the key presses that work the list itself: ctrl+c
@@ -562,6 +555,7 @@ func newOptionList[T any](message, help string, options []Option[T]) optionList[
 func (l *optionList[T]) handleKey(key string) keyResult {
 	switch key {
 	case keyCtrlC:
+		l.aborted = true
 		return keyAborted
 	case keyEsc:
 		// Esc backs out of filtering first, so that a filter matching
@@ -573,6 +567,8 @@ func (l *optionList[T]) handleKey(key string) keyResult {
 
 			return keyHandled
 		}
+
+		l.aborted = true
 
 		return keyAborted
 	case "up", "ctrl+p":
@@ -638,8 +634,7 @@ func (l *optionList[T]) moveCursor(delta int) {
 // case there is no highlighted option.
 func (l *optionList[T]) highlighted() (option Option[T], index int, ok bool) {
 	if len(l.matches) == 0 {
-		var zero Option[T]
-		return zero, 0, false
+		return option, 0, false
 	}
 
 	index = l.matches[l.cursor]
@@ -647,11 +642,10 @@ func (l *optionList[T]) highlighted() (option Option[T], index int, ok bool) {
 	return l.options[index], index, true
 }
 
-// visible returns the indexes in options of the options on screen, in
-// the order they are rendered.
-func (l *optionList[T]) visible() []int {
-	end := min(l.offset+maxVisibleOptions, len(l.matches))
-	return l.matches[l.offset:end]
+// windowEnd returns the position in matches just past the last option on
+// screen.
+func (l *optionList[T]) windowEnd() int {
+	return min(l.offset+maxVisibleOptions, len(l.matches))
 }
 
 // writeHeader renders everything above the options: the message, the
@@ -666,15 +660,36 @@ func (l *optionList[T]) writeHeader(b *strings.Builder) {
 	}
 }
 
+// writeOptions renders the options on screen, drawing each one with row.
+// row is given an option's index in options, so that it can reach
+// whatever the enclosing model tracks per option.
+func (l *optionList[T]) writeOptions(b *strings.Builder, row func(b *strings.Builder, index int, highlighted bool)) {
+	_, highlighted, ok := l.highlighted()
+	if !ok {
+		// Nothing matches the filter; the footer says so.
+		return
+	}
+
+	for _, idx := range l.matches[l.offset:l.windowEnd()] {
+		row(b, idx, idx == highlighted)
+	}
+}
+
 // footer renders the line under the options: where in the list the
 // window is, when it doesn't hold all of them, and what the keys do. The
 // given hints are the enclosing model's own, listed last.
 func (l *optionList[T]) footer(hints ...string) string {
+	if len(l.matches) == 0 {
+		return noMatchesNote
+	}
+
 	clauses := make([]string, 0, len(hints)+2)
 
+	// The position takes the place of the movement hint rather than
+	// joining it: it already implies there is more list to move through,
+	// and MultiSelect's footer runs past 80 columns if both are listed.
 	if len(l.matches) > maxVisibleOptions {
-		end := min(l.offset+maxVisibleOptions, len(l.matches))
-		clauses = append(clauses, fmt.Sprintf("showing %d-%d of %d", l.offset+1, end, len(l.matches)))
+		clauses = append(clauses, fmt.Sprintf("showing %d-%d of %d", l.offset+1, l.windowEnd(), len(l.matches)))
 	} else {
 		clauses = append(clauses, "up/down to move")
 	}
@@ -682,6 +697,35 @@ func (l *optionList[T]) footer(hints ...string) string {
 	clauses = append(clauses, hints...)
 
 	return "(" + strings.Join(clauses, ", ") + ")"
+}
+
+// optionLabel returns the marker to draw before an option and its label
+// as it should be drawn: highlighted for the option under the cursor,
+// dimmed for one that can't be picked, and untouched otherwise. A plain
+// label skips lipgloss, which spends microseconds per row to hand back
+// the same bytes.
+func optionLabel[T any](option Option[T], highlighted bool) (marker, label string) {
+	switch {
+	case highlighted:
+		return "> ", selectedStyle.Render(option.Label)
+	case option.Disabled:
+		// A disabled option is dimmed rather than hidden: it is part of
+		// the list the user is reasoning about, just not pickable.
+		return "  ", helpStyle.Render(option.Label)
+	default:
+		return "  ", option.Label
+	}
+}
+
+// stringOptions builds the options for a prompt whose choices are plain
+// strings, each option's Value being the string itself.
+func stringOptions(labels ...string) []Option[string] {
+	options := make([]Option[string], len(labels))
+	for i, label := range labels {
+		options[i] = Option[string]{Label: label, Value: label}
+	}
+
+	return options
 }
 
 // listModel is the Bubble Tea model backing PickOne, and through it
@@ -693,19 +737,15 @@ type listModel[T any] struct {
 	// is cleared by the next key press.
 	status string
 
-	// chosen is the option the user picked, and nil if they canceled the
+	// chosen is the option the user picked, and nil if they abandoned the
 	// prompt instead.
 	chosen *Option[T]
 }
 
-// newListModel builds a listModel offering options under title. help, if
-// set, is shown under the title.
-func newListModel[T any](title, help string, options []Option[T]) *listModel[T] {
-	return &listModel[T]{optionList: newOptionList(title, help, options)}
-}
-
-func (m *listModel[T]) Init() tea.Cmd {
-	return m.initCmd
+// newListModel builds a listModel offering options under message. help,
+// if set, is shown under the message.
+func newListModel[T any](message, help string, options []Option[T]) *listModel[T] {
+	return &listModel[T]{optionList: newOptionList(message, help, options)}
 }
 
 // Update handles the key presses the list itself doesn't: enter picks the
@@ -721,7 +761,8 @@ func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// one was refused for.
 	m.status = ""
 
-	switch m.handleKey(keyMsg.String()) {
+	key := keyMsg.String()
+	switch m.handleKey(key) {
 	case keyAborted:
 		return m, tea.Quit
 	case keyHandled:
@@ -729,7 +770,7 @@ func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case keyIgnored:
 	}
 
-	if keyMsg.String() == keyEnter {
+	if key == keyEnter {
 		// Enter has no option to return while the filter matches
 		// nothing, so it waits for the filter to be loosened instead of
 		// picking something the cursor was never on.
@@ -739,11 +780,7 @@ func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if option.Disabled {
-			m.status = option.Description
-			if m.status == "" {
-				m.status = "This option cannot be picked."
-			}
-
+			m.status = cmp.Or(option.Description, "This option cannot be picked.")
 			return m, nil
 		}
 
@@ -759,17 +796,7 @@ func (m *listModel[T]) View() tea.View {
 	var b strings.Builder
 
 	m.writeHeader(&b)
-
-	if len(m.matches) == 0 {
-		fmt.Fprintln(&b, helpStyle.Render("(no options match the filter, esc to clear it)"))
-		return tea.NewView(b.String())
-	}
-
-	_, highlighted, _ := m.highlighted()
-	for _, idx := range m.visible() {
-		m.writeOption(&b, m.options[idx], idx == highlighted)
-	}
-
+	m.writeOptions(&b, m.writeOption)
 	fmt.Fprintln(&b, helpStyle.Render(m.footer("enter to select")))
 	if m.status != "" {
 		fmt.Fprintln(&b, errorStyle.Render(m.status))
@@ -778,23 +805,15 @@ func (m *listModel[T]) View() tea.View {
 	return tea.NewView(b.String())
 }
 
-// writeOption renders one option's line (or two, if it has a persistent
-// description), marked as the highlighted one if highlighted is set.
-func (m *listModel[T]) writeOption(b *strings.Builder, option Option[T], highlighted bool) {
-	marker, style := "  ", lipgloss.NewStyle()
-	switch {
-	case highlighted:
-		marker, style = "> ", selectedStyle
-	case option.Disabled:
-		// A disabled option is dimmed rather than hidden: it is part of
-		// the list the user is reasoning about, just not pickable.
-		style = helpStyle
-	}
-	fmt.Fprintf(b, "%s%s\n", marker, style.Render(option.Label))
+// writeOption renders one option's line, plus a second line for its
+// Description where that is a persistent annotation rather than a
+// disabled option's explanation of itself (see Option.Description).
+func (m *listModel[T]) writeOption(b *strings.Builder, index int, highlighted bool) {
+	option := m.options[index]
 
-	// A disabled option's Description is its "why can't I pick this"
-	// message, shown only when picking it is attempted, so it isn't a
-	// second line here.
+	marker, label := optionLabel(option, highlighted)
+	fmt.Fprintf(b, "%s%s\n", marker, label)
+
 	if option.Description != "" && !option.Disabled {
 		fmt.Fprintf(b, "    %s\n", helpStyle.Render(option.Description))
 	}
@@ -812,26 +831,32 @@ func (m *listModel[T]) writeOption(b *strings.Builder, option Option[T], highlig
 // is not reported as an error. Canceling ctx also cancels the picker;
 // PickOne then returns a non-nil error.
 func PickOne[T any](ctx context.Context, title string, options []Option[T]) (value T, ok bool, err error) {
-	return pickOne(ctx, title, "", options)
+	// PickOne alone reports a cancel through ok rather than as
+	// ErrAborted, so it is the one prompt that has to translate.
+	chosen, err := pickOne(ctx, title, "", options)
+	if errors.Is(err, ErrAborted) {
+		return value, false, nil
+	}
+	if err != nil {
+		return value, false, err
+	}
+
+	return chosen, true, nil
 }
 
 // pickOne is PickOne with the help line that Select's config exposes and
-// PickOne's arguments have no room for.
-func pickOne[T any](ctx context.Context, title, help string, options []Option[T]) (value T, ok bool, err error) {
-	var zero T
-
-	finalModel, err := tea.NewProgram(newListModel(title, help, options), tea.WithContext(ctx)).Run()
+// PickOne's arguments have no room for, reporting a cancel the way the
+// rest of this package's prompts do.
+func pickOne[T any](ctx context.Context, message, help string, options []Option[T]) (value T, err error) {
+	finalModel, err := tea.NewProgram(newListModel(message, help, options), tea.WithContext(ctx)).Run()
 	if err != nil {
-		return zero, false, fmt.Errorf("running picker: %w", err)
+		return value, fmt.Errorf("running picker: %w", err)
 	}
 
-	m, modelOK := finalModel.(*listModel[T])
-	if !modelOK {
-		return zero, false, fmt.Errorf("picker returned model of type %T", finalModel)
-	}
+	m := finalModel.(*listModel[T]) //nolint:forcetypeassert // Why: we control the only model given to this Program.
 	if m.chosen == nil {
-		return zero, false, nil
+		return value, ErrAborted
 	}
 
-	return m.chosen.Value, true, nil
+	return m.chosen.Value, nil
 }
