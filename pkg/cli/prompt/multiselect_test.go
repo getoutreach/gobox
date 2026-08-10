@@ -66,8 +66,8 @@ func TestMultiSelectNoOptions(t *testing.T) {
 
 // TestMultiSelectModelFilter covers what a multiple-choice prompt has to
 // get right about filtering that a single-choice one doesn't: selections
-// outliving the filter used to find them. Narrowing itself belongs to the
-// shared core, covered once in list_test.go.
+// outliving the filter used to find them. Narrowing belongs to the shared
+// core, covered in list_test.go.
 func TestMultiSelectModelFilter(t *testing.T) {
 	options := []string{"kafka-broker-1", "redis-cache", "kafka-broker-2", "postgres-main"}
 
@@ -81,8 +81,8 @@ func TestMultiSelectModelFilter(t *testing.T) {
 		}
 	})
 
-	// Selections are held by position in the full list, so narrowing the
-	// list down to find the next one can't disturb the last one.
+	// Selections are held by position in the full list, so narrowing to
+	// find the next one cannot disturb the last.
 	t.Run("selections survive a change of filter", func(t *testing.T) {
 		m := newMultiSelectModel(MultiSelectConfig{Options: options})
 
@@ -95,8 +95,8 @@ func TestMultiSelectModelFilter(t *testing.T) {
 
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		// Still in the order the options were listed in, not the order
-		// they were selected in.
+		// In the order the options were listed, not the order they were
+		// selected.
 		if got, want := m.selectedOptions(), []string{"kafka-broker-2", "postgres-main"}; !slices.Equal(got, want) {
 			t.Errorf("selected = %v, want %v", got, want)
 		}
@@ -141,11 +141,10 @@ func TestMultiSelectModelFilter(t *testing.T) {
 	})
 }
 
-// TestMultiSelectModelToggleAfterScrolling covers the one thing about a
-// long list that is MultiSelect's own rather than the shared core's: a
-// toggle after scrolling has to land on the option's index in the full
-// list, not its position in the window. The windowing itself is covered
-// once, in list_test.go.
+// TestMultiSelectModelToggleAfterScrolling covers what a long list means
+// for MultiSelect rather than for the shared core: a toggle after
+// scrolling has to land on the option's index in the full list, not its
+// position in the window. Windowing is covered in list_test.go.
 func TestMultiSelectModelToggleAfterScrolling(t *testing.T) {
 	options := numberedLabels("template", 40)
 

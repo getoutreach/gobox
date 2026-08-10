@@ -33,8 +33,7 @@ func (l *optionList[T]) highlightedLabel() string {
 	return option.Label
 }
 
-// numberedLabels builds n labels of the form "<prefix>-00", for the lists
-// that need more options than fit on screen.
+// numberedLabels builds n labels of the form "<prefix>-00".
 func numberedLabels(prefix string, n int) []string {
 	labels := make([]string, 0, n)
 	for i := range n {
@@ -152,7 +151,7 @@ func TestListModelCancel(t *testing.T) {
 }
 
 // TestListModelFilter covers narrowing a list down by typing, which is
-// what makes a list too long to eyeball usable at all.
+// what makes a list too long to read usable.
 func TestListModelFilter(t *testing.T) {
 	options := stringOptions("kafka-broker-1", "redis-cache", "kafka-broker-2", "postgres-main")
 
@@ -175,9 +174,8 @@ func TestListModelFilter(t *testing.T) {
 		}
 	})
 
-	// The filtered list is a different list, so picking by cursor
-	// position alone would return whichever option happens to sit at that
-	// index in the full list instead of the highlighted one.
+	// Picking by cursor position alone would return whichever option sits
+	// at that index in the full list.
 	t.Run("enter picks the highlighted match, not the option at its index", func(t *testing.T) {
 		m := newListModel("", "", options)
 		typeString(m, "kafka")
@@ -255,8 +253,8 @@ func TestListModelFilter(t *testing.T) {
 		}
 	})
 
-	// The filter is typed directly rather than opened with a key first,
-	// so "/" is filter text like any other character.
+	// The filter is typed directly rather than opened with a key, so "/"
+	// is filter text like any other character.
 	t.Run("slash is filter text, not a mode switch", func(t *testing.T) {
 		m := newListModel("", "", stringOptions("with/slash", "without"))
 		m.Update(keypress('/'))
@@ -270,9 +268,9 @@ func TestListModelFilter(t *testing.T) {
 	})
 }
 
-// TestListModelScrolling covers the case behind the window existing at
-// all: many more options than fit on screen, which rendered in full push
-// the prompt itself out of the terminal.
+// TestListModelScrolling covers the case the window exists for: more
+// options than fit on screen, which rendered in full push the prompt out
+// of the terminal.
 func TestListModelScrolling(t *testing.T) {
 	options := stringOptions(numberedLabels("instance", 40)...)
 
@@ -390,8 +388,8 @@ func TestListModelDisabledOptions(t *testing.T) {
 			t.Errorf("view does not explain why the option was refused:\n%s", view)
 		}
 
-		// The explanation is about the last key press, not a permanent
-		// part of the list, so the next one clears it.
+		// The explanation belongs to that key press, so the next one
+		// clears it.
 		m.Update(codeKeypress(tea.KeyDown))
 		if view := m.View().Content; strings.Contains(view, "cannot pick") {
 			t.Errorf("explanation outlived the key press it answered:\n%s", view)
@@ -412,27 +410,25 @@ func TestListModelDisabledOptions(t *testing.T) {
 }
 
 func TestListModelDescriptions(t *testing.T) {
-	// An option's Description is a second line under its label, so a
-	// described option takes one line more than an undescribed one.
+	// A Description is a second line under its option's label.
 	t.Run("a description adds a line under its own option only", func(t *testing.T) {
 		m := newListModel("title", "", []Option[string]{
 			{Label: "aaa", Description: "d1", Value: "a"},
 			{Label: "bbb", Value: "b"},
 		})
 
-		// Undescribed options sit on consecutive lines (asserted by the
-		// sibling subtest), so aaa's description is the only thing that
-		// can push bbb one line further down.
+		// Undescribed options sit on consecutive lines, asserted by the
+		// sibling subtest, so only aaa's description can push bbb down.
 		view := m.View().Content
 		if got := lineIndexContaining(view, "bbb") - lineIndexContaining(view, "aaa"); got != 2 {
 			t.Errorf("gap between the options = %d, want 2 (label, description, label):\n%s", got, view)
 		}
 	})
 
-	// A disabled option's Description is its "why can't I pick this"
-	// message, shown only when picking it is attempted. This is the
-	// realistic shape of a PickOne call: one disabled "current" choice
-	// explaining itself, and plain choices with no description at all.
+	// A disabled option's Description explains why it can't be picked and
+	// is shown only when picking it is attempted. This is the shape of a
+	// real PickOne call: one disabled "current" choice explaining itself,
+	// and plain choices with no description.
 	t.Run("a disabled option's description is not a line of its own", func(t *testing.T) {
 		m := newListModel("title", "", []Option[string]{
 			{Label: "current", Description: "already the current choice", Disabled: true, Value: "current"},
@@ -465,7 +461,7 @@ func TestListModelHelp(t *testing.T) {
 }
 
 // pickedValue returns the Value m settled on, failing the test if it was
-// canceled, or ended without picking anything at all.
+// canceled or picked nothing.
 func pickedValue[T any](t *testing.T, m *listModel[T]) T {
 	t.Helper()
 
