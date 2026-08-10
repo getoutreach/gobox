@@ -215,10 +215,10 @@ func TestListModelFilter(t *testing.T) {
 	})
 
 	t.Run("filtering is case-insensitive", func(t *testing.T) {
-		m := newListModel("", "", stringOptions("Bento-Alpha", "bento-beta", "other"))
-		typeString(m, "BENTO")
+		m := newListModel("", "", stringOptions("Redis-Primary", "redis-replica", "other"))
+		typeString(m, "REDIS")
 
-		assert.DeepEqual(t, m.matchedLabels(), []string{"Bento-Alpha", "bento-beta"})
+		assert.DeepEqual(t, m.matchedLabels(), []string{"Redis-Primary", "redis-replica"})
 	})
 
 	// Picking by cursor position alone would return whichever option sits
