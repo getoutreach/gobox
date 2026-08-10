@@ -241,7 +241,11 @@ func newMultiSelectModel(cfg MultiSelectConfig) *multiSelectModel {
 func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, m.handleMsg(msg)
+		// The command is taken before returning m, which handleMsg
+		// mutates: Go leaves the order of a return statement's operands
+		// and the calls among them unspecified.
+		cmd := m.handleMsg(msg)
+		return m, cmd
 	}
 
 	key := keyMsg.String()
@@ -268,7 +272,9 @@ func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	return m, m.updateFilter(msg)
+	cmd := m.updateFilter(msg)
+
+	return m, cmd
 }
 
 func (m *multiSelectModel) View() tea.View {
@@ -804,7 +810,11 @@ func newListModel[T any](message, help string, options []Option[T]) *listModel[T
 func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, m.handleMsg(msg)
+		// The command is taken before returning m, which handleMsg
+		// mutates: Go leaves the order of a return statement's operands
+		// and the calls among them unspecified.
+		cmd := m.handleMsg(msg)
+		return m, cmd
 	}
 
 	// The status answered the previous key press.
@@ -837,7 +847,9 @@ func (m *listModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	return m, m.updateFilter(msg)
+	cmd := m.updateFilter(msg)
+
+	return m, cmd
 }
 
 func (m *listModel[T]) View() tea.View {
