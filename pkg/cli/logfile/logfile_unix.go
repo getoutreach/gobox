@@ -20,6 +20,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/getoutreach/gobox/pkg/app"
+	cliterm "github.com/getoutreach/gobox/pkg/cli/internal/term"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/term"
@@ -34,7 +35,7 @@ func Hook() error {
 	}
 
 	// if both stdin and stdout are not terminals, then we don't need a pty
-	isTerminal := term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
+	isTerminal := cliterm.IsTerminal(os.Stdin) && cliterm.IsTerminal(os.Stdout)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -166,7 +167,7 @@ func forwardSignals(exited <-chan struct{}, ptmx *os.File, cmd *exec.Cmd) {
 // attachStdinToPty attaches the current os.Stdin to the
 // provided PTY if running in a terminal
 func attachStdinToPty() (func(), error) {
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !cliterm.IsTerminal(os.Stdin) {
 		return func() {}, nil
 	}
 

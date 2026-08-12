@@ -57,7 +57,7 @@ func setupRun(
 	// Ensure that we don't use the standard outreach logger
 	log.SetOutput(io.Discard)
 
-	if conf.Telemetry.UseDelibird {
+	if conf.Telemetry.useDelibird() {
 		logger.Debug("Using delibird for telemetry")
 		if err := logfile.Hook(); err != nil {
 			logger.WithError(err).Warn("Failed to capture logs, continuing without logging to file")
@@ -71,9 +71,13 @@ func setupRun(
 	// Cancel the context on ^C and other signals
 	urfaveRegisterShutdownHandler(cancel)
 
-	// Setup tracing, with a top-level span being the name of the application
-	if err := trace.InitTracer(ctx, app.Info().Name); err != nil {
-		logger.WithError(err).Warn("Failed to initialize tracer")
+	// Setup tracing, with a top-level span being the name of the application. Skipped
+	// entirely when telemetry is intentionally disabled, since trace.InitTracer would
+	// otherwise log a "no tracer configured" warning on every run.
+	if !conf.Telemetry.Disabled {
+		if err := trace.InitTracer(ctx, app.Info().Name); err != nil {
+			logger.WithError(err).Warn("Failed to initialize tracer")
+		}
 	}
 	ctx = trace.StartSpan(ctx, app.Info().Name, trace.CommonProps())
 

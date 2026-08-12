@@ -3,10 +3,11 @@
 package prompt
 
 import (
-	"errors"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestInputModel(t *testing.T) {
@@ -15,21 +16,15 @@ func TestInputModel(t *testing.T) {
 		typeString(m, "hello")
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got := m.input.Value(); got != "hello" {
-			t.Errorf("Value() = %q, want %q", got, "hello")
-		}
-		if m.err != nil {
-			t.Errorf("err = %v, want nil", m.err)
-		}
+		assert.Equal(t, m.input.Value(), "hello")
+		assert.NilError(t, m.err)
 	})
 
 	t.Run("default is used unmodified on bare enter", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test", Default: "octocat"})
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got := m.input.Value(); got != "octocat" {
-			t.Errorf("Value() = %q, want %q", got, "octocat")
-		}
+		assert.Equal(t, m.input.Value(), "octocat")
 	})
 
 	t.Run("default can be edited before submit", func(t *testing.T) {
@@ -37,49 +32,37 @@ func TestInputModel(t *testing.T) {
 		typeString(m, "-fork")
 		m.Update(codeKeypress(tea.KeyEnter))
 
-		if got := m.input.Value(); got != "octocat-fork" {
-			t.Errorf("Value() = %q, want %q", got, "octocat-fork")
-		}
+		assert.Equal(t, m.input.Value(), "octocat-fork")
 	})
 
 	t.Run("ctrl+c aborts", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test"})
 		m.Update(ctrlCKeypress())
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
-		}
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 
 	t.Run("esc aborts", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test"})
 		m.Update(codeKeypress(tea.KeyEscape))
 
-		if !errors.Is(m.err, ErrAborted) {
-			t.Errorf("err = %v, want ErrAborted", m.err)
-		}
+		assert.ErrorIs(t, m.err, ErrAborted)
 	})
 
 	t.Run("validate rejects empty submission, then accepts once valid", func(t *testing.T) {
 		m := newInputModel(Config{Message: "test", Validate: Required})
-		m.Update(codeKeypress(tea.KeyEnter))
+		_, cmd := m.Update(codeKeypress(tea.KeyEnter))
 
-		if m.err != nil {
-			t.Fatalf("err = %v, want nil (re-prompt, not abort)", m.err)
-		}
-		if m.input.Err == nil {
-			t.Fatal("input.Err = nil, want a validation error displayed")
-		}
+		assert.NilError(t, m.err, "want a re-prompt, not an abort")
+		assert.Assert(t, cmp.Nil(cmd), "want the prompt to stay open")
+		assert.Assert(t, m.input.Err != nil, "want a validation error displayed")
 
 		typeString(m, "ok")
-		m.Update(codeKeypress(tea.KeyEnter))
+		_, cmd = m.Update(codeKeypress(tea.KeyEnter))
 
-		if m.err != nil {
-			t.Errorf("err = %v, want nil", m.err)
-		}
-		if got := m.input.Value(); got != "ok" {
-			t.Errorf("Value() = %q, want %q", got, "ok")
-		}
+		assert.NilError(t, m.err)
+		assert.Assert(t, cmd != nil, "want the valid value submitted")
+		assert.Equal(t, m.input.Value(), "ok")
 	})
 }
 
@@ -97,9 +80,7 @@ func TestRequired(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := Required(tt.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Required(%q) error = %v, wantErr %v", tt.value, err, tt.wantErr)
-			}
+			assert.Equal(t, err != nil, tt.wantErr, "Required(%q) = %v", tt.value, err)
 		})
 	}
 }
