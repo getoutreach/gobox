@@ -16,12 +16,27 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// restoreSlogState snapshots the current ShouldUseSlog state before a test
+// installs a custom handler via SetHandler, and restores it afterward.
+// SetHandler permanently forces the slog facade on and replaces the global
+// handler; without this restoration, later tests in the same process (which
+// share these package-level globals) would unexpectedly run through the
+// slog facade with a stale/incompatible handler.
+func restoreSlogState(t *testing.T) {
+	t.Helper()
+	original := ShouldUseSlog()
+	t.Cleanup(func() {
+		SetShouldUseSlog(original)
+	})
+}
+
 // TestSetHandlerEarlyInstallation verifies that SetHandler works when called
 // before the first log line and forces the slog facade on.
 func TestSetHandlerEarlyInstallation(t *testing.T) {
 	if ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to NOT be initially set")
 	}
+	restoreSlogState(t)
 
 	// Create a tracking handler
 	handler := &trackingHandler{name: "early"}
@@ -44,6 +59,7 @@ func TestSetHandlerLateInstallation(t *testing.T) {
 	if !ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to be set")
 	}
+	restoreSlogState(t)
 
 	// Force slog to initialize with default handler
 	ctx := context.Background()
@@ -126,6 +142,7 @@ func TestFatalFlushesHandler(t *testing.T) {
 	if !ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to be set")
 	}
+	restoreSlogState(t)
 
 	// Create a fake flusher handler
 	var buf bytes.Buffer
@@ -184,6 +201,7 @@ func TestFatalFlushTimeoutRespectsContext(t *testing.T) {
 	if !ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to be set")
 	}
+	restoreSlogState(t)
 
 	// Create a handler that blocks for longer than 2 seconds
 	var buf bytes.Buffer
@@ -212,6 +230,7 @@ func TestSlogItExtractsTraceAndSpanID(t *testing.T) {
 	if !ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to be set")
 	}
+	restoreSlogState(t)
 
 	t.Run("with valid traceID and spanID", func(t *testing.T) {
 		// Set up a handler that captures the record
@@ -327,6 +346,7 @@ func TestSetHandlerDisabledWhenNotSlog(t *testing.T) {
 	if ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to NOT be set")
 	}
+	restoreSlogState(t)
 
 	// This should be a no-op and not panic
 	handler := slog.NewJSONHandler(os.Stderr, nil)
@@ -340,6 +360,7 @@ func TestFatalFlushNonFlusher(t *testing.T) {
 	if !ShouldUseSlog() {
 		t.Skip("test requires GOBOX_AS_SLOG_FACADE to be set")
 	}
+	restoreSlogState(t)
 
 	// Create a regular handler (no Flusher implementation)
 	var buf bytes.Buffer
