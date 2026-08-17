@@ -156,13 +156,12 @@ func SetOutput(w io.Writer) {
 func SetHandler(h slog.Handler) {
 	slogLock.Lock()
 	defer slogLock.Unlock()
-	
 	// Burn the once guard to allow handler installation even if slogIt has been called.
 	once.Do(func() {})
-	
+
 	// Enable slog facade: installing a handler means the caller wants the slog path.
 	shouldSlog = true
-	
+
 	// Assign the custom handler.
 	log = olog.NewWithHandler(h)
 }

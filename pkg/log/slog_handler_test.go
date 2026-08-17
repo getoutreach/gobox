@@ -62,11 +62,11 @@ func TestSetHandlerLateInstallation(t *testing.T) {
 
 // trackingHandler counts Handle calls for testing.
 type trackingHandler struct {
-	name       string
+	name        string
 	handleCalls int
 }
 
-func (h *trackingHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *trackingHandler) Handle(ctx context.Context, r slog.Record) error { //nolint:gocritic
 	h.handleCalls++
 	return nil
 }
@@ -91,7 +91,7 @@ type fakeFlushHandler struct {
 }
 
 // Handle just delegates to the wrapped handler.
-func (h *fakeFlushHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *fakeFlushHandler) Handle(ctx context.Context, r slog.Record) error { //nolint:gocritic
 	return h.Handler.Handle(ctx, r)
 }
 
@@ -147,7 +147,7 @@ type slowFlushHandler struct {
 	delay time.Duration
 }
 
-func (h *slowFlushHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *slowFlushHandler) Handle(ctx context.Context, r slog.Record) error { //nolint:gocritic
 	return h.Handler.Handle(ctx, r)
 }
 
@@ -301,7 +301,7 @@ type capturingHandler struct {
 }
 
 // Handle captures the record.
-func (h *capturingHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *capturingHandler) Handle(ctx context.Context, r slog.Record) error { //nolint:gocritic
 	*h.capturedRecord = &r
 	return nil
 }
