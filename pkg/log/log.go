@@ -106,6 +106,16 @@ func SetShouldUseSlog(val bool) {
 // with dot to indicate nesting.
 type Marshaler = logf.Marshaler
 
+// Flusher is an optional interface that a slog.Handler may implement to
+// signal that it buffers records and can flush them explicitly.
+// This is used by log.Fatal to ensure buffered logs are sent before os.Exit.
+type Flusher interface {
+	// ForceFlush blocks until all buffered records are flushed or the provided
+	// context is canceled. Implementations should not rely on log.Fatal's timeout
+	// to prevent blocking indefinitely in case of network issues.
+	ForceFlush(ctx context.Context) error
+}
+
 type syncWriter struct {
 	sync.Mutex
 	w io.Writer
@@ -133,6 +143,29 @@ func SetOutput(w io.Writer) {
 	stdOut = w
 }
 
+// SetHandler can be used to replace the slog.Handler used by the log package
+// with a custom implementation. This is useful for services that want to route
+// logs through an OpenTelemetry bridge or other custom handler.
+//
+// SetHandler bypasses the once guard and burns the initialization sentinel,
+// allowing handler installation at any point during initialization (even before
+// the first log call). It also forces GOBOX_AS_SLOG_FACADE to true; installing
+// a handler unambiguously signals that the caller wants logs to use the slog path.
+//
+// Note: this function should not be used in production code outside of service startup.
+func SetHandler(h slog.Handler) {
+	slogLock.Lock()
+	defer slogLock.Unlock()
+	// Burn the once guard to allow handler installation even if slogIt has been called.
+	once.Do(func() {})
+
+	// Enable slog facade: installing a handler means the caller wants the slog path.
+	shouldSlog = true
+
+	// Assign the custom handler.
+	log = olog.NewWithHandler(h)
+}
+
 func Output() io.Writer {
 	stdOutLock.RLock()
 	defer stdOutLock.RUnlock()
@@ -157,6 +190,8 @@ type F = logf.F
 // slogIt produces a slog structured log at the appropriate level.
 // It captures the caller's program counter (skipping internal log frames)
 // and passes it to slog for accurate source location reporting.
+// It also extracts trace context from the provided context and adds the traceID
+// attribute if a valid span is present.
 func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) {
 	once.Do(setupSlog)
 	var pcs [1]uintptr
@@ -165,6 +200,17 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 
 	r := slog.NewRecord(time.Now(), lvl, message, pcs[0])
 	r.AddAttrs(slogAttrs(m)...)
+
+	// Extract trace context from the provided context.
+	// Add traceID and spanID if a valid span is present (for trace correlation).
+	// Note: OTel bridge handlers may extract span context natively; potential duplication
+	// is the handler's responsibility to address.
+	if span := trace.SpanFromContext(ctx); span != nil && span.SpanContext().TraceID().IsValid() {
+		r.AddAttrs(slog.String("traceID", span.SpanContext().TraceID().String()))
+		if span.SpanContext().SpanID().IsValid() {
+			r.AddAttrs(slog.String("spanID", span.SpanContext().SpanID().String()))
+		}
+	}
 
 	// Acquire lock to safely read the log variable
 	slogLock.Lock()
@@ -221,12 +267,15 @@ func Error(ctx context.Context, message string, m ...Marshaler) {
 }
 
 // Fatal emits a log at FATAL level and exits.  This is for catastrophic unrecoverable errors.
+// If the slog handler implements the Flusher interface, Fatal will attempt to flush
+// buffered records before calling os.Exit(1).
 func Fatal(ctx context.Context, message string, m ...Marshaler) {
 	if ShouldUseSlog() {
 		// Use OpenTelemetry FATAL level (21) as recommended by slog documentation
 		// See https://pkg.go.dev/log/slog#Level
 		const LevelFatal = slog.Level(21)
 		slogIt(ctx, LevelFatal, message, m)
+		fatalFlush(ctx)
 		os.Exit(1)
 		return
 	}
@@ -236,6 +285,28 @@ func Fatal(ctx context.Context, message string, m ...Marshaler) {
 	Write(s)
 
 	os.Exit(1)
+}
+
+// fatalFlush attempts to flush the handler if it implements the Flusher interface.
+// It uses a 2-second timeout to avoid blocking indefinitely before exit.
+// If flushing fails or times out, execution continues to os.Exit(1).
+func fatalFlush(ctx context.Context) {
+	slogLock.Lock()
+	handler := log.Handler()
+	slogLock.Unlock()
+
+	flusher, ok := handler.(Flusher)
+	if !ok {
+		return // Handler does not implement Flusher; nothing to do.
+	}
+
+	// Create a timeout context to prevent indefinite blocking.
+	// Use WithoutCancel to preserve ctx values but drop any cancellation (ctx may already be canceled in Fatal paths).
+	// Use a best-effort approach; flush errors do not block exit.
+	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+
+	_ = flusher.ForceFlush(flushCtx) //nolint: errcheck //Why: best-effort flush before exit
 }
 
 func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
