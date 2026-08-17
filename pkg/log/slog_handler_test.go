@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -43,14 +42,18 @@ func TestSetHandlerEarlyInstallation(t *testing.T) {
 	SetHandler(handler)
 
 	// Verify slog facade is now enabled
-	require.True(t, ShouldUseSlog(), "SetHandler should enable slog facade")
+	if !ShouldUseSlog() {
+		t.Fatal("SetHandler should enable slog facade")
+	}
 
 	// Log a message; handler should receive it
 	ctx := context.Background()
 	Info(ctx, "early install test", F{"key": "value"})
 
 	// Verify the handler got the log
-	require.Equal(t, 1, handler.handleCalls, "handler should have received the log record")
+	if handler.handleCalls != 1 {
+		t.Fatalf("handler should have received the log record: got %d calls", handler.handleCalls)
+	}
 }
 
 // TestSetHandlerLateInstallation verifies that SetHandler works when called
@@ -73,7 +76,9 @@ func TestSetHandlerLateInstallation(t *testing.T) {
 	Info(ctx, "after install", F{"post": "install"})
 
 	// Verify handler got at least one call (may get both if setup cached)
-	require.GreaterOrEqual(t, handler.handleCalls, 1, "SetHandler should install the new handler")
+	if handler.handleCalls < 1 {
+		t.Fatalf("SetHandler should install the new handler: got %d calls", handler.handleCalls)
+	}
 }
 
 // trackingHandler counts Handle calls for testing.
@@ -155,7 +160,9 @@ func TestFatalFlushesHandler(t *testing.T) {
 	fatalFlush(ctx)
 
 	// Verify ForceFlush was called
-	require.Equal(t, 1, flusher.flushCalls, "ForceFlush should have been called once")
+	if flusher.flushCalls != 1 {
+		t.Fatalf("ForceFlush should have been called once: got %d calls", flusher.flushCalls)
+	}
 }
 
 // slowFlushHandler is a handler that delays on ForceFlush for testing timeout behavior.
@@ -221,7 +228,9 @@ func TestFatalFlushTimeoutRespectsContext(t *testing.T) {
 	elapsed := time.Since(start)
 
 	// Verify it didn't block for 5 seconds (should timeout at ~2 seconds)
-	require.Less(t, elapsed, 3*time.Second, "fatalFlush should timeout after ~2 seconds")
+	if elapsed >= 3*time.Second {
+		t.Fatalf("fatalFlush should timeout after ~2 seconds: took %s", elapsed)
+	}
 }
 
 // TestSlogItExtractsTraceAndSpanID verifies that slogIt extracts both traceID
@@ -255,22 +264,32 @@ func TestSlogItExtractsTraceAndSpanID(t *testing.T) {
 		Info(ctx, "test with both IDs", F{"key": "value"})
 
 		// Verify both traceID and spanID are present
-		require.NotNil(t, capturedRecord, "handler should have captured the record")
+		if capturedRecord == nil {
+			t.Fatal("handler should have captured the record")
+		}
 		hasTraceID := false
 		hasSpanID := false
 		capturedRecord.Attrs(func(a slog.Attr) bool {
 			if a.Key == "traceID" {
 				hasTraceID = true
-				require.Equal(t, "4bf92f3577b34da6a3ce929d0e0e4736", a.Value.String())
+				if got := a.Value.String(); got != "4bf92f3577b34da6a3ce929d0e0e4736" {
+					t.Errorf("unexpected traceID: %s", got)
+				}
 			}
 			if a.Key == "spanID" {
 				hasSpanID = true
-				require.Equal(t, "00f067aa0ba902b7", a.Value.String())
+				if got := a.Value.String(); got != "00f067aa0ba902b7" {
+					t.Errorf("unexpected spanID: %s", got)
+				}
 			}
 			return true
 		})
-		require.True(t, hasTraceID, "traceID should be present in the log record")
-		require.True(t, hasSpanID, "spanID should be present in the log record")
+		if !hasTraceID {
+			t.Error("traceID should be present in the log record")
+		}
+		if !hasSpanID {
+			t.Error("spanID should be present in the log record")
+		}
 	})
 
 	t.Run("with valid traceID but zero spanID", func(t *testing.T) {
@@ -296,21 +315,29 @@ func TestSlogItExtractsTraceAndSpanID(t *testing.T) {
 		Info(ctx, "test with zero spanID", F{"key": "value"})
 
 		// Verify traceID is present but spanID is absent
-		require.NotNil(t, capturedRecord, "handler should have captured the record")
+		if capturedRecord == nil {
+			t.Fatal("handler should have captured the record")
+		}
 		hasTraceID := false
 		hasSpanID := false
 		capturedRecord.Attrs(func(a slog.Attr) bool {
 			if a.Key == "traceID" {
 				hasTraceID = true
-				require.Equal(t, "4bf92f3577b34da6a3ce929d0e0e4736", a.Value.String())
+				if got := a.Value.String(); got != "4bf92f3577b34da6a3ce929d0e0e4736" {
+					t.Errorf("unexpected traceID: %s", got)
+				}
 			}
 			if a.Key == "spanID" {
 				hasSpanID = true
 			}
 			return true
 		})
-		require.True(t, hasTraceID, "traceID should be present")
-		require.False(t, hasSpanID, "spanID should NOT be present when spanID is zero")
+		if !hasTraceID {
+			t.Error("traceID should be present")
+		}
+		if hasSpanID {
+			t.Error("spanID should NOT be present when spanID is zero")
+		}
 	})
 }
 
