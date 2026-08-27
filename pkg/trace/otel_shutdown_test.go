@@ -16,15 +16,12 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// TestCloseTracerBoundedByTimeout confirms closeTracer returns well
-// within closeTracerTimeout's grace period even when the exporter can
-// never reach its collector -- a CLI process exiting should never
-// block a user's terminal for the multi-second delays a hung network
-// call can otherwise cause. 10.255.255.1 is a non-routable address
-// (RFC 5737-adjacent private range unassigned on this host), chosen
-// so the connection attempt goes unanswered rather than failing fast
-// with connection-refused, the same way a real unreachable collector
-// would behave.
+// TestCloseTracerBoundedByTimeout confirms closeTracer returns within
+// closeTracerTimeout even when the exporter's collector never answers.
+// 10.255.255.1 is a private-use address (RFC 1918) chosen so the
+// connection attempt goes unanswered rather than failing fast with
+// connection-refused -- the failure mode a genuinely unreachable
+// collector produces.
 func TestCloseTracerBoundedByTimeout(t *testing.T) {
 	tr, err := NewOtelTracer(t.Context(), "gobox-test", &Config{
 		Otel: Otel{
@@ -35,9 +32,9 @@ func TestCloseTracerBoundedByTimeout(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	// Record and end a span so the batch processor actually has
-	// something queued to export -- closeTracer on an empty batch has
-	// nothing to flush and would pass even without the timeout fix.
+	// Record and end a span so the batch processor has something
+	// queued to export -- an empty batch has nothing to flush, so
+	// closeTracer would return immediately regardless of the timeout.
 	spanCtx := tr.startSpan(context.Background(), "test-span")
 	tr.end(spanCtx)
 
@@ -45,11 +42,9 @@ func TestCloseTracerBoundedByTimeout(t *testing.T) {
 	tr.closeTracer(context.Background())
 	elapsed := time.Since(start)
 
-	// Generous upper bound: closeTracerTimeout applies twice in the
-	// worst case (once for ForceFlush, once for Shutdown), plus room
-	// for scheduling noise -- but this must stay far under the old
-	// 3-second Shutdown-only timeout, which itself left ForceFlush
-	// completely unbounded.
+	// Generous upper bound: closeTracerTimeout applies once for
+	// ForceFlush and once for Shutdown in the worst case, plus room for
+	// scheduling noise.
 	assert.Assert(t, elapsed < 3*closeTracerTimeout,
 		"closeTracer took %v, expected it to return within roughly %v", elapsed, 2*closeTracerTimeout)
 }
