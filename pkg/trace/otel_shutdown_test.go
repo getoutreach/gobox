@@ -46,5 +46,5 @@ func TestCloseTracerBoundedByTimeout(t *testing.T) {
 	// ForceFlush and once for Shutdown in the worst case, plus room for
 	// scheduling noise.
 	assert.Assert(t, elapsed < 3*closeTracerTimeout,
-		"closeTracer took %v, expected it to return within roughly %v", elapsed, 2*closeTracerTimeout)
+		"closeTracer took %v, expected it to return within %v", elapsed, 3*closeTracerTimeout)
 }
