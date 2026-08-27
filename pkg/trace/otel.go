@@ -196,7 +196,12 @@ func (t *otelTracer) closeTracer(ctx context.Context) {
 		return
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), closeTracerTimeout)
+	// ctx may already be canceled here: shutdown can be signal-triggered
+	// (see pkg/cli's urfaveRegisterShutdownHandler), which cancels this
+	// same ctx before closeTracer runs. WithoutCancel keeps any values
+	// ctx carries while dropping that cancellation, so the flush gets
+	// its own timeout budget instead of failing immediately.
+	ctxTimeout, cancel := context.WithTimeout(context.WithoutCancel(ctx), closeTracerTimeout)
 	defer cancel()
 
 	if err := t.tracerProvider.ForceFlush(ctxTimeout); err != nil {
