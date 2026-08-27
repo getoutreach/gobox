@@ -184,11 +184,11 @@ func (t *otelTracer) endTracing() {
 }
 
 // closeTracerTimeout bounds how long closeTracer can block a process
-// on exit while it flushes and shuts down the span exporter. Most
-// callers of this package are short-lived CLIs: blocking their exit
-// for seconds because a telemetry backend is slow or unreachable is
-// worse than losing the last batch of spans. It applies to both
-// ForceFlush and Shutdown, since ForceFlush has no deadline of its own.
+// on exit while it flushes and shuts down the span exporter. A
+// telemetry backend that is slow or unreachable should not be able to
+// delay shutdown indefinitely: losing the last batch of spans is a
+// better outcome than a hung exit. It applies to both ForceFlush and
+// Shutdown, since ForceFlush has no deadline of its own.
 const closeTracerTimeout = 500 * time.Millisecond
 
 func (t *otelTracer) closeTracer(ctx context.Context) {
