@@ -183,18 +183,32 @@ func (t *otelTracer) endTracing() {
 	t.closeTracer(context.TODO())
 }
 
+// closeTracerTimeout bounds how long closeTracer can block a process
+// on exit while it flushes and shuts down the span exporter. A
+// telemetry backend that is slow or unreachable should not be able to
+// delay shutdown indefinitely: losing the last batch of spans is a
+// better outcome than a hung exit. It applies to both ForceFlush and
+// Shutdown, since ForceFlush has no deadline of its own.
+const closeTracerTimeout = 500 * time.Millisecond
+
 func (t *otelTracer) closeTracer(ctx context.Context) {
 	if t.tracerProvider == nil {
 		return
 	}
 
-	t.tracerProvider.ForceFlush(ctx)
-
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	// ctx may already be canceled here: pkg/cli's
+	// urfaveRegisterShutdownHandler cancels this same ctx on a signal,
+	// before closeTracer runs. WithoutCancel keeps ctx's values but
+	// drops that cancellation, so the flush gets a real timeout budget
+	// instead of failing immediately.
+	ctxTimeout, cancel := context.WithTimeout(context.WithoutCancel(ctx), closeTracerTimeout)
 	defer cancel()
 
-	err := t.tracerProvider.Shutdown(ctxTimeout)
-	if err != nil {
+	if err := t.tracerProvider.ForceFlush(ctxTimeout); err != nil {
+		log.Warn(ctx, "Unable to flush otel tracer within the context timeout", events.NewErrorInfo(err))
+	}
+
+	if err := t.tracerProvider.Shutdown(ctxTimeout); err != nil {
 		log.Warn(ctx, "Unable to stop otel tracer within the context timeout", events.NewErrorInfo(err))
 	}
 }
