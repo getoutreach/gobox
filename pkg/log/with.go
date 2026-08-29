@@ -45,3 +45,8 @@ func (l logger) Error(ctx context.Context, message string, m ...Marshaler) {
 func (l logger) Fatal(ctx context.Context, message string, m ...Marshaler) {
 	Fatal(ctx, message, append(m, l.m...)...)
 }
+
+// With returns a new logger with additional marshalers appended.
+func (l logger) With(m ...Marshaler) logger {
+	return logger{append(l.m, m...)}
+}
