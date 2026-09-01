@@ -13,8 +13,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/box"
 )
 
-// TestSnapshotTargetPostRestoreServerSide checks the ordered list round-trips,
-// since consumers apply the files in the order given.
+// TestSnapshotTargetPostRestoreServerSide checks the ordered list round-trips.
 func TestSnapshotTargetPostRestoreServerSide(t *testing.T) {
 	var c box.SnapshotGenerateConfig
 	assert.NilError(t, yaml.Unmarshal([]byte(`
@@ -34,8 +33,7 @@ targets:
 	})
 }
 
-// TestSnapshotTargetOmitted covers the common case: a target that does not use
-// the field leaves it nil rather than failing to parse.
+// TestSnapshotTargetOmitted checks an unset field stays nil.
 func TestSnapshotTargetOmitted(t *testing.T) {
 	var c box.SnapshotGenerateConfig
 	assert.NilError(t, yaml.Unmarshal([]byte(`
@@ -47,10 +45,8 @@ targets:
 	assert.Assert(t, c.Targets["base"].PostRestoreServerSide == nil)
 }
 
-// TestSnapshotTargetIgnoresUnknownKeys pins the lenient-parse behaviour that
-// lets a snapshots.yaml using a newer field be read by an older consumer: the
-// unknown key is skipped rather than erroring. Rollouts rely on this, so a
-// switch to a strict decoder should be a deliberate decision.
+// TestSnapshotTargetIgnoresUnknownKeys pins the lenient parse that lets an older
+// consumer read a newer snapshots.yaml. A strict decoder should be a deliberate choice.
 func TestSnapshotTargetIgnoresUnknownKeys(t *testing.T) {
 	var c box.SnapshotGenerateConfig
 	assert.NilError(t, yaml.Unmarshal([]byte(`

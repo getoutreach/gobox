@@ -250,13 +250,8 @@ type SnapshotTarget struct {
 	PostRestore string `yaml:"post_restore"`
 
 	// PostRestoreServerSide are paths to yaml files applied after PostRestore
-	// with a server-side apply, in the order listed. Each file is rendered
-	// through the same go-template as PostRestore.
-	//
-	// Use this for manifests a client-side apply cannot handle, such as
-	// resources whose annotations would exceed kubectl's last-applied limit.
-	// Ordering is honoured so a file may depend on an earlier one, e.g. custom
-	// resources listed after the CRDs and operator that reconcile them.
+	// with a server-side apply, in the order listed. Use it for manifests a
+	// client-side apply cannot handle, such as very large resources.
 	PostRestoreServerSide []string `yaml:"post_restore_server_side"`
 
 	// DeployApps is an array of applications to deploy via deploy-app
