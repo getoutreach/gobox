@@ -5,12 +5,11 @@
 package env
 
 import (
-	"github.com/getoutreach/gobox/pkg/cfg"
+	"github.com/getoutreach/gobox/pkg/env/envtest"
 )
 
 func ApplyOverrides() {
-	old := cfg.DefaultReader()
-	cfg.SetDefaultReader(testReader(old, &overrides))
+	envtest.Install()
 }
 
 func init() { //nolint: gochecknoinits

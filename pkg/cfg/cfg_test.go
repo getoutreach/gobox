@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/getoutreach/gobox/pkg/cfg"
-	"github.com/getoutreach/gobox/pkg/env"
+	"github.com/getoutreach/gobox/pkg/env/envtest"
 	"github.com/getoutreach/gobox/pkg/secrets/secretstest"
 )
 
@@ -26,7 +26,7 @@ func Example() {
 		Key:        cfg.Secret{Path: "someSecretPath"},
 	}
 
-	deleteFunc, _ := env.FakeTestConfigWithError("trace.yaml", expected)
+	deleteFunc, _ := envtest.FakeTestConfigWithError("trace.yaml", expected)
 	defer deleteFunc()
 	defer secretstest.Fake("someSecretPath", "someSecretData")()
 
