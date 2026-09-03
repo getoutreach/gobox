@@ -114,7 +114,13 @@ func grpcCodeToStatusCode(code codes.Code) statuscodes.StatusCode {
 		return statuscodes.Cancelled
 	case codes.AlreadyExists:
 		return statuscodes.Conflict
-	case codes.Unknown, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.DataLoss:
+	case codes.FailedPrecondition, codes.Aborted:
+		return statuscodes.Conflict
+	case codes.OutOfRange:
+		return statuscodes.BadRequest
+	case codes.Unknown:
+		return statuscodes.UnknownError
+	case codes.DataLoss:
 		return statuscodes.InternalServerError
 	default:
 		return statuscodes.InternalServerError

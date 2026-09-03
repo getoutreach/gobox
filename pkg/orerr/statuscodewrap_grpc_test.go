@@ -98,6 +98,30 @@ func TestExtractErrorStatusCode_GRPCStatus(t *testing.T) {
 		{
 			name:     "grpc Unknown unmapped",
 			err:      status.Error(codes.Unknown, "unknown"),
+			expected: statuscodes.UnknownError,
+			category: statuscodes.CategoryServerError,
+		},
+		{
+			name:     "grpc FailedPrecondition",
+			err:      status.Error(codes.FailedPrecondition, "precondition failed"),
+			expected: statuscodes.Conflict,
+			category: statuscodes.CategoryClientError,
+		},
+		{
+			name:     "grpc Aborted",
+			err:      status.Error(codes.Aborted, "transaction aborted"),
+			expected: statuscodes.Conflict,
+			category: statuscodes.CategoryClientError,
+		},
+		{
+			name:     "grpc OutOfRange",
+			err:      status.Error(codes.OutOfRange, "out of range"),
+			expected: statuscodes.BadRequest,
+			category: statuscodes.CategoryClientError,
+		},
+		{
+			name:     "grpc DataLoss",
+			err:      status.Error(codes.DataLoss, "data loss"),
 			expected: statuscodes.InternalServerError,
 			category: statuscodes.CategoryServerError,
 		},
