@@ -11,9 +11,9 @@ import (
 
 	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/statuscodes"
-	"gotest.tools/v3/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gotest.tools/v3/assert"
 )
 
 func TestExtractErrorStatusCode_GRPCStatus(t *testing.T) {
