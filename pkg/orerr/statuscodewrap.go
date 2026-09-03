@@ -5,9 +5,12 @@
 package orerr
 
 import (
+	"context"
 	"errors"
 
 	"github.com/getoutreach/gobox/pkg/statuscodes"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type StatusCodeWrapper struct {
@@ -62,13 +65,64 @@ func ExtractErrorStatusCode(err error) statuscodes.StatusCode {
 	if errors.As(err, &scw) {
 		return scw.StatusCode()
 	}
+
+	if errors.Is(err, context.Canceled) {
+		return statuscodes.Cancelled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return statuscodes.DeadlineExceeded
+	}
+
+	var grpcStatus interface{ GRPCStatus() *status.Status }
+	if errors.As(err, &grpcStatus) {
+		if st := grpcStatus.GRPCStatus(); st != nil {
+			return grpcCodeToStatusCode(st.Code())
+		}
+	}
+
 	return statuscodes.InternalServerError
 }
 
 func ExtractErrorStatusCategory(err error) statuscodes.StatusCategory {
-	var scw *StatusCodeWrapper
-	if errors.As(err, &scw) {
-		return scw.StatusCategory()
+	code := ExtractErrorStatusCode(err)
+	return code.Category()
+}
+
+func grpcCodeToStatusCode(code codes.Code) statuscodes.StatusCode {
+	switch code {
+	case codes.OK:
+		return statuscodes.OK
+	case codes.InvalidArgument:
+		return statuscodes.BadRequest
+	case codes.Unauthenticated:
+		return statuscodes.Unauthorized
+	case codes.PermissionDenied:
+		return statuscodes.Forbidden
+	case codes.NotFound:
+		return statuscodes.NotFound
+	case codes.ResourceExhausted:
+		return statuscodes.RateLimited
+	case codes.Internal:
+		return statuscodes.InternalServerError
+	case codes.Unimplemented:
+		return statuscodes.NotImplemented
+	case codes.Unavailable:
+		return statuscodes.Unavailable
+	case codes.DeadlineExceeded:
+		return statuscodes.DeadlineExceeded
+	case codes.Canceled:
+		return statuscodes.Cancelled
+	case codes.AlreadyExists:
+		return statuscodes.Conflict
+	case codes.FailedPrecondition, codes.Aborted:
+		return statuscodes.Conflict
+	case codes.OutOfRange:
+		return statuscodes.BadRequest
+	case codes.Unknown:
+		return statuscodes.UnknownError
+	case codes.DataLoss:
+		return statuscodes.InternalServerError
+	default:
+		return statuscodes.InternalServerError
 	}
-	return statuscodes.CategoryServerError
 }
