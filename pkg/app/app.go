@@ -106,9 +106,6 @@ func info() *Data {
 	region := unknown
 	if r := os.Getenv("MY_REGION"); r != "" {
 		region = r
-	} else if rps := strings.Split(clusterName, "."); len(rps) == 2 {
-		// e.g. production.us-west-2
-		region = rps[1]
 	}
 
 	podID := unknown
