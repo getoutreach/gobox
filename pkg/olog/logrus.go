@@ -81,7 +81,7 @@ func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 		charm.TimestampKey, entry.Time,
 		charm.LevelKey, level,
 	}
-	if entry.HasCaller() {
+	if entry.Caller != nil {
 		entries = append(entries, charm.CallerKey, fmt.Sprintf(
 			"%s/%s:%d",
 			path.Base(filepath.Dir(entry.Caller.File)),
