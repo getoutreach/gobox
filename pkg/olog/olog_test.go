@@ -147,16 +147,8 @@ func TestOutputLog(t *testing.T) {
 	}
 }
 
-// TestTextHandlerRespectsDynamicLevel ensures that loggers using the
-// TextHandler (backed by charm.land/log/v2) respect log-level changes
-// made via SetGlobalLevel *after* the logger has already been created.
-//
-// This is a regression test: charmlog.Logger does not implement
-// slog.Leveler, it only supports a level set once at creation (or via
-// SetLevel). createHandler wraps it in charmLevelHandler specifically
-// to keep it in sync with the leveler dynamically -- without that
-// wrapper, this test would fail because the DEBUG line logged after
-// SetGlobalLevel would not appear.
+// TestTextHandlerRespectsDynamicLevel ensures TextHandler loggers
+// respect SetGlobalLevel changes made after the logger was created.
 func TestTextHandlerRespectsDynamicLevel(t *testing.T) {
 	t.Cleanup(func() {
 		SetDefaultHandler(JSONHandler)

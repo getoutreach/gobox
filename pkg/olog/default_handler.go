@@ -128,17 +128,8 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	case JSONHandler:
 		h = slog.NewJSONHandler(defaultOut, opts)
 	case TextHandler:
-		// github.com/charmbracelet/log stores its logging level as a
-		// plain field on the *charmlog.Logger, set once via
-		// charmlog.Options.Level or (*charmlog.Logger).SetLevel. It does
-		// not accept a slog.Leveler, so a level can't just be plugged in
-		// and left to be re-evaluated dynamically the way
-		// slog.NewJSONHandler/slog.NewTextHandler do.
-		//
-		// To still honor dynamic level changes (e.g. from
-		// SetGlobalLevel), charmLevelHandler wraps the charm logger and
-		// re-syncs its level from `opts.Level` (our slog.Leveler) on
-		// every call to Enabled, which slog always calls before Handle.
+		// charmlog.Logger doesn't support slog.Leveler, so wrap it in
+		// charmLevelHandler to keep its level in sync dynamically.
 		h = newCharmLevelHandler(charmlog.NewWithOptions(defaultOut, charmlog.Options{
 			ReportTimestamp: true,
 			TimeFormat:      "15:04:05",
@@ -173,23 +164,10 @@ func replaceKey(oldKey, newKey string) func([]string, slog.Attr) slog.Attr {
 	}
 }
 
-// charmLevelHandler is a slog.Handler that wraps a *charmlog.Logger in
-// order to make it respect a slog.Leveler dynamically.
-//
-// charmlog.Logger implements slog.Handler, but its own Enabled/Handle
-// methods only consult a level set once via charmlog.Options.Level or
-// (*charmlog.Logger).SetLevel -- it has no concept of a slog.Leveler
-// that could be re-evaluated on every log call. So a *charmlog.Logger
-// on its own can't pick up changes made after it was created (e.g. via
-// SetGlobalLevel), which is a problem for `log` package-level
-// singletons that are created well before a program has parsed its
-// configuration/flags and decided what level it wants.
-//
-// charmLevelHandler works around this by re-syncing the wrapped
-// logger's level from `leveler` every time Enabled is called (which
-// slog always does immediately before Handle for a given record), so
-// the charm logger's level is always brought up to date before it
-// gets a chance to reject or accept the record.
+// charmLevelHandler wraps a *charmlog.Logger to make it respect a
+// slog.Leveler dynamically. charmlog.Logger only supports a level set
+// once at creation (or via SetLevel), so this re-syncs it from
+// `leveler` on every call to Enabled.
 type charmLevelHandler struct {
 	inner   *charmlog.Logger
 	leveler slog.Leveler
@@ -209,9 +187,7 @@ func (h *charmLevelHandler) Enabled(ctx context.Context, level slog.Level) bool 
 	return h.inner.Enabled(ctx, level)
 }
 
-// Handle implements slog.Handler by delegating to the wrapped charm
-// logger. Enabled will always have been called (and will have synced
-// the level) immediately prior, per the slog.Handler contract.
+// Handle implements slog.Handler by delegating to the wrapped logger.
 //
 //nolint:gocritic // Why: Handle's signature is fixed by the slog.Handler interface.
 func (h *charmLevelHandler) Handle(ctx context.Context, r slog.Record) error {
