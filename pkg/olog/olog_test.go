@@ -1,6 +1,7 @@
 package olog
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"os"
@@ -143,5 +144,41 @@ func TestOutputLog(t *testing.T) {
 	}
 	if !strings.Contains(string(data), testLogLine) {
 		t.Fatalf("Expect to find '%s', but got %s\n", testLogLine, string(data))
+	}
+}
+
+// TestTextHandlerRespectsDynamicLevel ensures TextHandler loggers
+// respect SetGlobalLevel changes made after the logger was created.
+func TestTextHandlerRespectsDynamicLevel(t *testing.T) {
+	t.Cleanup(func() {
+		SetDefaultHandler(JSONHandler)
+		SetGlobalLevel(slog.LevelInfo)
+		defaultOut = os.Stderr
+	})
+
+	SetDefaultHandler(TextHandler)
+
+	buf := &bytes.Buffer{}
+	defaultOut = buf
+
+	lr := newRegistry()
+	logger := NewWithHandler(createHandler(lr, &metadata{ModulePath: "testModuleName", PackagePath: "testPackageName"}))
+
+	SetGlobalLevel(slog.LevelInfo)
+	logger.Debug("should NOT appear (level=info)")
+	logger.Info("should appear (level=info)")
+
+	SetGlobalLevel(slog.LevelDebug)
+	logger.Debug("should appear now (level=debug, set after logger creation)")
+
+	out := buf.String()
+	if strings.Contains(out, "should NOT appear") {
+		t.Fatalf("expected debug log below the level to be suppressed, got:\n%s", out)
+	}
+	if !strings.Contains(out, "should appear (level=info)") {
+		t.Fatalf("expected info log to appear, got:\n%s", out)
+	}
+	if !strings.Contains(out, "should appear now") {
+		t.Fatalf("expected debug log after SetGlobalLevel(Debug) to appear, got:\n%s", out)
 	}
 }
