@@ -19,6 +19,7 @@ type Options struct {
 	SamplePercent     float32
 	DevEmail          string
 	LogCallsByDefault bool
+	LogTracedCalls    bool
 }
 
 type SpanRecorder struct {
@@ -48,6 +49,7 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 			"APIKey":        map[string]string{"Path": "/etc/.honeycomb_api_key"},
 		},
 		"LogCallsByDefault": options.LogCallsByDefault,
+		"LogTracedCalls":    options.LogTracedCalls,
 	}
 
 	if options.DevEmail != "" {

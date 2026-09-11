@@ -23,6 +23,10 @@ var callTracker = &call.Tracker{}
 // in `setDefaultTracer` and it comes from a value in the config file.
 var logCallsByDefault = false
 
+// logTracedCalls controls whether calls in an exported trace get an info log
+// regardless of logCallsByDefault.  Set in `setDefaultTracer` from the config.
+var logTracedCalls = false
+
 // StartCall is used to start an internal call. For external calls please
 // use StartExternalCall.
 //
@@ -57,17 +61,32 @@ func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context
 	// Specify the default behavior first in line.  It might be overridden
 	// by later args and that's OK.
 	opts := make([]log.Marshaler, 0, len(args)+1)
-	if logCallsByDefault {
-		opts = append(opts, WithInfoLoggingEnabled())
-	} else {
-		opts = append(opts, WithInfoLoggingDisabled())
-	}
+	opts = append(opts, withDefaultInfoLogging(logCallsByDefault))
 	opts = append(opts, args...)
 
 	ctx = StartSpan(callTracker.StartCall(ctx, cType, opts), cType)
+	logTracedCall(ctx)
 	AddInfo(ctx, args...)
 
 	return ctx
+}
+
+// logTracedCall enables info logging for a call in an exported trace, unless the
+// call made an explicit choice.  It must run after the span is created, since
+// that is when the sampling decision is made.
+func logTracedCall(ctx context.Context) {
+	if !logTracedCalls {
+		return
+	}
+
+	info := callTracker.Info(ctx)
+	if info == nil || info.InfoLoggingExplicit || info.Opts.EnableInfoLogging {
+		return
+	}
+
+	if IsExported(ctx) {
+		info.Opts.EnableInfoLogging = true
+	}
 }
 
 // Deprecated: use AsGrpcCall call.Option instead
@@ -203,6 +222,9 @@ func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
 	addField("honeycomb.trace_id", ID(c))
 	addField("honeycomb.parent_id", parentID(c))
 	addField("honeycomb.span_id", SpanID(c))
+	if exported := IsExported(c); exported {
+		addField("honeycomb.trace_exported", exported)
+	}
 }
 
 type traceEventMarker struct{}
