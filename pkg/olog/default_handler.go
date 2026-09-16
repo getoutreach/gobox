@@ -112,15 +112,13 @@ func SetDefaultHandler(ht DefaultHandlerType) {
 // log level for tests (in the olog package).
 func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	var h slog.Handler
+	// Order is important here, the first address that matches will be
+	// used. So, we start with the most granular address, the package
+	// name.
+	addrs := []string{m.PackagePath, m.ModulePath}
 	opts := &slog.HandlerOptions{
-		AddSource: true,
-		Level: newLeveler(lr, []string{
-			// Order is important here, the first address that
-			// matches will be used. So, we start with the most granular
-			// address, the package name.
-			m.PackagePath,
-			m.ModulePath,
-		}),
+		AddSource:   true,
+		Level:       newLeveler(lr, addrs),
 		ReplaceAttr: replaceKey("time", "@timestamp"),
 	}
 
@@ -139,6 +137,11 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	default:
 		panic("unknown default handler")
 	}
+
+	// Allow an optionally installed LevelResolver (see
+	// SetLevelResolver) to override the level per log emission using
+	// the record context.
+	h = newResolverHandler(h, opts.Level, addrs)
 
 	// When running in the main module, we don't need to add any extra
 	// keys to the handler.
