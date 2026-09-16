@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getoutreach/gobox/pkg/async"
 	"gopkg.in/yaml.v3"
 )
 
@@ -91,6 +90,18 @@ func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInter
 			}
 		}
 
-		async.Sleep(ctx, pollInterval)
+		sleep(ctx, pollInterval)
+	}
+}
+
+// sleep waits for the provided duration or until the context is done,
+// whichever comes first. Inlined (instead of pkg/async.Sleep) to avoid
+// an import cycle: async -> log -> olog.
+func sleep(ctx context.Context, d time.Duration) {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+	case <-t.C:
 	}
 }
