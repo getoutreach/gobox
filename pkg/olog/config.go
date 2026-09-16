@@ -52,6 +52,7 @@ func ConfigureFromFile(path string) error {
 		l, ok := stringLevel[strings.ToUpper(configuredLevel.Level)]
 		if !ok {
 			New().Error("unknown level", "level", configuredLevel.Level, "address", configuredLevel.Address)
+			continue
 		}
 		globalLevelRegistry.Set(l, configuredLevel.Address)
 	}
@@ -83,6 +84,7 @@ func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInter
 		}
 
 		if stat.ModTime().After(lastModTime) {
+			lastModTime = stat.ModTime()
 			err := ConfigureFromFile(logCfgFilePath)
 			ok := fn(err)
 			if !ok {

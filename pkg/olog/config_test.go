@@ -96,6 +96,33 @@ func TestConfigFromFile(t *testing.T) {
 	}
 }
 
+func TestConfigFromFile_UnknownLevel(t *testing.T) {
+	c := Config{
+		Levels: []struct {
+			Address string "yaml:\"address\""
+			Level   string "yaml:\"level\""
+		}{
+			{
+				Address: "unknownModule",
+				Level:   "INVALID_LEVEL",
+			},
+		},
+	}
+
+	dir := t.TempDir()
+	configBytes, err := yaml.Marshal(c)
+	assert.NilError(t, err)
+
+	filePath := dir + "/olog.yaml"
+	err = os.WriteFile(filePath, configBytes, 0o644)
+	assert.NilError(t, err)
+
+	err = ConfigureFromFile(filePath)
+	assert.NilError(t, err)
+
+	assert.Assert(t, globalLevelRegistry.Get("unknownModule") == nil)
+}
+
 //go:embed fixtures/info.yaml
 var info string
 
