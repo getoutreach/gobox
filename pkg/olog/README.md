@@ -381,7 +381,7 @@ log:
   - level: WARN
     address: github.com/getoutreach/gobox/pkg/olog
   - level: ERROR
-    address: github.com/getoutreach/smartstore
+    address: github.com/getoutreach/goql
 ```
 
 ## `func PollConfigurationFile`
