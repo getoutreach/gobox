@@ -282,7 +282,7 @@ func doSomething(ctx context.Context, t *Thing) {
 }
 ```
 
-## Known limitation: custom handlers bypass level control
+## Injecting a terminal sink (OpenTelemetry and friends)
 
 Level control in this package is bound at handler-construction time:
 `createHandler` attaches a `slog.Leveler` (backed by the level registry,
@@ -290,29 +290,55 @@ the global level, and the configuration file) plus the optional
 `LevelResolver` to the handler it builds. Only handlers built by this
 package carry that chain.
 
-Consequently, a handler installed through `log.SetHandler` — for example
-an OpenTelemetry bridge — receives records **ungated by olog**. All of the
-following are silently inert for that handler:
+To route records to a custom destination *without* losing that chain,
+inject the destination as the terminal sink instead of replacing the
+whole handler:
 
-| Capability | Default olog handler | After `log.SetHandler(h)` |
-| --- | --- | --- |
-| `olog.SetLevel` (per module/package) | applied | ignored |
-| `olog.SetGlobalLevel` | applied | ignored |
-| `ConfigureFromFile` / `PollConfigurationFile` | applied | ignored |
-| `olog.SetLevelResolver` | applied | ignored |
-| `module` / `modulever` attribution | per caller package | single process-wide handler |
+```go
+import (
+    "log/slog"
 
-Filtering for such a handler is the installer's responsibility (the
-OpenTelemetry SDK's own level configuration, or a wrapper implementing
-`Enabled`).
+    "github.com/getoutreach/gobox/pkg/olog"
+    "go.opentelemetry.io/contrib/bridges/otelslog"
+)
 
-The intended fix is to invert the dependency: allow a caller-supplied
-*terminal sink* to be injected into `createHandler` so the leveling and
-resolver chain is applied ahead of it, and drop the custom-handler
-short-circuit in `pkg/log`'s emission path. Handlers wrapped that way must
-not re-filter on a level of their own, matching the contract the built-in
-text sink follows (it is pinned at a floor level so all gating happens in
-one place).
+func init() {
+    olog.SetSinkHandler(func(_ *slog.HandlerOptions) slog.Handler {
+        return otelslog.NewHandler("my-service")
+    })
+}
+```
+
+Every logger created afterwards writes through the same olog chain —
+`SetLevel`, `SetGlobalLevel`, `ConfigureFromFile` /
+`PollConfigurationFile`, `SetLevelResolver`, and `module` / `modulever`
+attribution all keep working — with the injected handler as the leaf.
+`SetSinkHandler(nil)` restores the built-in JSON/text sinks.
+
+Sinks receive the `*slog.HandlerOptions` olog assembled (`AddSource`,
+the olog leveler, and the `time` → `@timestamp` rewrite) and may honor
+them, but **must not apply a level filter of their own**: gating happens
+once, ahead of the sink. This matches the contract the built-in text sink
+follows (it is pinned at a floor level).
+
+`SetSinkHandler` must be called before loggers are created (typically
+from service startup or `init`) to affect all loggers.
+
+### Contrast: `log.SetHandler` still bypasses olog
+
+A handler installed through `pkg/log`'s `SetHandler` replaces the entire
+handler and receives records **ungated by olog**:
+
+| Capability | Default olog handler | `olog.SetSinkHandler(f)` | `log.SetHandler(h)` |
+| --- | --- | --- | --- |
+| `olog.SetLevel` (per module/package) | applied | applied | ignored |
+| `olog.SetGlobalLevel` | applied | applied | ignored |
+| `ConfigureFromFile` / `PollConfigurationFile` | applied | applied | ignored |
+| `olog.SetLevelResolver` | applied | applied | ignored |
+| `module` / `modulever` attribution | per caller package | per caller package | single process-wide handler |
+
+Prefer `olog.SetSinkHandler` for OpenTelemetry bridges and other
+custom destinations.
 
 ## Logger Hooks
 

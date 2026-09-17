@@ -161,10 +161,11 @@ func SetOutput(w io.Writer) {
 // by olog's leveling chain. olog.SetLevel, olog.SetGlobalLevel, the olog
 // configuration file, and olog.SetLevelResolver therefore have no effect on
 // records delivered to h, and per-caller module attribution is lost because
-// one handler is shared process-wide. Filtering is h's responsibility. See
-// "Known limitation: custom handlers bypass level control" in
-// pkg/olog/README.md for the intended fix (injecting h as a terminal sink
-// inside olog's handler chain).
+// one handler is shared process-wide. Filtering is h's responsibility.
+//
+// Prefer olog.SetSinkHandler, which injects a terminal sink inside olog's
+// handler chain and so preserves level gating, the level resolver, and
+// module attribution. See "Injecting a terminal sink" in pkg/olog/README.md.
 //
 // SetHandler bypasses the once guard and burns the initialization sentinel,
 // allowing handler installation at any point during initialization (even before
