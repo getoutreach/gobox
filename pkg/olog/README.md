@@ -282,6 +282,38 @@ func doSomething(ctx context.Context, t *Thing) {
 }
 ```
 
+## Known limitation: custom handlers bypass level control
+
+Level control in this package is bound at handler-construction time:
+`createHandler` attaches a `slog.Leveler` (backed by the level registry,
+the global level, and the configuration file) plus the optional
+`LevelResolver` to the handler it builds. Only handlers built by this
+package carry that chain.
+
+Consequently, a handler installed through `log.SetHandler` — for example
+an OpenTelemetry bridge — receives records **ungated by olog**. All of the
+following are silently inert for that handler:
+
+| Capability | Default olog handler | After `log.SetHandler(h)` |
+| --- | --- | --- |
+| `olog.SetLevel` (per module/package) | applied | ignored |
+| `olog.SetGlobalLevel` | applied | ignored |
+| `ConfigureFromFile` / `PollConfigurationFile` | applied | ignored |
+| `olog.SetLevelResolver` | applied | ignored |
+| `module` / `modulever` attribution | per caller package | single process-wide handler |
+
+Filtering for such a handler is the installer's responsibility (the
+OpenTelemetry SDK's own level configuration, or a wrapper implementing
+`Enabled`).
+
+The intended fix is to invert the dependency: allow a caller-supplied
+*terminal sink* to be injected into `createHandler` so the leveling and
+resolver chain is applied ahead of it, and drop the custom-handler
+short-circuit in `pkg/log`'s emission path. Handlers wrapped that way must
+not re-filter on a level of their own, matching the contract the built-in
+text sink follows (it is pinned at a floor level so all gating happens in
+one place).
+
 ## Logger Hooks
 
 To provide a mechanism with which to automatically add attributes to all logs (with access to context), loggers can also be created with hook functions. This package exposes a `NewWithHooks` func which wraps the default olog handler and allows for hook functions to be provided by the caller. These hooks funcs may return any number of `slog` attributes which will then be added to the final log record before it is written.

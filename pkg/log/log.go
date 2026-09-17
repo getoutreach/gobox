@@ -73,8 +73,8 @@ var (
 	// customHandlerInstalled indicates whether a custom handler was installed via SetHandler.
 	customHandlerInstalled bool
 
-	// callerLoggers caches *slog.Logger instances by caller package path.
-	callerLoggers = &sync.Map{}
+	// callerLoggersMap caches *slog.Logger instances by caller package path.
+	callerLoggersMap = &sync.Map{}
 
 	// dbgEntries is essentially a buffer of entries
 	dbgEntries = entries.New()
@@ -86,7 +86,7 @@ func setupSlog() {
 	defer slogLock.Unlock()
 	log = olog.New()
 	customHandlerInstalled = false
-	callerLoggers = &sync.Map{}
+	callerLoggersMap = &sync.Map{}
 }
 
 // ShouldUseSlog returns true if slog facade should be used
@@ -104,7 +104,7 @@ func SetShouldUseSlog(val bool) {
 	shouldSlog = val
 	log = olog.New()
 	customHandlerInstalled = false
-	callerLoggers = &sync.Map{}
+	callerLoggersMap = &sync.Map{}
 }
 
 // Marshaler is the interface to be implemented by items that can be logged.
@@ -156,6 +156,15 @@ func SetOutput(w io.Writer) {
 // SetHandler can be used to replace the slog.Handler used by the log package
 // with a custom implementation. This is useful for services that want to route
 // logs through an OpenTelemetry bridge or other custom handler.
+//
+// Known limitation: h is installed as the sole handler and is not wrapped
+// by olog's leveling chain. olog.SetLevel, olog.SetGlobalLevel, the olog
+// configuration file, and olog.SetLevelResolver therefore have no effect on
+// records delivered to h, and per-caller module attribution is lost because
+// one handler is shared process-wide. Filtering is h's responsibility. See
+// "Known limitation: custom handlers bypass level control" in
+// pkg/olog/README.md for the intended fix (injecting h as a terminal sink
+// inside olog's handler chain).
 //
 // SetHandler bypasses the once guard and burns the initialization sentinel,
 // allowing handler installation at any point during initialization (even before
@@ -223,10 +232,14 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 		}
 	}
 
-	// Acquire lock to safely read the log variable and customHandlerInstalled flag
+	// Acquire lock to safely read the log variable, the customHandlerInstalled
+	// flag, and the current caller-logger cache. The cache pointer is captured
+	// here (rather than read directly below) because setupSlog and
+	// SetShouldUseSlog replace it under the same lock.
 	slogLock.Lock()
 	isCustom := customHandlerInstalled
 	defaultLog := log
+	loggers := callerLoggersMap
 	slogLock.Unlock()
 
 	var handler slog.Handler
@@ -238,11 +251,11 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 		if err != nil || pkgKey == "" {
 			pkgKey = "unknown"
 		}
-		if cached, ok := callerLoggers.Load(pkgKey); ok {
+		if cached, ok := loggers.Load(pkgKey); ok {
 			handler = cached.(*slog.Logger).Handler()
 		} else {
 			l := olog.NewForPC(pcs[0])
-			actual, _ := callerLoggers.LoadOrStore(pkgKey, l)
+			actual, _ := loggers.LoadOrStore(pkgKey, l)
 			handler = actual.(*slog.Logger).Handler()
 		}
 	}
