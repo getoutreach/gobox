@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -133,7 +134,7 @@ func TestPollConfigurationFile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	file := t.TempDir() + "log.yaml"
+	file := filepath.Join(t.TempDir(), "log.yaml")
 
 	count := 0
 

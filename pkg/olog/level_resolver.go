@@ -30,6 +30,11 @@ var globalLevelResolver atomic.Pointer[LevelResolver]
 // all loggers created by this package. Pass nil to remove a previously
 // installed resolver. Services that do not call this pay no overhead
 // beyond a nil check.
+//
+// The resolver is consulted only by handlers created by this package.
+// Callers who install their own handler (e.g. log.SetHandler, used by
+// OpenTelemetry bridges) bypass it entirely and must apply their own
+// level logic.
 func SetLevelResolver(r LevelResolver) {
 	if r == nil {
 		globalLevelResolver.Store(nil)

@@ -377,7 +377,7 @@ func ConfigureFromFile(path string) error
 Configuration looks like:
 
 ```yaml
-log:
+olog:
   - level: WARN
     address: github.com/getoutreach/gobox/pkg/olog
   - level: ERROR
