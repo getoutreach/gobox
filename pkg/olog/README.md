@@ -364,7 +364,7 @@ SetGlobalLevel sets the global logging level used by all loggers by default that
 func SetLevel(l slog.Level, address ...string)
 ```
 
-`SetLevel` SetLevel sets the log-level for the provided addresses, which are modules or file paths
+`SetLevel` SetLevel sets the log level for the provided addresses, which are modules or file paths.
 
 ## [func ConfigureFromFile](https://github.com/getoutreach/gobox/blob/main/pkg/olog/level.go)
 
