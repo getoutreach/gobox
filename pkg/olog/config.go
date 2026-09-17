@@ -25,7 +25,7 @@ var stringLevel = map[string]slog.Level{
 }
 
 // Config is level configuration for olog.
-// The address is either a moddule or a package, and the level is one of
+// The address is either a module or a package, and the level is one of
 // DEBUG, INFO, WARN, ERROR, or OFF
 type Config struct {
 	Levels []struct {

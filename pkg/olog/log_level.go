@@ -43,9 +43,9 @@ type leveler struct {
 //   - The level is retrieved from configuration using the
 //     config package. The configuration is automatically reloaded when
 //     changes are detected.
-//   - If no address level can be retreived, and the global level is set, then
+//   - If no address level can be retrieved and the global level is set, then
 //     that level is returned.
-//   - otheriwse the level is Info.
+//   - Otherwise, the level is `Info`.
 func (l *leveler) Level() slog.Level {
 	addrLevel := l.levelRegistry.Get(l.addrs...)
 	if addrLevel != nil {
@@ -68,7 +68,7 @@ func SetGlobalLevel(l slog.Level) {
 	level.Store(int64(l))
 }
 
-// SetLevel sets the log-level for the provided addresses, which are modules or file paths
+// SetLevel sets the log level for the provided addresses, which are modules or file paths.
 func SetLevel(l slog.Level, address ...string) {
 	globalLevelRegistry.Set(l, address...)
 }
