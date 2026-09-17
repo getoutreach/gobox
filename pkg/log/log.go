@@ -70,6 +70,12 @@ var (
 	// log is a structured logger instance.
 	log *slog.Logger
 
+	// customHandlerInstalled indicates whether a custom handler was installed via SetHandler.
+	customHandlerInstalled bool
+
+	// callerLoggers caches *slog.Logger instances by caller package path.
+	callerLoggers = &sync.Map{}
+
 	// dbgEntries is essentially a buffer of entries
 	dbgEntries = entries.New()
 )
@@ -79,6 +85,8 @@ func setupSlog() {
 	slogLock.Lock()
 	defer slogLock.Unlock()
 	log = olog.New()
+	customHandlerInstalled = false
+	callerLoggers = &sync.Map{}
 }
 
 // ShouldUseSlog returns true if slog facade should be used
@@ -95,6 +103,8 @@ func SetShouldUseSlog(val bool) {
 	defer slogLock.Unlock()
 	shouldSlog = val
 	log = olog.New()
+	customHandlerInstalled = false
+	callerLoggers = &sync.Map{}
 }
 
 // Marshaler is the interface to be implemented by items that can be logged.
@@ -161,6 +171,7 @@ func SetHandler(h slog.Handler) {
 
 	// Enable slog facade: installing a handler means the caller wants the slog path.
 	shouldSlog = true
+	customHandlerInstalled = true
 
 	// Assign the custom handler.
 	log = olog.NewWithHandler(h)
@@ -212,10 +223,29 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 		}
 	}
 
-	// Acquire lock to safely read the log variable
+	// Acquire lock to safely read the log variable and customHandlerInstalled flag
 	slogLock.Lock()
-	handler := log.Handler()
+	isCustom := customHandlerInstalled
+	defaultLog := log
 	slogLock.Unlock()
+
+	var handler slog.Handler
+	if isCustom {
+		handler = defaultLog.Handler()
+	} else {
+		ci, err := callerinfo.GetCallerInfoFromPC(pcs[0])
+		pkgKey := ci.Package
+		if err != nil || pkgKey == "" {
+			pkgKey = "unknown"
+		}
+		if cached, ok := callerLoggers.Load(pkgKey); ok {
+			handler = cached.(*slog.Logger).Handler()
+		} else {
+			l := olog.NewForPC(pcs[0])
+			actual, _ := callerLoggers.LoadOrStore(pkgKey, l)
+			handler = actual.(*slog.Logger).Handler()
+		}
+	}
 
 	if handler.Enabled(ctx, lvl) {
 		_ = handler.Handle(ctx, r) //nolint: errcheck //Why: mimic stdlib which skips handling this error

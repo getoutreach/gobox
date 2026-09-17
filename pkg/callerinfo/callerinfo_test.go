@@ -1,6 +1,7 @@
 package callerinfo
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 
@@ -24,6 +25,10 @@ func Test_ParsePackageName(t *testing.T) {
 }
 
 func Test_Callers(t *testing.T) {
+	moduleLookupLock.Lock()
+	moduleLookupByPC = make(map[uintptr]CallerInfo)
+	moduleLookupLock.Unlock()
+
 	assert.Equal(t, len(moduleLookupByPC), 0)
 
 	ci, err := GetCallerInfo(0)
@@ -61,4 +66,23 @@ func testhelper1() (CallerInfo, error) {
 //go:noinline
 func testhelper2() (CallerInfo, error) {
 	return GetCallerInfo(0)
+}
+
+func Test_GetCallerInfoFromPC(t *testing.T) {
+	pc := make([]uintptr, 1)
+	num := testhelperPC(pc)
+	assert.Assert(t, num > 0)
+
+	ci, err := GetCallerInfoFromPC(pc[0])
+	assert.NilError(t, err)
+	assert.Equal(t, ci.Package, "github.com/getoutreach/gobox/pkg/callerinfo")
+	assert.Equal(t, ci.Function, "github.com/getoutreach/gobox/pkg/callerinfo.testhelperPC")
+
+	_, errZero := GetCallerInfoFromPC(0)
+	assert.Assert(t, errZero != nil)
+}
+
+//go:noinline
+func testhelperPC(pcs []uintptr) int {
+	return runtime.Callers(1, pcs)
 }

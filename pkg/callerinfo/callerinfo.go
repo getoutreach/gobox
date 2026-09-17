@@ -69,8 +69,20 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 		return CallerInfo{}, fmt.Errorf("no frames returned from skip %d", skipTotal)
 	}
 
+	return getCallerInfoFromPC(pc[0])
+}
+
+// GetCallerInfoFromPC returns caller information derived from a program counter.
+func GetCallerInfoFromPC(pc uintptr) (CallerInfo, error) {
+	if pc == 0 {
+		return CallerInfo{}, fmt.Errorf("invalid program counter: 0")
+	}
+	return getCallerInfoFromPC(pc)
+}
+
+func getCallerInfoFromPC(pc uintptr) (CallerInfo, error) {
 	moduleLookupLock.RLock()
-	mod, valid := moduleLookupByPC[pc[0]]
+	mod, valid := moduleLookupByPC[pc]
 	moduleLookupLock.RUnlock()
 	if valid {
 		// Found it in the cache
@@ -78,7 +90,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	}
 
 	// Not cached -- have to do the slow lookup
-	frames := runtime.CallersFrames(pc)
+	frames := runtime.CallersFrames([]uintptr{pc})
 	frame, _ := frames.Next()
 
 	ci := CallerInfo{
@@ -115,7 +127,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	// Cache for later, under a brief write lock -- don't use the defer style here in case we add more logic after this someday
 	// and hold the lock for too long.
 	moduleLookupLock.Lock()
-	moduleLookupByPC[pc[0]] = ci
+	moduleLookupByPC[pc] = ci
 	moduleLookupLock.Unlock()
 
 	return ci, nil

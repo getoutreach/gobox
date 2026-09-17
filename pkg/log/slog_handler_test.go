@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getoutreach/gobox/pkg/olog"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -398,4 +399,40 @@ func TestFatalFlushNonFlusher(t *testing.T) {
 	ctx := context.Background()
 	fatalFlush(ctx)
 	// If we get here without panicking, the test passes
+}
+
+// TestOlogPackageLevelRouting verifies that olog.SetLevel on the calling package
+// changes the log level on the slog path, while an unrelated package does not.
+func TestOlogPackageLevelRouting(t *testing.T) {
+	restoreSlogState(t)
+	SetShouldUseSlog(true)
+
+	var buf bytes.Buffer
+	SetOutput(&buf)
+	defer func() {
+		SetOutput(os.Stderr)
+		olog.SetGlobalLevel(slog.LevelInfo)
+	}()
+
+	testPkg := "github.com/getoutreach/gobox/pkg/log"
+	unrelatedPkg := "github.com/getoutreach/gobox/pkg/unrelated"
+
+	// Set global level to Info so Debug is disabled by default
+	olog.SetGlobalLevel(slog.LevelInfo)
+
+	// Case 1: Debug for an unrelated package does NOT enable Debug for this package
+	olog.SetLevel(slog.LevelDebug, unrelatedPkg)
+	buf.Reset()
+	Debug(context.Background(), "unrelated package debug should not appear")
+	if buf.Len() != 0 {
+		t.Fatalf("expected no output for unrelated package level override, got: %s", buf.String())
+	}
+
+	// Case 2: Debug for this test package DOES enable Debug for this package
+	olog.SetLevel(slog.LevelDebug, testPkg)
+	buf.Reset()
+	Debug(context.Background(), "package debug should appear")
+	if !bytes.Contains(buf.Bytes(), []byte("package debug should appear")) {
+		t.Fatalf("expected log output to appear after olog.SetLevel on package, got: %s", buf.String())
+	}
 }
