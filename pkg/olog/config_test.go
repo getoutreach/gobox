@@ -17,10 +17,7 @@ import (
 
 func TestConfigFromFile(t *testing.T) {
 	c := Config{
-		Levels: []struct {
-			Address string "yaml:\"address\""
-			Level   string "yaml:\"level\""
-		}{
+		Levels: []LevelConfig{
 			{
 				Address: "warnModule",
 				Level:   "warn",
@@ -43,10 +40,10 @@ func TestConfigFromFile(t *testing.T) {
 	configBytes, err := yaml.Marshal(c)
 	assert.NilError(t, err)
 
-	err = os.WriteFile(dir+"/olog.yaml", configBytes, 0o644)
+	err = os.WriteFile(filepath.Join(dir, "olog.yaml"), configBytes, 0o644)
 	assert.NilError(t, err)
 
-	err = ConfigureFromFile(dir + "/olog.yaml")
+	err = ConfigureFromFile(filepath.Join(dir, "olog.yaml"))
 	assert.NilError(t, err)
 
 	logCapture := NewTestCapturer(t)
@@ -99,10 +96,7 @@ func TestConfigFromFile(t *testing.T) {
 
 func TestConfigFromFile_UnknownLevel(t *testing.T) {
 	c := Config{
-		Levels: []struct {
-			Address string "yaml:\"address\""
-			Level   string "yaml:\"level\""
-		}{
+		Levels: []LevelConfig{
 			{
 				Address: "unknownModule",
 				Level:   "INVALID_LEVEL",
@@ -114,7 +108,7 @@ func TestConfigFromFile_UnknownLevel(t *testing.T) {
 	configBytes, err := yaml.Marshal(c)
 	assert.NilError(t, err)
 
-	filePath := dir + "/olog.yaml"
+	filePath := filepath.Join(dir, "olog.yaml")
 	err = os.WriteFile(filePath, configBytes, 0o644)
 	assert.NilError(t, err)
 

@@ -24,15 +24,20 @@ var stringLevel = map[string]slog.Level{
 	"OFF":                    slog.Level(100),
 }
 
-// Config is level configuration for olog.
-// The address is either a module or a package, and the level is one of
-// DEBUG, INFO, WARN, ERROR, or OFF
+// LevelConfig is a single address-to-level mapping. The address is
+// either a module or a package path.
+type LevelConfig struct {
+	// Address is a module or package path.
+	Address string `yaml:"address"`
+
+	// Level is one of DEBUG, INFO, WARN, ERROR, or OFF.
+	Level string `yaml:"level"`
+}
+
+// Config is level configuration for olog. The address is either a module
+// or a package, and the level is one of DEBUG, INFO, WARN, ERROR, or OFF.
 type Config struct {
-	Levels []struct {
-		// module or package path
-		Address string `yaml:"address"`
-		Level   string `yaml:"level"`
-	} `yaml:"log"`
+	Levels []LevelConfig `yaml:"log"`
 }
 
 // ConfigureFromFile loads the level configuration from the provided path.
