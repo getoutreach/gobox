@@ -32,7 +32,7 @@ type Config struct {
 		// module or package path
 		Address string `yaml:"address"`
 		Level   string `yaml:"level"`
-	} `yaml:"olog"`
+	} `yaml:"log"`
 }
 
 // ConfigureFromFile loads the level configuration from the provided path.
