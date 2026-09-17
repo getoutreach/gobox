@@ -430,7 +430,7 @@ func SetLevel(l slog.Level, address ...string)
 func ConfigureFromFile(path string) error
 ```
 
-`ConfigureFromFile` loads the level configuration from the provided path.
+`ConfigureFromFile` loads the level configuration from the provided path. Entries with a valid level are always applied; entries whose level is not one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `OFF` are skipped and reported in the returned error, which wraps `ErrUnknownLevel` for each such entry (also surfaced through `PollConfigurationFile`'s callback).
 
 Configuration looks like:
 

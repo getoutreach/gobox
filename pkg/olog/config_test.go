@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -113,9 +114,37 @@ func TestConfigFromFile_UnknownLevel(t *testing.T) {
 	assert.NilError(t, err)
 
 	err = ConfigureFromFile(filePath)
-	assert.NilError(t, err)
+	assert.Assert(t, err != nil, "expected an unknown level to be reported")
+	assert.Assert(t, errors.Is(err, ErrUnknownLevel))
+	assert.Assert(t, strings.Contains(err.Error(), "unknownModule"), "error should name the address: %v", err)
 
 	assert.Assert(t, globalLevelRegistry.Get("unknownModule") == nil)
+}
+
+// TestConfigFromFile_UnknownLevelAppliesValidEntries ensures a single
+// bad entry does not prevent the remaining entries from being applied.
+func TestConfigFromFile_UnknownLevelAppliesValidEntries(t *testing.T) {
+	c := Config{
+		Levels: []LevelConfig{
+			{Address: "badLevelModule", Level: "NOPE"},
+			{Address: "goodLevelModule", Level: "ERROR"},
+		},
+	}
+
+	dir := t.TempDir()
+	configBytes, err := yaml.Marshal(c)
+	assert.NilError(t, err)
+
+	filePath := filepath.Join(dir, "olog.yaml")
+	assert.NilError(t, os.WriteFile(filePath, configBytes, 0o644))
+
+	err = ConfigureFromFile(filePath)
+	assert.Assert(t, errors.Is(err, ErrUnknownLevel))
+
+	got := globalLevelRegistry.Get("goodLevelModule")
+	assert.Assert(t, got != nil, "valid entry should still be applied")
+	assert.Equal(t, *got, slog.LevelError)
+	assert.Assert(t, globalLevelRegistry.Get("badLevelModule") == nil)
 }
 
 //go:embed fixtures/info.yaml

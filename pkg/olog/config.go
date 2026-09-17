@@ -6,6 +6,7 @@ package olog
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -40,7 +41,16 @@ type Config struct {
 	Levels []LevelConfig `yaml:"log"`
 }
 
-// ConfigureFromFile loads the level configuration from the provided path.
+// ErrUnknownLevel is returned by [ConfigureFromFile] (and surfaced
+// through [PollConfigurationFile]'s callback) for each configuration
+// entry whose level is not one of DEBUG, INFO, WARN, ERROR, or OFF.
+// Entries with a valid level are still applied.
+var ErrUnknownLevel = errors.New("unknown level")
+
+// ConfigureFromFile loads the level configuration from the provided
+// path. Entries with a valid level are always applied; entries with an
+// unrecognized level are skipped and reported in the returned error,
+// which wraps [ErrUnknownLevel] for each such entry.
 func ConfigureFromFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -53,16 +63,18 @@ func ConfigureFromFile(path string) error {
 		return fmt.Errorf("%w unmarshalling %s: \n%s", err, path, string(data))
 	}
 
+	var errs []error
 	for _, configuredLevel := range c.Levels {
 		l, ok := stringLevel[strings.ToUpper(configuredLevel.Level)]
 		if !ok {
-			New().Error("unknown level", "level", configuredLevel.Level, "address", configuredLevel.Address)
+			errs = append(errs, fmt.Errorf("%w %q for address %q in %s",
+				ErrUnknownLevel, configuredLevel.Level, configuredLevel.Address, path))
 			continue
 		}
 		globalLevelRegistry.Set(l, configuredLevel.Address)
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // PollConfigurationFile watches the level configuration file for changes and reloads it.
