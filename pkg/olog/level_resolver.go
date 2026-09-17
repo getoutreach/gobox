@@ -10,8 +10,6 @@ import (
 	"context"
 	"log/slog"
 	"sync/atomic"
-
-	charmlog "github.com/charmbracelet/log"
 )
 
 // LevelResolver optionally resolves the log level to enforce for a log
@@ -59,11 +57,10 @@ func newResolverHandler(inner slog.Handler, leveler slog.Leveler, addrs []string
 func (h *resolverHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	if rp := globalLevelResolver.Load(); rp != nil {
 		if resolved, ok := (*rp)(ctx, h.addrs, h.leveler.Level()); ok {
-			// charmlog.Logger filters again in Handle using its own
-			// level, so keep it in sync with the resolved level.
-			if c, isCharm := h.inner.(*charmLevelHandler); isCharm {
-				c.inner.SetLevel(charmlog.Level(resolved))
-			}
+			// Wrapped handlers must not re-filter with a level of their
+			// own; both slog.JSONHandler (via opts.Level, already
+			// checked here) and charmLevelHandler defer to this
+			// decision, so no shared state is mutated per record.
 			return level >= resolved
 		}
 	}

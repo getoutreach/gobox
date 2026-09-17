@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"runtime/debug"
 	"sync/atomic"
@@ -127,12 +128,14 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 		h = slog.NewJSONHandler(defaultOut, opts)
 	case TextHandler:
 		// charmlog.Logger doesn't support slog.Leveler, so wrap it in
-		// charmLevelHandler to keep its level in sync dynamically.
+		// charmLevelHandler, which performs all level gating itself.
+		// The charm logger is pinned at charmFloorLevel so it never
+		// applies a second, stale filter of its own.
 		h = newCharmLevelHandler(charmlog.NewWithOptions(defaultOut, charmlog.Options{
 			ReportTimestamp: true,
 			TimeFormat:      "15:04:05",
 			ReportCaller:    opts.AddSource,
-			Level:           charmlog.Level(opts.Level.Level()),
+			Level:           charmFloorLevel,
 		}), opts.Level)
 	default:
 		panic("unknown default handler")
@@ -167,10 +170,18 @@ func replaceKey(oldKey, newKey string) func([]string, slog.Attr) slog.Attr {
 	}
 }
 
+// charmFloorLevel is the level the wrapped *charmlog.Logger is pinned
+// at so that it never filters records on its own. Level decisions are
+// made exclusively by charmLevelHandler.Enabled (and any handler
+// wrapping it, e.g. resolverHandler), which keeps them per-record
+// rather than dependent on shared mutable state.
+const charmFloorLevel = charmlog.Level(math.MinInt32)
+
 // charmLevelHandler wraps a *charmlog.Logger to make it respect a
 // slog.Leveler dynamically. charmlog.Logger only supports a level set
-// once at creation (or via SetLevel), so this re-syncs it from
-// `leveler` on every call to Enabled.
+// once at creation (or via SetLevel), which is process-shared mutable
+// state, so instead the wrapped logger is pinned at charmFloorLevel and
+// this handler evaluates `leveler` per record.
 type charmLevelHandler struct {
 	inner   *charmlog.Logger
 	leveler slog.Leveler
@@ -182,12 +193,11 @@ func newCharmLevelHandler(inner *charmlog.Logger, leveler slog.Leveler) *charmLe
 	return &charmLevelHandler{inner: inner, leveler: leveler}
 }
 
-// Enabled implements slog.Handler. It re-syncs the wrapped charm
-// logger's level from `leveler` before reporting whether the given
-// level is enabled.
-func (h *charmLevelHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	h.inner.SetLevel(charmlog.Level(h.leveler.Level()))
-	return h.inner.Enabled(ctx, level)
+// Enabled implements slog.Handler by evaluating `leveler` for this
+// call. It does not mutate the wrapped logger, so concurrent callers
+// with differing levels cannot interfere with each other.
+func (h *charmLevelHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.leveler.Level()
 }
 
 // Handle implements slog.Handler by delegating to the wrapped logger.

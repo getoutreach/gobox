@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // stringLevel is a map of string to slog.Level.
@@ -80,6 +80,7 @@ func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInter
 			if !ok {
 				return
 			}
+			sleep(ctx, pollInterval)
 			continue
 		}
 
