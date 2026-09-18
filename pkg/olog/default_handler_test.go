@@ -82,7 +82,11 @@ func TestSinkHandlerKeepsLevelChain(t *testing.T) {
 
 	// Module attribution is still applied by olog, not the sink.
 	SetLevelResolver(nil)
-	moduleLogger := NewWithHandler(createHandler(lr, &metadata{ModulePath: "otherModule", ModuleVersion: "v1.2.3", PackagePath: "otherPackage"}))
+	moduleLogger := NewWithHandler(createHandler(lr, &metadata{
+		ModulePath:    "otherModule",
+		ModuleVersion: "v1.2.3",
+		PackagePath:   "otherPackage",
+	}))
 	lr.Set(slog.LevelDebug, "otherPackage")
 	moduleLogger.Info("attributed")
 
