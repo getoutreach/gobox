@@ -182,3 +182,28 @@ func TestTextHandlerRespectsDynamicLevel(t *testing.T) {
 		t.Fatalf("expected debug log after SetGlobalLevel(Debug) to appear, got:\n%s", out)
 	}
 }
+
+func TestNewForPC(t *testing.T) {
+	pc := make([]uintptr, 1)
+	testHelperForPC(pc)
+	logger := NewForPC(pc[0])
+	if logger == nil {
+		t.Fatal("expected non-nil logger from NewForPC")
+	}
+
+	// Should also fall back safely on invalid PC
+	fallbackLogger := NewForPC(0)
+	if fallbackLogger == nil {
+		t.Fatal("expected non-nil logger from NewForPC(0) fallback")
+	}
+}
+
+//go:noinline
+func testHelperForPC(pcs []uintptr) int {
+	return callerinfoTestHelper(pcs)
+}
+
+//go:noinline
+func callerinfoTestHelper(pcs []uintptr) int {
+	return len(pcs)
+}

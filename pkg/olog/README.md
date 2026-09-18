@@ -282,6 +282,64 @@ func doSomething(ctx context.Context, t *Thing) {
 }
 ```
 
+## Injecting a terminal sink (OpenTelemetry and friends)
+
+Level control in this package is bound at handler-construction time:
+`createHandler` attaches a `slog.Leveler` (backed by the level registry,
+the global level, and the configuration file) plus the optional
+`LevelResolver` to the handler it builds. Only handlers built by this
+package carry that chain.
+
+To route records to a custom destination *without* losing that chain,
+inject the destination as the terminal sink instead of replacing the
+whole handler:
+
+```go
+import (
+    "log/slog"
+
+    "github.com/getoutreach/gobox/pkg/olog"
+    "go.opentelemetry.io/contrib/bridges/otelslog"
+)
+
+func init() {
+    olog.SetSinkHandler(func(_ *slog.HandlerOptions) slog.Handler {
+        return otelslog.NewHandler("my-service")
+    })
+}
+```
+
+Every logger created afterwards writes through the same olog chain —
+`SetLevel`, `SetGlobalLevel`, `ConfigureFromFile` /
+`PollConfigurationFile`, `SetLevelResolver`, and `module` / `modulever`
+attribution all keep working — with the injected handler as the leaf.
+`SetSinkHandler(nil)` restores the built-in JSON/text sinks.
+
+Sinks receive the `*slog.HandlerOptions` olog assembled (`AddSource`,
+the olog leveler, and the `time` → `@timestamp` rewrite) and may honor
+them, but **must not apply a level filter of their own**: gating happens
+once, ahead of the sink. This matches the contract the built-in text sink
+follows (it is pinned at a floor level).
+
+`SetSinkHandler` must be called before loggers are created (typically
+from service startup or `init`) to affect all loggers.
+
+### Contrast: `log.SetHandler` still bypasses olog
+
+A handler installed through `pkg/log`'s `SetHandler` replaces the entire
+handler and receives records **ungated by olog**:
+
+| Capability | Default olog handler | `olog.SetSinkHandler(f)` | `log.SetHandler(h)` |
+| --- | --- | --- | --- |
+| `olog.SetLevel` (per module/package) | applied | applied | ignored |
+| `olog.SetGlobalLevel` | applied | applied | ignored |
+| `ConfigureFromFile` / `PollConfigurationFile` | applied | applied | ignored |
+| `olog.SetLevelResolver` | applied | applied | ignored |
+| `module` / `modulever` attribution | per caller package | per caller package | single process-wide handler |
+
+Prefer `olog.SetSinkHandler` for OpenTelemetry bridges and other
+custom destinations.
+
 ## Logger Hooks
 
 To provide a mechanism with which to automatically add attributes to all logs (with access to context), loggers can also be created with hook functions. This package exposes a `NewWithHooks` func which wraps the default olog handler and allows for hook functions to be provided by the caller. These hooks funcs may return any number of `slog` attributes which will then be added to the final log record before it is written.
@@ -357,6 +415,48 @@ func SetGlobalLevel(l slog.Level)
 ```
 
 SetGlobalLevel sets the global logging level used by all loggers by default that do not have a level set in the level registry. This impacts loggers that have previously been created as well as loggers that will be created in the future.
+
+## [func SetLevel(l slog.Level, address ...string)](https://github.com/getoutreach/gobox/blob/main/pkg/olog/log_level.go#71)
+
+```go
+func SetLevel(l slog.Level, address ...string)
+```
+
+`SetLevel` SetLevel sets the log level for the provided addresses, which are modules or file paths.
+
+## [func ConfigureFromFile](https://github.com/getoutreach/gobox/blob/main/pkg/olog/level.go)
+
+```go
+func ConfigureFromFile(path string) error
+```
+
+`ConfigureFromFile` loads the level configuration from the provided path. Entries with a valid level are always applied; entries whose level is not one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `OFF` are skipped and reported in the returned error, which wraps `ErrUnknownLevel` for each such entry (also surfaced through `PollConfigurationFile`'s callback).
+
+Configuration looks like:
+
+```yaml
+log:
+  - level: WARN
+    address: github.com/getoutreach/gobox/pkg/olog
+  - level: ERROR
+    address: github.com/getoutreach/goql
+```
+
+## `func PollConfigurationFile`
+
+```go
+func PollConfigurationFile(ctx context.Context, path string, pollInterval time.Duration, errFunc func(err error) bool) 
+```
+
+PollConfigurationFile watches the level configuration file for changes and reloads it.
+if Poll encounters an error, the errFunc is called. If the errFunc returns false, poller exits
+
+if ctx ends, Poll exits. Otherwise it blocks until errFunc returns an error
+
+pollInterval is the interval at which the file is checked for changes.
+
+You can use this to watch a file mounted by a Kubernetes ConfigMap, for example: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically
+```
 
 ## func [SetOutput](<https://github.com/getoutreach/gobox/blob/main/pkg/olog/olog.go#L120>)
 

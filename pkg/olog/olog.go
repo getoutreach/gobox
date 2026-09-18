@@ -21,9 +21,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 )
 
-var (
-	outputLock = new(sync.RWMutex)
-)
+var outputLock = new(sync.RWMutex)
 
 // New creates a new slog instance that can be used for logging. The
 // provided logger use the global handler provided by this package. See
@@ -62,6 +60,23 @@ func New() *slog.Logger {
 	return NewWithHandler(handler)
 }
 
+// NewForPC creates a new slog instance associated with the module and
+// package of the caller at the given program counter.
+func NewForPC(pc uintptr) *slog.Logger {
+	m, err := getMetadataForPC(pc)
+	if err != nil {
+		// Why: NewForPC must not panic on a bad PC; attribute the logger
+		// to its immediate caller instead, and to the main module if even
+		// that lookup fails.
+		if m, err = getMetadata(); err != nil {
+			m = metadata{ModulePath: mainModule.Path, PackagePath: mainModule.Path}
+		}
+	}
+
+	handler := createHandler(globalLevelRegistry, &m)
+	return NewWithHandler(handler)
+}
+
 // metadata is metadata associated with every logger created by New().
 // This metadata always corresponds to whatever created the logger
 // through New().
@@ -78,6 +93,25 @@ type metadata struct {
 	// PackagePath is the path of the package that created this logger.
 	// Format: <moduleName>/<package>
 	PackagePath string
+}
+
+func getMetadataForPC(pc uintptr) (metadata, error) {
+	var m metadata
+
+	ci, err := callerinfo.GetCallerInfoFromPC(pc)
+	if err != nil {
+		return m, err
+	}
+
+	if ci.Module == "" {
+		return m, fmt.Errorf("failed to determine the current module")
+	}
+
+	return metadata{
+		ModulePath:    ci.Module,
+		ModuleVersion: ci.ModuleVersion,
+		PackagePath:   ci.Package,
+	}, nil
 }
 
 // getMetadata returns the moduleName, moduleVersion, and packageName

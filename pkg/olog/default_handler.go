@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"runtime/debug"
 	"sync/atomic"
@@ -32,7 +33,18 @@ var (
 
 	// mainModule is the module that the current binary was built in.
 	mainModule = debug.Module{}
+
+	// globalSink, when non-nil, builds the terminal handler that
+	// records are written to, in place of the built-in JSON/text
+	// sinks. See [SetSinkHandler].
+	globalSink atomic.Pointer[SinkFactory]
 )
+
+// SinkFactory builds the terminal slog.Handler that log records are
+// written to. It is given the handler options assembled by this
+// package (source reporting, the olog leveler, and attribute
+// rewriting) so the sink can honor them.
+type SinkFactory func(opts *slog.HandlerOptions) slog.Handler
 
 // DefaultHandlerType denotes which handler should be used by default.
 // This is calculated via the `setDefaultHandler` function on package
@@ -100,6 +112,24 @@ func SetDefaultHandler(ht DefaultHandlerType) {
 	defaultHandler.Store(int32(ht))
 }
 
+// SetSinkHandler installs a terminal handler factory (e.g. an
+// OpenTelemetry bridge) used by every logger created by this package,
+// in place of the built-in JSON/text sinks selected by
+// [SetDefaultHandler]. Level gating (the per-package level registry,
+// the global level, and configuration polling), address attribution,
+// module attributes, and [LevelResolver] support all continue to be
+// applied by olog ahead of the sink.
+//
+// This must be called before any loggers are created to have an effect
+// on all loggers. Pass nil to restore the built-in sinks.
+func SetSinkHandler(f SinkFactory) {
+	if f == nil {
+		globalSink.Store(nil)
+		return
+	}
+	globalSink.Store(&f)
+}
+
 // createHandler creates a new handler for usage with a slog.Logger. The
 // handler used is determined based on the current defaultHandler. The
 // handler is configured to add source information to all logs as well
@@ -112,33 +142,45 @@ func SetDefaultHandler(ht DefaultHandlerType) {
 // log level for tests (in the olog package).
 func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 	var h slog.Handler
+	// Order is important here, the first address that matches will be
+	// used. So, we start with the most granular address, the package
+	// name.
+	addrs := []string{m.PackagePath, m.ModulePath}
 	opts := &slog.HandlerOptions{
-		AddSource: true,
-		Level: newLeveler(lr, []string{
-			// Order is important here, the first address that
-			// matches will be used. So, we start with the most granular
-			// address, the package name.
-			m.PackagePath,
-			m.ModulePath,
-		}),
+		AddSource:   true,
+		Level:       newLeveler(lr, addrs),
 		ReplaceAttr: replaceKey("time", "@timestamp"),
 	}
 
-	switch DefaultHandlerType(defaultHandler.Load()) {
-	case JSONHandler:
-		h = slog.NewJSONHandler(defaultOut, opts)
-	case TextHandler:
-		// charmlog.Logger doesn't support slog.Leveler, so wrap it in
-		// charmLevelHandler to keep its level in sync dynamically.
-		h = newCharmLevelHandler(charmlog.NewWithOptions(defaultOut, charmlog.Options{
-			ReportTimestamp: true,
-			TimeFormat:      "15:04:05",
-			ReportCaller:    opts.AddSource,
-			Level:           charmlog.Level(opts.Level.Level()),
-		}), opts.Level)
-	default:
-		panic("unknown default handler")
+	if sf := globalSink.Load(); sf != nil {
+		// An injected sink replaces only the leaf handler; olog keeps
+		// ownership of level gating (applied here, since sinks must not
+		// filter on a level of their own) and attribution below.
+		h = newLevelGateHandler((*sf)(opts), opts.Level)
+	} else {
+		switch DefaultHandlerType(defaultHandler.Load()) {
+		case JSONHandler:
+			h = slog.NewJSONHandler(defaultOut, opts)
+		case TextHandler:
+			// charmlog.Logger doesn't support slog.Leveler, so wrap it
+			// in charmLevelHandler, which performs all level gating
+			// itself. The charm logger is pinned at charmFloorLevel so
+			// it never applies a second, stale filter of its own.
+			h = newCharmLevelHandler(charmlog.NewWithOptions(defaultOut, charmlog.Options{
+				ReportTimestamp: true,
+				TimeFormat:      "15:04:05",
+				ReportCaller:    opts.AddSource,
+				Level:           charmFloorLevel,
+			}), opts.Level)
+		default:
+			panic("unknown default handler")
+		}
 	}
+
+	// Allow an optionally installed LevelResolver (see
+	// SetLevelResolver) to override the level per log emission using
+	// the record context.
+	h = newResolverHandler(h, opts.Level, addrs)
 
 	// When running in the main module, we don't need to add any extra
 	// keys to the handler.
@@ -164,10 +206,18 @@ func replaceKey(oldKey, newKey string) func([]string, slog.Attr) slog.Attr {
 	}
 }
 
+// charmFloorLevel is the level the wrapped *charmlog.Logger is pinned
+// at so that it never filters records on its own. Level decisions are
+// made exclusively by charmLevelHandler.Enabled (and any handler
+// wrapping it, e.g. resolverHandler), which keeps them per-record
+// rather than dependent on shared mutable state.
+const charmFloorLevel = charmlog.Level(math.MinInt32)
+
 // charmLevelHandler wraps a *charmlog.Logger to make it respect a
 // slog.Leveler dynamically. charmlog.Logger only supports a level set
-// once at creation (or via SetLevel), so this re-syncs it from
-// `leveler` on every call to Enabled.
+// once at creation (or via SetLevel), which is process-shared mutable
+// state, so instead the wrapped logger is pinned at charmFloorLevel and
+// this handler evaluates `leveler` per record.
 type charmLevelHandler struct {
 	inner   *charmlog.Logger
 	leveler slog.Leveler
@@ -179,12 +229,11 @@ func newCharmLevelHandler(inner *charmlog.Logger, leveler slog.Leveler) *charmLe
 	return &charmLevelHandler{inner: inner, leveler: leveler}
 }
 
-// Enabled implements slog.Handler. It re-syncs the wrapped charm
-// logger's level from `leveler` before reporting whether the given
-// level is enabled.
-func (h *charmLevelHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	h.inner.SetLevel(charmlog.Level(h.leveler.Level()))
-	return h.inner.Enabled(ctx, level)
+// Enabled implements slog.Handler by evaluating `leveler` for this
+// call. It does not mutate the wrapped logger, so concurrent callers
+// with differing levels cannot interfere with each other.
+func (h *charmLevelHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.leveler.Level()
 }
 
 // Handle implements slog.Handler by delegating to the wrapped logger.
@@ -208,3 +257,43 @@ func (h *charmLevelHandler) WithGroup(name string) slog.Handler {
 
 // _ ensures charmLevelHandler implements slog.Handler.
 var _ slog.Handler = (*charmLevelHandler)(nil)
+
+// levelGateHandler applies a slog.Leveler ahead of a wrapped terminal
+// handler. It exists for injected sinks (see [SetSinkHandler]), which
+// are contractually forbidden from filtering on a level of their own,
+// so all gating happens in one place.
+type levelGateHandler struct {
+	inner   slog.Handler
+	leveler slog.Leveler
+}
+
+// newLevelGateHandler wraps inner so records below leveler's level are
+// dropped before reaching it.
+func newLevelGateHandler(inner slog.Handler, leveler slog.Leveler) slog.Handler {
+	return &levelGateHandler{inner: inner, leveler: leveler}
+}
+
+// Enabled implements slog.Handler.
+func (h *levelGateHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.leveler.Level()
+}
+
+// Handle implements slog.Handler.
+//
+//nolint:gocritic // Why: Handle's signature is fixed by the slog.Handler interface.
+func (h *levelGateHandler) Handle(ctx context.Context, r slog.Record) error {
+	return h.inner.Handle(ctx, r)
+}
+
+// WithAttrs implements slog.Handler.
+func (h *levelGateHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &levelGateHandler{inner: h.inner.WithAttrs(attrs), leveler: h.leveler}
+}
+
+// WithGroup implements slog.Handler.
+func (h *levelGateHandler) WithGroup(name string) slog.Handler {
+	return &levelGateHandler{inner: h.inner.WithGroup(name), leveler: h.leveler}
+}
+
+// _ ensures levelGateHandler implements slog.Handler.
+var _ slog.Handler = (*levelGateHandler)(nil)
