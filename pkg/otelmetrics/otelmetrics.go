@@ -171,6 +171,7 @@ func (s *Service) Close(ctx context.Context) error {
 	}
 
 	log.Info(ctx, "OTLP push metrics service shut down successfully")
+
 	return nil
 }
 

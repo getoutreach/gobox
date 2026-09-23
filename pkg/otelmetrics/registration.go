@@ -109,23 +109,6 @@ func (m *MetricsOutput) trySend(item emitWorkItem) bool {
 	}
 }
 
-// RegisterFloat64Histogram registers a synchronous float64 histogram instrument.
-func RegisterFloat64Histogram(
-	metricName MetricName,
-	options ...metric.Float64HistogramOption,
-) (*Float64HistogramMetric, error) {
-	result := &Float64HistogramMetric{
-		emittableMetricBase: emittableMetricBase{name: metricName},
-	}
-
-	registrationFn := func(meter metric.Meter) (err error) {
-		result.metric, err = meter.Float64Histogram(string(metricName), options...)
-		return err
-	}
-
-	return result, singletonMetricsOutput.Register(metricName, registrationFn)
-}
-
 // ObservableGroup collects a set of observable instruments that are reported together from a single OTel callback.
 type ObservableGroup struct {
 	groupName   string
@@ -152,67 +135,4 @@ func (g *ObservableGroup) Prepare(groupName string, collectFn func(context.Conte
 	}
 
 	return singletonMetricsOutput.Register(MetricName(groupName), registerFn)
-}
-
-// RegisterFloat64ObservableCounter registers a float64 observable counter instrument within the observable group.
-func (g *ObservableGroup) RegisterFloat64ObservableCounter(
-	metricName MetricName,
-	options ...metric.Float64ObservableCounterOption,
-) *Float64ObservableCounterMetric {
-	result := &Float64ObservableCounterMetric{observableMetricBase: observableMetricBase{name: metricName}}
-
-	registrationFn := func(meter metric.Meter) error {
-		m, err := meter.Float64ObservableCounter(string(metricName), options...)
-		if err != nil {
-			return err
-		}
-		result.metric = m
-		g.observables = append(g.observables, m)
-		return nil
-	}
-	g.pending = append(g.pending, registrationFn)
-
-	return result
-}
-
-// RegisterInt64ObservableCounter registers an int64 observable counter instrument within the observable group.
-func (g *ObservableGroup) RegisterInt64ObservableCounter(
-	metricName MetricName,
-	options ...metric.Int64ObservableCounterOption,
-) *Int64ObservableCounterMetric {
-	result := &Int64ObservableCounterMetric{observableMetricBase: observableMetricBase{name: metricName}}
-
-	registrationFn := func(meter metric.Meter) error {
-		m, err := meter.Int64ObservableCounter(string(metricName), options...)
-		if err != nil {
-			return err
-		}
-		result.metric = m
-		g.observables = append(g.observables, m)
-		return nil
-	}
-	g.pending = append(g.pending, registrationFn)
-
-	return result
-}
-
-// RegisterFloat64ObservableGauge registers a float64 observable gauge instrument within the observable group.
-func (g *ObservableGroup) RegisterFloat64ObservableGauge(
-	metricName MetricName,
-	options ...metric.Float64ObservableGaugeOption,
-) *Float64ObservableGaugeMetric {
-	result := &Float64ObservableGaugeMetric{observableMetricBase: observableMetricBase{name: metricName}}
-
-	registrationFn := func(meter metric.Meter) error {
-		m, err := meter.Float64ObservableGauge(string(metricName), options...)
-		if err != nil {
-			return err
-		}
-		result.metric = m
-		g.observables = append(g.observables, m)
-		return nil
-	}
-	g.pending = append(g.pending, registrationFn)
-
-	return result
 }
