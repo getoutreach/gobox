@@ -24,10 +24,8 @@ func (m *Int64CounterMetric) Add(ctx context.Context, incr int64, options ...met
 		},
 	}
 
-	// Enqueue without blocking the caller and if not successful (queue full or service not started), report it.
-	if !singletonMetricsOutput.trySend(recordWorkItem) {
-		reportFullEmitBuffer(ctx, m.name)
-	}
+	// Enqueue emitting the metric without blocking the caller.
+	singletonMetricsOutput.trySend(ctx, recordWorkItem, m.name)
 }
 
 // RegisterInt64Counter registers a synchronous int64 counter instrument.

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel/metric"
 )
@@ -16,10 +17,20 @@ type InstrumentRegistrar func(meter metric.Meter) error
 
 // MetricsOutput is the process-wide registry of deferred instrument registrations that metrics are emitted through.
 type MetricsOutput struct {
+	// instrumentRegistrars holds the deferred registration functions for each metric.
 	instrumentRegistrars map[MetricName]InstrumentRegistrar
-	emitChannel          chan emitWorkItem
-	meter                metric.Meter
-	m                    sync.Mutex
+
+	// emitChannel is the channel used to enqueue metric recording work items.
+	emitChannel atomic.Pointer[chan emitWorkItem]
+
+	// meter is the active meter once the metrics system has been initialized.
+	meter metric.Meter
+
+	// disabled indicates that metrics have been initialized already but are disabled.
+	disabled atomic.Bool
+
+	// m protects instrumentRegistrars + meter in activate() and Register().
+	m sync.Mutex
 }
 
 // singletonMetricsOutput is the single, process-wide instance of MetricsOutput.
@@ -28,6 +39,11 @@ var singletonMetricsOutput MetricsOutput
 // SingletonMetricsOutput returns the single, process-wide instance of MetricsOutput.
 func SingletonMetricsOutput() *MetricsOutput {
 	return &singletonMetricsOutput
+}
+
+// Disabled returns whether the metrics system has been initialized but is disabled.
+func (m *MetricsOutput) Disabled() bool {
+	return m.disabled.Load()
 }
 
 // activate is called on metrics initialization and runs every deferred registrar against meter
@@ -51,7 +67,7 @@ func (m *MetricsOutput) activate(meter metric.Meter, emitChannel chan emitWorkIt
 
 	// Only make the emit queue live once every instrument has been created successfully.
 	m.meter = meter
-	m.emitChannel = emitChannel
+	m.emitChannel.Store(&emitChannel)
 
 	return nil
 }
@@ -91,22 +107,23 @@ func (m *MetricsOutput) Register(metricName MetricName, registrationFn Instrumen
 }
 
 // trySend enqueues item onto the bounded emit queue without blocking and returns whether it was successfully enqueued.
-func (m *MetricsOutput) trySend(item emitWorkItem) bool {
-	m.m.Lock()
-	ch := m.emitChannel
-	m.m.Unlock()
+func (m *MetricsOutput) trySend(ctx context.Context, item emitWorkItem, metricName MetricName) bool {
+	ch := m.emitChannel.Load()
 
-	// If the emit channel is not yet active, the item cannot be enqueued.
+	// If the emit channel is not yet active, send it in a dedicated goroutine.
 	if ch == nil {
+		reportChannelNotInitialized(ctx, metricName)
 		return false
 	}
 
 	select {
-	case ch <- item:
-		return true
+	case *ch <- item: // send item to the channel if possible
 	default:
+		reportFullEmitBuffer(ctx, metricName)
 		return false
 	}
+
+	return true
 }
 
 // ObservableGroup collects a set of observable instruments that are reported together from a single OTel callback.

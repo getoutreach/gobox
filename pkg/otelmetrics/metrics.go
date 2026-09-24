@@ -23,24 +23,36 @@ type observableMetricBase struct {
 	name MetricName
 }
 
-// lastReportedError keeps track of the last time an error was reported for a full emit buffer.
-var lastReportedError atomic.Pointer[time.Time]
+// lastReportedChannelNotInitializedError keeps track of the last time an error was reported for an uninitialized emit channel.
+var lastReportedChannelNotInitializedError atomic.Pointer[time.Time]
+
+// lastReportedFullBufferError keeps track of the last time an error was reported for a full emit buffer.
+var lastReportedFullBufferError atomic.Pointer[time.Time]
+
+// reportChannelNotInitialized logs a warning if the emit channel for the given metric is not yet initialized.
+func reportChannelNotInitialized(ctx context.Context, name MetricName) {
+	now := time.Now()
+	lastReported := lastReportedChannelNotInitializedError.Load()
+	if lastReported != nil && now.Sub(*lastReported) <= 60*time.Minute {
+		return
+	}
+
+	if swapped := lastReportedChannelNotInitializedError.CompareAndSwap(lastReported, &now); swapped {
+		log.Warn(ctx, "Emit channel not initialized for OTLP metrics", log.F{"metric_name": name})
+	}
+}
 
 // reportFullEmitBuffer logs a warning if the emit buffer for the given metric is full (at most once per minute).
 func reportFullEmitBuffer(ctx context.Context, name MetricName) {
-	for range 5 {
-		now := time.Now()
-		lastReported := lastReportedError.Load()
-		if lastReported != nil && now.Sub(*lastReported) <= time.Minute {
-			return
-		}
-
-		if swapped := lastReportedError.CompareAndSwap(lastReported, &now); swapped {
-			break
-		}
+	now := time.Now()
+	lastReported := lastReportedFullBufferError.Load()
+	if lastReported != nil && now.Sub(*lastReported) <= time.Minute {
+		return
 	}
 
-	log.Warn(ctx, "Full emit buffer for OTLP metrics", log.F{"metric_name": name})
+	if swapped := lastReportedFullBufferError.CompareAndSwap(lastReported, &now); swapped {
+		log.Warn(ctx, "Full emit buffer for OTLP metrics", log.F{"metric_name": name})
+	}
 }
 
 // Observer is a wrapper around the OpenTelemetry metric.Observer interface.

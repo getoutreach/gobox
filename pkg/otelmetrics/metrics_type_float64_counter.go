@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// Float64CounterMetric represents a float64 histogram metric.
+// Float64CounterMetric represents a float64 counter metric.
 type Float64CounterMetric struct {
 	emittableMetricBase
 	metric metric.Float64Counter
@@ -24,10 +24,8 @@ func (m *Float64CounterMetric) Add(ctx context.Context, incr float64, options ..
 		},
 	}
 
-	// Enqueue without blocking the caller and if not successful (queue full or service not started), report it.
-	if !singletonMetricsOutput.trySend(recordWorkItem) {
-		reportFullEmitBuffer(ctx, m.name)
-	}
+	// Enqueue emitting the metric without blocking the caller.
+	singletonMetricsOutput.trySend(ctx, recordWorkItem, m.name)
 }
 
 // RegisterFloat64Counter registers a synchronous float64 counter instrument.

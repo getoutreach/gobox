@@ -12,6 +12,7 @@ package otelmetrics
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -46,7 +47,7 @@ type Service struct {
 	meterProvider *sdkmetric.MeterProvider
 
 	// ready is closed once instrument activation completes successfully and metrics recording is live.
-	// Async observable instruments only appear in a reader's Collect() output once a value has been observed through them.
+	// Will never be closed if instrument activation fails or the service is disabled.
 	ready chan struct{}
 }
 
@@ -75,11 +76,9 @@ func NewService(cfg *Config, serviceName string, opts ...Option) *Service {
 		opt(service)
 	}
 
-	if singletonService.Load() != nil {
+	if !singletonService.CompareAndSwap(nil, service) {
 		panic("OTLP push metrics service already initialized")
 	}
-
-	singletonService.Store(service)
 
 	return service
 }
@@ -104,6 +103,7 @@ func SingletonService() *Service {
 func (s *Service) Run(ctx context.Context) error {
 	if !s.cfg.Enabled {
 		log.Info(ctx, "OTLP push metrics disabled, skipping initialization")
+		singletonMetricsOutput.disabled.Store(true)
 		<-ctx.Done()
 		return nil
 	}
@@ -123,7 +123,6 @@ func (s *Service) Run(ctx context.Context) error {
 	}))
 
 	if err := s.initialize(ctx); err != nil {
-		// Log but do not fail startup - metrics are non-critical.
 		log.Error(ctx, "Failed to initialize OTLP push metrics, continuing without", events.NewErrorInfo(err))
 		return err
 	}
@@ -145,11 +144,16 @@ func (s *Service) Run(ctx context.Context) error {
 	log.Info(ctx, "OTLP metric instruments activated")
 	close(s.ready)
 
+	wg := sync.WaitGroup{}
 	for i := 0; i < max(s.cfg.PushWorkerCount, 1); i++ {
-		go s.worker(ctx, emitChannel)
+		wg.Go(func() {
+			defer wg.Done()
+			s.worker(ctx, emitChannel)
+		})
 	}
 
 	<-ctx.Done()
+	wg.Wait()
 
 	return nil
 }

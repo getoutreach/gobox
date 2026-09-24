@@ -24,13 +24,13 @@ func withTestEmitChannel(t *testing.T, ch chan emitWorkItem) {
 
 	singletonMetricsOutput := SingletonMetricsOutput()
 	singletonMetricsOutput.m.Lock()
-	prev := singletonMetricsOutput.emitChannel
-	singletonMetricsOutput.emitChannel = ch
+	prev := singletonMetricsOutput.emitChannel.Load()
+	singletonMetricsOutput.emitChannel.Store(&ch)
 	singletonMetricsOutput.m.Unlock()
 
 	t.Cleanup(func() {
 		singletonMetricsOutput.m.Lock()
-		singletonMetricsOutput.emitChannel = prev
+		singletonMetricsOutput.emitChannel.Store(prev)
 		singletonMetricsOutput.m.Unlock()
 	})
 }
@@ -149,21 +149,28 @@ func TestFloat64HistogramMetricRecordDropsWhenQueueNotActive(t *testing.T) {
 // TestMetricsOutputTrySendRespectsBufferCapacity checks the bound is exactly
 // the channel's capacity: no more, no less.
 func TestMetricsOutputTrySendRespectsBufferCapacity(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	var out MetricsOutput
-	out.emitChannel = make(chan emitWorkItem, 2)
+	ch := make(chan emitWorkItem, 2)
+	out.emitChannel.Store(&ch)
 
 	item := emitWorkItem{emit: func(context.Context) {}}
-	assert.True(t, out.trySend(item))
-	assert.True(t, out.trySend(item))
-	assert.False(t, out.trySend(item), "the third send must be dropped once the bounded queue is full")
-	assert.Len(t, out.emitChannel, 2)
+	assert.True(t, out.trySend(ctx, item, "a"))
+	assert.True(t, out.trySend(ctx, item, "b"))
+	assert.False(t, out.trySend(ctx, item, "c"), "the third send must be dropped once the bounded queue is full")
+	assert.Len(t, ch, 2)
 }
 
 // TestMetricsOutputTrySendWithNoChannelReturnsFalse checks the zero-value
 // (never-activated) case does not panic on a nil channel.
 func TestMetricsOutputTrySendWithNoChannelReturnsFalse(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	var out MetricsOutput
-	assert.False(t, out.trySend(emitWorkItem{emit: func(context.Context) {}}))
+	assert.False(t, out.trySend(ctx, emitWorkItem{emit: func(context.Context) {}}, "a"))
 }
 
 // TestServiceEmitRecoversPanics is a regression test for the panic recovery

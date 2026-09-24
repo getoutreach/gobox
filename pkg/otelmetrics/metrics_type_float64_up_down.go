@@ -24,10 +24,8 @@ func (m *Float64UpDownMetric) Add(ctx context.Context, incr float64, options ...
 		},
 	}
 
-	// Enqueue without blocking the caller and if not successful (queue full or service not started), report it.
-	if !singletonMetricsOutput.trySend(recordWorkItem) {
-		reportFullEmitBuffer(ctx, m.name)
-	}
+	// Enqueue emitting the metric without blocking the caller.
+	singletonMetricsOutput.trySend(ctx, recordWorkItem, m.name)
 }
 
 // RegisterFloat64UpDown registers a synchronous float64 UpDown instrument.

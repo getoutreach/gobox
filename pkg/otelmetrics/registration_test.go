@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,6 +88,9 @@ func TestMetricsOutput_RegisterRejectsDuplicateNames(t *testing.T) {
 
 // TestMetricsOutput_ActivateFailurePropagatesButLeavesQueueInactive ensures that if activation fails, the queue remains inactive.
 func TestMetricsOutput_ActivateFailurePropagatesButLeavesQueueInactive(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	var out MetricsOutput
 
 	boom := errors.New("boom")
@@ -100,7 +104,7 @@ func TestMetricsOutput_ActivateFailurePropagatesButLeavesQueueInactive(t *testin
 	// A partially-failed activation must not leave a live queue behind: a
 	// worker pool was never started for it, so anything enqueued would sit
 	// there forever. trySend must report the queue as inactive.
-	assert.False(t, out.trySend(emitWorkItem{emit: func(context.Context) {}}))
+	assert.False(t, out.trySend(ctx, emitWorkItem{emit: func(context.Context) {}}, "a"))
 }
 
 // TestMetricsOutput_RegisterRejectsDuplicateNameAfterMeterIsActive checks that double-registration guard applies even after activation.
@@ -145,8 +149,7 @@ func TestMetricsOutput_LateRegistrationFailureCanBeRetried(t *testing.T) {
 // creates a meter, and MetricsOutput.activate() then runs every deferred
 // registrar in Go map iteration order) is just as safe: Prepare's single map
 // entry runs pending (in order) before RegisterCallback, regardless of where
-// in that random iteration it lands. TestKafkaWriterInstruments in
-// kafkawriter_test.go exercises that real, deferred path end-to-end.
+// in that random iteration it lands.
 func TestObservableGroup_ReportsEveryRegisteredInstrument(t *testing.T) {
 	const n = 25
 

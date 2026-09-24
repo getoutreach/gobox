@@ -63,7 +63,7 @@ func (c Config) WithDefaults(serviceName string) Config {
 	if cfg.PushInterval <= 0 {
 		cfg.PushInterval = 30 * time.Second
 	}
-	if cfg.ExportTimeout == 0 {
+	if cfg.ExportTimeout <= 0 {
 		cfg.ExportTimeout = 30 * time.Second
 	}
 	if cfg.PushWorkerCount <= 0 {
