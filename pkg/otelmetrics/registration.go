@@ -128,14 +128,12 @@ func (m *MetricsOutput) trySend(ctx context.Context, item emitWorkItem, metricNa
 
 // ObservableGroup collects a set of observable instruments that are reported together from a single OTel callback.
 type ObservableGroup struct {
-	groupName   string
 	pending     []func(meter metric.Meter) error
 	observables []metric.Observable
 }
 
 // Prepare finalizes the group once the meter is available and registers collectFn to be called at every collection time.
 func (g *ObservableGroup) Prepare(groupName string, collectFn func(context.Context, Observer) error) error {
-	g.groupName = groupName
 	registerFn := func(meter metric.Meter) error {
 		for _, create := range g.pending {
 			if err := create(meter); err != nil {
