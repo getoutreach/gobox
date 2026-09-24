@@ -83,8 +83,8 @@ func NewService(cfg *Config, serviceName string, opts ...Option) *Service {
 	return service
 }
 
-// Ready returns a channel that is closed once instrument activation has completed successfully and metrics recording is live.
-func (s *Service) Ready() <-chan struct{} {
+// ReadyUseInTestsOnly returns a channel that is closed once instrument activation has completed successfully and metrics recording is live.
+func (s *Service) ReadyUseInTestsOnly() <-chan struct{} {
 	return s.ready
 }
 
