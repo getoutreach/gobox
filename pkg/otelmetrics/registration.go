@@ -108,6 +108,10 @@ func (m *MetricsOutput) Register(metricName MetricName, registrationFn Instrumen
 
 // trySend enqueues item onto the bounded emit queue without blocking and returns whether it was successfully enqueued.
 func (m *MetricsOutput) trySend(ctx context.Context, item emitWorkItem, metricName MetricName) bool {
+	if m.disabled.Load() {
+		return false
+	}
+
 	ch := m.emitChannel.Load()
 
 	// If the emit channel is not yet active, send it in a dedicated goroutine.
