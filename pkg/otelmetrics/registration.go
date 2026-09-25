@@ -46,6 +46,13 @@ func (m *MetricsOutput) Disabled() bool {
 	return m.disabled.Load()
 }
 
+// Active reports whether OTLP push metrics have completed instrument activation and are ready to record.
+func (m *MetricsOutput) Active() bool {
+	m.m.Lock()
+	defer m.m.Unlock()
+	return m.meter != nil
+}
+
 // activate is called on metrics initialization and runs every deferred registrar against meter
 // It is called once, by Service.Run, after the meter provider is initialized.
 func (m *MetricsOutput) activate(meter metric.Meter, emitChannel chan emitWorkItem) error {

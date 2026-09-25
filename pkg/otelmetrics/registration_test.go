@@ -59,6 +59,26 @@ func TestMetricsOutput_ActivateRunsDeferredRegistrations(t *testing.T) {
 	assert.Equal(t, "created", result.instrument)
 }
 
+// TestMetricsOutput_ActiveReflectsActivationState checks the three states
+// Active must distinguish: never started, explicitly disabled (still not
+// "active" - no meter was ever created), and activated.
+func TestMetricsOutput_ActiveReflectsActivationState(t *testing.T) {
+	var out MetricsOutput
+
+	// Never started: not active, and (importantly, unlike Disabled) not
+	// mistakenly reported as if it were.
+	assert.False(t, out.Active())
+
+	// Explicitly disabled (Service.Run's behavior when Config.Enabled is
+	// false): still never created a meter, so still not active.
+	out.disabled.Store(true)
+	assert.False(t, out.Active())
+
+	meter := sdkmetric.NewMeterProvider().Meter("test")
+	require.NoError(t, out.activate(meter, make(chan emitWorkItem, 1)))
+	assert.True(t, out.Active())
+}
+
 // TestMetricsOutput_RegisterAfterActivateRunsImmediately covers the "late registration" path.
 func TestMetricsOutput_RegisterAfterActivateRunsImmediately(t *testing.T) {
 	var out MetricsOutput
