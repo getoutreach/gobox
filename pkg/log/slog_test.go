@@ -405,9 +405,9 @@ func TestSlogComplexValues(t *testing.T) {
 	})
 }
 
-// TestSlogSliceValues verifies slices are encoded as JSON arrays, matching
+// TestSlogStructuredValues verifies non-scalar values are encoded as JSON, matching
 // the non-slog output.
-func TestSlogSliceValues(t *testing.T) {
+func TestSlogStructuredValues(t *testing.T) {
 	cleanup := setupSlogTest(t)
 	defer cleanup()
 
@@ -426,6 +426,11 @@ func TestSlogSliceValues(t *testing.T) {
 		"arr":     [2]int{3, 4},
 		"bytes":   []byte("hi"),
 		"nested":  log.F{"x": []string{"y"}},
+		"map":     map[string]int{"a": 1},
+		"struct":  item{A: 2},
+		"ptr":     &item{A: 3},
+		"nil":     nil,
+		"complex": complex(1, 2),
 	})
 
 	output := buf.String()
@@ -437,6 +442,11 @@ func TestSlogSliceValues(t *testing.T) {
 		`"arr":[3,4]`,
 		`"bytes":"aGk="`,
 		`"nested.x":["y"]`,
+		`"map":{"a":1}`,
+		`"struct":{"A":2}`,
+		`"ptr":{"A":3}`,
+		`"nil":null`,
+		`"complex":"(1+2i)"`,
 	} {
 		assert.Assert(t, strings.Contains(output, want), "missing %s in %s", want, output)
 	}

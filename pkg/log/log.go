@@ -539,13 +539,16 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 					})
 			}
 		default:
-			if t := reflect.TypeOf(v); t != nil && (t.Kind() == reflect.Slice || t.Kind() == reflect.Array) {
-				// Keep slices as structured values so JSON handlers encode
-				// them as arrays, matching the non-slog output.
-				res = append(res, slog.Any(kv.key, v))
-				continue
+			if t := reflect.TypeOf(v); t != nil {
+				switch t.Kind() { //nolint:exhaustive // Why: only kinds JSON cannot encode need a fallback.
+				case reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.UnsafePointer:
+					res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+					continue
+				}
 			}
-			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+			// Keep values structured so JSON handlers encode them like the
+			// non-slog output (arrays, objects, null).
+			res = append(res, slog.Any(kv.key, v))
 		}
 	}
 
