@@ -30,7 +30,6 @@ import (
 	"log/slog"
 	"math"
 	"os"
-	"reflect"
 	"runtime"
 	"runtime/debug"
 	"sort"
@@ -538,14 +537,10 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 						Value: slog.GroupValue(nestedAttrs...),
 					})
 			}
+		case complex64, complex128:
+			// JSON cannot encode complex numbers.
+			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		default:
-			if t := reflect.TypeOf(v); t != nil {
-				switch t.Kind() { //nolint:exhaustive // Why: only kinds JSON cannot encode need a fallback.
-				case reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.UnsafePointer:
-					res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
-					continue
-				}
-			}
 			// Keep values structured so JSON handlers encode them like the
 			// non-slog output (arrays, objects, null).
 			res = append(res, slog.Any(kv.key, v))
