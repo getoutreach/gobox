@@ -30,6 +30,7 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"reflect"
 	"runtime"
 	"runtime/debug"
 	"sort"
@@ -538,6 +539,12 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 					})
 			}
 		default:
+			if t := reflect.TypeOf(v); t != nil && (t.Kind() == reflect.Slice || t.Kind() == reflect.Array) {
+				// Keep slices as structured values so JSON handlers encode
+				// them as arrays, matching the non-slog output.
+				res = append(res, slog.Any(kv.key, v))
+				continue
+			}
 			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
 		}
 	}

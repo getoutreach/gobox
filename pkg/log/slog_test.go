@@ -405,6 +405,43 @@ func TestSlogComplexValues(t *testing.T) {
 	})
 }
 
+// TestSlogSliceValues verifies slices are encoded as JSON arrays, matching
+// the non-slog output.
+func TestSlogSliceValues(t *testing.T) {
+	cleanup := setupSlogTest(t)
+	defer cleanup()
+
+	olog.SetDefaultHandler(olog.JSONHandler)
+	defer olog.SetDefaultHandler(olog.TextHandler)
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	type item struct{ A int }
+	log.Info(context.Background(), "slices", log.F{
+		"strs":    []string{"a", "b"},
+		"ints":    []int{1, 2},
+		"structs": []item{{A: 1}},
+		"empty":   []string{},
+		"arr":     [2]int{3, 4},
+		"bytes":   []byte("hi"),
+		"nested":  log.F{"x": []string{"y"}},
+	})
+
+	output := buf.String()
+	for _, want := range []string{
+		`"strs":["a","b"]`,
+		`"ints":[1,2]`,
+		`"structs":[{"A":1}]`,
+		`"empty":[]`,
+		`"arr":[3,4]`,
+		`"bytes":"aGk="`,
+		`"nested.x":["y"]`,
+	} {
+		assert.Assert(t, strings.Contains(output, want), "missing %s in %s", want, output)
+	}
+}
+
 // TestSlogErrorHandling tests slog's handling of various error types
 func TestSlogErrorHandling(t *testing.T) {
 	cleanup := setupSlogTest(t)
