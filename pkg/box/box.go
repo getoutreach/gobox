@@ -266,8 +266,16 @@ type SnapshotTarget struct {
 	ReadyAddress string `yaml:"readyAddress"`
 
 	// RestoreSteps defines the startup order of the resources within this snapshot.
-	// If not specified, all snapshot resources are started at the same time
+	// If not specified, all snapshot resources are started at the same time.
+	// Steps select resources by namespace. See RestoreStages for ordering
+	// individual workloads.
 	RestoreSteps []RestoreStep `yaml:"restore_steps"`
+
+	// RestoreStages is a path to a yaml file that defines dependency-ordered
+	// restore stages and which workloads belong to each. devenv labels the
+	// workloads and writes the stages into the snapshot as restore-stages.json.
+	// If not specified, the snapshot has no restore stages.
+	RestoreStages string `yaml:"restore_stages"`
 }
 
 // RestoreStep maps to a set of resources included in the snapshot.
