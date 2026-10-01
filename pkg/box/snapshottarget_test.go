@@ -33,7 +33,20 @@ targets:
 	})
 }
 
-// TestSnapshotTargetOmitted checks an unset field stays nil.
+// TestSnapshotTargetRestoreStages checks the stage file path round-trips.
+func TestSnapshotTargetRestoreStages(t *testing.T) {
+	var c box.SnapshotGenerateConfig
+	assert.NilError(t, yaml.Unmarshal([]byte(`
+targets:
+  flagship:
+    post_restore: ./post-restore/manifests.yaml
+    restore_stages: ./restore-stages/flagship.yaml
+`), &c))
+
+	assert.Equal(t, c.Targets["flagship"].RestoreStages, "./restore-stages/flagship.yaml")
+}
+
+// TestSnapshotTargetOmitted checks unset fields stay empty.
 func TestSnapshotTargetOmitted(t *testing.T) {
 	var c box.SnapshotGenerateConfig
 	assert.NilError(t, yaml.Unmarshal([]byte(`
@@ -43,6 +56,7 @@ targets:
 `), &c))
 
 	assert.Assert(t, c.Targets["base"].PostRestoreServerSide == nil)
+	assert.Equal(t, c.Targets["base"].RestoreStages, "")
 }
 
 // TestSnapshotTargetIgnoresUnknownKeys pins the lenient parse that lets an older
