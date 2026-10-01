@@ -537,8 +537,13 @@ func slogAttrs(arg logf.Many) []slog.Attr {
 						Value: slog.GroupValue(nestedAttrs...),
 					})
 			}
-		default:
+		case complex64, complex128:
+			// JSON cannot encode complex numbers.
 			res = append(res, slog.String(kv.key, fmt.Sprintf("%v", v)))
+		default:
+			// Keep values structured so JSON handlers encode them like the
+			// non-slog output (arrays, objects, null).
+			res = append(res, slog.Any(kv.key, v))
 		}
 	}
 

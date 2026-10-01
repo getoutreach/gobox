@@ -405,6 +405,53 @@ func TestSlogComplexValues(t *testing.T) {
 	})
 }
 
+// TestSlogStructuredValues verifies non-scalar values are encoded as JSON, matching
+// the non-slog output.
+func TestSlogStructuredValues(t *testing.T) {
+	cleanup := setupSlogTest(t)
+	defer cleanup()
+
+	olog.SetDefaultHandler(olog.JSONHandler)
+	defer olog.SetDefaultHandler(olog.TextHandler)
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	type item struct{ A int }
+	log.Info(context.Background(), "slices", log.F{
+		"strs":    []string{"a", "b"},
+		"ints":    []int{1, 2},
+		"structs": []item{{A: 1}},
+		"empty":   []string{},
+		"arr":     [2]int{3, 4},
+		"bytes":   []byte("hi"),
+		"nested":  log.F{"x": []string{"y"}},
+		"map":     map[string]int{"a": 1},
+		"struct":  item{A: 2},
+		"ptr":     &item{A: 3},
+		"nil":     nil,
+		"complex": complex(1, 2),
+	})
+
+	output := buf.String()
+	for _, want := range []string{
+		`"strs":["a","b"]`,
+		`"ints":[1,2]`,
+		`"structs":[{"A":1}]`,
+		`"empty":[]`,
+		`"arr":[3,4]`,
+		`"bytes":"aGk="`,
+		`"nested.x":["y"]`,
+		`"map":{"a":1}`,
+		`"struct":{"A":2}`,
+		`"ptr":{"A":3}`,
+		`"nil":null`,
+		`"complex":"(1+2i)"`,
+	} {
+		assert.Assert(t, strings.Contains(output, want), "missing %s in %s", want, output)
+	}
+}
+
 // TestSlogErrorHandling tests slog's handling of various error types
 func TestSlogErrorHandling(t *testing.T) {
 	cleanup := setupSlogTest(t)
