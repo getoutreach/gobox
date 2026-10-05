@@ -24,8 +24,15 @@ import (
 // NewLogRecorder starts a new log recorder.
 //
 // Logs must be stopped by calling Close() on the recorder
+//
+// NewLogRecorder captures JSON log lines via log.SetOutput, which only the
+// legacy vintage writer path honors. Since GOBOX_AS_SLOG_FACADE now
+// defaults to enabled, the recorder pins the process to the vintage path
+// for its lifetime (restored on Close) so recorded output stays
+// JSON-decodable regardless of the ambient facade setting.
 func NewLogRecorder(t *testing.T) *LogRecorder {
-	r := &LogRecorder{T: t, oldOutput: log.Output()}
+	r := &LogRecorder{T: t, oldOutput: log.Output(), oldShouldSlog: log.ShouldUseSlog()}
+	log.SetShouldUseSlog(false)
 	log.SetOutput(r)
 	return r
 }
@@ -33,8 +40,9 @@ func NewLogRecorder(t *testing.T) *LogRecorder {
 // LogRecorder holds the state
 type LogRecorder struct { //nolint:gocritic // Why: Will refactor in the future
 	*testing.T
-	oldOutput io.Writer
-	entries   []log.F
+	oldOutput     io.Writer
+	oldShouldSlog bool
+	entries       []log.F
 	sync.Mutex
 }
 
@@ -53,6 +61,7 @@ func (l *LogRecorder) Write(b []byte) (n int, err error) {
 // Close closes the recorder
 func (l *LogRecorder) Close() {
 	log.SetOutput(l.oldOutput)
+	log.SetShouldUseSlog(l.oldShouldSlog)
 }
 
 // Entries returns the log entries.
