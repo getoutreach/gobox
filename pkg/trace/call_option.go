@@ -73,6 +73,7 @@ func WithCallOptions(ctx context.Context, opts CallOptions) {
 func WithInfoLoggingDisabled() call.Option {
 	return func(c *call.Info) {
 		c.Opts.EnableInfoLogging = false
+		c.InfoLoggingExplicit = true
 	}
 }
 
@@ -87,5 +88,21 @@ func WithInfoLoggingDisabled() call.Option {
 func WithInfoLoggingEnabled() call.Option {
 	return func(c *call.Info) {
 		c.Opts.EnableInfoLogging = true
+		c.InfoLoggingExplicit = true
+	}
+}
+
+// withDefaultInfoLogging applies the configured default without marking it explicit.
+func withDefaultInfoLogging(enabled bool) call.Option {
+	return func(c *call.Info) {
+		c.Opts.EnableInfoLogging = enabled
+	}
+}
+
+// withSampledOutInfoLogging disables info logging without marking it explicit,
+// so LogTracedCalls can still promote the call.
+func withSampledOutInfoLogging() call.Option {
+	return func(c *call.Info) {
+		c.Opts.EnableInfoLogging = false
 	}
 }

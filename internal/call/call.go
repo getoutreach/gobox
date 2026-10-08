@@ -46,6 +46,10 @@ type Info struct {
 	// Opts are the options for this call, see `Options` for more information.
 	Opts Options
 
+	// InfoLoggingExplicit is set when info logging was deliberately enabled or
+	// disabled for this call, so LogTracedCalls must not override it.
+	InfoLoggingExplicit bool
+
 	// Kind is the type of call being made. See metrics.CallKind for more
 	// information.
 	Kind metrics.CallKind

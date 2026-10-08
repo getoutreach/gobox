@@ -20,6 +20,12 @@ type Config struct {
 	// explicit options to specific `trace.StartCall` invocations.  A
 	// `trace.StartCall` that ends in an error will always be logged.
 	LogCallsByDefault bool `yaml:"LogCallsByDefault"`
+
+	// LogTracedCalls emits the info log for any call in an exported trace, even
+	// if LogCallsByDefault is false or a resolver returned InfoLoggingSampledOut.
+	// Explicit choices (WithInfoLoggingDisabled, InfoLoggingDisabled) still win.
+	// Ignored when OpenTelemetry sampling is off, as every call would be logged.
+	LogTracedCalls bool `yaml:"LogTracedCalls"`
 }
 
 // GlobalTags are tags that get included with every span

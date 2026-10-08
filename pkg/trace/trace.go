@@ -103,6 +103,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 // nolint:gochecknoglobals // Why: need to allow overriding
@@ -167,7 +168,15 @@ func setDefaultTracer(serviceName string) error {
 
 	logCallsByDefault = config.LogCallsByDefault
 
+	logTracedCalls = shouldLogTracedCalls(config)
+
 	return nil
+}
+
+// shouldLogTracedCalls ignores LogTracedCalls when the sampler keeps every
+// trace, since that would log every call.
+func shouldLogTracedCalls(config *Config) bool {
+	return config.LogTracedCalls && sampleRate(config.Otel.SamplePercent) > 1
 }
 
 // Deprecated: Use CloseTracer() instead.
@@ -196,6 +205,7 @@ func CloseTracer(ctx context.Context) {
 	// tracetest run cleans up any non-default values it created when it was
 	// initialized.
 	logCallsByDefault = false
+	logTracedCalls = false
 
 	defaultTracer.closeTracer(ctx)
 }
@@ -344,6 +354,12 @@ func parentID(ctx context.Context) string {
 		return ""
 	}
 	return defaultTracer.parentID(ctx)
+}
+
+// IsExported reports whether the current trace is sampled and sent to the
+// tracing backend.  It is false when the context has no span.
+func IsExported(ctx context.Context) bool {
+	return oteltrace.SpanContextFromContext(ctx).IsSampled()
 }
 
 // ForceTracing will enforce tracing for processing started with returned context
