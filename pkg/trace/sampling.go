@@ -39,6 +39,12 @@ func isTracingForced(ctx context.Context) bool {
 	return ok && val
 }
 
+// sampleRate converts a sample percentage into the number of requests seen per
+// request sampled.  Percentages above 50 truncate to 1, which keeps every trace.
+func sampleRate(percent float64) uint {
+	return uint(100 / percent)
+}
+
 // defaultSampler is a sampler that tries to provide reasonable
 // backwards-compatible behaviors.  It's a sensible default.
 //

@@ -173,10 +173,10 @@ func setDefaultTracer(serviceName string) error {
 	return nil
 }
 
-// shouldLogTracedCalls ignores LogTracedCalls when everything is sampled, since
-// that would log every call.
+// shouldLogTracedCalls ignores LogTracedCalls when the sampler keeps every
+// trace, since that would log every call.
 func shouldLogTracedCalls(config *Config) bool {
-	return config.LogTracedCalls && config.Otel.SamplePercent < 100
+	return config.LogTracedCalls && sampleRate(config.Otel.SamplePercent) > 1
 }
 
 // Deprecated: Use CloseTracer() instead.

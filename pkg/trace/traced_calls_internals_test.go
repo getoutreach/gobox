@@ -22,7 +22,9 @@ func TestShouldLogTracedCalls(t *testing.T) {
 		{"off by default", false, 0.25, false},
 		{"on when sampling is selective", true, 0.25, true},
 		{"ignored when everything is sampled", true, 100, false},
-		{"on just below full sampling", true, 99.9, true},
+		{"on at the 1 in 2 boundary", true, 50, true},
+		{"ignored when rate truncates to 1", true, 60, false},
+		{"ignored just below full sampling", true, 99.9, false},
 	}
 
 	for _, tt := range tests {

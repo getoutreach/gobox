@@ -24,8 +24,7 @@ type Config struct {
 	// LogTracedCalls emits the info log for any call in an exported trace, even
 	// if LogCallsByDefault is false or a resolver returned InfoLoggingSampledOut.
 	// Explicit choices (WithInfoLoggingDisabled, InfoLoggingDisabled) still win.
-	//
-	// Ignored when OpenTelemetry.SamplePercent is 100, as every call would be logged.
+	// Ignored when OpenTelemetry sampling is off, as every call would be logged.
 	LogTracedCalls bool `yaml:"LogTracedCalls"`
 }
 

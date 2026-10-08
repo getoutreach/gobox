@@ -118,7 +118,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(r),
 		// accepts sample rates as number of requests seen per request sampled
-		sdktrace.WithSampler(defaultSampler(uint(100 / t.Otel.SamplePercent))),
+		sdktrace.WithSampler(defaultSampler(sampleRate(t.Otel.SamplePercent))),
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: t.GlobalTags,
 		}),
