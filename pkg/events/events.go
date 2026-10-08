@@ -14,8 +14,9 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/getoutreach/gobox/pkg/clientip"
 )
 
 //go:generate go run github.com/getoutreach/gobox/tools/logger
@@ -127,8 +128,11 @@ func (h *HTTPRequest) getXRequestStart(r *http.Request) time.Time {
 }
 
 func (h *HTTPRequest) getRemoteAddr(r *http.Request) string {
-	// See: ETC-182.  Use a remote address library
-	return strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]
+	addr := clientip.From(r)
+	if !addr.IsValid() {
+		return ""
+	}
+	return addr.String()
 }
 
 // requestRouteCtxKey represents the context key for the request route.

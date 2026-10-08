@@ -24,6 +24,8 @@ func (eventsSuite) TestHTTPRequest(t *testing.T) {
 
 	req = req.WithContext(events.WithRequestRoute(req.Context(), "/myendpoint/:id"))
 
+	// The first entry is caller-written, so the address our proxy appended is the one that counts.
+	req.RemoteAddr = "10.0.0.1:4242"
 	req.Header.Add("X-Forwarded-For", "1.1.1.1, 2.2.2.2")
 	xrs := time.Now().Add(-time.Minute)
 	seconds := xrs.Unix()
@@ -38,7 +40,7 @@ func (eventsSuite) TestHTTPRequest(t *testing.T) {
 	info.MarshalLog(addFields(fields, ""))
 
 	expected := events.HTTPRequest{
-		NetworkRequest: events.NetworkRequest{BytesWritten: 100, RemoteAddr: "1.1.1.1"},
+		NetworkRequest: events.NetworkRequest{BytesWritten: 100, RemoteAddr: "2.2.2.2"},
 		Times: events.Times{
 			Scheduled: xrs,
 			Started:   time.Now(),
@@ -57,6 +59,22 @@ func (eventsSuite) TestHTTPRequest(t *testing.T) {
 	}
 	if diff := cmp.Diff(info, expected, cmp.Comparer(approxTime), cmp.Comparer(approxFloat)); diff != "" {
 		t.Fatal("unexpected", diff)
+	}
+}
+
+func (eventsSuite) TestHTTPRequestIgnoresForwardedForFromUntrustedPeer(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://localhost/myendpoint/1", http.NoBody)
+	if err != nil {
+		t.Fatal("Unexpected err", err)
+	}
+	req.RemoteAddr = "198.51.100.7:4242"
+	req.Header.Add("X-Forwarded-For", "1.1.1.1")
+
+	var info events.HTTPRequest
+	info.FillFieldsFromRequest(req)
+
+	if info.RemoteAddr != "198.51.100.7" {
+		t.Fatalf("RemoteAddr = %q, want the connecting peer", info.RemoteAddr)
 	}
 }
 
