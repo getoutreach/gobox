@@ -4,6 +4,7 @@
 ## <<Stencil::Block(customCodeowners)>>
 /internal/call/ @getoutreach/observability @getoutreach/fnd-dt
 /internal/logf/ @getoutreach/observability @getoutreach/fnd-dt
+/pkg/clientip/ @getoutreach/fnd-iam @getoutreach/fnd-dt
 /pkg/log/ @getoutreach/observability @getoutreach/fnd-dt
 /pkg/metrics/ @getoutreach/observability @getoutreach/fnd-dt
 /pkg/ometrics/ @getoutreach/observability @getoutreach/fnd-dt
