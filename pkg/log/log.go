@@ -64,9 +64,12 @@ var (
 	// Note: once only protects the first implicit initialization in slogIt().
 	// SetShouldUseSlog() and SetOutput() handle explicit re-initialization
 	// independently under slogLock, bypassing the once guard.
-	once          = sync.Once{}
-	slogLock      = sync.Mutex{}
-	_, shouldSlog = os.LookupEnv("GOBOX_AS_SLOG_FACADE")
+	once     = sync.Once{}
+	slogLock = sync.Mutex{}
+	// shouldSlog defaults to true (the slog facade is the standard path). Set
+	// GOBOX_AS_SLOG_FACADE=no to explicitly opt out and use the legacy
+	// vintage writer instead.
+	shouldSlog = !strings.EqualFold(os.Getenv("GOBOX_AS_SLOG_FACADE"), "no")
 	// log is a structured logger instance.
 	log *slog.Logger
 
