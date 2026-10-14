@@ -153,12 +153,19 @@ func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) 
 // AuthorizeCredentials generates AWS credentials and either writes them
 // to the AWS credentials file, or outputs credential provider JSON to STDOUT.
 func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions) error {
+	b, err := box.LoadBox()
+	if err != nil {
+		return errors.Wrap(err, "could not load refresh credential config")
+	}
+
+	// Identity Center keeps its session in the SSO token cache, not in
+	// the credentials file that needsRefresh reads.
+	if b.AWS.RefreshMethod == RefreshMethodIdentityCenter {
+		return refreshCredsViaIdentityCenter(ctx, copts, acopts, b)
+	}
+
 	needsNewCreds, reason := needsRefresh(copts)
 	if needsNewCreds || acopts.Force { // Refresh the credentials
-		b, err := box.LoadBox()
-		if err != nil {
-			return errors.Wrap(err, "could not load refresh credential config")
-		}
 		switch b.AWS.RefreshMethod {
 		case "okta-aws-cli", "":
 			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, b, reason); err != nil {
