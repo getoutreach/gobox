@@ -22,7 +22,7 @@ func TestBaggageSpanProcessor(t *testing.T) {
 		}
 		return m
 	}
-	b, _ := baggage.New(mk("graphql.operation.name", "GetFoo"), mk("ScenarioName", "Nav"), mk("user.email", "a@b.c"))
+	b, _ := baggage.New(mk("client_operation_name", "GetFoo"), mk("ScenarioName", "Nav"), mk("user.email", "a@b.c"))
 	ctx := baggage.ContextWithBaggage(context.Background(), b)
 	_, span := tp.Tracer("t").Start(ctx, "x")
 	span.End()
