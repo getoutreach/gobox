@@ -338,6 +338,11 @@ func TestReportLatencyMetrics(t *testing.T) {
 		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(2.5)},
 		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(5)},
 		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(10)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(15)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(20)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(30)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(45)},
+		{CumulativeCount: proto.Uint64(1), UpperBound: proto.Float64(60)},
 	}, protocmp.Transform()))
 
 	assert.Check(t, cmp.Equal(metric.GetLabel(), []*dto.LabelPair{
