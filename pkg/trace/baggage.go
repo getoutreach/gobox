@@ -1,3 +1,5 @@
+// Copyright 2026 Outreach Corporation. All Rights Reserved.
+
 // Description: This file implements a span processor that copies an allowlist
 // of baggage members onto spans.
 //
