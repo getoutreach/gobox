@@ -122,6 +122,7 @@ func (t *otelTracer) initTracer(ctx context.Context, serviceName string) error {
 		sdktrace.WithSpanProcessor(Annotator{
 			globalTags: t.GlobalTags,
 		}),
+		sdktrace.WithSpanProcessor(NewBaggageSpanProcessor(nil)),
 	}
 
 	tp := sdktrace.NewTracerProvider(tpOptions...)
