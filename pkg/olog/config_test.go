@@ -185,3 +185,30 @@ func TestPollConfigurationFile(t *testing.T) {
 	})
 	assert.Equal(t, count, 3)
 }
+
+func TestConfigFromFileCalls(t *testing.T) {
+	t.Cleanup(func() { globalLevelRegistry.SetCalls(nil) })
+
+	path := filepath.Join(t.TempDir(), "olog.yaml")
+	write := func(s string) {
+		assert.NilError(t, os.WriteFile(path, []byte(s), 0o644))
+	}
+
+	write("calls:\n  - name: CallA\n    level: warn\n  - name: CallB\n    level: OFF\n  - name: CallC\n    level: bogus\n")
+	err := ConfigureFromFile(path)
+	assert.Assert(t, errors.Is(err, ErrUnknownLevel))
+
+	l, ok := CallLevel("CallA")
+	assert.Assert(t, ok)
+	assert.Equal(t, l, slog.LevelWarn)
+	l, ok = CallLevel("CallB")
+	assert.Assert(t, ok)
+	assert.Equal(t, l, slog.Level(100))
+	_, ok = CallLevel("CallC")
+	assert.Assert(t, !ok)
+
+	write("log:\n  - address: some/module\n    level: INFO\n")
+	assert.NilError(t, ConfigureFromFile(path))
+	_, ok = CallLevel("CallA")
+	assert.Assert(t, !ok)
+}
