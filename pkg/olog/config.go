@@ -35,10 +35,21 @@ type LevelConfig struct {
 	Level string `yaml:"level"`
 }
 
+// CallLevelConfig maps a traced call name (the name passed to
+// trace.StartCall) to a level.
+type CallLevelConfig struct {
+	// Name is the call name.
+	Name string `yaml:"name"`
+
+	// Level is one of DEBUG, INFO, WARN, ERROR, or OFF.
+	Level string `yaml:"level"`
+}
+
 // Config is level configuration for olog. The address is either a module
 // or a package, and the level is one of DEBUG, INFO, WARN, ERROR, or OFF.
 type Config struct {
-	Levels []LevelConfig `yaml:"log"`
+	Levels []LevelConfig     `yaml:"log"`
+	Calls  []CallLevelConfig `yaml:"calls"`
 }
 
 // ErrUnknownLevel is returned by [ConfigureFromFile] (and surfaced
@@ -73,6 +84,18 @@ func ConfigureFromFile(path string) error {
 		}
 		globalLevelRegistry.Set(l, configuredLevel.Address)
 	}
+
+	calls := make(map[string]slog.Level, len(c.Calls))
+	for _, cc := range c.Calls {
+		l, ok := stringLevel[strings.ToUpper(cc.Level)]
+		if !ok {
+			errs = append(errs, fmt.Errorf("%w %q for call %q in %s",
+				ErrUnknownLevel, cc.Level, cc.Name, path))
+			continue
+		}
+		calls[cc.Name] = l
+	}
+	globalLevelRegistry.SetCalls(calls)
 
 	return errors.Join(errs...)
 }

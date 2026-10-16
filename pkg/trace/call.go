@@ -7,11 +7,13 @@ package trace
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/getoutreach/gobox/internal/call"
 
 	"github.com/getoutreach/gobox/pkg/log"
 	"github.com/getoutreach/gobox/pkg/metrics"
+	"github.com/getoutreach/gobox/pkg/olog"
 	"github.com/getoutreach/gobox/pkg/orerr"
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
@@ -179,24 +181,40 @@ func EndCall(ctx context.Context) {
 			addDefaultTracerInfo(ctx, info)
 			info.ReportLatency(ctx)
 
+			override, overridden := olog.CallLevel(info.Name)
+			allow := func(l slog.Level) bool { return !overridden || override <= l }
+
 			if info.ErrInfo != nil {
 				switch category := orerr.ExtractErrorStatusCategory(info.ErrInfo.RawError); category {
 				case statuscodes.CategoryClientError:
-					log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					if allow(slog.LevelWarn) {
+						log.Warn(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					}
 				case statuscodes.CategoryServerError:
-					log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					if allow(slog.LevelError) {
+						log.Error(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
+					}
 				case statuscodes.CategoryOK: // just in case if someone will return non-nil error on success
-					if info.Opts.EnableInfoLogging {
+					if infoEnabled(info, overridden, override) {
 						log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 					}
 				}
-			} else if info.Opts.EnableInfoLogging {
+			} else if infoEnabled(info, overridden, override) {
 				log.Info(ctx, info.Name, info, IDs(ctx), traceEventMarker{})
 			}
 		}(callInfo)
 
 		callTracker.EndCall(ctx)
 	}
+}
+
+// infoEnabled reports whether the success log should be emitted. A configured
+// call-level override takes precedence over the per-call option.
+func infoEnabled(info *call.Info, overridden bool, override slog.Level) bool {
+	if overridden {
+		return override <= slog.LevelInfo
+	}
+	return info.Opts.EnableInfoLogging
 }
 
 // addArgsToCallInfo appends the log marshalers passed in as arguments

@@ -442,6 +442,16 @@ log:
     address: github.com/getoutreach/goql
 ```
 
+Individual traced calls (the name passed to `trace.StartCall`) can be targeted with a `calls` list. It is reloaded with the rest of the file, and calls removed from the list revert to their default behavior:
+
+```yaml
+calls:
+  - level: WARN
+    name: ApplyAuditChange
+```
+
+For a matching call, `trace.EndCall` emits the success log at INFO only if the level is `DEBUG` or `INFO` (even without `WithInfoLoggingEnabled`), and emits client-error (WARN) and server-error (ERROR) logs only if the level is at or below them. `OFF` silences all of the call's logs.
+
 ## `func PollConfigurationFile`
 
 ```go

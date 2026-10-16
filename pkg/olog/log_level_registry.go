@@ -24,12 +24,16 @@ type levelRegistry struct {
 	// reads from this to determine the log-level for a logger via the
 	// `levelRegistry` global.
 	ByAddress map[string]slog.Level
+
+	// ByCall maps traced call names to log-level overrides.
+	ByCall map[string]slog.Level
 }
 
 // newRegistry create a fully initialized registry.
 func newRegistry() *levelRegistry {
 	return &levelRegistry{
 		ByAddress: make(map[string]slog.Level),
+		ByCall:    make(map[string]slog.Level),
 	}
 }
 
@@ -60,4 +64,21 @@ func (lr *levelRegistry) Get(address ...string) *slog.Level {
 	}
 
 	return nil
+}
+
+// SetCalls replaces all call-name level overrides.
+func (lr *levelRegistry) SetCalls(calls map[string]slog.Level) {
+	lr.mu.Lock()
+	defer lr.mu.Unlock()
+
+	lr.ByCall = calls
+}
+
+// GetCall returns the level override for a traced call name, if any.
+func (lr *levelRegistry) GetCall(name string) (slog.Level, bool) {
+	lr.mu.RLock()
+	defer lr.mu.RUnlock()
+
+	level, ok := lr.ByCall[name]
+	return level, ok
 }
