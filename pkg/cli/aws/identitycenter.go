@@ -31,10 +31,21 @@ func Config(ctx context.Context, log logrus.FieldLogger) (aws.Config, error) {
 		return aws.Config{}, errors.Wrap(err, "could not load box config")
 	}
 
+	return configForBox(ctx, log, b, b.AWS.DefaultProfile)
+}
+
+// configForBox is Config for a box config that is already loaded. An
+// empty profile leaves the choice to the SDK defaults.
+func configForBox(ctx context.Context, log logrus.FieldLogger, b *box.Config, profile string) (aws.Config, error) {
 	clearStaleProfile(ctx, log)
 
+	var opts []func(*config.LoadOptions) error
+	if profile != "" {
+		opts = append(opts, config.WithSharedConfigProfile(profile))
+	}
+
 	return ensureSession(ctx, log,
-		func() (aws.Config, error) { return config.LoadDefaultConfig(ctx) },
+		func() (aws.Config, error) { return config.LoadDefaultConfig(ctx, opts...) },
 		func() error { return grantedLogin(ctx, &b.AWS.IdentityCenter) },
 	)
 }
@@ -67,7 +78,7 @@ func refreshCredsViaIdentityCenter(
 		return grantedLogin(ctx, ic)
 	}
 
-	_, err := Config(ctx, copts.Log)
+	_, err := configForBox(ctx, copts.Log, b, copts.Profile)
 	return err
 }
 
