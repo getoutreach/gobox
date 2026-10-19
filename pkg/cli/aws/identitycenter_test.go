@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -87,10 +88,12 @@ func Test_staleProfileOverride(t *testing.T) {
 		// credentials is written to the credentials file when set.
 		credentials string
 		want        bool
+		// wantWarning is the variable the warning names, when want is set.
+		wantWarning string
 	}{
 		{name: "no profile", env: nil},
 		{name: "profile in the config", env: map[string]string{"AWS_PROFILE": "mine"}},
-		{name: "profile that is gone", env: map[string]string{"AWS_PROFILE": "readwrite"}, want: true},
+		{name: "profile that is gone", env: map[string]string{"AWS_PROFILE": "readwrite"}, want: true, wantWarning: "AWS_PROFILE"},
 		{
 			name:        "profile in the credentials file",
 			env:         map[string]string{"AWS_PROFILE": "static"},
@@ -98,14 +101,16 @@ func Test_staleProfileOverride(t *testing.T) {
 		},
 		{name: "AWS_DEFAULT_PROFILE in the config", env: map[string]string{"AWS_DEFAULT_PROFILE": "mine"}},
 		{
-			name: "AWS_DEFAULT_PROFILE that is gone",
-			env:  map[string]string{"AWS_DEFAULT_PROFILE": "readwrite"},
-			want: true,
+			name:        "AWS_DEFAULT_PROFILE that is gone",
+			env:         map[string]string{"AWS_DEFAULT_PROFILE": "readwrite"},
+			want:        true,
+			wantWarning: "AWS_DEFAULT_PROFILE",
 		},
 		{
-			name: "both set and gone",
-			env:  map[string]string{"AWS_PROFILE": "readwrite", "AWS_DEFAULT_PROFILE": "readwrite"},
-			want: true,
+			name:        "both set and gone",
+			env:         map[string]string{"AWS_PROFILE": "readwrite", "AWS_DEFAULT_PROFILE": "readwrite"},
+			want:        true,
+			wantWarning: "AWS_PROFILE",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -129,10 +134,16 @@ func Test_staleProfileOverride(t *testing.T) {
 				t.Setenv(key, value)
 			}
 
-			log := logrus.New()
-			log.SetOutput(io.Discard)
+			log, hook := logtest.NewNullLogger()
 
 			assert.Equal(t, staleProfileOverride(t.Context(), log), tc.want)
+
+			if tc.wantWarning != "" {
+				entry := hook.LastEntry()
+				assert.Assert(t, entry != nil, "expected a warning")
+				assert.Assert(t, strings.HasPrefix(entry.Message, tc.wantWarning+" names"),
+					"expected the warning to name %s, got: %s", tc.wantWarning, entry.Message)
+			}
 
 			// The process environment is left alone.
 			for _, key := range []string{"AWS_PROFILE", "AWS_DEFAULT_PROFILE"} {

@@ -133,8 +133,14 @@ func staleProfileOverride(ctx context.Context, log logrus.FieldLogger) bool {
 		return false
 	}
 
-	log.Warnf("AWS_PROFILE names %q, which ~/.aws/config no longer holds. Ignoring it; "+
-		"drop it from your shell config and use `assume <profile>` instead.", env.SharedConfigProfile)
+	// The SDK reads AWS_PROFILE first, then AWS_DEFAULT_PROFILE.
+	key := "AWS_PROFILE"
+	if os.Getenv(key) == "" {
+		key = "AWS_DEFAULT_PROFILE"
+	}
+
+	log.Warnf("%s names %q, which ~/.aws/config no longer holds. Ignoring it; "+
+		"drop it from your shell config and use `assume <profile>` instead.", key, env.SharedConfigProfile)
 
 	return true
 }
