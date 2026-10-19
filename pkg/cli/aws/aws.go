@@ -153,30 +153,35 @@ func needsRefresh(copts *CredentialOptions) (needsNewCreds bool, reason string) 
 // AuthorizeCredentials generates AWS credentials and either writes them
 // to the AWS credentials file, or outputs credential provider JSON to STDOUT.
 func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts *AuthorizeCredentialsOptions) error {
+	needsNewCreds, reason := needsRefresh(copts)
+	if !needsNewCreds && !acopts.Force {
+		// needsRefresh reads the credentials file, which can still hold
+		// valid okta-aws-cli credentials after a move to Identity Center.
+		// Identity Center keeps its session elsewhere, so check it anyway.
+		// A box config that does not load is not an error here, as the
+		// credentials are valid.
+		b, err := box.LoadBox()
+		if err != nil || b.AWS.RefreshMethod != RefreshMethodIdentityCenter {
+			return nil
+		}
+
+		return refreshCredsViaIdentityCenter(ctx, copts, acopts, b)
+	}
+
 	b, err := box.LoadBox()
 	if err != nil {
 		return errors.Wrap(err, "could not load refresh credential config")
 	}
 
-	// Identity Center keeps its session in the SSO token cache, not in
-	// the credentials file that needsRefresh reads.
-	if b.AWS.RefreshMethod == RefreshMethodIdentityCenter {
+	// Refresh the credentials
+	switch b.AWS.RefreshMethod {
+	case "okta-aws-cli", "":
+		return refreshCredsViaOktaAWSCLI(ctx, copts, acopts, b, reason)
+	case RefreshMethodIdentityCenter:
 		return refreshCredsViaIdentityCenter(ctx, copts, acopts, b)
+	default:
+		return fmt.Errorf("unknown AWS refresh method '%s'", b.AWS.RefreshMethod)
 	}
-
-	needsNewCreds, reason := needsRefresh(copts)
-	if needsNewCreds || acopts.Force { // Refresh the credentials
-		switch b.AWS.RefreshMethod {
-		case "okta-aws-cli", "":
-			if err := refreshCredsViaOktaAWSCLI(ctx, copts, acopts, b, reason); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unknown AWS refresh method '%s'", b.AWS.RefreshMethod)
-		}
-	}
-
-	return nil
 }
 
 // EnsureValidCredentials ensures that the current AWS credentials are valid
