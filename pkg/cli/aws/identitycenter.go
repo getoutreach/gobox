@@ -178,6 +178,8 @@ func grantedLogin(ctx context.Context, ic *box.IdentityCenterConfig) error {
 	// nolint: gosec // Why: The arguments come from the box config.
 	cmd := exec.CommandContext(ctx, "granted", grantedLoginArgs(ic)...)
 	cmd.Stdin = os.Stdin
+	// Keep stdout clean for callers that read credential provider JSON.
+	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 
 	return errors.Wrap(cmd.Run(), "could not run `granted sso login`")
