@@ -190,6 +190,13 @@ func Test_refreshCredsViaIdentityCenter(t *testing.T) {
 			"Dry Run: granted sso login --sso-region us-west-2 --sso-start-url https://example.awsapps.com/start")
 	})
 
+	t.Run("nil options and nil logger do not panic", func(t *testing.T) {
+		for _, copts := range []*CredentialOptions{nil, {}} {
+			err := refreshCredsViaIdentityCenter(t.Context(), copts, &AuthorizeCredentialsOptions{DryRun: true}, b)
+			assert.NilError(t, err)
+		}
+	})
+
 	t.Run("credential provider output is not supported", func(t *testing.T) {
 		log, _ := logtest.NewNullLogger()
 		copts := &CredentialOptions{Log: log}

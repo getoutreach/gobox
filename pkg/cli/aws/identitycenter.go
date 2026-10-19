@@ -61,7 +61,15 @@ func refreshCredsViaIdentityCenter(
 	b *box.Config,
 ) error {
 	if copts == nil {
-		copts = DefaultCredentialOptions()
+		copts = &CredentialOptions{
+			Profile: b.AWS.DefaultProfile,
+			Role:    b.AWS.DefaultRole,
+		}
+	}
+
+	log := copts.Log
+	if log == nil {
+		log = logrus.New()
 	}
 
 	if acopts.Output != "" {
@@ -70,7 +78,7 @@ func refreshCredsViaIdentityCenter(
 
 	ic := &b.AWS.IdentityCenter
 	if acopts.DryRun {
-		copts.Log.Infof("Dry Run: granted %s", strings.Join(grantedLoginArgs(ic), " "))
+		log.Infof("Dry Run: granted %s", strings.Join(grantedLoginArgs(ic), " "))
 		return nil
 	}
 
@@ -78,7 +86,7 @@ func refreshCredsViaIdentityCenter(
 		return grantedLogin(ctx, ic)
 	}
 
-	_, err := configForBox(ctx, copts.Log, b, copts.Profile)
+	_, err := configForBox(ctx, log, b, copts.Profile)
 	return err
 }
 
