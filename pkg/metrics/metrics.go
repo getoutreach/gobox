@@ -51,13 +51,20 @@ func WithCallKind(ck CallKind) ReportLatencyOption {
 	}
 }
 
+// latencyBuckets extends prometheus.DefBuckets: request latency spreads a bit past
+// its 10s ceiling often enough that requests past it collapse into one +Inf bucket
+// and read as an exact 10s P99.
+var latencyBuckets = []float64{ // nolint:gochecknoglobals // Why: shared by all latency histograms below
+	.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 15, 20, 30, 45, 60, // same as prometheus.DefBuckets, plus tail buckets
+}
+
 // httpCallLatency registers the http_request_handled metric for reporting latency of
 // HTTP requests, in seconds.
 var httpCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Why: cleaner to use everywhere
 	prometheus.HistogramOpts{
 		Name:    "http_request_handled",
 		Help:    "The latency of the HTTP request, in seconds",
-		Buckets: prometheus.DefBuckets,
+		Buckets: latencyBuckets,
 	},
 	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
@@ -88,7 +95,7 @@ var grpcCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals // Wh
 	prometheus.HistogramOpts{
 		Name:    "grpc_request_handled",
 		Help:    "The latency of the gRPC request, in seconds",
-		Buckets: prometheus.DefBuckets,
+		Buckets: latencyBuckets,
 	},
 	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
@@ -119,7 +126,7 @@ var outboundCallLatency = promauto.NewHistogramVec( // nolint:gochecknoglobals /
 	prometheus.HistogramOpts{
 		Name:    "outbound_call_seconds",
 		Help:    "The latency of the outbound request, in seconds",
-		Buckets: prometheus.DefBuckets,
+		Buckets: latencyBuckets,
 	},
 	[]string{"target", "call", "statuscode", "statuscategory", "kind"}, // Labels
 )
