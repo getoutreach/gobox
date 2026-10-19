@@ -156,7 +156,7 @@ func ensureSession(ctx context.Context, log logrus.FieldLogger,
 	return cfg, nil
 }
 
-// grantedLoginArgs returns the arguments of the `granted` login command.
+// grantedLoginArgs is shared by the real login and the dry-run output.
 func grantedLoginArgs(ic *box.IdentityCenterConfig) []string {
 	return []string{"sso", "login", "--sso-region", ic.Region, "--sso-start-url", ic.StartURL}
 }
