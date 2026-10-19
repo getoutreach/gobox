@@ -69,14 +69,6 @@ type IdentityCenterConfig struct {
 
 	// Region is the region the Identity Center instance runs in.
 	Region string `yaml:"region"`
-
-	// SessionName names the [sso-session] block in ~/.aws/config that
-	// profiles log in against.
-	SessionName string `yaml:"sessionName"`
-
-	// DefaultPermissionSet is the permission set (role name) that the
-	// default profile assumes in AWSConfig.DefaultAccountID.
-	DefaultPermissionSet string `yaml:"defaultPermissionSet"`
 }
 
 // OktaConfig is the Okta-specific config used for AWS access.
