@@ -14,6 +14,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
+	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
 	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -145,6 +147,26 @@ func staleProfileOverride(ctx context.Context, log logrus.FieldLogger) bool {
 	return true
 }
 
+// isLoginRequired reports whether err means that the SSO session is
+// missing or expired, as opposed to a failure that a login cannot fix.
+//
+// The profiles that orc writes resolve through
+// `granted credential-process`, and the SDK reports a failure of that
+// process as a ProviderError that holds only the exit status. The
+// process prints the reason to the console, so this cannot tell a
+// missing token from other failures of the process. A profile that reads
+// the token cache itself reports an InvalidTokenError instead.
+func isLoginRequired(err error) bool {
+	var invalidToken *ssocreds.InvalidTokenError
+	if errors.As(err, &invalidToken) {
+		return true
+	}
+
+	var processErr *processcreds.ProviderError
+
+	return errors.As(err, &processErr)
+}
+
 // ensureSession loads the config and checks that its credentials
 // resolve. A missing or expired token means the credential process
 // behind it has nothing to read, so it logs in once and loads again.
@@ -156,8 +178,13 @@ func ensureSession(ctx context.Context, log logrus.FieldLogger,
 		return aws.Config{}, errors.Wrap(err, "could not load AWS config")
 	}
 
-	if _, err := cfg.Credentials.Retrieve(ctx); err == nil {
+	_, err = cfg.Credentials.Retrieve(ctx)
+	if err == nil {
 		return cfg, nil
+	}
+
+	if !isLoginRequired(err) {
+		return aws.Config{}, errors.Wrap(err, "could not resolve AWS credentials")
 	}
 
 	log.Info("No usable AWS credentials, logging in to AWS Identity Center")

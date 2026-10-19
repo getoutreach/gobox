@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
+	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
 	"github.com/getoutreach/gobox/pkg/box"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -18,25 +20,43 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// errNoToken is what the SDK reports when the SSO token is missing or
-// expired.
-var errNoToken = errors.New("the SSO session has expired or is invalid")
+// errNoToken is what the SDK reports when it reads the SSO token cache
+// itself and the token is missing or expired.
+var errNoToken = &ssocreds.InvalidTokenError{Err: errors.New("the SSO session has expired or is invalid")}
+
+// errProcess is what the SDK reports when the credential_process that
+// orc writes exits with a failure.
+var errProcess = &processcreds.ProviderError{Err: errors.New("error in credential_process: exit status 1")}
+
+// errNetwork is a failure that a login cannot fix.
+var errNetwork = errors.New("dial tcp: lookup portal.sso.us-west-2.amazonaws.com: no such host")
 
 func Test_ensureSession(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		// resolves is the result of each config load, in order.
-		resolves  []bool
-		loginErr  error
-		loadErr   error
-		wantLogin bool
-		wantErr   bool
+		resolves []bool
+		// resolveErr is what an unresolved load reports; errNoToken
+		// when nil.
+		resolveErr error
+		loginErr   error
+		loadErr    error
+		wantLogin  bool
+		wantErr    bool
 	}{
 		{name: "valid session", resolves: []bool{true}, wantLogin: false},
 		{name: "expired session", resolves: []bool{false, true}, wantLogin: true},
 		{name: "still expired after login", resolves: []bool{false, false}, wantLogin: true, wantErr: true},
 		{name: "login fails", resolves: []bool{false}, loginErr: errNoToken, wantLogin: true, wantErr: true},
 		{name: "config unreadable", loadErr: errNoToken, wantLogin: false, wantErr: true},
+		{
+			name: "credential process fails", resolves: []bool{false, true}, resolveErr: errProcess,
+			wantLogin: true,
+		},
+		{
+			name: "network error", resolves: []bool{false}, resolveErr: errNetwork,
+			wantLogin: false, wantErr: true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var loads, logins int
@@ -52,6 +72,10 @@ func Test_ensureSession(t *testing.T) {
 				return aws.Config{Credentials: aws.CredentialsProviderFunc(
 					func(context.Context) (aws.Credentials, error) {
 						if !resolves {
+							if tc.resolveErr != nil {
+								return aws.Credentials{}, tc.resolveErr
+							}
+
 							return aws.Credentials{}, errNoToken
 						}
 
