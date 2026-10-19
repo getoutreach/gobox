@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
@@ -242,5 +243,90 @@ func Test_refreshCredsViaIdentityCenter(t *testing.T) {
 		err := refreshCredsViaIdentityCenter(t.Context(), copts,
 			&AuthorizeCredentialsOptions{Output: OutputCredentialProvider}, b)
 		assert.ErrorContains(t, err, "does not support credential provider output")
+	})
+}
+
+// writeBoxConfig writes a box config with the given aws section to a
+// temporary HOME.
+func writeBoxConfig(t *testing.T, aws string) {
+	t.Helper()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dir := filepath.Join(home, box.BoxConfigPath)
+	assert.NilError(t, os.MkdirAll(dir, 0o755), "expected to be able to create the box config dir")
+
+	contents := "version: 1\nconfig:\n  aws:\n" + aws
+	assert.NilError(t, os.WriteFile(filepath.Join(dir, box.BoxConfigFile), []byte(contents), 0o600),
+		"expected to be able to write the box config")
+}
+
+// Test_AuthorizeCredentials_identityCenter covers the dispatch to the
+// identity-center refresh method.
+func Test_AuthorizeCredentials_identityCenter(t *testing.T) {
+	// The AWS_PROFILE and AWS_ROLE overrides of the box config would
+	// otherwise depend on the environment of the test run.
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_ROLE", "")
+
+	identityCenterBox := "    refreshMethod: identity-center\n    identityCenter: {}\n"
+
+	t.Run("dry run reaches the identity-center check", func(t *testing.T) {
+		writeBoxConfig(t, identityCenterBox)
+
+		log, _ := logtest.NewNullLogger()
+		copts := &CredentialOptions{
+			Log:      log,
+			Profile:  "default",
+			FileName: filepath.Join(t.TempDir(), "credentials"),
+		}
+
+		err := AuthorizeCredentials(t.Context(), copts, &AuthorizeCredentialsOptions{DryRun: true})
+		assert.ErrorContains(t, err, "needs startURL and region")
+	})
+
+	t.Run("credential provider output is not supported", func(t *testing.T) {
+		writeBoxConfig(t, identityCenterBox)
+
+		log, _ := logtest.NewNullLogger()
+		copts := &CredentialOptions{
+			Log:      log,
+			Profile:  "default",
+			FileName: filepath.Join(t.TempDir(), "credentials"),
+		}
+
+		err := AuthorizeCredentials(t.Context(), copts, &AuthorizeCredentialsOptions{Output: OutputCredentialProvider})
+		assert.ErrorContains(t, err, "does not support credential provider output")
+	})
+
+	t.Run("valid credentials and no box config is not an error", func(t *testing.T) {
+		// A HOME without a box config makes box.LoadBox fail.
+		t.Setenv("HOME", t.TempDir())
+
+		credsPath := filepath.Join(t.TempDir(), "credentials")
+		contents := "[default]\nx_security_token_expires = " + time.Now().Add(time.Hour).Format(time.RFC3339)
+		assert.NilError(t, os.WriteFile(credsPath, []byte(contents), 0o600),
+			"expected to be able to write the credentials")
+
+		log, _ := logtest.NewNullLogger()
+		copts := &CredentialOptions{Log: log, Profile: "default", FileName: credsPath}
+
+		assert.NilError(t, AuthorizeCredentials(t.Context(), copts, &AuthorizeCredentialsOptions{}))
+	})
+
+	t.Run("valid credentials still reach identity-center", func(t *testing.T) {
+		writeBoxConfig(t, identityCenterBox)
+
+		credsPath := filepath.Join(t.TempDir(), "credentials")
+		contents := "[default]\nx_security_token_expires = " + time.Now().Add(time.Hour).Format(time.RFC3339)
+		assert.NilError(t, os.WriteFile(credsPath, []byte(contents), 0o600),
+			"expected to be able to write the credentials")
+
+		log, _ := logtest.NewNullLogger()
+		copts := &CredentialOptions{Log: log, Profile: "default", FileName: credsPath}
+
+		err := AuthorizeCredentials(t.Context(), copts, &AuthorizeCredentialsOptions{DryRun: true})
+		assert.ErrorContains(t, err, "needs startURL and region")
 	})
 }
