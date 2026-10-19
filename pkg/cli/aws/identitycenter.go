@@ -37,7 +37,9 @@ func Config(ctx context.Context, log logrus.FieldLogger) (aws.Config, error) {
 // configForBox is Config for a box config that is already loaded. An
 // empty profile leaves the choice to the SDK defaults.
 func configForBox(ctx context.Context, log logrus.FieldLogger, b *box.Config, profile string) (aws.Config, error) {
-	clearStaleProfile(ctx, log)
+	if staleProfileOverride(ctx, log) && profile == "" {
+		profile = "default"
+	}
 
 	var opts []func(*config.LoadOptions) error
 	if profile != "" {
@@ -94,24 +96,23 @@ func refreshCredsViaIdentityCenter(
 	return err
 }
 
-// clearStaleProfile drops an AWS_PROFILE that the shared config no
-// longer holds. Tools that moved from okta-aws-cli remove the profiles
-// it wrote, and the shell config that exports one is not ours to edit,
-// so the leftover would otherwise fail every load.
-//
-// It unsets the variable for the whole process, which is what also gets
-// the config reload past it. Anything other than a missing profile
-// leaves the variable alone: a config that does not parse is not a
-// profile that is gone.
-func clearStaleProfile(ctx context.Context, log logrus.FieldLogger) {
+// staleProfileOverride reports whether the AWS profile that the
+// environment names is gone from the shared config. Tools that moved from
+// okta-aws-cli remove the profiles it wrote, and the shell config that
+// exports one is not ours to edit, so the leftover would otherwise fail
+// every load. The caller then picks a profile itself, which takes
+// priority over the environment. Anything other than a missing profile
+// is not stale: a config that does not parse is not a profile that is
+// gone.
+func staleProfileOverride(ctx context.Context, log logrus.FieldLogger) bool {
 	env, err := config.NewEnvConfig()
 	if err != nil {
-		log.WithError(err).Debug("Could not read the AWS environment, keeping AWS_PROFILE")
-		return
+		log.WithError(err).Debug("Could not read the AWS environment, keeping the profile")
+		return false
 	}
 
 	if env.SharedConfigProfile == "" {
-		return
+		return false
 	}
 
 	// LoadSharedConfigProfile reads the default file paths rather than
@@ -129,19 +130,13 @@ func clearStaleProfile(ctx context.Context, log logrus.FieldLogger) {
 
 	var notExist config.SharedConfigProfileNotExistError
 	if !errors.As(err, &notExist) {
-		return
+		return false
 	}
 
 	log.Warnf("AWS_PROFILE names %q, which ~/.aws/config no longer holds. Ignoring it; "+
 		"drop it from your shell config and use `assume <profile>` instead.", env.SharedConfigProfile)
 
-	// AWS_DEFAULT_PROFILE names the same profile when AWS_PROFILE does
-	// not, so leaving it set would put the profile straight back.
-	for _, key := range []string{"AWS_PROFILE", "AWS_DEFAULT_PROFILE"} {
-		if err := os.Unsetenv(key); err != nil {
-			log.WithError(err).Debugf("Could not unset %s", key)
-		}
-	}
+	return true
 }
 
 // ensureSession loads the config and checks that its credentials

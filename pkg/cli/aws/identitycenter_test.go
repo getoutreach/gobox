@@ -75,9 +75,9 @@ func Test_ensureSession(t *testing.T) {
 	}
 }
 
-// Test_clearStaleProfile covers the AWS_PROFILE a shell config exports
+// Test_staleProfileOverride covers the AWS_PROFILE a shell config exports
 // after `orc setup` removed the profile it names.
-func Test_clearStaleProfile(t *testing.T) {
+func Test_staleProfileOverride(t *testing.T) {
 	const config = "[profile mine]\nregion = us-west-2\n"
 
 	for _, tc := range []struct {
@@ -86,33 +86,26 @@ func Test_clearStaleProfile(t *testing.T) {
 		env map[string]string
 		// credentials is written to the credentials file when set.
 		credentials string
-		// want and wantDefault are the AWS_PROFILE and the
-		// AWS_DEFAULT_PROFILE the call leaves behind.
-		want        string
-		wantDefault string
+		want        bool
 	}{
 		{name: "no profile", env: nil},
-		{name: "profile in the config", env: map[string]string{"AWS_PROFILE": "mine"}, want: "mine"},
-		{name: "profile that is gone", env: map[string]string{"AWS_PROFILE": "readwrite"}},
+		{name: "profile in the config", env: map[string]string{"AWS_PROFILE": "mine"}},
+		{name: "profile that is gone", env: map[string]string{"AWS_PROFILE": "readwrite"}, want: true},
 		{
 			name:        "profile in the credentials file",
 			env:         map[string]string{"AWS_PROFILE": "static"},
 			credentials: "[static]\naws_access_key_id = AKIATEST\naws_secret_access_key = secret\n",
-			want:        "static",
 		},
-		{
-			name:        "AWS_DEFAULT_PROFILE in the config",
-			env:         map[string]string{"AWS_DEFAULT_PROFILE": "mine"},
-			wantDefault: "mine",
-		},
+		{name: "AWS_DEFAULT_PROFILE in the config", env: map[string]string{"AWS_DEFAULT_PROFILE": "mine"}},
 		{
 			name: "AWS_DEFAULT_PROFILE that is gone",
 			env:  map[string]string{"AWS_DEFAULT_PROFILE": "readwrite"},
+			want: true,
 		},
 		{
-			// AWS_PROFILE wins, so a stale one takes the other with it.
 			name: "both set and gone",
 			env:  map[string]string{"AWS_PROFILE": "readwrite", "AWS_DEFAULT_PROFILE": "readwrite"},
+			want: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -139,10 +132,12 @@ func Test_clearStaleProfile(t *testing.T) {
 			log := logrus.New()
 			log.SetOutput(io.Discard)
 
-			clearStaleProfile(t.Context(), log)
+			assert.Equal(t, staleProfileOverride(t.Context(), log), tc.want)
 
-			assert.Equal(t, os.Getenv("AWS_PROFILE"), tc.want)
-			assert.Equal(t, os.Getenv("AWS_DEFAULT_PROFILE"), tc.wantDefault)
+			// The process environment is left alone.
+			for _, key := range []string{"AWS_PROFILE", "AWS_DEFAULT_PROFILE"} {
+				assert.Equal(t, os.Getenv(key), tc.env[key], "expected %s to be untouched", key)
+			}
 		})
 	}
 }
