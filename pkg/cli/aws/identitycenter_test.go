@@ -190,6 +190,14 @@ func Test_refreshCredsViaIdentityCenter(t *testing.T) {
 			"Dry Run: granted sso login --sso-region us-west-2 --sso-start-url https://example.awsapps.com/start")
 	})
 
+	t.Run("dry run with an empty config fails", func(t *testing.T) {
+		log, _ := logtest.NewNullLogger()
+		copts := &CredentialOptions{Log: log}
+
+		err := refreshCredsViaIdentityCenter(t.Context(), copts, &AuthorizeCredentialsOptions{DryRun: true}, &box.Config{})
+		assert.ErrorContains(t, err, "needs startURL and region")
+	})
+
 	t.Run("nil options and nil logger do not panic", func(t *testing.T) {
 		for _, copts := range []*CredentialOptions{nil, {}} {
 			err := refreshCredsViaIdentityCenter(t.Context(), copts, &AuthorizeCredentialsOptions{DryRun: true}, b)

@@ -77,6 +77,10 @@ func refreshCredsViaIdentityCenter(
 	}
 
 	ic := &b.AWS.IdentityCenter
+	if err := validateIdentityCenter(ic); err != nil {
+		return err
+	}
+
 	if acopts.DryRun {
 		log.Infof("Dry Run: granted %s", strings.Join(grantedLoginArgs(ic), " "))
 		return nil
@@ -175,6 +179,16 @@ func ensureSession(ctx context.Context, log logrus.FieldLogger,
 	return cfg, nil
 }
 
+// validateIdentityCenter checks that the box config holds what the login
+// needs.
+func validateIdentityCenter(ic *box.IdentityCenterConfig) error {
+	if ic.StartURL == "" || ic.Region == "" {
+		return errors.New("box config aws.identityCenter needs startURL and region")
+	}
+
+	return nil
+}
+
 // grantedLoginArgs is shared by the real login and the dry-run output.
 func grantedLoginArgs(ic *box.IdentityCenterConfig) []string {
 	return []string{"sso", "login", "--sso-region", ic.Region, "--sso-start-url", ic.StartURL}
@@ -186,8 +200,8 @@ func grantedLoginArgs(ic *box.IdentityCenterConfig) []string {
 // `granted credential-process`, it prints no session credentials to
 // stdout.
 func grantedLogin(ctx context.Context, ic *box.IdentityCenterConfig) error {
-	if ic.StartURL == "" || ic.Region == "" {
-		return errors.New("box config aws.identityCenter needs startURL and region")
+	if err := validateIdentityCenter(ic); err != nil {
+		return err
 	}
 
 	if _, err := exec.LookPath("granted"); err != nil {
