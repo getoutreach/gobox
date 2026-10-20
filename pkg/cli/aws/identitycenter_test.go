@@ -248,7 +248,7 @@ func Test_refreshCredsViaIdentityCenter(t *testing.T) {
 
 // writeBoxConfig writes a box config with the given aws section to a
 // temporary HOME.
-func writeBoxConfig(t *testing.T, aws string) {
+func writeBoxConfig(t *testing.T, awsSection string) {
 	t.Helper()
 
 	home := t.TempDir()
@@ -257,7 +257,7 @@ func writeBoxConfig(t *testing.T, aws string) {
 	dir := filepath.Join(home, box.BoxConfigPath)
 	assert.NilError(t, os.MkdirAll(dir, 0o755), "expected to be able to create the box config dir")
 
-	contents := "version: 1\nconfig:\n  aws:\n" + aws
+	contents := "version: 1\nconfig:\n  aws:\n" + awsSection
 	assert.NilError(t, os.WriteFile(filepath.Join(dir, box.BoxConfigFile), []byte(contents), 0o600),
 		"expected to be able to write the box config")
 }
