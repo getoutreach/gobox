@@ -50,10 +50,35 @@ type AWSConfig struct {
 	// with AWS.
 	Okta OktaConfig `yaml:"okta"`
 
+	// IdentityCenter contains configuration for using AWS IAM Identity
+	// Center authentication with AWS. Used when RefreshMethod is
+	// identity-center.
+	IdentityCenter IdentityCenterConfig `yaml:"identityCenter"`
+
 	// RefreshMethod is the CLI used to refresh AWS credentials.
 	// Known values:
 	// * okta-aws-cli (default)
+	// * identity-center
 	RefreshMethod string `yaml:"refreshMethod"`
+}
+
+// IdentityCenterConfig configures AWS IAM Identity Center authentication.
+type IdentityCenterConfig struct {
+	// StartURL is the start URL of the Identity Center instance.
+	StartURL string `yaml:"startURL"`
+
+	// Region is the region the Identity Center instance runs in.
+	Region string `yaml:"region"`
+
+	// SessionName names the [sso-session] block in ~/.aws/config that
+	// profiles log in against.
+	// This attribute is used in consumer repos, not in gobox.
+	SessionName string `yaml:"sessionName"`
+
+	// DefaultPermissionSet is the permission set (role name) that the
+	// default profile assumes in AWSConfig.DefaultAccountID.
+	// This attribute is used in consumer repos, not in gobox.
+	DefaultPermissionSet string `yaml:"defaultPermissionSet"`
 }
 
 // OktaConfig is the Okta-specific config used for AWS access.
