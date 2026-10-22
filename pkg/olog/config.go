@@ -39,6 +39,10 @@ type LevelConfig struct {
 // or a package, and the level is one of DEBUG, INFO, WARN, ERROR, or OFF.
 type Config struct {
 	Levels []LevelConfig `yaml:"log"`
+
+	// Exclude lists rules that drop matching log records at any level.
+	// See [ExcludeConfig].
+	Exclude []ExcludeConfig `yaml:"exclude"`
 }
 
 // ErrUnknownLevel is returned by [ConfigureFromFile] (and surfaced
@@ -73,6 +77,12 @@ func ConfigureFromFile(path string) error {
 		}
 		globalLevelRegistry.Set(l, configuredLevel.Address)
 	}
+
+	// Exclusion rules are replaced wholesale so rules removed from the
+	// file stop applying.
+	rules, err := compileExcludes(c.Exclude, path)
+	excludeRules.Store(&rules)
+	errs = append(errs, err)
 
 	return errors.Join(errs...)
 }

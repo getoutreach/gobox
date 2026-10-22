@@ -177,6 +177,11 @@ func createHandler(lr *levelRegistry, m *metadata) slog.Handler {
 		}
 	}
 
+	// Drop records matching exclusion rules from the configuration file
+	// (see ConfigureFromFile). Applied to the sink so it covers both
+	// built-in and injected sinks.
+	h = newExcludeHandler(h, addrs)
+
 	// Allow an optionally installed LevelResolver (see
 	// SetLevelResolver) to override the level per log emission using
 	// the record context.
