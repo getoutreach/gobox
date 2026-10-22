@@ -72,10 +72,12 @@ type IdentityCenterConfig struct {
 
 	// SessionName names the [sso-session] block in ~/.aws/config that
 	// profiles log in against.
+	// This attribute is used in consumer repos, not in gobox.
 	SessionName string `yaml:"sessionName"`
 
 	// DefaultPermissionSet is the permission set (role name) that the
 	// default profile assumes in AWSConfig.DefaultAccountID.
+	// This attribute is used in consumer repos, not in gobox.
 	DefaultPermissionSet string `yaml:"defaultPermissionSet"`
 }
 
