@@ -1,8 +1,6 @@
 module github.com/getoutreach/gobox
 
-go 1.25.0
-
-toolchain go1.25.7
+go 1.26.0
 
 require (
 	charm.land/bubbles/v2 v2.2.1
@@ -43,7 +41,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.46.0
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.55.0
-	golang.org/x/oauth2 v0.36.0
+	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/term v0.45.0
 	golang.org/x/tools v0.49.0
