@@ -4,6 +4,7 @@ package trace_test
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,7 +20,7 @@ import (
 
 type (
 	initRoundTripperStateFunc func(t *testing.T) *roundtripperState
-	callRoudTripperFunc       func(t *testing.T, state *roundtripperState) []map[string]interface{}
+	callRoudTripperFunc       func(t *testing.T, state *roundtripperState) []map[string]any
 )
 
 func TestRoundtripper(t *testing.T) {
@@ -30,14 +31,14 @@ func TestRoundtripper(t *testing.T) {
 		name                  string
 		initRoundTripperState initRoundTripperStateFunc
 		callRoundTripper      callRoudTripperFunc
-		expectedGen           func(traceId, rootID, middleID differs.CustomComparer) []map[string]interface{}
+		expectedGen           func(traceId, rootID, middleID differs.CustomComparer) []map[string]any
 	}{
 		{
 			name:                  "OtelServerOtelClient",
 			initRoundTripperState: otelInitRoundTripperState,
 			callRoundTripper:      otelCallRoundTripper,
-			expectedGen: func(traceID, rootID, middleID differs.CustomComparer) []map[string]interface{} {
-				return []map[string]interface{}{
+			expectedGen: func(traceID, rootID, middleID differs.CustomComparer) []map[string]any {
+				return []map[string]any{
 					{
 						"name":                                 "GET",
 						"spanContext.traceID":                  traceID,
@@ -183,13 +184,13 @@ func otelInitRoundTripperState(t *testing.T) *roundtripperState {
 	return &roundtripperState{recorder, server}
 }
 
-func otelCallRoundTripper(t *testing.T, state *roundtripperState) []map[string]interface{} {
+func otelCallRoundTripper(t *testing.T, state *roundtripperState) []map[string]any {
 	ctx := trace.StartTrace(t.Context(), "trace-rt")
 	inner := trace.StartSpan(ctx, "inner")
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
-	req, err := http.NewRequestWithContext(inner, "GET", state.Server.URL+"/myendpoint", http.NoBody)
+	req, err := http.NewRequestWithContext(inner, http.MethodGet, state.Server.URL+"/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}
@@ -228,7 +229,7 @@ func (suite) TestHeadersRoundtripper(t *testing.T) {
 	trace.AddInfo(inner, log.F{"trace": "inner"})
 
 	client := http.Client{Transport: &headerroundtripper{http.DefaultTransport}}
-	req, err := http.NewRequest("GET", state.Server.URL+"/myendpoint", http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, state.Server.URL+"/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}
@@ -244,7 +245,7 @@ func (suite) TestHeadersRoundtripper(t *testing.T) {
 
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                                 "ep",
 			"spanContext.traceID":                  traceID,
@@ -328,9 +329,7 @@ type headerroundtripper struct {
 }
 
 func (rt headerroundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	for k, v := range trace.ToHeaders(r.Context()) {
-		r.Header[k] = v
-	}
+	maps.Copy(r.Header, trace.ToHeaders(r.Context()))
 	return rt.old.RoundTrip(r)
 }
 

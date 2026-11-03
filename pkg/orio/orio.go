@@ -8,14 +8,14 @@ package orio
 import "io"
 
 // ReadCloser provides a simple way to create an io.ReadCloser by
-// combining io.Reader and io.Closer
+// combining io.Reader and io.Closer.
 type ReadCloser struct {
 	io.Reader
 	io.Closer
 }
 
 // WriteCloser provides a simple way to create an io.WriteCloser by
-// combining io.Writer and io.Closer
+// combining io.Writer and io.Closer.
 type WriteCloser struct {
 	io.Writer
 	io.Closer

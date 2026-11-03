@@ -31,7 +31,7 @@ func Get(ctx context.Context, host, field string) (string, error) {
 		return "", errors.Wrapf(err, "failed to exec ssh: %s", string(b))
 	}
 
-	for _, l := range strings.Split(string(b), "\n") {
+	for l := range strings.SplitSeq(string(b), "\n") {
 		spl := strings.Split(l, " ")
 		if len(spl) < 2 {
 			continue

@@ -10,20 +10,21 @@ import (
 	"time"
 )
 
-// MaxItems is the maximum number of debug entries cached
+// MaxItems is the maximum number of debug entries cached.
 const MaxItems = 200
 
 // MaxDuration is the age past which a debug entry is considered stale.
 const MaxDuration = time.Minute * 2
 
-// New returns a new collection of log entries
+// New returns a new collection of log entries.
 func New() *Entries {
 	return &Entries{}
 }
 
-// Entries holds a limited size buffer of formatted debug entries
+// Entries holds a limited size buffer of formatted debug entries.
 type Entries struct { //nolint:gocritic // Why: Will refactor in the future
 	sync.Mutex
+
 	items []item
 }
 

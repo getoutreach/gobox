@@ -7,7 +7,7 @@ package olog
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"math"
@@ -61,8 +61,7 @@ const (
 func determineMainModule() {
 	m, ok := debug.ReadBuildInfo()
 	if !ok {
-		//nolint:errorlint // Why: We can't wrap panic-d errors.
-		panic(fmt.Errorf("failed to read build info (must be built with GO111MODULE=on)"))
+		panic(errors.New("failed to read build info (must be built with GO111MODULE=on)"))
 	}
 
 	mainModule = m.Main
@@ -108,7 +107,7 @@ func init() {
 // type. This must be called before any loggers are created to have an
 // effect on all loggers.
 func SetDefaultHandler(ht DefaultHandlerType) {
-	// nolint: gosec // Why: We probably don't care that we're possibly truncating.
+	//nolint: gosec // Why: We probably don't care that we're possibly truncating.
 	defaultHandler.Store(int32(ht))
 }
 

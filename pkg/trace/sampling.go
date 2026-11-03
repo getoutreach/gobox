@@ -7,6 +7,7 @@ package trace
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/getoutreach/gobox/pkg/events"
 	"github.com/getoutreach/gobox/pkg/log"
@@ -28,7 +29,7 @@ const (
 	forceTraceContextKey forceTraceContextKeyT = iota
 )
 
-// forceTracing turn on forceTracing starting with the next span
+// forceTracing turn on forceTracing starting with the next span.
 func forceTracing(ctx context.Context) context.Context {
 	return context.WithValue(ctx, forceTraceContextKey, true)
 }
@@ -174,7 +175,7 @@ func (s *honeycombDeterministicSampler) ShouldSample(p sdktrace.SamplingParamete
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: SetTraceStateSampleRate(psc.TraceState(), s.sampleRate),
 			Attributes: []attribute.KeyValue{
-				// nolint: gosec // Why: sample rate is guaranteed not to be < 0
+				//nolint: gosec // Why: sample rate is guaranteed not to be < 0
 				sampleRateAttribute.Int(int(s.sampleRate)),
 			},
 		}
@@ -232,7 +233,7 @@ func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) s
 				Decision:   sdktrace.RecordAndSample,
 				Tracestate: ts,
 				Attributes: []attribute.KeyValue{
-					// nolint: gosec // Why: sample rate is guaranteed not to be < 0
+					//nolint: gosec // Why: sample rate is guaranteed not to be < 0
 					sampleRateAttribute.Int(int(sampleRate)),
 				},
 			}
@@ -243,7 +244,7 @@ func (s *sampleRateTaggingSampler) ShouldSample(p sdktrace.SamplingParameters) s
 			Decision:   sdktrace.RecordAndSample,
 			Tracestate: ts,
 			Attributes: []attribute.KeyValue{
-				// nolint: gosec // Why: sample rate is guaranteed not to be < 0
+				//nolint: gosec // Why: sample rate is guaranteed not to be < 0
 				sampleRateAttribute.Int(int(s.defaultSampleRate)),
 			},
 		}
@@ -271,7 +272,7 @@ const sampleRateKey = "sample_rate"
 
 // SetTraceStateSampleRate sets the sample rate in the tracestate.
 func SetTraceStateSampleRate(ts trace.TraceState, sampleRate uint) trace.TraceState {
-	updated, err := ts.Insert(sampleRateKey, fmt.Sprintf("%d", sampleRate))
+	updated, err := ts.Insert(sampleRateKey, strconv.FormatUint(uint64(sampleRate), 10))
 	if err != nil {
 		// This really shouldn't happen.
 		log.Warn(context.Background(), "failed to insert sample rate into tracestate", events.NewErrorInfo(err))

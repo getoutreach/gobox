@@ -13,6 +13,7 @@
 package olog
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -104,7 +105,7 @@ func getMetadataForPC(pc uintptr) (metadata, error) {
 	}
 
 	if ci.Module == "" {
-		return m, fmt.Errorf("failed to determine the current module")
+		return m, errors.New("failed to determine the current module")
 	}
 
 	return metadata{
@@ -135,7 +136,7 @@ func getMetadata() (metadata, error) {
 	// We require module information, if we can't get it we should return
 	// an error.
 	if ci.Module == "" {
-		return m, fmt.Errorf("failed to determine the current module")
+		return m, errors.New("failed to determine the current module")
 	}
 
 	return metadata{

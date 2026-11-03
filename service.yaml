@@ -9,6 +9,8 @@ arguments:
     skipE2e: true
   go:
     formatter: gofumpt
+    linters:
+      strict: true
   releaseOptions:
     allowMajorVersions: true
   opslevel:

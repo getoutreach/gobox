@@ -78,7 +78,7 @@ func nthLastIndex(s string, sep rune, skip int) int {
 	})
 }
 
-// trimPaths removes known import paths from a string
+// trimPaths removes known import paths from a string.
 func trimPaths(s string) string {
 	return trimPathsRe.ReplaceAllString(s, "")
 }

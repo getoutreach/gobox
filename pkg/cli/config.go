@@ -20,7 +20,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// Config configures the CLI integration provided by gobox
+// Config configures the CLI integration provided by gobox.
 type Config struct {
 	// Telemetry is the configuration for telemetry for the CLI
 	Telemetry TelemetryConfig
@@ -29,7 +29,7 @@ type Config struct {
 	Logger logrus.FieldLogger
 }
 
-// TelemetryConfig is the configuration for telemetry for the CLI
+// TelemetryConfig is the configuration for telemetry for the CLI.
 type TelemetryConfig struct {
 	// Disabled intentionally turns off all telemetry for the CLI, regardless of
 	// UseDelibird, Otel, or a mounted trace.yaml.

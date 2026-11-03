@@ -5,6 +5,7 @@ package adapters_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -37,7 +38,7 @@ func ExampleNewLogrLogger() {
 
 	childLogger := logger.WithValues("c", 1, "b", "hello, world!")
 	childLogger.Info("info!!")
-	childLogger.Error(fmt.Errorf("bad thing"), "end of the world!")
+	childLogger.Error(errors.New("bad thing"), "end of the world!")
 
 	printEntries(logs.Entries())
 

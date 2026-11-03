@@ -11,13 +11,13 @@ import (
 	"io"
 )
 
-// _ ensures that the gzipCompressedReader type implements the CompressedReader interface
+// _ ensures that the gzipCompressedReader type implements the CompressedReader interface.
 var _ CompressedReader = &gzipCompressedReader{}
 
-// gzipExtractor is a CompressedReader for gzipped compressed file(s)
+// gzipExtractor is a CompressedReader for gzipped compressed file(s).
 type gzipCompressedReader struct{}
 
-// Open returns a reader for a gzipped file
+// Open returns a reader for a gzipped file.
 func (g *gzipCompressedReader) Open(_ context.Context, r io.Reader) (io.ReadCloser, error) {
 	return gzip.NewReader(r)
 }

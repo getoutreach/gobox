@@ -7,7 +7,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"runtime/debug"
@@ -15,7 +14,7 @@ import (
 	"sync"
 )
 
-// defaultVersion is the default version string
+// defaultVersion is the default version string.
 const defaultVersion = "Please see http://github.com/getoutreach/gobox/blob/main/docs/version.md"
 
 // Version needs to be set at build time using
@@ -29,7 +28,7 @@ var Version = defaultVersion
 //nolint:gochecknoglobals // Why: For linking
 var appName = "unknown"
 
-// appInfo contains information about the app
+// appInfo contains information about the app.
 var appInfo struct {
 	mu sync.Mutex // guarding Data to be set initialized concurrently
 	*Data
@@ -52,7 +51,7 @@ func Info() *Data {
 
 // info returns the static app info
 //
-//nolint:funlen // Why: cleaner to keep everything together
+
 func info() *Data {
 	const unknown = "unknown"
 	mainModule := ""
@@ -86,7 +85,7 @@ func info() *Data {
 	// have several apps sharing the same ServiceID.  But that's not
 	// supportd by bootstrap yet and so this hard-coded assumption works
 	// well enough for now.
-	serviceID := fmt.Sprintf("%s@outreach.cloud", appName)
+	serviceID := appName + "@outreach.cloud"
 
 	parts := strings.Split(namespace, "--")
 	if len(parts) == 2 {
@@ -146,7 +145,7 @@ func info() *Data {
 
 // SetName sets the app name
 //
-// Should only be called from tests and app initialization
+// Should only be called from tests and app initialization.
 func SetName(name string) {
 	appInfo.mu.Lock()
 	defer appInfo.mu.Unlock()
@@ -155,7 +154,7 @@ func SetName(name string) {
 	appInfo.Data = info()
 }
 
-// Data provides the global app info
+// Data provides the global app info.
 type Data struct {
 	mu sync.Mutex // Just for the log marshaler
 
@@ -180,8 +179,8 @@ type Data struct {
 	Bento string
 }
 
-// MarshalLog marshals the struct for logging
-func (d *Data) MarshalLog(addField func(key string, v interface{})) {
+// MarshalLog marshals the struct for logging.
+func (d *Data) MarshalLog(addField func(key string, v any)) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -227,7 +226,8 @@ func (d *Data) LogValue() slog.Value {
 
 // LogHook provides an olog compatible hook func which extracts and returns
 // the app Data as a nested attribute on log record.
-// nolint:gocritic // Why: this signature is inline with the olog pkg hook type
+//
+//nolint:gocritic // Why: this signature is inline with the olog pkg hook type
 func LogHook(ctx context.Context, r slog.Record) ([]slog.Attr, error) {
 	info := Info()
 	if info == nil {

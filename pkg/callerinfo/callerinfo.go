@@ -7,6 +7,7 @@
 package callerinfo
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -23,7 +24,7 @@ import (
 // File is the file path of the call site
 // LineNum is the line number inside that File of the call site
 // Module is a best-effort attempt to get the module name for the call site (i.e. github.com/getoutreach/gobox)
-// ModuleVersion will be the version of the Module used at the call site
+// ModuleVersion will be the version of the Module used at the call site.
 type CallerInfo struct {
 	Function      string
 	File          string
@@ -33,10 +34,10 @@ type CallerInfo struct {
 	ModuleVersion string
 }
 
-// moduleLookupByPC is a cache of CallerInfo objects keyed by the PC of the function that called us
+// moduleLookupByPC is a cache of CallerInfo objects keyed by the PC of the function that called us.
 var moduleLookupByPC = make(map[uintptr]CallerInfo)
 
-// moduleLookupLock is a lock to protect the moduleLookupByPC map from concurrent access issues
+// moduleLookupLock is a lock to protect the moduleLookupByPC map from concurrent access issues.
 var moduleLookupLock = sync.RWMutex{}
 
 var buildInfo *debug.BuildInfo
@@ -75,7 +76,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 // GetCallerInfoFromPC returns caller information derived from a program counter.
 func GetCallerInfoFromPC(pc uintptr) (CallerInfo, error) {
 	if pc == 0 {
-		return CallerInfo{}, fmt.Errorf("invalid program counter: 0")
+		return CallerInfo{}, errors.New("invalid program counter: 0")
 	}
 	return getCallerInfoFromPC(pc)
 }
@@ -97,7 +98,7 @@ func getCallerInfoFromPC(pc uintptr) (CallerInfo, error) {
 		Package:  parsePackageName(frame.Function),
 		Function: frame.Function,
 		File:     frame.File,
-		// nolint:gosec // Why: frame data is internal, line number is always > 0
+		//nolint:gosec // Why: frame data is internal, line number is always > 0
 		LineNum: uint(frame.Line),
 	}
 
@@ -152,7 +153,7 @@ func calculateModule(funcName string) string {
 }
 
 // The function name looks like "github.com/getoutreach/gobox/pkg/callerinfo.Test_Callers", so parse the
-// package name out of the base
+// package name out of the base.
 func parsePackageName(funcName string) string {
 	// Find the last segment of the URL path
 	index := strings.LastIndex(funcName, "/")

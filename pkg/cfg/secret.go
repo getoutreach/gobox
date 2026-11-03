@@ -14,7 +14,7 @@ import (
 //
 // The actual secret should be fetched via Data() which returns a SecretData.
 //
-// This type can be embedded within Config
+// This type can be embedded within Config.
 type Secret struct {
 	Path string `yaml:"Path"`
 }
@@ -35,25 +35,25 @@ func (s Secret) Data(ctx context.Context) (SecretData, error) {
 // variables and as arguments.
 //
 // Do not pass the raw converted string as arguments to any outreach
-// code, use the strong type SecretData instead
+// code, use the strong type SecretData instead.
 type SecretData string
 
-// MarshalJSON implements a dummy json.Marshaler
+// MarshalJSON implements a dummy json.Marshaler.
 func (s SecretData) MarshalJSON() ([]byte, error) {
 	return []byte("redacted"), nil
 }
 
-// MarshalYAML implements a dummy yaml.Marshaler
-func (s SecretData) MarshalYAML() (interface{}, error) {
+// MarshalYAML implements a dummy yaml.Marshaler.
+func (s SecretData) MarshalYAML() (any, error) {
 	return "redacted", nil
 }
 
-// GoString implements the GoStringer interface
+// GoString implements the GoStringer interface.
 func (s SecretData) GoString() string {
 	return "redacted"
 }
 
-// Format implements fmt.Formatter
+// Format implements fmt.Formatter.
 func (s SecretData) Format(f fmt.State, _ rune) {
 	if _, err := f.Write([]byte("redacted")); err != nil {
 		panic(err)

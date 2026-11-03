@@ -27,7 +27,7 @@ type ErrorInfo struct {
 	Custom   log.Marshaler
 }
 
-func (e *ErrorInfo) MarshalLog(addField func(key string, value interface{})) {
+func (e *ErrorInfo) MarshalLog(addField func(key string, value any)) {
 	if e == nil {
 		return
 	}
@@ -61,7 +61,7 @@ type nestedErrorInfo struct {
 	Custom   log.Marshaler
 }
 
-func (n *nestedErrorInfo) MarshalLog(addField func(key string, value interface{})) {
+func (n *nestedErrorInfo) MarshalLog(addField func(key string, value any)) {
 	if n == nil {
 		return
 	}
@@ -87,8 +87,8 @@ func (n *nestedErrorInfo) pureStack() bool {
 }
 
 // NewErrorInfoFromPanic converts the panic result into an appropriate
-// error info for logging
-func NewErrorInfoFromPanic(r interface{}) *ErrorInfo {
+// error info for logging.
+func NewErrorInfoFromPanic(r any) *ErrorInfo {
 	if r == nil {
 		return nil
 	}
@@ -122,7 +122,7 @@ func (l *LazyErrInfo) ErrorInfo() *ErrorInfo {
 	return l.info
 }
 
-func (l *LazyErrInfo) MarshalLog(addField func(field string, value interface{})) {
+func (l *LazyErrInfo) MarshalLog(addField func(field string, value any)) {
 	l.ErrorInfo().MarshalLog(addField)
 }
 
@@ -135,7 +135,7 @@ func NewErrorInfo(err error) *ErrorInfo {
 	if err == nil {
 		return nil
 	}
-	custom, _ := err.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
+	custom, _ := err.(log.Marshaler)
 	info := ErrorInfo{
 		RawError: err,
 		Kind:     "error",
@@ -160,7 +160,7 @@ func nestInfo(err error) *nestedErrorInfo {
 	if err == nil {
 		return nil
 	}
-	custom, _ := err.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
+	custom, _ := err.(log.Marshaler)
 	info := nestedErrorInfo{
 		RawError: err,
 		Kind:     "cause",
@@ -196,7 +196,7 @@ func errStack(err error) []string {
 		StackTrace() errors.StackTrace
 	}
 
-	t, ok := err.(tracer) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
+	t, ok := err.(tracer)
 	if !ok {
 		return nil
 	}

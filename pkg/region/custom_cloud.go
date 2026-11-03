@@ -6,11 +6,11 @@ package region
 import "context"
 
 const (
-	// CloudCustom is a custom cloud created by NewCustomCloud
+	// CloudCustom is a custom cloud created by NewCustomCloud.
 	CloudCustom CloudName = "custom"
 )
 
-// CustomCloud is a cloud that can take arbitrary regions
+// CustomCloud is a cloud that can take arbitrary regions.
 type CustomCloud struct {
 	regions []*CustomRegion
 }
@@ -25,12 +25,12 @@ type CustomRegion struct {
 	Endpoint string
 }
 
-// NewCustomCloud creates a new CustomCloud with the provided regions
+// NewCustomCloud creates a new CustomCloud with the provided regions.
 func NewCustomCloud(regions []*CustomRegion) *CustomCloud {
 	return &CustomCloud{regions}
 }
 
-// Regions converts the underlying region list into Regions
+// Regions converts the underlying region list into Regions.
 func (cc *CustomCloud) Regions(_ context.Context) Regions {
 	regions := make([]region, len(cc.regions))
 	for i, r := range cc.regions {

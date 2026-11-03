@@ -1,7 +1,6 @@
 // Copyright 2023 Outreach Corporation. All Rights Reserved.
 
 //go:build or_dev || or_test || or_e2e
-// +build or_dev or_test or_e2e
 
 package orerr_test
 

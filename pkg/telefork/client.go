@@ -6,6 +6,7 @@ package telefork
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"os"
 	"strings"
@@ -14,12 +15,12 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type Event map[string]interface{}
+type Event map[string]any
 
 type Client interface {
 	SendEvent(attributes []attribute.KeyValue)
 
-	AddField(key string, val interface{})
+	AddField(key string, val any)
 	AddInfo(args ...log.Marshaler)
 
 	Close()
@@ -52,15 +53,13 @@ type client struct {
 	baseURL string
 	events  []Event
 
-	commonProps map[string]interface{}
+	commonProps map[string]any
 }
 
 func (c *client) SendEvent(attributes []attribute.KeyValue) {
 	e := make(Event)
 
-	for k, v := range c.commonProps {
-		e[k] = v
-	}
+	maps.Copy(e, c.commonProps)
 	for _, a := range attributes {
 		e[string(a.Key)] = a.Value.AsString()
 	}
@@ -88,8 +87,8 @@ func (c *client) Close() {
 	}
 
 	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("X-OUTREACH-CLIENT-LOGGING", c.apiKey)
-	r.Header.Set("X-OUTREACH-CLIENT-APP-ID", c.appName)
+	r.Header.Set("X-Outreach-Client-Logging", c.apiKey)
+	r.Header.Set("X-Outreach-Client-App-Id", c.appName)
 
 	res, err := c.http.Do(r)
 	if err != nil {
@@ -108,9 +107,9 @@ func (c *client) AddInfo(args ...log.Marshaler) {
 	}
 }
 
-func (c *client) AddField(key string, val interface{}) {
+func (c *client) AddField(key string, val any) {
 	if c.commonProps == nil {
-		c.commonProps = map[string]interface{}{}
+		c.commonProps = map[string]any{}
 	}
 	c.commonProps[key] = val
 }

@@ -13,20 +13,21 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/charmbracelet/glamour"
 	"github.com/getoutreach/gobox/pkg/cli/prompt"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// getRepoFromBuild reads the repository from the embedded go module information
+// getRepoFromBuild reads the repository from the embedded go module information.
 func getRepoFromBuild() (string, error) {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
-		return "", fmt.Errorf("failed to read build info, was this built with go module support")
+		return "", errors.New("failed to read build info, was this built with go module support")
 	}
 
 	// split on / so we can try to ignore a major version at the end
 	spl := strings.Split(info.Main.Path, "/")
 	if len(spl) < 3 {
-		return "", fmt.Errorf("failed to parse repository from build info (len less than 3)")
+		return "", errors.New("failed to parse repository from build info (len less than 3)")
 	}
 
 	// github.com getoutreach devenv -> github.com/getoutreach/devenv
@@ -34,7 +35,7 @@ func getRepoFromBuild() (string, error) {
 }
 
 // handleMajorVersion prompts the user when a new major version is available, returns
-// true if we should continue, or false if we shouldn't
+// true if we should continue, or false if we shouldn't.
 func handleMajorVersion(ctx context.Context, log logrus.FieldLogger, curV, newV, relNotes string) bool {
 	// we skip errors because the above logic already parsed these version strings
 	cver, err := semver.NewVersion(curV)

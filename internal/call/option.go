@@ -2,7 +2,7 @@
 // Description: This file contains the call option definition used by trace.
 package call
 
-// Option defines the call Info adjustment function
+// Option defines the call Info adjustment function.
 type Option func(c *Info)
 
 // Options contains options for all tracing calls.
@@ -13,5 +13,5 @@ type Options struct {
 	EnableInfoLogging bool
 }
 
-// MarshalLog is defined for being compliant with trace.StartCall contract
-func (Option) MarshalLog(_ func(string, interface{})) {}
+// MarshalLog is defined for being compliant with trace.StartCall contract.
+func (Option) MarshalLog(_ func(string, any)) {}

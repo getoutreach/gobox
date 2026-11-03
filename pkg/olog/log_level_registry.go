@@ -14,7 +14,7 @@ import (
 // globalLevelRegistry is the global registry used to store all handlers.
 var globalLevelRegistry = newRegistry()
 
-// levelRegistry contains levelers for all
+// levelRegistry contains levelers for all.
 type levelRegistry struct {
 	// mu is a mutex used to protect the registry.
 	mu sync.RWMutex

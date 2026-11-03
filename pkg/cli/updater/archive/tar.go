@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 )
 
-// _ ensures that the tarExtractor type implements the Extractor interface
+// _ ensures that the tarExtractor type implements the Extractor interface.
 var _ Extractor = &tarExtractor{}
 
-// _ ensures that the tarArchive type implements the Archive interface
+// _ ensures that the tarArchive type implements the Archive interface.
 var _ Archive = &tarArchive{}
 
 // CompressedReader is the interface for a reader that can read a compressed
@@ -26,12 +26,12 @@ type CompressedReader interface {
 	Open(ctx context.Context, r io.Reader) (io.ReadCloser, error)
 }
 
-// tarExtractor is an extractor for tar files
+// tarExtractor is an extractor for tar files.
 type tarExtractor struct {
 	r io.ReadCloser
 }
 
-// Open returns a reader for the archive file
+// Open returns a reader for the archive file.
 func (t *tarExtractor) Open(ctx context.Context, name string, r io.Reader) (Archive, error) {
 	ext := filepath.Ext(name)
 

@@ -3,7 +3,6 @@
 // Description: implementation for Unix like system
 
 //go:build !windows
-// +build !windows
 
 package logfile
 
@@ -63,7 +62,7 @@ func Hook() error {
 	//nolint:gosec // Why: We're using the same command that was run to start the process
 	cmd := exec.Command(os.Args[0], os.Args[1:]...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=1", EnvironmentVariable))
+	cmd.Env = append(cmd.Env, EnvironmentVariable+"=1")
 
 	l, err := net.Listen(TraceSocketType, "localhost:0")
 	if err != nil {
@@ -95,7 +94,7 @@ func Hook() error {
 		cmdErr = cmd.Wait()
 
 		// Close the PTY and wait for the output hook to flush
-		//nolint:errcheck // Why: Best effort
+
 		ptmx.Close()
 		<-exited
 	} else {
@@ -165,7 +164,7 @@ func forwardSignals(exited <-chan struct{}, ptmx *os.File, cmd *exec.Cmd) {
 }
 
 // attachStdinToPty attaches the current os.Stdin to the
-// provided PTY if running in a terminal
+// provided PTY if running in a terminal.
 func attachStdinToPty() (func(), error) {
 	if !cliterm.IsTerminal(os.Stdin) {
 		return func() {}, nil

@@ -18,7 +18,7 @@ import (
 )
 
 // githubKey is the standard host used for github.com
-// in the gh config
+// in the gh config.
 const githubKey = "github.com"
 
 // ghPath is a memoized path to the `gh` CLI.
@@ -28,7 +28,7 @@ var ghPath = ""
 // available via this method.
 type authAccessor func() (cfg.SecretData, error)
 
-// GetToken returns a github access token from the machine
+// GetToken returns a github access token from the machine.
 func GetToken() (cfg.SecretData, error) {
 	accessors := []authAccessor{
 		envToken,
@@ -54,7 +54,7 @@ func GetToken() (cfg.SecretData, error) {
 }
 
 // outreachDirToken reads a token from the legacy ~/.outreach/github.token
-// path
+// path.
 func outreachDirToken() (cfg.SecretData, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -70,7 +70,7 @@ func outreachDirToken() (cfg.SecretData, error) {
 }
 
 // envToken reads a Github token from GITHUB_TOKEN or
-// OUTREACH_GITHUB_TOKEN
+// OUTREACH_GITHUB_TOKEN.
 func envToken() (cfg.SecretData, error) {
 	envVars := []string{"GITHUB_TOKEN", "OUTREACH_GITHUB_TOKEN"}
 	for _, envVar := range envVars {
@@ -99,7 +99,7 @@ func ghCLIAuthToken() (cfg.SecretData, error) {
 }
 
 // ghCLIToken gets a token from gh, or informs the user how to setup
-// a github token via gh, or install gh if not found
+// a github token via gh, or install gh if not found.
 func ghCLIToken() (cfg.SecretData, error) {
 	// Mostly just for tests that fake the value
 	if os.Getenv("GOBOX_SKIP_VALIDATE_AUTH") != "true" {
@@ -133,7 +133,7 @@ func ghCLIToken() (cfg.SecretData, error) {
 	}
 	defer f.Close()
 
-	var conf map[string]interface{}
+	var conf map[string]any
 	err = yaml.NewDecoder(f).Decode(&conf)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse gh auth configuration")
@@ -143,14 +143,14 @@ func ghCLIToken() (cfg.SecretData, error) {
 		return "", fmt.Errorf("failed to find host '%s' in gh auth config, try running 'gh auth login'", githubKey)
 	}
 
-	realConf, ok := conf[githubKey].(map[string]interface{})
+	realConf, ok := conf[githubKey].(map[string]any)
 	if !ok {
 		return "", fmt.Errorf("expected map[string]interface{} for %s host, got %v", githubKey, reflect.ValueOf(conf[githubKey]).String())
 	}
 
 	tokenInf, ok := realConf["oauth_token"]
 	if !ok {
-		return "", fmt.Errorf("failed to find oauth_token in gh auth config, try running 'gh auth login'")
+		return "", errors.New("failed to find oauth_token in gh auth config, try running 'gh auth login'")
 	}
 
 	token, ok := tokenInf.(string)

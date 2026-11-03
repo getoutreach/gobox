@@ -9,6 +9,7 @@ package trace
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ import (
 type otelTracer struct {
 	Config
 	sync.Once
+
 	serviceName    string
 	tracerProvider *sdktrace.TracerProvider
 }
@@ -46,13 +48,13 @@ func NewOtelTracer(ctx context.Context, serviceName string, config *Config) (tra
 	return tracer, nil
 }
 
-// Annotator is a SpanProcessor that adds service-level tags on every span
+// Annotator is a SpanProcessor that adds service-level tags on every span.
 type Annotator struct {
 	globalTags GlobalTags
 }
 
 func (a Annotator) OnStart(_ context.Context, s sdktrace.ReadWriteSpan) {
-	setf := func(key string, value interface{}) {
+	setf := func(key string, value any) {
 		s.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
 	}
 
@@ -70,10 +72,10 @@ func (a Annotator) Shutdown(context.Context) error { return nil }
 
 func (a Annotator) ForceFlush(context.Context) error { return nil }
 
-// nolint:gochecknoglobals // Why: need to allow overriding
+//nolint:gochecknoglobals // Why: need to allow overriding
 var spanProcessorHook func([]attribute.KeyValue)
 
-// SetSpanProcessorHook sets a hook to run when a span ends
+// SetSpanProcessorHook sets a hook to run when a span ends.
 func SetSpanProcessorHook(hook func([]attribute.KeyValue)) {
 	spanProcessorHook = hook
 }
@@ -269,7 +271,7 @@ func (t *otelTracer) sendEvent(ctx context.Context, name string, attributes ...l
 	}
 }
 
-// recordError records an error in conformance with opentelemetry specifications
+// recordError records an error in conformance with opentelemetry specifications.
 func (t *otelTracer) recordError(ctx context.Context, err error, options ...RecordErrorOption) {
 	config := &recordErrorConfig{}
 	for _, o := range options {
@@ -325,17 +327,17 @@ func (t *otelTracer) addInfo(ctx context.Context, args ...log.Marshaler) {
 
 // setError sets the error code and sends an error event. setting the code
 // will cause error spans to be called out specifically in the trace, and
-// will make the "errors" default view in honeycomb useful
+// will make the "errors" default view in honeycomb useful.
 func setError(span trace.Span, err error) {
 	span.SetStatus(codes.Error, err.Error())
 	span.RecordError(err)
 }
 
-// nolint:gocyclo // Why: It's a big case statement that's hard to split.
+//nolint:gocyclo // Why: It's a big case statement that's hard to split.
 func marshalToKeyValue(arg log.Marshaler) []attribute.KeyValue {
 	res := []attribute.KeyValue{}
 
-	logf.Marshal("", arg, func(key string, value interface{}) {
+	logf.Marshal("", arg, func(key string, value any) {
 		switch v := value.(type) {
 		case []bool:
 			res = append(res, attribute.BoolSlice(key, v))
@@ -383,13 +385,13 @@ func marshalToKeyValue(arg log.Marshaler) []attribute.KeyValue {
 		case []uint:
 			strs := make([]string, len(v))
 			for i, elem := range v {
-				strs[i] = fmt.Sprintf("%d", elem)
+				strs[i] = strconv.FormatUint(uint64(elem), 10)
 			}
 			res = append(res, attribute.StringSlice(key, strs))
 		case []uint64:
 			strs := make([]string, len(v))
 			for i, elem := range v {
-				strs[i] = fmt.Sprintf("%d", elem)
+				strs[i] = strconv.FormatUint(elem, 10)
 			}
 			res = append(res, attribute.StringSlice(key, strs))
 		case []float32:
@@ -457,7 +459,7 @@ func (t *otelTracer) spanID(ctx context.Context) string {
 }
 
 // Deprecated: Will be removed with full migration to OpenTelemetry.
-// OpenTelemetry automatically handle adding parentID to traces
+// OpenTelemetry automatically handle adding parentID to traces.
 func (t *otelTracer) parentID(_ context.Context) string {
 	return ""
 }

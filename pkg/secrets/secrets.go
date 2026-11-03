@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-// nolint:gochecknoglobals // Why: need to allow overriding
+//nolint:gochecknoglobals // Why: need to allow overriding
 var devLookup func(ctx context.Context, key string) ([]byte, error)
 
 // Make this public such that can be used by test cases too.
@@ -40,7 +40,7 @@ func TryMapWindowsKeys(filePath string) string {
 	return filePath
 }
 
-// SetDevLookup sets the lookup bypass for dev environments
+// SetDevLookup sets the lookup bypass for dev environments.
 func SetDevLookup(lookup func(context.Context, string) ([]byte, error)) func(context.Context, string) ([]byte, error) {
 	old := devLookup
 	devLookup = lookup
@@ -62,7 +62,7 @@ func Config(ctx context.Context, filePath string) (string, error) {
 // MustConfig is like Config except it panics on error.
 //
 // Use this if a config is read at startup.  Use the Config() function
-// if the config is fetched on a per-request basis
+// if the config is fetched on a per-request basis.
 func MustConfig(ctx context.Context, filePath string) string {
 	result, err := Config(ctx, filePath)
 	if err != nil {

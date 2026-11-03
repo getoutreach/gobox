@@ -5,7 +5,7 @@ package differs
 
 // AnyInt64 matches any value of type int64.
 func AnyInt64() CustomComparer {
-	return Customf(func(o interface{}) bool {
+	return Customf(func(o any) bool {
 		_, ok := o.(int64)
 		return ok
 	})

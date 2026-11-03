@@ -5,8 +5,8 @@ package shuffler
 
 import (
 	"context"
+	"errors"
 	"flag"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -17,21 +17,21 @@ import (
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
-// nolint:gochecknoglobals // Why: flag used in multiple places
+//nolint:gochecknoglobals // Why: flag used in multiple places
 var shuffleSeed = flag.Int64("shuffler.seed", 0, "Specify a seed for the randomization of test methods")
 
 // Type TestSuite is an interface that all test suites must implement
 //
 // Deprecated: TestSuites are no longer required. See Run for
 // more information.
-type TestSuite interface{}
+type TestSuite any
 
 // failOnPanic exists to ensure we capture the specific test context
-// in the panic
+// in the panic.
 func failOnPanic(t *testing.T, finished *bool) {
 	err := recover()
 	if !*finished && err == nil && !t.Failed() && !t.Skipped() {
-		err = fmt.Errorf("panic(nil)")
+		err = errors.New("panic(nil)")
 	}
 	if err != nil {
 		t.Fatalf("test panicked: %v\n%s", err, debug.Stack())
@@ -78,7 +78,7 @@ func shuffleTests(tests []testing.InternalTest, t *testing.T) []testing.Internal
 }
 
 // resolveTests uses the reflect package to build up the list of all the methods
-// that our package consumers have defined on their artisanally crafted TestSuites
+// that our package consumers have defined on their artisanally crafted TestSuites.
 func resolveTests(suite TestSuite) []testing.InternalTest {
 	tests := []testing.InternalTest{}
 

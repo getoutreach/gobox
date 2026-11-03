@@ -4,6 +4,7 @@ package async_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func (r *runWithCloser) Close(c context.Context) error {
 func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 	ctx := t.Context()
 	r1 := async.Func(func(c context.Context) error {
-		return fmt.Errorf("oh no")
+		return errors.New("oh no")
 	})
 	r2 := runWithCloser{}
 	aggr := async.RunGroup([]async.Runner{&r1, &r2})

@@ -20,7 +20,7 @@ var (
 	// ConfigVersion is the current version of the configuration schema.
 	ConfigVersion = 1
 
-	// ConfigFile is the non-HOME containing path to the config file for the updater
+	// ConfigFile is the non-HOME containing path to the config file for the updater.
 	ConfigFile = filepath.Join(".outreach", ".config", "updater", "config.yaml")
 )
 

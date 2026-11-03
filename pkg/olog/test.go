@@ -33,6 +33,7 @@ type TestLogLine struct {
 // slice of TestLogLine.
 type testLogCapturer struct {
 	io.Writer
+
 	logsMu sync.Mutex
 	logs   []TestLogLine
 }
@@ -93,7 +94,7 @@ func (t *testLogCapturer) Write(p []byte) (n int, err error) {
 // Note (parallel tests): This will not work with parallel tests due to
 // the usage of globals in this package.
 //
-//nolint:revive // Why: We don't want this to be passed around.
+
 func NewTestCapturer(t *testing.T) *testLogCapturer {
 	orig := defaultOut
 	tc := &testLogCapturer{logs: make([]TestLogLine, 0)}

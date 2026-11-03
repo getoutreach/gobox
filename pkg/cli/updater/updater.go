@@ -49,7 +49,7 @@ import (
 var Disabled = "false"
 
 // UseUpdater creates an automatic updater.
-func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolint:revive // Why: Purposely not exported.
+func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) {
 	u := &updater{}
 
 	// parse the provided options
@@ -65,7 +65,7 @@ func UseUpdater(ctx context.Context, opts ...Option) (*updater, error) { //nolin
 	return u, nil
 }
 
-// updater is an updater that updates the current running binary to the latest
+// updater is an updater that updates the current running binary to the latest.
 type updater struct {
 	// ghToken is the GitHub token to use for the updater.
 	ghToken cfg.SecretData
@@ -128,7 +128,8 @@ type updater struct {
 
 // defaultOptions configures the default options for the updater if
 // not already set
-// nolint:funlen // Why: a lot of options to set
+//
+//nolint:funlen // Why: a lot of options to set
 func (u *updater) defaultOptions() error {
 	if Disabled == "true" {
 		u.disabled = true
@@ -169,7 +170,7 @@ func (u *updater) defaultOptions() error {
 		r, err := getRepoFromBuild()
 		if err != nil {
 			u.hookSkipUpdateIntoCLI()
-			return fmt.Errorf("failed to determine which repository built this binary")
+			return errors.New("failed to determine which repository built this binary")
 		}
 		u.repoURL = "https://" + r
 	}
@@ -309,7 +310,7 @@ func (u *updater) check(ctx context.Context) (bool, error) {
 
 		// if we're not past the last update threshold
 		// then we don't check for updates.
-		//nolint:gocritic // Why: should not replace After with Before
+
 		if !time.Now().After(repoCache.LastChecked.Add(checkAmount)) {
 			return false, nil
 		}
@@ -394,7 +395,7 @@ func (u *updater) shouldUpdate(v *resolver.Version) (bool, string) { //nolint:go
 	return true, "version is newer than current version"
 }
 
-// installVersion installs a specific version of the application
+// installVersion installs a specific version of the application.
 func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error {
 	u.log.WithField("version", v.String()).Info("Installing update")
 	a, aName, aSize, err := release.Fetch(ctx, u.ghToken, &release.FetchOptions{
@@ -419,7 +420,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 		return errors.Wrap(err, "failed to create temp file")
 	}
 	defer tmpF.Close()
-	defer os.Remove(tmpF.Name()) //nolint:errcheck // Why: Best effort
+	defer os.Remove(tmpF.Name())
 
 	var w io.Writer = tmpF
 	if !u.noProgressBar {

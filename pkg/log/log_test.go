@@ -137,7 +137,7 @@ func printEntries(entries []log.F) {
 	}
 }
 
-// MyEvent demonstrates how custom events can be marshaled
+// MyEvent demonstrates how custom events can be marshaled.
 type MyEvent struct {
 	SomeField string
 }
@@ -146,6 +146,6 @@ func (m MyEvent) MarshalRoot() log.Marshaler {
 	return log.F{"rootfield": "value"}
 }
 
-func (m MyEvent) MarshalLog(addField func(field string, value interface{})) {
+func (m MyEvent) MarshalLog(addField func(field string, value any)) {
 	addField("myevent_field", m.SomeField)
 }

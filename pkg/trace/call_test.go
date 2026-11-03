@@ -28,7 +28,7 @@ import (
 
 type SQLQuery string
 
-func (s SQLQuery) MarshalLog(addField func(k string, v interface{})) {
+func (s SQLQuery) MarshalLog(addField func(k string, v any)) {
 	addField("sql.query", string(s))
 }
 
@@ -36,7 +36,7 @@ type Model struct {
 	ID string
 }
 
-func (m *Model) MarshalLog(addField func(k string, v interface{})) {
+func (m *Model) MarshalLog(addField func(k string, v any)) {
 	addField("model.id", m.ID)
 }
 
@@ -49,7 +49,7 @@ func TestNestedCall(t *testing.T) {
 	// don't care about specific ids but make sure same IDs are used in both settings
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                           "sql",
 			"spanContext.traceID":            traceID,
@@ -163,7 +163,7 @@ func TestNestedCall(t *testing.T) {
 			"error.kind":               "error",
 			"error.error":              "sql error",
 			"error.message":            "sql error",
-			//nolint:lll // Why: Output comparision
+
 			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "sql",
@@ -191,7 +191,7 @@ func TestNestedCall(t *testing.T) {
 			"error.kind":               "error",
 			"error.error":              "sql error",
 			"error.message":            "sql error",
-			//nolint:lll // Why: Output comparision
+
 			"error.stack":         differs.StackLike("gobox/pkg/trace/call_test.go:139 `trace_test.suite.TestNestedCall.func1`"),
 			"level":               "ERROR",
 			"message":             "model",
@@ -240,7 +240,7 @@ func TestNestedCall(t *testing.T) {
 	// wrapping the main logic in a function so that we can call
 	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx = trace.StartSpan(ctx, "trace-test")
+		ctx := trace.StartSpan(ctx, "trace-test")
 		defer trace.End(ctx)
 
 		if err := outer(ctx, &Model{ID: "some model id"}); err == nil {
@@ -267,7 +267,7 @@ func TestNestedCall(t *testing.T) {
 
 	for level, err := range errmap {
 		logs := logtest.NewLogRecorder(t)
-		ctx = trace.StartCall(ctx, "start call")
+		ctx := trace.StartCall(ctx, "start call")
 		trace.SetCallError(ctx, err)
 		trace.EndCall(ctx)
 		// now check logs to see that the right warning message exists
@@ -297,7 +297,7 @@ func TestReportLatencyMetrics(t *testing.T) {
 	// wrapping the main logic in a function so that we can call
 	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx = trace.StartSpan(ctx, "trace-test")
+		ctx := trace.StartSpan(ctx, "trace-test")
 		defer trace.End(ctx)
 
 		if err := httpCall(ctx); err != nil {

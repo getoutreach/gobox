@@ -6,6 +6,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -52,6 +53,6 @@ func generateShellCompletion(ctx context.Context, a *cliV2.App, args []string) e
 		fmt.Fprintln(writer, completion)
 		return nil
 	default:
-		return fmt.Errorf("generateShellCompletion called inappropriately")
+		return errors.New("generateShellCompletion called inappropriately")
 	}
 }

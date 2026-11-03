@@ -8,7 +8,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/secrets"
 )
 
-// nolint:gochecknoglobals
+//nolint:gochecknoglobals
 var testOverrides map[string]string
 
 // SetTestOverride overrides the lookup of a specific secret.

@@ -22,7 +22,7 @@ func NewLogrLogger(ctx context.Context) logr.Logger {
 	return logr.New(logger)
 }
 
-// logrLogger implements logr.Logger
+// logrLogger implements logr.Logger.
 type logrLogger struct {
 	ctx context.Context
 
@@ -33,7 +33,7 @@ type logrLogger struct {
 }
 
 // Init initializes the logger. The gobox logger doesn't need
-// to be intialized so this is a NOOP
+// to be intialized so this is a NOOP.
 func (l *logrLogger) Init(_ logr.RuntimeInfo) {}
 
 // Enabled returns if this logger is enabled or not. Because this
@@ -46,7 +46,7 @@ func (l *logrLogger) Enabled(_ int) bool {
 // listToGoboxF converts a list of arbitrary length to key/value pairs.
 // Based on:
 // https://github.com/bombsimon/logrusr/blob/6296cfced8667be48746ac95a295359bbb08bb25/logrusr.go#L158
-func listToGoboxF(keysAndValues ...interface{}) log.F {
+func listToGoboxF(keysAndValues ...any) log.F {
 	f := make(log.F)
 
 	// Skip all fields if it's not an even length list.
@@ -80,18 +80,18 @@ func listToGoboxF(keysAndValues ...interface{}) log.F {
 	return f
 }
 
-// Errors wraps log.Error()
-func (l *logrLogger) Error(err error, msg string, keysAndValues ...interface{}) {
+// Errors wraps log.Error().
+func (l *logrLogger) Error(err error, msg string, keysAndValues ...any) {
 	log.Error(l.ctx, msg, append(append(l.existingMarshalers, events.Err(err)), listToGoboxF(keysAndValues...))...)
 }
 
-// Info wraps log.Info()
-func (l *logrLogger) Info(_ int, msg string, keysAndValues ...interface{}) {
+// Info wraps log.Info().
+func (l *logrLogger) Info(_ int, msg string, keysAndValues ...any) {
 	log.Info(l.ctx, msg, append(l.existingMarshalers, listToGoboxF(keysAndValues...))...)
 }
 
 // WithName sets the name of this logger. Gobox no-ops this because we only
-// support app.Name
+// support app.Name.
 func (l *logrLogger) WithName(_ string) logr.LogSink {
 	return l
 }
@@ -99,7 +99,7 @@ func (l *logrLogger) WithName(_ string) logr.LogSink {
 // WithValues returns a copy of the current logger with the provided
 // key/value pairs being added to all sub-sequent calls
 // of error/info/etc.
-func (l *logrLogger) WithValues(keysAndValues ...interface{}) logr.LogSink {
+func (l *logrLogger) WithValues(keysAndValues ...any) logr.LogSink {
 	newLogger := &logrLogger{
 		existingMarshalers: append(l.existingMarshalers, listToGoboxF(keysAndValues...)),
 	}

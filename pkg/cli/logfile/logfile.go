@@ -29,7 +29,7 @@ const InProgressSuffix = "_inprog"
 // relative to the user's home directory.
 const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
-// LogExtension is the extension for log files
+// LogExtension is the extension for log files.
 const LogExtension = "json"
 
 // TracePortEnvironmentVariable is the environment variable for the socket port

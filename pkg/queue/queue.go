@@ -113,10 +113,10 @@ type PriorityQueue struct {
 // Push an item into the queue. Items in the queue will be sorted by priority. Push returns
 // a PriorityQueueItem that can be used for other operations, such as updating item priority
 // or removing the item from the queue.
-func (q *PriorityQueue) Push(data interface{}, priority int64) (*PriorityQueueItem, error) {
+func (q *PriorityQueue) Push(data any, priority int64) (*PriorityQueueItem, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
-	// nolint: gosec // Why: The length of a queue should never be negative.
+	//nolint: gosec // Why: The length of a queue should never be negative.
 	if uint(q.queue.Len()) >= q.capacity {
 		return nil, errors.New("queue is full")
 	}
@@ -218,13 +218,13 @@ func (q *PriorityQueue) Len() int {
 // PriorityQueueItem represents an item in queue.
 type PriorityQueueItem struct {
 	lock     sync.RWMutex
-	data     interface{}
+	data     any
 	priority int64
 	index    int
 }
 
 // newPriorityQueueItem creates a new priority queue item.
-func newPriorityQueueItem(data interface{}, priority int64) *PriorityQueueItem {
+func newPriorityQueueItem(data any, priority int64) *PriorityQueueItem {
 	return &PriorityQueueItem{
 		data:     data,
 		priority: priority,
@@ -232,14 +232,14 @@ func newPriorityQueueItem(data interface{}, priority int64) *PriorityQueueItem {
 }
 
 // GetData returns the data.
-func (i *PriorityQueueItem) GetData() interface{} {
+func (i *PriorityQueueItem) GetData() any {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.data
 }
 
 // SetData sets the data.
-func (i *PriorityQueueItem) SetData(v interface{}) {
+func (i *PriorityQueueItem) SetData(v any) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 	i.data = v
@@ -293,14 +293,14 @@ func newPriorityQueueInternal(isMinHeap bool) *priorityQueueInternal {
 }
 
 // Push an item into queue.
-func (q *priorityQueueInternal) Push(x interface{}) {
+func (q *priorityQueueInternal) Push(x any) {
 	item := x.(*PriorityQueueItem)
 	item.setIndex(q.Len())
 	q.items = append(q.items, item)
 }
 
 // Pop removes and returns the last item in the queue.
-func (q *priorityQueueInternal) Pop() interface{} {
+func (q *priorityQueueInternal) Pop() any {
 	return q.Remove(q.Len() - 1)
 }
 
@@ -325,7 +325,7 @@ func (q *priorityQueueInternal) Clear() {
 	q.items = []*PriorityQueueItem{}
 }
 
-// Get returns an item at index i
+// Get returns an item at index i.
 func (q *priorityQueueInternal) Get(i int) *PriorityQueueItem {
 	return q.items[i]
 }

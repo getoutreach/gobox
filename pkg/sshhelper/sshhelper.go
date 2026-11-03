@@ -40,7 +40,7 @@ func GetSSHAgent() agent.Agent {
 	return a
 }
 
-// GetPasswordInput retrieves input that doesn't echo back to the user as they type it
+// GetPasswordInput retrieves input that doesn't echo back to the user as they type it.
 func GetPasswordInput() (string, error) {
 	b, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
@@ -51,7 +51,7 @@ func GetPasswordInput() (string, error) {
 }
 
 // LoadDefaultKey loads the default for an alias/host and puts it into the keyring
-// if a default key is not found, the user is prompted to provide the path
+// if a default key is not found, the user is prompted to provide the path.
 func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string, error) {
 	sshFile, err := sshconfig.Get(context.TODO(), host, "IdentityFile")
 	if sshFile == "" || err != nil {
@@ -91,7 +91,7 @@ func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
 
 // AddKeyToAgent adds a key to the internal ssh-key agent. If a public key can
 // be found at the same path as the private key, it will first check the agent
-// and return nil if the key is already present
+// and return nil if the key is already present.
 func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { //nolint:funlen,lll // Why: cleaner to keep everything together
 	b, err := os.ReadFile(keyPath)
 	if err != nil {
@@ -129,7 +129,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 			if pass, err = keyring.Get(serviceName, user); err != nil {
 				pass, err = prompt.Ask(context.Background(), prompt.Config{
 					Message:  "Please enter your SSH Key Password:",
-					Help:     fmt.Sprintf("SSH Key: %s", keyPath),
+					Help:     "SSH Key: " + keyPath,
 					EchoMode: textinput.EchoPassword,
 					Validate: prompt.Required,
 				})
@@ -181,7 +181,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 }
 
 // ExistingSSHAgentCallback is based on gogit's transport ssh public key callback, but allows
-// for using an existing ssh-agent
+// for using an existing ssh-agent.
 type ExistingSSHAgentCallback struct {
 	User     string
 	Callback func() (signers []ssh.Signer, err error)

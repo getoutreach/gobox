@@ -45,13 +45,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// packageSourceInfoSkips lists the packages that we will skip when calculating caller info
+// packageSourceInfoSkips lists the packages that we will skip when calculating caller info.
 var packageSourceInfoSkips = map[string]any{
 	"github.com/getoutreach/gobox/pkg/log":   nil,
 	"github.com/getoutreach/gobox/pkg/trace": nil,
 }
 
-// nolint:gochecknoglobals // Why: sets up overwritable writers
+//nolint:gochecknoglobals // Why: sets up overwritable writers
 var (
 	// wrap stdout and stderr in sync writers to ensure that writes exceeding
 	// PAGE_SIZE (4KB) are not interleaved.
@@ -76,11 +76,11 @@ var (
 	// callerLoggersMap caches *slog.Logger instances by caller package path.
 	callerLoggersMap = &sync.Map{}
 
-	// dbgEntries is essentially a buffer of entries
+	// dbgEntries is essentially a buffer of entries.
 	dbgEntries = entries.New()
 )
 
-// setupSlog initializes a global slogger
+// setupSlog initializes a global slogger.
 func setupSlog() {
 	slogLock.Lock()
 	defer slogLock.Unlock()
@@ -89,7 +89,7 @@ func setupSlog() {
 	callerLoggersMap = &sync.Map{}
 }
 
-// ShouldUseSlog returns true if slog facade should be used
+// ShouldUseSlog returns true if slog facade should be used.
 func ShouldUseSlog() bool {
 	slogLock.Lock()
 	defer slogLock.Unlock()
@@ -128,6 +128,7 @@ type Flusher interface {
 
 type syncWriter struct {
 	sync.Mutex
+
 	w io.Writer
 }
 
@@ -140,7 +141,7 @@ func (sw *syncWriter) Write(b []byte) (int, error) {
 
 // SetOutput can be used to set the output for the module
 // Note: this function should not be used in production code outside of service startup.
-// SetOutput can be used for tests that need to redirect or filter logs
+// SetOutput can be used for tests that need to redirect or filter logs.
 func SetOutput(w io.Writer) {
 	stdOutLock.Lock()
 	defer stdOutLock.Unlock()
@@ -267,7 +268,7 @@ func slogIt(ctx context.Context, lvl slog.Level, message string, m []Marshaler) 
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
-// within 2min of this event
+// within 2min of this event.
 func Debug(ctx context.Context, message string, m ...Marshaler) {
 	if ShouldUseSlog() {
 		slogIt(ctx, slog.LevelDebug, message, m)
@@ -298,7 +299,7 @@ func Warn(ctx context.Context, message string, m ...Marshaler) {
 	Write(s)
 }
 
-// Error emits a log at ERROR level.  Error logs must be investigated
+// Error emits a log at ERROR level.  Error logs must be investigated.
 func Error(ctx context.Context, message string, m ...Marshaler) {
 	if ShouldUseSlog() {
 		slogIt(ctx, slog.LevelError, message, m)
@@ -350,7 +351,7 @@ func fatalFlush(ctx context.Context) {
 	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	defer cancel()
 
-	_ = flusher.ForceFlush(flushCtx) //nolint: errcheck //Why: best-effort flush before exit
+	_ = flusher.ForceFlush(flushCtx)
 }
 
 func format(ctx context.Context, msg, level string, ts time.Time, appInfo Marshaler, mm Many) string {
@@ -427,13 +428,13 @@ func addSource(entry F) {
 	}
 }
 
-// Flush writes out all debug logs
+// Flush writes out all debug logs.
 func Flush(_ context.Context) {
 	dbgEntries.Flush(Write)
 }
 
 // Purge clears all debug logs without writing them out. This is useful to clear logs
-// from a successful tests that we don't want output during a subsequent test
+// from a successful tests that we don't want output during a subsequent test.
 func Purge(_ context.Context) {
 	dbgEntries.Purge()
 }

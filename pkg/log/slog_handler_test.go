@@ -108,6 +108,7 @@ func (h *trackingHandler) WithGroup(name string) slog.Handler {
 // fakeFlushHandler is a handler that tracks ForceFlush calls for testing.
 type fakeFlushHandler struct {
 	slog.Handler
+
 	flushCalls int
 	flushErr   error
 }
@@ -169,6 +170,7 @@ func TestFatalFlushesHandler(t *testing.T) {
 // slowFlushHandler is a handler that delays on ForceFlush for testing timeout behavior.
 type slowFlushHandler struct {
 	slog.Handler
+
 	delay time.Duration
 }
 

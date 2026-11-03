@@ -30,12 +30,12 @@ import (
 // https://regex101.com/r/yWXH5i/1
 var mutableTagRegex = regexp.MustCompile(`^[a-z-]+$`)
 
-// oprStripRegex is the regex to use to strip operators from a constraint
+// oprStripRegex is the regex to use to strip operators from a constraint.
 var oprStripRegex = regexp.MustCompile(`^\D+(\d)`)
 
 // This block contains error types for the resolver package.
 var (
-	// ErrNoVersions is returned when no versions are found
+	// ErrNoVersions is returned when no versions are found.
 	ErrNoVersions = errors.New("no version found matching criteria")
 )
 
@@ -43,7 +43,7 @@ var (
 // doesn't contain a channel.
 const StableChannel = "stable"
 
-// Criteria is the criteria used to determine the latest version
+// Criteria is the criteria used to determine the latest version.
 type Criteria struct {
 	// URL is the URL to the repository to check for updates.
 	URL string
@@ -61,7 +61,7 @@ type Criteria struct {
 	AllowBranches bool
 }
 
-// Version is a resolved version from a git repository
+// Version is a resolved version from a git repository.
 type Version struct {
 	// sv is the semver version of the tag if it is a semver tag
 	// note: if mutable == true, not semver
@@ -98,7 +98,7 @@ func (v *Version) String() string {
 	return v.Tag
 }
 
-// GitRef returns the git ref for the version if there is one
+// GitRef returns the git ref for the version if there is one.
 func (v *Version) GitRef() string {
 	if v.Branch != "" {
 		return v.Branch
@@ -146,7 +146,7 @@ func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 
 	// Attempt to parse the tag as semver for a normal version
 	// tag.
-	//nolint:gocritic // Why: A switch statement doesn't read well.
+
 	if semV, err := semver.NewVersion(ref); err == nil {
 		// Determine the channel from the tag
 		// `v1.0.0-alpha.1` -> `alpha`
@@ -189,7 +189,7 @@ func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 // provider you can pass an empty string.
 var GetVersions = getVersions
 
-// getVersions is documented above
+// getVersions is documented above.
 func getVersions(ctx context.Context, token cfg.SecretData, url string, allowBranches bool) (map[string][]Version, error) {
 	r := git.NewRemote(memory.NewStorage(), &gitconfig.RemoteConfig{
 		Name: "origin",
@@ -307,7 +307,7 @@ func Resolve(ctx context.Context, token cfg.SecretData, c *Criteria) (*Version, 
 	return getLatestVersion(versions, c)
 }
 
-// getLatestSatisfyingConstraint returns the latest version that satisfies the constraint
+// getLatestSatisfyingConstraint returns the latest version that satisfies the constraint.
 func getLatestSatisfyingConstraint(versions map[string][]Version, c *Criteria) (*Version, error) {
 	allowedChannels := []string{c.Channel}
 	if c.Channel != StableChannel {

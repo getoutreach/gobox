@@ -60,7 +60,7 @@ type Span struct {
 	InstrumentationScope instrumentation.Scope
 }
 
-// spanData is data that we need to unmarshal in custom ways
+// spanData is data that we need to unmarshal in custom ways.
 type spanData struct {
 	Name        string
 	SpanContext spanContext
@@ -83,7 +83,7 @@ type spanData struct {
 	InstrumentationScope instrumentation.Scope
 }
 
-// spanContext is a custom type used to unmarshal otel SpanContext correctly
+// spanContext is a custom type used to unmarshal otel SpanContext correctly.
 type spanContext struct {
 	TraceID    string
 	SpanID     string
@@ -93,20 +93,20 @@ type spanContext struct {
 	Remote     bool
 }
 
-// keyValue is a custom type used to unmarshal otel KeyValue correctly
+// keyValue is a custom type used to unmarshal otel KeyValue correctly.
 type keyValue struct {
 	Key   string
 	Value value
 }
 
-// value is a custom type used to unmarshal otel Value correctly
+// value is a custom type used to unmarshal otel Value correctly.
 type value struct {
 	Type  string
-	Value interface{}
+	Value any
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Span which allows
-// correctly retrieving attribute.KeyValue values
+// correctly retrieving attribute.KeyValue values.
 func (s *Span) UnmarshalJSON(data []byte) error {
 	var sd spanData
 	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&sd); err != nil {
@@ -161,7 +161,7 @@ func (s *Span) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// asTraceSpanContext converst the internal spanContext representation to an otel one
+// asTraceSpanContext converst the internal spanContext representation to an otel one.
 func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 	traceID, err := traceIDFromHex(sc.TraceID)
 	if err != nil {
@@ -188,7 +188,7 @@ func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 	return trace.NewSpanContext(config), nil
 }
 
-// asAttributeKeyValue converts the internal keyValue representation to an otel one
+// asAttributeKeyValue converts the internal keyValue representation to an otel one.
 func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 	// Value types get encoded as string
 	switch kv.Value.Type {
@@ -236,7 +236,7 @@ func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 		switch sli := kv.Value.Value.(type) {
 		case []string:
 			strSli = sli
-		case []interface{}:
+		case []any:
 			for i := range sli {
 				var v string
 
@@ -265,7 +265,7 @@ func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 // traceIDFromHex returns a TraceID from a hex string if it is compliant with
 // the W3C trace-context specification.  See more at
 // https://www.w3.org/TR/trace-context/#trace-id
-// our copy removes the validity check
+// our copy removes the validity check.
 func traceIDFromHex(h string) (trace.TraceID, error) {
 	t := trace.TraceID{}
 	if len(h) != 32 {
@@ -282,7 +282,7 @@ func traceIDFromHex(h string) (trace.TraceID, error) {
 // spanIDFromHex returns a SpanID from a hex string if it is compliant
 // with the w3c trace-context specification.
 // See more at https://www.w3.org/TR/trace-context/#parent-id
-// our version remove the validity check
+// our version remove the validity check.
 func spanIDFromHex(h string) (trace.SpanID, error) {
 	s := trace.SpanID{}
 	if len(h) != 16 {
@@ -296,7 +296,7 @@ func spanIDFromHex(h string) (trace.SpanID, error) {
 	return s, nil
 }
 
-// decodeHex decodes hex in a manner compliant with OpenTelemetry
+// decodeHex decodes hex in a manner compliant with OpenTelemetry.
 func decodeHex(h string, b []byte) error {
 	for _, r := range h {
 		switch {

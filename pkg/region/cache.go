@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	// RegionCachePath is the $HOME/<RegionCachePath> location of the regionpicker cache
+	// RegionCachePath is the $HOME/<RegionCachePath> location of the regionpicker cache.
 	RegionCachePath = filepath.Join(".outreach", ".cache", "box")
-	// RegionCacheFile is the name of the regionpicker cache file
+	// RegionCacheFile is the name of the regionpicker cache file.
 	RegionCacheFile = "regions.json"
 )
 
@@ -25,7 +25,7 @@ var (
 // ensure that this is go-routine safe.
 var cache = &cacheStore{}
 
-// cacheEntry is information on a cloud's cache entry
+// cacheEntry is information on a cloud's cache entry.
 type cacheEntry struct {
 	// Duration is how long it took to talk to this region at LastUpdatedAt
 	Duration time.Duration `json:"duration"`
@@ -44,7 +44,7 @@ type cacheStore struct {
 	once sync.Once
 }
 
-// expireKeyIfRequired expires a key if it's ready to be expired
+// expireKeyIfRequired expires a key if it's ready to be expired.
 func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) bool {
 	if time.Now().UTC().After(v.ExpiresAt) {
 		c.mu.Lock()
@@ -59,7 +59,7 @@ func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry)
 	return false
 }
 
-// get returns a cache entry for a given cloud/region pairing
+// get returns a cache entry for a given cloud/region pairing.
 func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -106,7 +106,7 @@ func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
 	}
 }
 
-// Set sets the duration of a cloud/region pairing
+// Set sets the duration of a cloud/region pairing.
 func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
 	c.once.Do(c.load) // read the cache from disk at most once
 
@@ -135,7 +135,7 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 }
 
 // load retrieves the cache from disk, if it exists, otherwise
-// it is returned uninitialized
+// it is returned uninitialized.
 func (c *cacheStore) load() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -157,7 +157,7 @@ func (c *cacheStore) load() {
 	_ = json.NewDecoder(f).Decode(&c) //nolint:errcheck // Why: function signature/acceptable
 }
 
-// save saves the cache to disk
+// save saves the cache to disk.
 func (c *cacheStore) save() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

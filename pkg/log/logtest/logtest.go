@@ -23,14 +23,14 @@ import (
 
 // NewLogRecorder starts a new log recorder.
 //
-// Logs must be stopped by calling Close() on the recorder
+// Logs must be stopped by calling Close() on the recorder.
 func NewLogRecorder(t *testing.T) *LogRecorder {
 	r := &LogRecorder{T: t, oldOutput: log.Output()}
 	log.SetOutput(r)
 	return r
 }
 
-// LogRecorder holds the state
+// LogRecorder holds the state.
 type LogRecorder struct { //nolint:gocritic // Why: Will refactor in the future
 	*testing.T
 	oldOutput io.Writer
@@ -50,7 +50,7 @@ func (l *LogRecorder) Write(b []byte) (n int, err error) {
 	return
 }
 
-// Close closes the recorder
+// Close closes the recorder.
 func (l *LogRecorder) Close() {
 	log.SetOutput(l.oldOutput)
 }
@@ -67,7 +67,7 @@ func (l *LogRecorder) Entries() []log.F {
 //
 // The serialization is similar to the one performed by logs.  Any nesting is
 // flattened by representing it as dot-separated key prefixes in a flat map.
-func Map(m log.Marshaler) map[string]interface{} {
+func Map(m log.Marshaler) map[string]any {
 	ret := log.F{}
 	m.MarshalLog(ret.Set)
 	return ret

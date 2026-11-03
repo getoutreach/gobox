@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	// Header that enforces the tracing for particular request
+	// Header that enforces the tracing for particular request.
 	HeaderForceTracing = "X-Force-Trace"
-	// Header used by OpenTelemetry to propagate traces
+	// Header used by OpenTelemetry to propagate traces.
 	OtelPropagationHeader = "Traceparent"
 )
 

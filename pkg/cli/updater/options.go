@@ -12,12 +12,12 @@ import (
 	cliV3 "github.com/urfave/cli/v3"
 )
 
-// Options configures an updater
+// Options configures an updater.
 type Option func(*updater)
 
 // WithRepoURL sets the repository to use for checking for updates.
 // The expected format is: https://<host>/<repo>
-// Note: It should not contain .git at the end
+// Note: It should not contain .git at the end.
 func WithRepoURL(repo string) Option {
 	return func(u *updater) {
 		u.repoURL = repo
@@ -25,7 +25,7 @@ func WithRepoURL(repo string) Option {
 }
 
 // WithSkipMajorVersionPrompt sets whether or not to skip the prompt for
-// major version upgrades
+// major version upgrades.
 func WithSkipMajorVersionPrompt(skip bool) Option {
 	return func(u *updater) {
 		u.skipMajorVersionPrompt = skip
@@ -55,7 +55,7 @@ func WithLogger(logger logrus.FieldLogger) Option {
 	}
 }
 
-// WithDisabled sets if we should disable the updater or not
+// WithDisabled sets if we should disable the updater or not.
 func WithDisabled(disabled bool) Option {
 	return func(u *updater) {
 		u.disabled = disabled
@@ -70,7 +70,7 @@ func WithPrereleases(_ bool) Option {
 	}
 }
 
-// WithChannel sets the channel to use for checking for updates
+// WithChannel sets the channel to use for checking for updates.
 func WithChannel(channel string) Option {
 	return func(u *updater) {
 		u.channel = channel
@@ -108,7 +108,7 @@ func WithCheckInterval(interval time.Duration) Option {
 	}
 }
 
-// WithSkipInstall sets whether or not to skip the installation of the update
+// WithSkipInstall sets whether or not to skip the installation of the update.
 func WithSkipInstall(skipInstall bool) Option {
 	return func(u *updater) {
 		u.skipInstall = skipInstall
@@ -117,7 +117,7 @@ func WithSkipInstall(skipInstall bool) Option {
 
 // WithExecutableName overrides the name of the executable. See u.executablePath.
 //
-// Deprecated: Use WithExecutablePath
+// Deprecated: Use WithExecutablePath.
 func WithExecutableName(execName string) Option {
 	return WithExecutablePath(execName)
 }

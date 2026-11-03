@@ -49,7 +49,7 @@ func TestAsOutboundCall(t *testing.T) {
 // "app.version" fields because they can be variable across testing
 // environments.
 func ignoreVariableFields() cmp.Option {
-	return cmpopts.IgnoreMapEntries(func(key string, value interface{}) bool {
+	return cmpopts.IgnoreMapEntries(func(key string, value any) bool {
 		return key == "deployment.namespace" || key == "app.version"
 	})
 }

@@ -111,7 +111,7 @@ func (se *LogFileSpanExporter) Shutdown(_ context.Context) error {
 	return se.conn.Close()
 }
 
-// CommonProps sets up common properties for traces in cli apps
+// CommonProps sets up common properties for traces in cli apps.
 func CommonProps() log.Marshaler {
 	commonProps := log.F{
 		"os.name": runtime.GOOS,

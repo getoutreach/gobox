@@ -21,7 +21,7 @@ var UpdaterFlagsV3 = []cliV3.Flag{
 	ForceFlag.ToUrfaveV3(),
 }
 
-// hookIntoCLIV3 hooks into a urfave/cli/v3.App to add updater support
+// hookIntoCLIV3 hooks into a urfave/cli/v3.App to add updater support.
 func (u *updater) hookIntoCLIV3() {
 	oldBefore := u.appV3.Before
 
@@ -43,7 +43,7 @@ func (u *updater) hookIntoCLIV3() {
 
 		// handle an older before if it was set
 		if oldBefore != nil {
-			// nolint:govet // Why: the shadowing is intentional.
+			//nolint:govet // Why: the shadowing is intentional.
 			if ctx, err := oldBefore(ctx, c); err != nil {
 				return ctx, err
 			}
@@ -75,7 +75,6 @@ func (u *updater) hookIntoCLIV3() {
 
 		u.log.Infof("%s has been updated, re-running automatically", u.appV3.Name)
 
-		//nolint:gosec // Why: We're passing in os.Args
 		if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
 			return ctx, cliV3.Exit("failed to re-run binary, please re-run your command manually", 1)
 		}

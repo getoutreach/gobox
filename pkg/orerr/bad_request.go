@@ -4,8 +4,6 @@
 package orerr
 
 import (
-	"fmt"
-
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
@@ -25,32 +23,32 @@ type Violation struct {
 	Metadata map[string]string
 }
 
-// NewViolation creates a new intance of Violation
+// NewViolation creates a new intance of Violation.
 func NewViolation(reason string) Violation {
 	return Violation{
 		Reason: reason,
 	}
 }
 
-// WithField allows to specify field path of the field that violation belongs to
+// WithField allows to specify field path of the field that violation belongs to.
 func (v Violation) WithField(field string) Violation {
 	v.Field = &field
 	return v
 }
 
-// WithField allows to specify domain name of the field that violation belongs to
+// WithField allows to specify domain name of the field that violation belongs to.
 func (v Violation) WithDomain(domain string) Violation {
 	v.Domain = &domain
 	return v
 }
 
-// WithField allows to specify violation meta data
+// WithField allows to specify violation meta data.
 func (v Violation) WithMeta(m map[string]string) Violation {
 	v.Metadata = m
 	return v
 }
 
-// BadRequestError represents an invalidate input error
+// BadRequestError represents an invalidate input error.
 type BadRequestError struct {
 	// Err is an original err
 	Err error
@@ -60,7 +58,7 @@ type BadRequestError struct {
 }
 
 // NewBadRequestError return ready made intance of the BadRequestError error.
-// It wraps given error with the BadRequest status
+// It wraps given error with the BadRequest status.
 func NewBadRequestError(err error, violations ...Violation) error {
 	err = New(err, WithStatus(statuscodes.BadRequest))
 	return &BadRequestError{
@@ -71,7 +69,7 @@ func NewBadRequestError(err error, violations ...Violation) error {
 
 // Error implements the err interface.
 func (e BadRequestError) Error() string {
-	return fmt.Sprintf("bad request: %s", e.Err.Error())
+	return "bad request: " + e.Err.Error()
 }
 
 // Unwrap returns the inner error.
@@ -79,7 +77,7 @@ func (e BadRequestError) Unwrap() error {
 	return e.Err
 }
 
-// WithViolations adds more violations into the error
+// WithViolations adds more violations into the error.
 func (e *BadRequestError) WithViolations(violations ...Violation) *BadRequestError {
 	e.Violations = append(e.Violations, violations...)
 	return e

@@ -23,14 +23,14 @@ func benchmarkWorkerN(b *testing.B, size, items int) {
 	for n := 0; n < b.N; n++ {
 		wg := new(sync.WaitGroup)
 		results := make(stringChan, items)
-		for i := 0; i < items; i++ {
+		for i := range items {
 			wg.Add(1)
 			// Don't move this line into closure, we want to test that data will be correct
 			func(i int) {
 				p.Schedule(ctx, async.Func(func(ctx context.Context) error {
 					var sum [32]byte
-					for z := 0; z < 1000; z++ {
-						sum = sha256.Sum256([]byte(fmt.Sprintf("task_%d", i)))
+					for range 1000 {
+						sum = sha256.Sum256(fmt.Appendf(nil, "task_%d", i))
 					}
 					results <- string(sum[:])
 					wg.Done()
@@ -47,13 +47,13 @@ func benchmarkGoN(b *testing.B, items int) {
 	for n := 0; n < b.N; n++ {
 		wg := new(sync.WaitGroup)
 		results := make(stringChan, items)
-		for i := 0; i < items; i++ {
+		for i := range items {
 			wg.Add(1)
 			// Don't move this line into closure, we want to test that data will be correct
 			go func(i int) {
 				var sum [32]byte
-				for z := 0; z < 1000; z++ {
-					sum = sha256.Sum256([]byte(fmt.Sprintf("task_%d", i)))
+				for range 1000 {
+					sum = sha256.Sum256(fmt.Appendf(nil, "task_%d", i))
 				}
 				results <- string(sum[:])
 				wg.Done()

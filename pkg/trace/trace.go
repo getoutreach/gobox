@@ -97,6 +97,7 @@ package trace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -106,7 +107,7 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-// nolint:gochecknoglobals // Why: need to allow overriding
+//nolint:gochecknoglobals // Why: need to allow overriding
 var defaultTracer tracer
 
 // Deprecated: Use InitTracer() instead.
@@ -126,7 +127,7 @@ func InitTracer(_ context.Context, serviceName string) error {
 		return err
 	}
 	if defaultTracer == nil {
-		return fmt.Errorf("no tracer configured, please check your 'trace.yaml' config")
+		return errors.New("no tracer configured, please check your 'trace.yaml' config")
 	}
 
 	return nil
@@ -136,7 +137,7 @@ func RegisterSpanProcessor(s sdktrace.SpanProcessor) {
 	defaultTracer.registerSpanProcessor(s)
 }
 
-// setDefaultTracer sets the default tracer to use
+// setDefaultTracer sets the default tracer to use.
 func setDefaultTracer(serviceName string) error {
 	config := &Config{}
 	if err := config.Load(); err != nil && !os.IsNotExist(err) {
@@ -145,7 +146,7 @@ func setDefaultTracer(serviceName string) error {
 
 	// Ensure only one tracer is enabled
 	if config.Otel.Enabled && config.LogFile.Enabled {
-		return fmt.Errorf("more than one tracer enabled, please check your 'trace.yaml' config")
+		return errors.New("more than one tracer enabled, please check your 'trace.yaml' config")
 	}
 
 	if config.Otel.Enabled {
@@ -338,7 +339,7 @@ func ID(ctx context.Context) string {
 }
 
 // SpanID returns the root tracing SpanID for use when it is needed to correlate the logs belonging to same flow.
-// The SpanID returned will be the honeycomb trace SpanID (if honeycomb is enabled) or an empty string if neither are enabled
+// The SpanID returned will be the honeycomb trace SpanID (if honeycomb is enabled) or an empty string if neither are enabled.
 func SpanID(ctx context.Context) string {
 	if defaultTracer == nil {
 		return ""
@@ -348,7 +349,7 @@ func SpanID(ctx context.Context) string {
 }
 
 // parentID returns the tracing parentID for use when it is needed to correlate the logs belonging to same flow.
-// The parentID returned will be the honeycomb trace parentID (if honeycomb is enabled) or an empty string if neither are enabled
+// The parentID returned will be the honeycomb trace parentID (if honeycomb is enabled) or an empty string if neither are enabled.
 func parentID(ctx context.Context) string {
 	if defaultTracer == nil {
 		return ""

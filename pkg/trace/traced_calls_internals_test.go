@@ -175,8 +175,8 @@ func TestTraceInfoExportedField(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fields := map[string]interface{}{}
-			IDs(tt.ctx).MarshalLog(func(field string, value interface{}) {
+			fields := map[string]any{}
+			IDs(tt.ctx).MarshalLog(func(field string, value any) {
 				fields[field] = value
 			})
 

@@ -19,13 +19,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// newTestingVersion is a helper function to create a testing version
+// newTestingVersion is a helper function to create a testing version.
 func newTestingVersion(tag string) Version {
 	return mustNewVersion(NewVersion(tag, false, "abcdefghijklmnopqrstuvwxyz"))
 }
 
 // mustNewVersion is a helper function to create a new version for tests
-// that panics on errors
+// that panics on errors.
 func mustNewVersion(v *Version, err error) Version {
 	if err != nil {
 		panic(err)

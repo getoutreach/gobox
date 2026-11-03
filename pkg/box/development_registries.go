@@ -5,7 +5,7 @@ package box
 
 import "github.com/getoutreach/gobox/pkg/region"
 
-// DevelopmentRegistries contains a slice of DevelopmentRegistrys
+// DevelopmentRegistries contains a slice of DevelopmentRegistrys.
 type DevelopmentRegistries struct {
 	// Path is a go-template string of the path to append to the end of the endpoint
 	// for the docker image registry to use. This is useful for namespacing images.
@@ -15,10 +15,10 @@ type DevelopmentRegistries struct {
 	Clouds map[region.CloudName]DevelopmentRegistriesSlice
 }
 
-// DevelopmentRegistriesSlice is a slice of DevelopmentRegistry
+// DevelopmentRegistriesSlice is a slice of DevelopmentRegistry.
 type DevelopmentRegistriesSlice []DevelopmentRegistry
 
-// Regions returns all of the regions of the development registries
+// Regions returns all of the regions of the development registries.
 func (dr DevelopmentRegistriesSlice) Regions() []region.Name {
 	regions := make([]region.Name, 0)
 	for _, e := range dr {
@@ -27,7 +27,7 @@ func (dr DevelopmentRegistriesSlice) Regions() []region.Name {
 	return regions
 }
 
-// DevelopmentRegistry is a docker image registry used for development
+// DevelopmentRegistry is a docker image registry used for development.
 type DevelopmentRegistry struct {
 	// Endpoint is the endpoint of this registry, e.g.
 	// gcr.io/outreach-docker or docker.io/getoutreach

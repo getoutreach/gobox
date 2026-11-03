@@ -145,7 +145,7 @@ func TestTracker_reportLatency(t *testing.T) {
 				if metricFamily.GetName() != family {
 					continue
 				}
-				for _, metric := range metricFamily.Metric {
+				for _, metric := range metricFamily.GetMetric() {
 					got = map[string]string{}
 					for _, labelPair := range metric.GetLabel() {
 						key, value := labelPair.GetName(), labelPair.GetValue()

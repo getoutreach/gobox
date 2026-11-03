@@ -97,7 +97,7 @@ func TestLevelResolverConcurrentTextHandler(t *testing.T) {
 
 	const n = 200
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
+	for range n {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()

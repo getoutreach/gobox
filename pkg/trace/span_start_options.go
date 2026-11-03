@@ -36,26 +36,26 @@ func WithLink(traceHeaders map[string][]string) Link {
 	return Link{linkContext: defaultTracer.contextFromHeaders(context.Background(), traceHeaders)}
 }
 
-// Link implements SpanStartOption
+// Link implements SpanStartOption.
 type Link struct {
 	// linkContext is a dummy context to store linked trace/span ID headers
 	linkContext context.Context
 }
 
-// TraceID returns the trace ID from the linked context or empty if such is unavailable
+// TraceID returns the trace ID from the linked context or empty if such is unavailable.
 func (l Link) TraceID() string {
 	return ID(l.linkContext)
 }
 
-// SpanID returns the span ID from the linked context or empty if such is unavailable
+// SpanID returns the span ID from the linked context or empty if such is unavailable.
 func (l Link) SpanID() string {
 	return SpanID(l.linkContext)
 }
 
-// _ makes sure Link conforms with the SpanStartOption interface
+// _ makes sure Link conforms with the SpanStartOption interface.
 var _ SpanStartOption = Link{}
 
-// otelOption generates a link to be attached to the StartSpan call
+// otelOption generates a link to be attached to the StartSpan call.
 func (l Link) otelOption() trace.SpanStartOption {
 	if l.linkContext == nil {
 		return nil
@@ -65,13 +65,13 @@ func (l Link) otelOption() trace.SpanStartOption {
 	return trace.WithLinks(link)
 }
 
-// NewRoot is a conveyance for otel's `trace.WithNewRoot()`
+// NewRoot is a conveyance for otel's `trace.WithNewRoot()`.
 type NewRoot struct{}
 
-// _ makes sure NewRoot confirms with the SpanStartOption interface
+// _ makes sure NewRoot confirms with the SpanStartOption interface.
 var _ SpanStartOption = NewRoot{}
 
-// otelOption generates a otel compatible option
+// otelOption generates a otel compatible option.
 func (nr NewRoot) otelOption() trace.SpanStartOption {
 	return trace.WithNewRoot()
 }
@@ -79,7 +79,7 @@ func (nr NewRoot) otelOption() trace.SpanStartOption {
 // WithNewRoot conveys the choice to otel that this span should start with a new root span
 // See go.opentelemetry.io/otel/trace.WithNewRoot
 //
-// This is useful in conjunction with a Link pointing to the parent span
+// This is useful in conjunction with a Link pointing to the parent span.
 func WithNewRoot() NewRoot {
 	return NewRoot{}
 }

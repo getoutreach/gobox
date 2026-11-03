@@ -25,9 +25,9 @@ import (
 )
 
 var (
-	// BoxConfigPath is the $HOME/<BoxConfigPath> location of the box config storage
+	// BoxConfigPath is the $HOME/<BoxConfigPath> location of the box config storage.
 	BoxConfigPath = ".outreach/.config/box"
-	// BoxConfigFile is the name of the box config storage file
+	// BoxConfigFile is the name of the box config storage file.
 	BoxConfigFile = "box.yaml"
 )
 
@@ -40,7 +40,7 @@ func getBoxPath() (string, error) {
 	return filepath.Join(homedir, BoxConfigPath, BoxConfigFile), nil
 }
 
-// LoadBox loads the default box or returns an error
+// LoadBox loads the default box or returns an error.
 func LoadBox() (*Config, error) {
 	_, c, err := LoadBoxStorage()
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 	"github.com/versent/saml2aws/v2/pkg/awsconfig"
 )
 
-// CredentialOptions configures what credentials are provided
+// CredentialOptions configures what credentials are provided.
 type CredentialOptions struct {
 	// Log is a logger to be used for informational logging.
 	// if not supplied no output aside from prompting will be displayed
@@ -110,7 +111,7 @@ type AuthorizeCredentialsOptions struct {
 }
 
 // assumedToRole takes an assumed-role arn and converts it to the
-// arn of the role that was assumed
+// arn of the role that was assumed.
 func assumedToRole(assumedRole string) string {
 	spl := strings.Split(assumedRole, "/")
 	if len(spl) != 3 {
@@ -210,7 +211,7 @@ func refreshCredsViaOktaAWSCLI(
 	if !acopts.DryRun || useCredentialProviderOutput {
 		if _, err := exec.LookPath("okta-aws-cli"); err != nil {
 			if !acopts.DryRun {
-				return fmt.Errorf("failed to find okta-aws-cli in PATH")
+				return errors.New("failed to find okta-aws-cli in PATH")
 			}
 
 			if copts.Log != nil {
@@ -238,7 +239,7 @@ func refreshCredsViaOktaAWSCLI(
 	}
 
 	if b.AWS.Okta.SessionDuration > 0 {
-		args = append(args, "--aws-session-duration", fmt.Sprint(b.AWS.Okta.SessionDuration))
+		args = append(args, "--aws-session-duration", strconv.FormatUint(uint64(b.AWS.Okta.SessionDuration), 10))
 	}
 
 	if !copts.chooseRoleInteractively() {

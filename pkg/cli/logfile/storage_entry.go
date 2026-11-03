@@ -12,50 +12,50 @@ import (
 	"github.com/pkg/errors"
 )
 
-// EntryType is the type of entry in the log file
+// EntryType is the type of entry in the log file.
 type EntryType int
 
 const (
 	// EntryTypeMetadata is a metadata entry which is equal to
-	// a Metadata struct
+	// a Metadata struct.
 	EntryTypeMetadata EntryType = iota
 
-	// EntryTypeFrame is a frame entry which is equal to a Frame struct
+	// EntryTypeFrame is a frame entry which is equal to a Frame struct.
 	EntryTypeFrame
 
-	// EntryTypeTrace is a trace entry representing a full or partial otel trace
+	// EntryTypeTrace is a trace entry representing a full or partial otel trace.
 	EntryTypeTrace
 )
 
-// Entry is an entry in the log file
+// Entry is an entry in the log file.
 type Entry struct {
 	f *Frame
 	m *Metadata
 	t *Trace
 }
 
-// NewEntryFromFrame creates an entry from a frame
+// NewEntryFromFrame creates an entry from a frame.
 func NewEntryFromFrame(f *Frame) Entry {
 	return Entry{
 		f: f,
 	}
 }
 
-// NewEntryFromMetadata creates an entry from metadata
+// NewEntryFromMetadata creates an entry from metadata.
 func NewEntryFromMetadata(m *Metadata) Entry {
 	return Entry{
 		m: m,
 	}
 }
 
-// NewEntryFromTrace creates an entry from a trace
+// NewEntryFromTrace creates an entry from a trace.
 func NewEntryFromTrace(t *Trace) Entry {
 	return Entry{
 		t: t,
 	}
 }
 
-// NewFrameEntry creates a new frame entry
+// NewFrameEntry creates a new frame entry.
 func NewFrameEntry(delay time.Duration, b []byte) Entry {
 	return NewEntryFromFrame(&Frame{
 		EntryMetadata: EntryMetadata{
@@ -66,7 +66,7 @@ func NewFrameEntry(delay time.Duration, b []byte) Entry {
 	})
 }
 
-// NewMetadata creates a new metadata entry
+// NewMetadata creates a new metadata entry.
 func NewMetadataEntry(startedAt time.Time, width, height int, command string, args []string) Entry {
 	return NewEntryFromMetadata(&Metadata{
 		EntryMetadata: EntryMetadata{
@@ -82,7 +82,7 @@ func NewMetadataEntry(startedAt time.Time, width, height int, command string, ar
 	})
 }
 
-// NewTraceEntry creates a new trace entry
+// NewTraceEntry creates a new trace entry.
 func NewTraceEntry(spans []*Span) Entry {
 	return NewEntryFromTrace(&Trace{
 		EntryMetadata: EntryMetadata{
@@ -92,7 +92,7 @@ func NewTraceEntry(spans []*Span) Entry {
 	})
 }
 
-// MarshalJSON implements json.Marshaler for an entry
+// MarshalJSON implements json.Marshaler for an entry.
 func (e Entry) MarshalJSON() ([]byte, error) {
 	if e.IsFrame() {
 		return jsoniter.Marshal(e.AsFrame())
@@ -110,7 +110,7 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler picking the correct
-// type of entry based on the type field
+// type of entry based on the type field.
 func (e *Entry) UnmarshalJSON(data []byte) error {
 	var em EntryMetadata
 	if err := jsoniter.Unmarshal(data, &em); err != nil {
@@ -140,39 +140,39 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// IsFrame returns true if the entry is a frame
+// IsFrame returns true if the entry is a frame.
 func (e Entry) IsFrame() bool {
 	return e.f != nil
 }
 
-// IsMetadata returns true if the entry is metadata
+// IsMetadata returns true if the entry is metadata.
 func (e Entry) IsMetadata() bool {
 	return e.m != nil
 }
 
-// IsTrace returns true if the entry is a trace
+// IsTrace returns true if the entry is a trace.
 func (e Entry) IsTrace() bool {
 	return e.t != nil
 }
 
 // AsMetadata returns the metadata from the current entry, or nil
-// if it's not metadata
+// if it's not metadata.
 func (e Entry) AsMetadata() *Metadata {
 	return e.m
 }
 
-// AsFrame returns the current frame or nil if it's not a frame
+// AsFrame returns the current frame or nil if it's not a frame.
 func (e Entry) AsFrame() *Frame {
 	return e.f
 }
 
-// AsFrame returns the current frame or nil if it's not a frame
+// AsFrame returns the current frame or nil if it's not a frame.
 func (e Entry) AsTrace() *Trace {
 	return e.t
 }
 
 // EntryMetadata is the basic metadata for an entry that must
-// be present in all entries
+// be present in all entries.
 type EntryMetadata struct {
 	// Type is the type of entry in the log file
 	Type EntryType `json:"t"`

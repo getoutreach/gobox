@@ -6,9 +6,9 @@ package differs
 import "strings"
 
 // AnyString allows any string to be matched against it when
-// differs.Custom is passed to cmp
+// differs.Custom is passed to cmp.
 func AnyString() CustomComparer {
-	return Customf(func(o interface{}) bool {
+	return Customf(func(o any) bool {
 		_, ok := o.(string)
 		return ok
 	})
@@ -20,7 +20,7 @@ func AnyString() CustomComparer {
 func CaptureString() CustomComparer {
 	var matched string
 	seen := false
-	return Customf(func(o interface{}) bool {
+	return Customf(func(o any) bool {
 		s, ok := o.(string)
 		if !seen && ok {
 			seen, matched = true, s
@@ -30,9 +30,9 @@ func CaptureString() CustomComparer {
 }
 
 // ContainsString matches any string where the provided string is a substring
-// of the string it is being matched against
+// of the string it is being matched against.
 func Contains(ss string) CustomComparer {
-	return Customf(func(o interface{}) bool {
+	return Customf(func(o any) bool {
 		s, ok := o.(string)
 		return ok && strings.Contains(s, ss)
 	})

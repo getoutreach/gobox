@@ -10,7 +10,7 @@ package async_test
 
 import (
 	"testing"
-	// nolint: revive // Why: to minimize the manual edits which we have to make when copying from sync.Once
+	//nolint: revive // Why: to minimize the manual edits which we have to make when copying from sync.Once
 	. "github.com/getoutreach/gobox/pkg/async"
 )
 
@@ -36,10 +36,10 @@ func TestOnce(t *testing.T) {
 	once := new(RetryableOnce)
 	c := make(chan bool)
 	const N = 10
-	for i := 0; i < N; i++ {
+	for range N {
 		go run(t, once, o, c)
 	}
-	for i := 0; i < N; i++ {
+	for range N {
 		<-c
 	}
 	if *o != 1 {

@@ -184,7 +184,7 @@ func RunV3(ctx context.Context, cancel context.CancelFunc, c *cliV3.Command, con
 	oldBefore := c.Before
 	c.Before = func(ctx context.Context, c *cliV3.Command) (context.Context, error) {
 		if oldBefore != nil {
-			// nolint:govet // Why: the shadowing is intentional.
+			//nolint:govet // Why: the shadowing is intentional.
 			if ctx, err := oldBefore(ctx, c); err != nil {
 				return ctx, err
 			}

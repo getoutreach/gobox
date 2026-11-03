@@ -22,7 +22,7 @@ import (
 // _ ensures that the fetcher interface is implemented.
 var _ fetcher = &github{}
 
-// github is a fetcher for github releases
+// github is a fetcher for github releases.
 type github struct{}
 
 // getOrgRepoFromURL returns the org and repo from a URL:
@@ -41,7 +41,7 @@ func getOrgRepoFromURL(URL string) (string, string, error) { //nolint:gocritic /
 	return spl[1], spl[2], nil
 }
 
-// createClient creates a Github client
+// createClient creates a Github client.
 func (g *github) createClient(ctx context.Context, token cfg.SecretData) *gogithub.Client {
 	httpClient := http.DefaultClient
 	if token != "" {
@@ -50,7 +50,7 @@ func (g *github) createClient(ctx context.Context, token cfg.SecretData) *gogith
 	return gogithub.NewClient(httpClient)
 }
 
-// GetReleaseNotes returns the release notes for a given tag
+// GetReleaseNotes returns the release notes for a given tag.
 func (g *github) GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts *GetReleaseNoteOptions) (string, error) {
 	gh := g.createClient(ctx, token)
 

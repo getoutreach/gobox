@@ -19,7 +19,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// SlogTestEvent demonstrates how custom events can be marshaled in slog tests
+// SlogTestEvent demonstrates how custom events can be marshaled in slog tests.
 type SlogTestEvent struct {
 	SomeField string
 }
@@ -28,7 +28,7 @@ func (m SlogTestEvent) MarshalLog(addField func(field string, value any)) {
 	addField("myevent_field", m.SomeField)
 }
 
-// setupSlogTest sets up the slog facade for testing and returns a cleanup function
+// setupSlogTest sets up the slog facade for testing and returns a cleanup function.
 func setupSlogTest(t *testing.T) func() {
 	t.Helper()
 
@@ -366,7 +366,7 @@ func TestSlogAttributeOrdering(t *testing.T) {
 	assert.Assert(t, posMiddle < posLast, "m_middle should appear before z_last")
 }
 
-// Test that Fatal exits when using slog (this test would normally cause os.Exit, so we skip it)
+// Test that Fatal exits when using slog (this test would normally cause os.Exit, so we skip it).
 func TestSlogFatalBehavior(t *testing.T) {
 	t.Skip("Skipping Fatal test as it calls os.Exit(1)")
 
@@ -383,7 +383,7 @@ func TestSlogFatalBehavior(t *testing.T) {
 	// }
 }
 
-// TestSlogComplexValues tests slog's handling of complex values that cause JSON encoding issues
+// TestSlogComplexValues tests slog's handling of complex values that cause JSON encoding issues.
 func TestSlogComplexValues(t *testing.T) {
 	cleanup := setupSlogTest(t)
 	defer cleanup()
@@ -452,7 +452,7 @@ func TestSlogStructuredValues(t *testing.T) {
 	}
 }
 
-// TestSlogErrorHandling tests slog's handling of various error types
+// TestSlogErrorHandling tests slog's handling of various error types.
 func TestSlogErrorHandling(t *testing.T) {
 	cleanup := setupSlogTest(t)
 	defer cleanup()
@@ -543,7 +543,7 @@ func TestSlogErrorHandling(t *testing.T) {
 	})
 }
 
-// CustomError implements both error and Marshaler interfaces
+// CustomError implements both error and Marshaler interfaces.
 type CustomError struct {
 	Code    int
 	Message string

@@ -303,7 +303,7 @@ func TestListModelScrolling(t *testing.T) {
 
 	t.Run("the window follows the cursor down the list", func(t *testing.T) {
 		m := newListModel("", "", options)
-		for range len(options) {
+		for range options {
 			m.Update(codeKeypress(tea.KeyDown))
 		}
 		assert.Equal(t, m.cursor, len(options)-1)
@@ -316,10 +316,10 @@ func TestListModelScrolling(t *testing.T) {
 
 	t.Run("the window follows the cursor back up the list", func(t *testing.T) {
 		m := newListModel("", "", options)
-		for range len(options) {
+		for range options {
 			m.Update(codeKeypress(tea.KeyDown))
 		}
-		for range len(options) {
+		for range options {
 			m.Update(codeKeypress(tea.KeyUp))
 		}
 

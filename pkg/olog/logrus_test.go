@@ -125,7 +125,7 @@ func TestTextLogger(t *testing.T) {
 			if c.fields != nil {
 				l = l.WithFields(c.fields)
 			}
-			switch c.level { // nolint: exhaustive // Why: only testing certain levels
+			switch c.level { //nolint: exhaustive // Why: only testing certain levels
 			case logrus.DebugLevel:
 				l.Debug(c.msg)
 			case logrus.InfoLevel:

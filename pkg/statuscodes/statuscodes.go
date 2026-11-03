@@ -24,7 +24,7 @@ type StatusCode int
 //  2. Don't overlap with HTTP error codes so people know that these are not HTTP error codes when they see them in
 //     server/service logs.
 const (
-	// Keep OK not as zero so you know someone affirmatively picked it
+	// Keep OK not as zero so you know someone affirmatively picked it.
 	OK StatusCode = 600
 
 	// The 700-swath is for Client-caused error responses
