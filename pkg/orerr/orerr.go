@@ -82,6 +82,24 @@ func WithInfo(info ...log.Marshaler) ErrOption {
 	}
 }
 
+// WithKind sets the error kind of the error, used as the value of the
+// error.kind log/trace attribute (see observability/semconv/model/error/attributes.yaml)
+// instead of the default "error".
+//
+// The kind should be a stable, low-cardinality identifier (e.g. "timeout" or
+// "validation"), never an error message, ID or other unbounded value. gobox
+// does not define kind values; they are owned by the caller. An empty kind is
+// a no-op. If several kinds are attached, the outermost (last applied) wins.
+// If the error also has a log.Marshaler emitting its own error.kind, the kind
+// set here wins.
+//
+// It is a functional option for use with New.
+func WithKind(kind string) ErrOption {
+	return func(err error) error {
+		return Kind(err, kind)
+	}
+}
+
 // WithRetry marks the error as retryable.
 //
 // It is a functional option for use with New.
@@ -134,6 +152,43 @@ type withInfo struct {
 // This method is required by errors.Unwrap.
 func (e withInfo) Unwrap() error {
 	return e.error
+}
+
+// Kind attaches an error kind to err; see WithKind for the semantics of kind.
+//
+// It returns nil if err is nil, and err unchanged if kind is empty. The
+// returned error implements Unwrap, and ErrorKind() string (which
+// events.NewErrorInfo uses for error.kind).
+func Kind(err error, kind string) error {
+	if err == nil || kind == "" {
+		return err
+	}
+	return &withKind{err: err, kind: kind}
+}
+
+// withKind attaches a kind to an error. It is transparent: Error() is the
+// wrapped error's message.
+type withKind struct {
+	err  error
+	kind string
+}
+
+// Error proxies the Error call to the underlying error.
+func (e *withKind) Error() string { return e.err.Error() }
+
+// Unwrap returns the underlying error.
+// This method is required by errors.Unwrap.
+func (e *withKind) Unwrap() error { return e.err }
+
+// ErrorKind returns the kind attached to the error.
+func (e *withKind) ErrorKind() string { return e.kind }
+
+// MarshalLog proxies the MarshalLog call to the underlying error if it is a log.Marshaler.
+func (e *withKind) MarshalLog(addField func(field string, value interface{})) {
+	var m log.Marshaler
+	if errors.As(e.err, &m) {
+		m.MarshalLog(addField)
+	}
 }
 
 type retryable struct {
