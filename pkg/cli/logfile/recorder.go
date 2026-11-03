@@ -53,7 +53,8 @@ type recorder struct {
 // newRecorder creates a new recorder using a os.File as
 // the underlying writer
 func newRecorder(logFile *os.File, width, height int, cmd string, args []string,
-	l net.Listener) *recorder {
+	l net.Listener,
+) *recorder {
 	enc := jsoniter.NewEncoder(logFile)
 	startedAt := time.Now()
 

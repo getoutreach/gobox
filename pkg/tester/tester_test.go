@@ -1,11 +1,11 @@
 package tester_test
 
 import (
-	"github.com/getoutreach/gobox/pkg/tester"
-
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/getoutreach/gobox/pkg/tester"
 
 	"gotest.tools/v3/assert"
 )

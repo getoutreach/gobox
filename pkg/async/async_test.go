@@ -32,6 +32,7 @@ func (r *runWithCloser) Run(c context.Context) error {
 		}
 	}
 }
+
 func (r *runWithCloser) Close(c context.Context) error {
 	r.isclosed = true
 	return nil

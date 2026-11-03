@@ -203,7 +203,8 @@ func RunV3(ctx context.Context, cancel context.CancelFunc, c *cliV3.Command, con
 // TODO(jaredallard): Deprecate this after templates have been updated and released
 // for a few weeks.
 func HookInUrfaveCLI(ctx context.Context, cancel context.CancelFunc, a *cliV2.App,
-	logger logrus.FieldLogger, honeycombAPIKey, dataset, _ string) {
+	logger logrus.FieldLogger, honeycombAPIKey, dataset, _ string,
+) {
 	Run(ctx, cancel, a, &Config{
 		Telemetry: TelemetryConfig{
 			Otel: TelemetryOtelConfig{

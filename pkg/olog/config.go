@@ -91,7 +91,6 @@ func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInter
 	lastModTime := time.Time{}
 	for ctx.Err() == nil {
 		stat, err := os.Stat(logCfgFilePath)
-
 		if err != nil {
 			ok := fn(fmt.Errorf("failed to stat %s: %w", logCfgFilePath, err))
 			if !ok {

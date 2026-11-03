@@ -9,10 +9,9 @@
 package async_test
 
 import (
+	"testing"
 	// nolint: revive // Why: to minimize the manual edits which we have to make when copying from sync.Once
 	. "github.com/getoutreach/gobox/pkg/async"
-
-	"testing"
 )
 
 type one int

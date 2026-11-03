@@ -7,6 +7,8 @@ arguments:
   ciOptions:
     skipDocker: true
     skipE2e: true
+  go:
+    formatter: gofumpt
   releaseOptions:
     allowMajorVersions: true
   opslevel:

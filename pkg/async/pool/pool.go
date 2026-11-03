@@ -146,7 +146,7 @@ type Pool struct {
 // https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func New(ctx context.Context, options ...Option) *Pool {
 	// default values
-	var opts = &Options{
+	opts := &Options{
 		ScheduleBehavior: WaitWhenFull,
 		ResizeEvery:      1 * time.Minute,
 		Name:             "default",
@@ -188,9 +188,7 @@ func (p *Pool) spawnWorkers(ctx context.Context, n int) cancellations {
 
 func (p *Pool) run(ctx context.Context, cancellations cancellations) {
 	defer p.wg.Done()
-	var (
-		prevSize, delta int
-	)
+	var prevSize, delta int
 	for ctx.Err() == nil {
 		prevSize = len(cancellations)
 		delta = p.opts.Size() - prevSize

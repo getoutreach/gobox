@@ -186,7 +186,8 @@ func attachStdinToPty() (func(), error) {
 // ptyOutputHook reads the data from the PTY and writes it to the log file
 // and stdout while also handling forwarding os.Stdin to the PTY.
 func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
-	logFile *os.File) (<-chan struct{}, error) {
+	logFile *os.File,
+) (<-chan struct{}, error) {
 	detachStdin, err := attachStdinToPty()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to attach stdin to pty")

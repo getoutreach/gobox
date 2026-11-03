@@ -176,7 +176,7 @@ issues:
   max-same-issues: 10
 formatters:
   enable:
-    - gofmt
+    - gofumpt
     - goimports
   exclusions:
     generated: lax

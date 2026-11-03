@@ -69,7 +69,7 @@ func TestEvent(t *testing.T) {
 
 func TestTraceError(t *testing.T) {
 	err := fmt.Errorf("test error")
-	var customError = &marshalableError{
+	customError := &marshalableError{
 		Err: fmt.Errorf("party"),
 	}
 

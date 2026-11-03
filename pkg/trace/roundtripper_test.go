@@ -17,8 +17,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type initRoundTripperStateFunc func(t *testing.T) *roundtripperState
-type callRoudTripperFunc func(t *testing.T, state *roundtripperState) []map[string]interface{}
+type (
+	initRoundTripperStateFunc func(t *testing.T) *roundtripperState
+	callRoudTripperFunc       func(t *testing.T, state *roundtripperState) []map[string]interface{}
+)
 
 func TestRoundtripper(t *testing.T) {
 	defer app.SetName(app.Info().Name)

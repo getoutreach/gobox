@@ -95,6 +95,7 @@ type customError struct{}
 func (c customError) Error() string {
 	return "custom error!"
 }
+
 func (c customError) MarshalLog(addField func(k string, v interface{})) {
 	addField("error.kind", "custom kind")
 	addField("error.stack", "custom stack")

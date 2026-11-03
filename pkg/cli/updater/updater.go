@@ -434,7 +434,7 @@ func (u *updater) installVersion(ctx context.Context, v *resolver.Version) error
 	}
 
 	// re-open the file to reset the position
-	tmpF.Close() //no lint:errcheck // Why: Best effort
+	tmpF.Close() // no lint:errcheck // Why: Best effort
 	tmpF, err = os.Open(tmpF.Name())
 	if err != nil {
 		return errors.Wrap(err, "failed to open temp file")

@@ -28,7 +28,8 @@ import (
 // Extract extracts a file, based on the provided option functions, from
 // the provided archive.
 func Extract(ctx context.Context, archiveName string, r io.Reader,
-	optFns ...ExtractOptionFunc) (io.ReadCloser, *Header, error) {
+	optFns ...ExtractOptionFunc,
+) (io.ReadCloser, *Header, error) {
 	opts := &ExtractOptions{}
 	for _, fn := range optFns {
 		if err := fn(opts); err != nil {
