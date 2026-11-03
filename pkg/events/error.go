@@ -15,6 +15,44 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultErrorKind is the value of error.kind when no kind has been attached
+// to an error.
+const DefaultErrorKind = "error"
+
+// KindError is implemented by errors (typically wrappers, see orerr.WithKind)
+// that carry an explicit error kind. NewErrorInfo uses the kind of the nearest
+// wrapper in the error chain as the value of "error.kind" instead of
+// DefaultErrorKind.
+//
+// The kind should be a stable, low-cardinality identifier (never a message,
+// ID or other unbounded value). It is emitted as the error.kind attribute, see
+// observability/semconv/model/error/attributes.yaml. gobox does not define any
+// application-domain kind values; they are owned by the caller.
+type KindError interface {
+	error
+	// ErrorKind returns the error kind, or "" if none.
+	ErrorKind() string
+}
+
+// errorKind returns the kind of the nearest KindError in err's chain with a
+// non-empty kind.
+func errorKind(err error) (string, bool) {
+	for err != nil {
+		var ke KindError
+		if !errors.As(err, &ke) {
+			return "", false
+		}
+		if k := ke.ErrorKind(); k != "" {
+			return k, true
+		}
+		// Empty kind: keep looking further down the chain.
+		if err = errors.Unwrap(ke); err == nil {
+			return "", false
+		}
+	}
+	return "", false
+}
+
 // ErrorInfo tracks the error info for logging purposes.
 // Log tags are omitted to do custom MarshalLog handling on Stack.
 type ErrorInfo struct {
@@ -25,8 +63,15 @@ type ErrorInfo struct {
 	Stack    []string
 	Cause    log.Marshaler
 	Custom   log.Marshaler
+
+	// kindExplicit is true when Kind came from a KindError in the chain.
+	kindExplicit bool
 }
 
+// MarshalLog emits the error fields. If an explicit kind was attached to the
+// error (see KindError), it is the only error.kind emitted: an error.kind
+// emitted by Custom is dropped so the result is deterministic. Without an
+// explicit kind, Custom's output is passed through unchanged.
 func (e *ErrorInfo) MarshalLog(addField func(key string, value interface{})) {
 	if e == nil {
 		return
@@ -41,7 +86,16 @@ func (e *ErrorInfo) MarshalLog(addField func(key string, value interface{})) {
 		addField("error.cause", e.Cause)
 	}
 	if e.Custom != nil {
-		e.Custom.MarshalLog(addField)
+		if !e.kindExplicit {
+			e.Custom.MarshalLog(addField)
+			return
+		}
+		e.Custom.MarshalLog(func(key string, value interface{}) {
+			if key == "error.kind" {
+				return
+			}
+			addField(key, value)
+		})
 	}
 }
 
@@ -135,17 +189,37 @@ func NewErrorInfo(err error) *ErrorInfo {
 	if err == nil {
 		return nil
 	}
-	custom, _ := err.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
+	kind, explicit := errorKind(err)
+	if !explicit {
+		kind = DefaultErrorKind
+	}
+	// Kind wrappers are transparent (same message as the error they wrap), so
+	// look through them to keep the message/stack/cause layout identical to
+	// the unwrapped error.
+	base := err
+	for {
+		ke, ok := base.(KindError) //nolint:errorlint // Why: only peeling direct wrappers
+		if !ok {
+			break
+		}
+		inner := errors.Unwrap(ke)
+		if inner == nil || inner.Error() != ke.Error() {
+			break
+		}
+		base = inner
+	}
+	custom, _ := base.(log.Marshaler) //nolint:errorlint // Why: causes unwrap support which needs to be thought about
 	info := ErrorInfo{
-		RawError: err,
-		Kind:     "error",
-		Error:    err.Error(),
-		Message:  errMessage(err),
-		Stack:    errStack(err),
-		Custom:   custom,
+		RawError:     err,
+		Kind:         kind,
+		kindExplicit: explicit,
+		Error:        err.Error(),
+		Message:      errMessage(base),
+		Stack:        errStack(base),
+		Custom:       custom,
 	}
 	// obtain nested error, collapsing upward if possible.
-	if cause := nestInfo(errors.Unwrap(err)); cause != nil {
+	if cause := nestInfo(errors.Unwrap(base)); cause != nil {
 		if info.pureStack() && cause.pureMessage() {
 			info.Message = cause.Message
 			info.Cause = cause.Cause
