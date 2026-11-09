@@ -33,11 +33,12 @@ var ForceFlag = BoolFlag{
 	Usage: "Force checking for an update",
 }
 
+// hookSkipUpdateIntoCLI appends the skip-update flag to the app. The
+// hookIntoCLI functions append the remaining updater flags.
 func (u *updater) hookSkipUpdateIntoCLI() {
-	// append the skip-update flag
 	switch {
 	case u.app != nil:
-		u.app.Flags = append(u.app.Flags, UpdaterFlags[0])
+		u.app.Flags = append(u.app.Flags, SkipFlag.ToUrfaveV2())
 	case u.appV3 != nil:
 		u.appV3.Flags = append(u.appV3.Flags, SkipFlag.ToUrfaveV3())
 	}

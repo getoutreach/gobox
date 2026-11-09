@@ -15,7 +15,8 @@ import (
 	cliV3 "github.com/urfave/cli/v3"
 )
 
-// The urfave (V3) flags the updater will inject.
+// The urfave (V3) flags the updater registers. Keep in sync with defaultOptions
+// and hookIntoCLIV3, which register them one at a time.
 var UpdaterFlagsV3 = []cliV3.Flag{
 	SkipFlag.ToUrfaveV3(),
 	ForceFlag.ToUrfaveV3(),
@@ -25,8 +26,8 @@ var UpdaterFlagsV3 = []cliV3.Flag{
 func (u *updater) hookIntoCLIV3() {
 	oldBefore := u.appV3.Before
 
-	// append the standard flags
-	u.appV3.Flags = append(u.appV3.Flags, UpdaterFlagsV3...)
+	// append the force flag, defaultOptions already added the skip flag
+	u.appV3.Flags = append(u.appV3.Flags, ForceFlag.ToUrfaveV3())
 
 	u.appV3.Before = func(ctx context.Context, c *cliV3.Command) (context.Context, error) {
 		// Handle deprecations and parse the flags onto our updater struct
