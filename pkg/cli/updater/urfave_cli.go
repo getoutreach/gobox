@@ -35,8 +35,11 @@ var ForceFlag = BoolFlag{
 
 func (u *updater) hookSkipUpdateIntoCLI() {
 	// append the skip-update flag
-	if u.app != nil {
+	switch {
+	case u.app != nil:
 		u.app.Flags = append(u.app.Flags, UpdaterFlags[0])
+	case u.appV3 != nil:
+		u.appV3.Flags = append(u.appV3.Flags, SkipFlag.ToUrfaveV3())
 	}
 }
 

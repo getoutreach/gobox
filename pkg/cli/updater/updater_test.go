@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	cliV3 "github.com/urfave/cli/v3"
 	"gotest.tools/v3/assert"
 )
 
@@ -145,6 +146,30 @@ func Test_updater_defaultOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A disabled updater returns early from defaultOptions, so the skip-update
+// flag must be registered on that path for every urfave/cli major version.
+func Test_updater_defaultOptions_skipFlagWhenDisabled(t *testing.T) {
+	oldDisabled := Disabled
+	Disabled = "true"
+	t.Cleanup(func() { Disabled = oldDisabled })
+
+	t.Run("urfave/cli v2", func(t *testing.T) {
+		app := &cli.App{}
+		u := &updater{app: app}
+		assert.NilError(t, u.defaultOptions())
+		assert.Equal(t, len(app.Flags), 1)
+		assert.DeepEqual(t, app.Flags[0].Names(), []string{SkipFlag.Name})
+	})
+
+	t.Run("urfave/cli v3", func(t *testing.T) {
+		cmd := &cliV3.Command{}
+		u := &updater{appV3: cmd}
+		assert.NilError(t, u.defaultOptions())
+		assert.Equal(t, len(cmd.Flags), 1)
+		assert.DeepEqual(t, cmd.Flags[0].Names(), []string{SkipFlag.Name})
+	})
 }
 
 func Test_updater_installVersion(t *testing.T) {
