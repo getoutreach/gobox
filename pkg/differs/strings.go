@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Provides Comparers related to strings
+
 package differs
 
 import "strings"
@@ -29,7 +30,7 @@ func CaptureString() CustomComparer {
 	})
 }
 
-// ContainsString matches any string where the provided string is a substring
+// Contains matches any string where the provided string is a substring
 // of the string it is being matched against.
 func Contains(ss string) CustomComparer {
 	return Customf(func(o any) bool {

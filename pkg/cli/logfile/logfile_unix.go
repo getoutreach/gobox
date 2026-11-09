@@ -60,11 +60,11 @@ func Hook() error {
 
 	// create the command with an env var to prevent an infinite loop
 	//nolint:gosec // Why: We're using the same command that was run to start the process
-	cmd := exec.Command(os.Args[0], os.Args[1:]...)
+	cmd := exec.Command(os.Args[0], os.Args[1:]...) //nolint:noctx // Why: Hook is public API without a context parameter
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, EnvironmentVariable+"=1")
 
-	l, err := net.Listen(TraceSocketType, "localhost:0")
+	l, err := net.Listen(TraceSocketType, "localhost:0") //nolint:noctx // Why: Hook is public API without a context parameter
 	if err != nil {
 		return errors.Wrap(err, "failed to start trace server")
 	}

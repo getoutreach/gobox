@@ -43,5 +43,7 @@ func Get(ctx context.Context, host, field string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("failed to find field %s", field)
+	return "", fmt.Errorf("%w %s", errFieldNotFound, field)
 }
+
+var errFieldNotFound = errors.New("failed to find field")

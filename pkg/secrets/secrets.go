@@ -24,7 +24,7 @@ import (
 //nolint:gochecknoglobals // Why: need to allow overriding
 var devLookup func(ctx context.Context, key string) ([]byte, error)
 
-// Make this public such that can be used by test cases too.
+// TryMapWindowsKeys is public such that it can be used by test cases too.
 func TryMapWindowsKeys(filePath string) string {
 	if runtime.GOOS != "windows" {
 		return filePath

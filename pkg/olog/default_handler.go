@@ -25,18 +25,22 @@ var (
 	// defaultHandler is the global handler used by all loggers returned
 	// by this package. For details on how this is set, see
 	// `determineDefaultHandler`.
+	//nolint:gochecknoglobals // Why: process-wide logger state
 	defaultHandler atomic.Int32
 
 	// defaultOut is the default output for the default handler. This is
 	// set to `os.Stderr` by default. Can be updated by [SetOutput].
+	//nolint:gochecknoglobals // Why: process-wide logger state, replaced in tests
 	defaultOut io.Writer = os.Stderr
 
 	// mainModule is the module that the current binary was built in.
+	//nolint:gochecknoglobals // Why: process-wide logger state
 	mainModule = debug.Module{}
 
 	// globalSink, when non-nil, builds the terminal handler that
 	// records are written to, in place of the built-in JSON/text
 	// sinks. See [SetSinkHandler].
+	//nolint:gochecknoglobals // Why: process-wide logger state
 	globalSink atomic.Pointer[SinkFactory]
 )
 
@@ -61,7 +65,7 @@ const (
 func determineMainModule() {
 	m, ok := debug.ReadBuildInfo()
 	if !ok {
-		panic(errors.New("failed to read build info (must be built with GO111MODULE=on)"))
+		panic(errNoBuildInfo)
 	}
 
 	mainModule = m.Main
@@ -296,3 +300,5 @@ func (h *levelGateHandler) WithGroup(name string) slog.Handler {
 
 // _ ensures levelGateHandler implements slog.Handler.
 var _ slog.Handler = (*levelGateHandler)(nil)
+
+var errNoBuildInfo = errors.New("failed to read build info (must be built with GO111MODULE=on)")

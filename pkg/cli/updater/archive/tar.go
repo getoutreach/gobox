@@ -7,6 +7,7 @@ package archive
 import (
 	"archive/tar"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -49,7 +50,7 @@ func (t *tarExtractor) Open(ctx context.Context, name string, r io.Reader) (Arch
 	case ".bz2":
 		container = &bz2CompressedReader{}
 	default:
-		return nil, fmt.Errorf("unsupported container type: %v", ext)
+		return nil, fmt.Errorf("%w: %v", errUnsupportedContainer, ext)
 	}
 
 	containerR, err := container.Open(ctx, r)
@@ -104,3 +105,5 @@ func (t *tarArchive) Next() (*Header, io.ReadCloser, error) {
 
 	return h, io.NopCloser(t.r), nil
 }
+
+var errUnsupportedContainer = errors.New("unsupported container type")

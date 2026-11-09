@@ -62,47 +62,47 @@ type Span struct {
 
 // spanData is data that we need to unmarshal in custom ways.
 type spanData struct {
-	Name        string
-	SpanContext spanContext
-	Parent      spanContext
-	SpanKind    trace.SpanKind
-	StartTime   time.Time
-	EndTime     time.Time
-	Attributes  []keyValue
+	Name        string         `json:"Name"`
+	SpanContext spanContext    `json:"SpanContext"`
+	Parent      spanContext    `json:"Parent"`
+	SpanKind    trace.SpanKind `json:"SpanKind"`
+	StartTime   time.Time      `json:"StartTime"`
+	EndTime     time.Time      `json:"EndTime"`
+	Attributes  []keyValue     `json:"Attributes"`
 	// Events will currently get dropped
-	Events []tracesdk.Event
+	Events []tracesdk.Event `json:"Events"`
 	// Links will currently get dropped
-	Links             []tracesdk.Link
-	Status            tracesdk.Status
-	DroppedAttributes int
-	DroppedEvents     int
-	DroppedLinks      int
-	ChildSpanCount    int
+	Links             []tracesdk.Link `json:"Links"`
+	Status            tracesdk.Status `json:"Status"`
+	DroppedAttributes int             `json:"DroppedAttributes"`
+	DroppedEvents     int             `json:"DroppedEvents"`
+	DroppedLinks      int             `json:"DroppedLinks"`
+	ChildSpanCount    int             `json:"ChildSpanCount"`
 	// We have to change this type from the otel type in order to make this struct marshallable
-	Resource             []keyValue
-	InstrumentationScope instrumentation.Scope
+	Resource             []keyValue            `json:"Resource"`
+	InstrumentationScope instrumentation.Scope `json:"InstrumentationScope"`
 }
 
 // spanContext is a custom type used to unmarshal otel SpanContext correctly.
 type spanContext struct {
-	TraceID    string
-	SpanID     string
-	TraceFlags string
+	TraceID    string `json:"TraceID"`
+	SpanID     string `json:"SpanID"`
+	TraceFlags string `json:"TraceFlags"`
 	// TraceState will currenctly get dropped
-	TraceState string
-	Remote     bool
+	TraceState string `json:"TraceState"`
+	Remote     bool   `json:"Remote"`
 }
 
 // keyValue is a custom type used to unmarshal otel KeyValue correctly.
 type keyValue struct {
-	Key   string
-	Value value
+	Key   string `json:"Key"`
+	Value value  `json:"Value"`
 }
 
 // value is a custom type used to unmarshal otel Value correctly.
 type value struct {
-	Type  string
-	Value any
+	Type  string `json:"Type"`
+	Value any    `json:"Value"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Span which allows
@@ -253,12 +253,12 @@ func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 			}
 		default:
 			return attribute.KeyValue{},
-				fmt.Errorf("got unsupported type %q for %s", reflect.ValueOf(kv.Value.Value).Kind(), attribute.STRINGSLICE.String())
+				fmt.Errorf("%w %q for %s", errUnsupportedType, reflect.ValueOf(kv.Value.Value).Kind(), attribute.STRINGSLICE.String())
 		}
 
 		return attribute.StringSlice(kv.Key, strSli), nil
 	default:
-		return attribute.KeyValue{}, fmt.Errorf("unknown value type %s", kv.Value.Type)
+		return attribute.KeyValue{}, fmt.Errorf("%w %s", errUnknownValueType, kv.Value.Type)
 	}
 }
 
@@ -452,3 +452,8 @@ func (s spanSnapshot) InstrumentationScope() instrumentation.Scope {
 func (s spanSnapshot) InstrumentationLibrary() instrumentation.Scope {
 	return s.instrumentationScope
 }
+
+var (
+	errUnsupportedType  = errors.New("got unsupported type")
+	errUnknownValueType = errors.New("unknown value type")
+)

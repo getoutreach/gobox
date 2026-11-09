@@ -64,7 +64,7 @@ func LoadDefaultKey(host string, a agent.Agent, log logrus.FieldLogger) (string,
 	}
 
 	if !filepath.IsAbs(sshFile) {
-		return "", fmt.Errorf("returned IdentityFile is not an absolute path for host %q", host)
+		return "", fmt.Errorf("%w for host %q", errIdentityFileNotAbs, host)
 	}
 
 	return sshFile, AddKeyToAgent(sshFile, a, log)
@@ -92,7 +92,7 @@ func pubKeyInAgent(a agent.Agent, pubByts []byte) (bool, error) {
 // AddKeyToAgent adds a key to the internal ssh-key agent. If a public key can
 // be found at the same path as the private key, it will first check the agent
 // and return nil if the key is already present.
-func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error { //nolint:funlen,lll // Why: cleaner to keep everything together
+func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error {
 	b, err := os.ReadFile(keyPath)
 	if err != nil {
 		// return an error if the key isn't found, we don't want to blow up entirely here
@@ -123,7 +123,7 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 	if err != nil {
 		serviceName := "outreach-ssh"
 		user := "default"
-		pass := ""
+		var pass string
 
 		for {
 			if pass, err = keyring.Get(serviceName, user); err != nil {
@@ -138,7 +138,6 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 				}
 				fmt.Println("")
 
-				// nolint:govet // Why: this is cleaner
 				if err := keyring.Set(serviceName, user, pass); err != nil {
 					log.WithError(err).Warn("Failed to save key in keyring, will have to type this again.")
 				}
@@ -183,9 +182,10 @@ func AddKeyToAgent(keyPath string, a agent.Agent, log logrus.FieldLogger) error 
 // ExistingSSHAgentCallback is based on gogit's transport ssh public key callback, but allows
 // for using an existing ssh-agent.
 type ExistingSSHAgentCallback struct {
+	gogitssh.HostKeyCallbackHelper
+
 	User     string
 	Callback func() (signers []ssh.Signer, err error)
-	gogitssh.HostKeyCallbackHelper
 }
 
 func NewExistingSSHAgentCallback(a agent.Agent) *ExistingSSHAgentCallback {
@@ -209,3 +209,5 @@ func (a *ExistingSSHAgentCallback) ClientConfig() (*ssh.ClientConfig, error) {
 		Auth: []ssh.AuthMethod{ssh.PublicKeysCallback(a.Callback)},
 	})
 }
+
+var errIdentityFileNotAbs = errors.New("returned IdentityFile is not an absolute path")

@@ -87,26 +87,6 @@ type Version struct {
 	Channel string `yaml:"channel"`
 }
 
-// String returns the user-friendly representation of a version,
-// e.g. when using a version that came from a mutable tag use
-// the commit hash+channel as opposed to just the tag.
-func (v *Version) String() string {
-	if v.Mutable {
-		return fmt.Sprintf("v0.0.0-%s+%s", v.Channel, v.Commit)
-	}
-
-	return v.Tag
-}
-
-// GitRef returns the git ref for the version if there is one.
-func (v *Version) GitRef() string {
-	if v.Branch != "" {
-		return v.Branch
-	}
-
-	return v.Tag
-}
-
 // NewVersionFromVersionString creates a Version from a version string
 // returned from v.String()
 //
@@ -182,11 +162,33 @@ func NewVersion(ref string, isBranch bool, hash string) (*Version, error) {
 	return &v, nil
 }
 
+// String returns the user-friendly representation of a version,
+// e.g. when using a version that came from a mutable tag use
+// the commit hash+channel as opposed to just the tag.
+func (v *Version) String() string {
+	if v.Mutable {
+		return fmt.Sprintf("v0.0.0-%s+%s", v.Channel, v.Commit)
+	}
+
+	return v.Tag
+}
+
+// GitRef returns the git ref for the version if there is one.
+func (v *Version) GitRef() string {
+	if v.Branch != "" {
+		return v.Branch
+	}
+
+	return v.Tag
+}
+
 // GetVersions returns all known channels and the versions that are available
 // for each channel.
 //
 // Note: token is _optional_, if you do not wish to authenticate with your VCS
 // provider you can pass an empty string.
+//
+//nolint:gochecknoglobals // Why: exported and replaceable in tests
 var GetVersions = getVersions
 
 // getVersions is documented above.

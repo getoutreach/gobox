@@ -53,6 +53,8 @@ func generateShellCompletion(ctx context.Context, a *cliV2.App, args []string) e
 		fmt.Fprintln(writer, completion)
 		return nil
 	default:
-		return errors.New("generateShellCompletion called inappropriately")
+		return errCompletionMisuse
 	}
 }
+
+var errCompletionMisuse = errors.New("generateShellCompletion called inappropriately")

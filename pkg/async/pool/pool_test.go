@@ -39,7 +39,7 @@ type testState struct {
 	StartedAt   time.Time
 	Results     stringChan
 	Pool        *pool.Pool
-	Context     context.Context
+	Context     context.Context //nolint:containedctx // Why: test fixture carries its own context
 	Cancel      context.CancelFunc
 }
 
@@ -137,6 +137,7 @@ func numWorkers() int {
 }
 
 func waitForWorkers(t *testing.T, num int) bool {
+	t.Helper()
 	current := 0
 	for range 20 {
 		current = numWorkers()

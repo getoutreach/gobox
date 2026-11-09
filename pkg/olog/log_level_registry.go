@@ -12,6 +12,8 @@ import (
 )
 
 // globalLevelRegistry is the global registry used to store all handlers.
+//
+//nolint:gochecknoglobals // Why: process-wide logger state
 var globalLevelRegistry = newRegistry()
 
 // levelRegistry contains levelers for all.

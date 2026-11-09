@@ -14,7 +14,9 @@ import (
 	cliV2 "github.com/urfave/cli/v2"
 )
 
-// The urfave (V2) flags the updater will inject.
+// UpdaterFlags are the urfave (V2) flags the updater will inject.
+//
+//nolint:gochecknoglobals // Why: exported flag list
 var UpdaterFlags = []cliV2.Flag{
 	SkipFlag.ToUrfaveV2(),
 	ForceFlag.ToUrfaveV2(),

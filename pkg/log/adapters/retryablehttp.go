@@ -1,6 +1,7 @@
 // Copyright 2023 Outreach Corporation. All Rights Reserved.
 
 // Description: This file integrates the logger with retryablehttp.LeveledLogger
+
 package adapters
 
 import (
@@ -18,7 +19,7 @@ func NewRetryableHTTPLogger(ctx context.Context) retryablehttp.LeveledLogger {
 
 // retryableHTTPLogger implements retryablehttp.LeveledLogger.
 type retryableHTTPLogger struct {
-	ctx context.Context
+	ctx context.Context //nolint:containedctx // Why: the retryablehttp.LeveledLogger interface does not accept a context
 }
 
 // Debug wraps log.Debug().

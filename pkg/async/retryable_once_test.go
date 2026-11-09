@@ -21,6 +21,7 @@ func (o *one) Increment() {
 }
 
 func run(t *testing.T, once *RetryableOnce, o *one, c chan bool) {
+	t.Helper()
 	once.Do(func() bool {
 		o.Increment()
 		return true

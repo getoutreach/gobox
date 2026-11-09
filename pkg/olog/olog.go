@@ -22,6 +22,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/callerinfo"
 )
 
+//nolint:gochecknoglobals // Why: guards process-wide output
 var outputLock = new(sync.RWMutex)
 
 // New creates a new slog instance that can be used for logging. The
@@ -54,7 +55,7 @@ func New() *slog.Logger {
 		// good scenario.
 		//
 		//nolint:errorlint // Why: We can't wrap panic-d errors.
-		panic(fmt.Errorf("failed to get information about what created the logger: %v", err))
+		panic(fmt.Errorf("%w: %v", errLoggerOrigin, err))
 	}
 
 	handler := createHandler(globalLevelRegistry, &m)
@@ -105,7 +106,7 @@ func getMetadataForPC(pc uintptr) (metadata, error) {
 	}
 
 	if ci.Module == "" {
-		return m, errors.New("failed to determine the current module")
+		return m, errNoModule
 	}
 
 	return metadata{
@@ -136,7 +137,7 @@ func getMetadata() (metadata, error) {
 	// We require module information, if we can't get it we should return
 	// an error.
 	if ci.Module == "" {
-		return m, errors.New("failed to determine the current module")
+		return m, errNoModule
 	}
 
 	return metadata{
@@ -176,3 +177,8 @@ func NewWithHooks(hooks ...LogHookFunc) *slog.Logger {
 	hookedHandler := &hookHandler{Handler: defaultHandler, hooks: hooks}
 	return slog.New(hookedHandler)
 }
+
+var (
+	errLoggerOrigin = errors.New("failed to get information about what created the logger")
+	errNoModule     = errors.New("failed to determine the current module")
+)

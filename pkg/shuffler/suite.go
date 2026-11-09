@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Provides helpers for creating a shuffler test suite
+
 package shuffler
 
 import (
@@ -29,9 +30,10 @@ type TestSuite any
 // failOnPanic exists to ensure we capture the specific test context
 // in the panic.
 func failOnPanic(t *testing.T, finished *bool) {
+	t.Helper()
 	err := recover()
 	if !*finished && err == nil && !t.Failed() && !t.Skipped() {
-		err = errors.New("panic(nil)")
+		err = errPanicNil
 	}
 	if err != nil {
 		t.Fatalf("test panicked: %v\n%s", err, debug.Stack())
@@ -45,6 +47,7 @@ func failOnPanic(t *testing.T, finished *bool) {
 // enabled out-of-the-box thanks to the -shuffle flag. Use native
 // go test functionality instead of this package.
 func Run(t *testing.T, suites ...TestSuite) {
+	t.Helper()
 	var finished bool
 	defer failOnPanic(t, &finished)
 
@@ -52,13 +55,14 @@ func Run(t *testing.T, suites ...TestSuite) {
 	for _, suite := range suites {
 		tests = append(tests, resolveTests(suite)...)
 	}
-	tests = shuffleTests(tests, t)
+	tests = shuffleTests(t, tests)
 
 	runTests(t, tests)
 	finished = true
 }
 
-func shuffleTests(tests []testing.InternalTest, t *testing.T) []testing.InternalTest {
+func shuffleTests(t *testing.T, tests []testing.InternalTest) []testing.InternalTest {
+	t.Helper()
 	var seed int64
 	if *shuffleSeed == 0 {
 		seed = time.Now().UnixNano()
@@ -85,7 +89,7 @@ func resolveTests(suite TestSuite) []testing.InternalTest {
 	finder := reflect.TypeOf(suite)
 	re := regexp.MustCompile("^Test")
 
-	for i := 0; i < finder.NumMethod(); i++ {
+	for i := range finder.NumMethod() {
 		method := finder.Method(i)
 		if ok := re.MatchString(method.Name); !ok {
 			continue
@@ -94,6 +98,7 @@ func resolveTests(suite TestSuite) []testing.InternalTest {
 		test := testing.InternalTest{
 			Name: method.Name,
 			F: func(t *testing.T) {
+				t.Helper()
 				var finished bool
 				defer failOnPanic(t, &finished)
 
@@ -110,6 +115,7 @@ func resolveTests(suite TestSuite) []testing.InternalTest {
 }
 
 func runTests(t *testing.T, tests []testing.InternalTest) {
+	t.Helper()
 	if len(tests) == 0 {
 		t.Log("No tests for this suite")
 		return
@@ -126,3 +132,5 @@ func runTests(t *testing.T, tests []testing.InternalTest) {
 		}
 	}
 }
+
+var errPanicNil = errors.New("panic(nil)")

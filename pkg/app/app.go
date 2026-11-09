@@ -29,9 +29,12 @@ var Version = defaultVersion
 var appName = "unknown"
 
 // appInfo contains information about the app.
+//
+//nolint:gochecknoglobals // Why: process-wide app info
 var appInfo struct {
-	mu sync.Mutex // guarding Data to be set initialized concurrently
 	*Data
+
+	mu sync.Mutex // guarding Data to be set initialized concurrently
 }
 
 // Info returns the static app info

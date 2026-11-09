@@ -120,19 +120,19 @@ func WithDetails(details ...ErrDetail) ErrOption {
 
 // Info adds extra logging info to an error.
 func Info(err error, info ...log.Marshaler) error {
-	return withInfo{err, log.Many(info)}
+	return withInfoError{err, log.Many(info)}
 }
 
-// withInfo just embeds error and log.Marshaler, so both interface are
+// withInfoError just embeds error and log.Marshaler, so both interface are
 // satisfied.
-type withInfo struct {
+type withInfoError struct {
 	error
 	log.Marshaler
 }
 
 // Unwrap returns the underlying error.
 // This method is required by errors.Unwrap.
-func (e withInfo) Unwrap() error {
+func (e withInfoError) Unwrap() error {
 	return e.error
 }
 
@@ -184,10 +184,10 @@ func IsOneOf(err error, errs ...error) bool {
 
 // Meta adds grpc metadata to an error.
 func Meta(err error, meta map[string]string) error {
-	return &withMeta{error: err, meta: meta}
+	return &withMetaError{error: err, meta: meta}
 }
 
-type withMeta struct {
+type withMetaError struct {
 	error
 
 	meta map[string]string
@@ -195,13 +195,13 @@ type withMeta struct {
 
 // Unwrap returns the underlying error.
 // This method is required by errors.Unwrap.
-func (e *withMeta) Unwrap() error {
+func (e *withMetaError) Unwrap() error {
 	return e.error
 }
 
 // ExtractErrorMetadata returns any embedded grpc metadata in.
 func ExtractErrorMetadata(err error) map[string]string {
-	var m *withMeta
+	var m *withMetaError
 	if errors.As(err, &m) {
 		return m.meta
 	}

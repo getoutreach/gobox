@@ -35,11 +35,16 @@ type CallerInfo struct {
 }
 
 // moduleLookupByPC is a cache of CallerInfo objects keyed by the PC of the function that called us.
+//
+//nolint:gochecknoglobals // Why: process-wide cache
 var moduleLookupByPC = make(map[uintptr]CallerInfo)
 
 // moduleLookupLock is a lock to protect the moduleLookupByPC map from concurrent access issues.
+//
+//nolint:gochecknoglobals // Why: guards the process-wide cache
 var moduleLookupLock = sync.RWMutex{}
 
+//nolint:gochecknoglobals // Why: process-wide cache
 var buildInfo *debug.BuildInfo
 
 //nolint:gochecknoinits // Why: Because we need it and the side effects are self-contained and non-mutating
@@ -67,7 +72,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 	skipTotal := 2 + int(skipFrames)
 	num := runtime.Callers(skipTotal, pc)
 	if num == 0 {
-		return CallerInfo{}, fmt.Errorf("no frames returned from skip %d", skipTotal)
+		return CallerInfo{}, fmt.Errorf("%w from skip %d", errNoFrames, skipTotal)
 	}
 
 	return getCallerInfoFromPC(pc[0])
@@ -76,7 +81,7 @@ func GetCallerInfo(skipFrames uint16) (CallerInfo, error) {
 // GetCallerInfoFromPC returns caller information derived from a program counter.
 func GetCallerInfoFromPC(pc uintptr) (CallerInfo, error) {
 	if pc == 0 {
-		return CallerInfo{}, errors.New("invalid program counter: 0")
+		return CallerInfo{}, errInvalidPC
 	}
 	return getCallerInfoFromPC(pc)
 }
@@ -167,3 +172,8 @@ func parsePackageName(funcName string) string {
 	// Pull off everything after the first period (and the period)
 	return funcName[0:(index + indexDot)]
 }
+
+var (
+	errNoFrames  = errors.New("no frames returned")
+	errInvalidPC = errors.New("invalid program counter: 0")
+)

@@ -17,6 +17,8 @@ import (
 )
 
 // stringLevel is a map of string to slog.Level.
+//
+//nolint:gochecknoglobals // Why: read-only lookup table
 var stringLevel = map[string]slog.Level{
 	slog.LevelDebug.String(): slog.LevelDebug,
 	slog.LevelInfo.String():  slog.LevelInfo,

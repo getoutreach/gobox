@@ -27,6 +27,52 @@ type ErrorInfo struct {
 	Custom   log.Marshaler
 }
 
+// NewErrorInfoFromPanic converts the panic result into an appropriate
+// error info for logging.
+func NewErrorInfoFromPanic(r any) *ErrorInfo {
+	if r == nil {
+		return nil
+	}
+
+	if err, ok := r.(error); ok {
+		return NewErrorInfo(err)
+	}
+
+	result := NewErrorInfo(errors.Errorf("%v", r))
+	result.Kind = "panic"
+	return result
+}
+
+// NewErrorInfo converts an error into ErrorInfo meant for logging.
+//
+// In the case of errors wrapped with github.com/pkg/errors.Wrap, NewErrorInfo
+// will attempt to collapse (message, stack) pairs within the error stack into
+// A single level of the error.
+func NewErrorInfo(err error) *ErrorInfo {
+	if err == nil {
+		return nil
+	}
+	custom, _ := err.(log.Marshaler)
+	info := ErrorInfo{
+		RawError: err,
+		Kind:     "error",
+		Error:    err.Error(),
+		Message:  errMessage(err),
+		Stack:    errStack(err),
+		Custom:   custom,
+	}
+	// obtain nested error, collapsing upward if possible.
+	if cause := nestInfo(errors.Unwrap(err)); cause != nil {
+		if info.pureStack() && cause.pureMessage() {
+			info.Message = cause.Message
+			info.Cause = cause.Cause
+		} else {
+			info.Cause = cause
+		}
+	}
+	return &info
+}
+
 func (e *ErrorInfo) MarshalLog(addField func(key string, value any)) {
 	if e == nil {
 		return
@@ -86,22 +132,6 @@ func (n *nestedErrorInfo) pureStack() bool {
 	return n.Message == "" && len(n.Stack) > 0 && n.Custom == nil
 }
 
-// NewErrorInfoFromPanic converts the panic result into an appropriate
-// error info for logging.
-func NewErrorInfoFromPanic(r any) *ErrorInfo {
-	if r == nil {
-		return nil
-	}
-
-	if err, ok := r.(error); ok {
-		return NewErrorInfo(err)
-	}
-
-	result := NewErrorInfo(errors.Errorf("%v", r))
-	result.Kind = "panic"
-	return result
-}
-
 // Err is a convenience method for logging. It lazily yields the result of
 // NewErrorInfo when logged, and caches it for future use.
 func Err(err error) *LazyErrInfo {
@@ -124,36 +154,6 @@ func (l *LazyErrInfo) ErrorInfo() *ErrorInfo {
 
 func (l *LazyErrInfo) MarshalLog(addField func(field string, value any)) {
 	l.ErrorInfo().MarshalLog(addField)
-}
-
-// NewErrorInfo converts an error into ErrorInfo meant for logging.
-//
-// In the case of errors wrapped with github.com/pkg/errors.Wrap, NewErrorInfo
-// will attempt to collapse (message, stack) pairs within the error stack into
-// A single level of the error.
-func NewErrorInfo(err error) *ErrorInfo {
-	if err == nil {
-		return nil
-	}
-	custom, _ := err.(log.Marshaler)
-	info := ErrorInfo{
-		RawError: err,
-		Kind:     "error",
-		Error:    err.Error(),
-		Message:  errMessage(err),
-		Stack:    errStack(err),
-		Custom:   custom,
-	}
-	// obtain nested error, collapsing upward if possible.
-	if cause := nestInfo(errors.Unwrap(err)); cause != nil {
-		if info.pureStack() && cause.pureMessage() {
-			info.Message = cause.Message
-			info.Cause = cause.Cause
-		} else {
-			info.Cause = cause
-		}
-	}
-	return &info
 }
 
 func nestInfo(err error) *nestedErrorInfo {

@@ -106,7 +106,7 @@ func TestTracker_reportLatency(t *testing.T) {
 			outerInfo := tracker.Info(outer)
 			outerInfo.Type = callType
 			if status != "ok" {
-				outerInfo.SetStatus(outer, errors.New(status))
+				outerInfo.SetStatus(outer, errors.New(status)) //nolint:err113 // Why: test-only error
 				assert.Assert(t, outerInfo.ErrInfo.RawError != nil)
 			}
 			tracker.EndCall(outer)

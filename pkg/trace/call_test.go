@@ -240,10 +240,10 @@ func TestNestedCall(t *testing.T) {
 	// wrapping the main logic in a function so that we can call
 	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx := trace.StartSpan(ctx, "trace-test")
-		defer trace.End(ctx)
+		spanCtx := trace.StartSpan(ctx, "trace-test")
+		defer trace.End(spanCtx)
 
-		if err := outer(ctx, &Model{ID: "some model id"}); err == nil {
+		if err := outer(spanCtx, &Model{ID: "some model id"}); err == nil {
 			t.Fatal("unexpected success", err)
 		}
 	}()
@@ -267,9 +267,9 @@ func TestNestedCall(t *testing.T) {
 
 	for level, err := range errmap {
 		logs := logtest.NewLogRecorder(t)
-		ctx := trace.StartCall(ctx, "start call")
-		trace.SetCallError(ctx, err)
-		trace.EndCall(ctx)
+		callCtx := trace.StartCall(ctx, "start call")
+		trace.SetCallError(callCtx, err)
+		trace.EndCall(callCtx)
 		// now check logs to see that the right warning message exists
 		logs.Close()
 		lastEntry := logs.Entries()[len(logs.Entries())-1]
@@ -297,10 +297,10 @@ func TestReportLatencyMetrics(t *testing.T) {
 	// wrapping the main logic in a function so that we can call
 	// defer per our accepted trace.StartSpan/trace.End pattern
 	func() {
-		ctx := trace.StartSpan(ctx, "trace-test")
-		defer trace.End(ctx)
+		spanCtx := trace.StartSpan(ctx, "trace-test")
+		defer trace.End(spanCtx)
 
-		if err := httpCall(ctx); err != nil {
+		if err := httpCall(spanCtx); err != nil {
 			t.Fatal("unexpected error", err)
 		}
 	}()

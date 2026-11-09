@@ -11,6 +11,7 @@ package ometrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -81,7 +82,7 @@ func InitializeMeterProvider(ctx context.Context, t ExporterType, opts ...Option
 			reader = sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(c.Collector.Interval))
 		}
 	default:
-		return fmt.Errorf("exporter type provided is unknown")
+		return errUnknownExporter
 	}
 	if err != nil {
 		return fmt.Errorf("failed to create exporter: %w", err)
@@ -101,3 +102,5 @@ func InitializeMeterProvider(ctx context.Context, t ExporterType, opts ...Option
 
 	return nil
 }
+
+var errUnknownExporter = errors.New("exporter type provided is unknown")

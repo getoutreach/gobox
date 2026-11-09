@@ -108,7 +108,7 @@ func read(r io.Reader) ([]Entry, error) {
 
 // Snapshots returns a slice of ReadOnlySpans exportable by otle.
 func (t Trace) Snapshots() []tracesdk.ReadOnlySpan {
-	var spans []tracesdk.ReadOnlySpan
+	spans := make([]tracesdk.ReadOnlySpan, 0, len(t.Spans))
 	for _, span := range t.Spans {
 		spans = append(spans, span.Snapshot())
 	}

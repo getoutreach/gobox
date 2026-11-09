@@ -12,7 +12,7 @@ import (
 	cliV3 "github.com/urfave/cli/v3"
 )
 
-// Options configures an updater.
+// Option configures an updater.
 type Option func(*updater)
 
 // WithRepoURL sets the repository to use for checking for updates.
@@ -93,7 +93,7 @@ func WithApp(app *cliV2.App) Option {
 	}
 }
 
-// WithApp sets the cli/v3.App to setup commands on.
+// WithAppV3 sets the cli/v3.Command to setup commands on.
 func WithAppV3(cmd *cliV3.Command) Option {
 	return func(u *updater) {
 		u.appV3 = cmd

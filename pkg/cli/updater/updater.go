@@ -46,6 +46,8 @@ import (
 //
 // Any value other than "true" is considered false.
 // The type is string to allow for invoking via `go run -ldflags "-X ..."`.
+//
+//nolint:gochecknoglobals // Why: exported and set at build time through ldflags
 var Disabled = "false"
 
 // UseUpdater creates an automatic updater.

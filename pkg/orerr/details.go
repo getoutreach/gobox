@@ -1,6 +1,7 @@
 // Copyright 2023 Outreach Corporation. All Rights Reserved.
 
 // Description: Custom error with list of details compatible with JSON API spec
+
 package orerr
 
 import (
@@ -46,14 +47,14 @@ func (v ErrDetail) WithSourcePointer(pointer string) ErrDetail {
 	return v
 }
 
-// WithField allows to specify violation meta data.
+// WithMeta allows to specify violation meta data.
 func (v ErrDetail) WithMeta(m map[string]string) ErrDetail {
 	v.Meta = m
 	return v
 }
 
 // ErrDetails represents an error with list of details.
-type ErrDetails struct {
+type ErrDetails struct { //nolint:errname,recvcheck // Why: renaming or changing receivers of an exported type breaks public API
 	// err is the original err
 	err error
 
@@ -72,7 +73,7 @@ func NewErrDetails(err error, details ...ErrDetail) error {
 
 // Error implements the err interface.
 func (e ErrDetails) Error() string {
-	var details []string
+	details := make([]string, 0, len(e.Details))
 	for _, d := range e.Details {
 		details = append(details, fmt.Sprintf("%s(%s): %s", d.Title, d.ID, d.Detail))
 	}

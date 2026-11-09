@@ -22,12 +22,16 @@ import (
 )
 
 // SkipFlag is a CLI flag used to skip the updater check.
+//
+//nolint:gochecknoglobals // Why: exported flag definition
 var SkipFlag = BoolFlag{
 	Name:  "skip-update",
 	Usage: "Skips the updater check",
 }
 
 // ForceFlag is a CLI flag used to force the updater check.
+//
+//nolint:gochecknoglobals // Why: exported flag definition
 var ForceFlag = BoolFlag{
 	Name:  "force-update-check",
 	Usage: "Force checking for an update",
@@ -182,7 +186,7 @@ func newSetChannel(u *updater) *Command {
 			}
 
 			if _, ok := versions[channel]; !ok {
-				return fmt.Errorf("channel %q is not valid, run 'get-channels' to return a list of valid channels", channel)
+				return fmt.Errorf("%w: %q, run 'get-channels' to return a list of valid channels", errInvalidChannel, channel)
 			}
 
 			repoConf, _ := conf.Get(u.repoURL)
@@ -333,3 +337,5 @@ func printDebug(u *updater) error {
 
 	return nil
 }
+
+var errInvalidChannel = errors.New("channel is not valid")

@@ -77,13 +77,12 @@ const (
 	// OutputCredentialProviderV1 is the value used to specify that the
 	// CLI used needs to output credential provider compliant JSON, in
 	// the forked version of okta-aws-cli v1.
-	// nolint: gosec // Why: These aren't credentials.
+	//nolint:gosec // Why: These aren't credentials.
 	OutputCredentialProviderV1 CredentialsOutput = "credential-provider"
 
 	// OutputCredentialProvider is the value used to specify that the
 	// CLI used needs to output credential provider compliant JSON, in
 	// okta-aws-cli v2 and later.
-	// nolint: gosec // Why: These aren't credentials.
 	OutputCredentialProvider CredentialsOutput = "process-credentials"
 )
 
@@ -166,7 +165,7 @@ func AuthorizeCredentials(ctx context.Context, copts *CredentialOptions, acopts 
 				return err
 			}
 		default:
-			return fmt.Errorf("unknown AWS refresh method '%s'", b.AWS.RefreshMethod)
+			return fmt.Errorf("%w '%s'", errUnknownRefreshMethod, b.AWS.RefreshMethod)
 		}
 	}
 
@@ -353,3 +352,5 @@ func credentialProviderFormat(isCLIVersion1 bool) CredentialsOutput {
 
 	return OutputCredentialProvider
 }
+
+var errUnknownRefreshMethod = errors.New("unknown AWS refresh method")

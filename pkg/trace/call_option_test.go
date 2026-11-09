@@ -17,6 +17,7 @@ import (
 )
 
 func startCall(t *testing.T, opt call.Option) *call.Info {
+	t.Helper()
 	var callInfo *call.Info
 	trace.StartCall(
 		t.Context(),

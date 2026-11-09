@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Bed request error
+
 package orerr
 
 import (
@@ -36,20 +37,20 @@ func (v Violation) WithField(field string) Violation {
 	return v
 }
 
-// WithField allows to specify domain name of the field that violation belongs to.
+// WithDomain allows to specify domain name of the field that violation belongs to.
 func (v Violation) WithDomain(domain string) Violation {
 	v.Domain = &domain
 	return v
 }
 
-// WithField allows to specify violation meta data.
+// WithMeta allows to specify violation meta data.
 func (v Violation) WithMeta(m map[string]string) Violation {
 	v.Metadata = m
 	return v
 }
 
 // BadRequestError represents an invalidate input error.
-type BadRequestError struct {
+type BadRequestError struct { //nolint:recvcheck // Why: changing receivers of an exported type breaks public API
 	// Err is an original err
 	Err error
 

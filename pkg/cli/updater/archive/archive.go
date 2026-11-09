@@ -37,7 +37,7 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 		}
 	}
 	if opts.FilePath == "" && opts.FilePathSelectorFunc == nil {
-		return nil, nil, errors.New("WithFilePath or WithFilePathSelectorFunc must be provided via the options")
+		return nil, nil, errMissingFilePath
 	}
 
 	var extractor Extractor
@@ -48,7 +48,7 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 		extractor = &zipExtractor{}
 	}
 	if extractor == nil {
-		return nil, nil, fmt.Errorf("unsupported archive type: %v", archiveName)
+		return nil, nil, fmt.Errorf("%w: %v", errUnsupportedArchive, archiveName)
 	}
 
 	// create an Archive interface from the archive
@@ -81,7 +81,7 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 		return nil, nil, ctx.Err()
 	}
 
-	return nil, nil, errors.New("no matching file in archive")
+	return nil, nil, errNoMatchingFile
 }
 
 // selectFile selects a file from the archive based on the provided options.
@@ -100,3 +100,9 @@ func selectFile(h *Header, opts *ExtractOptions) bool {
 
 	return false
 }
+
+var (
+	errMissingFilePath    = errors.New("WithFilePath or WithFilePathSelectorFunc must be provided via the options")
+	errUnsupportedArchive = errors.New("unsupported archive type")
+	errNoMatchingFile     = errors.New("no matching file in archive")
+)

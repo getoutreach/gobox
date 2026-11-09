@@ -218,6 +218,7 @@ func (t *otelTracer) closeTracer(ctx context.Context) {
 
 func (t *otelTracer) startTrace(ctx context.Context, name string) context.Context {
 	tracer := otel.GetTracerProvider().Tracer(t.serviceName)
+	//nolint:spancheck // Why: the span is ended by end(), using the span stored in ctx
 	ctx, _ = tracer.Start(ctx, name)
 
 	return ctx
@@ -232,6 +233,7 @@ func (t *otelTracer) id(ctx context.Context) string {
 
 func (t *otelTracer) startSpan(ctx context.Context, name string, opts ...SpanStartOption) context.Context {
 	tracer := otel.GetTracerProvider().Tracer(t.serviceName)
+	//nolint:spancheck // Why: the span is ended by end(), using the span stored in ctx
 	ctx, _ = tracer.Start(ctx, name, t.toOtelOptions(opts)...)
 
 	return ctx
@@ -250,6 +252,7 @@ func (t *otelTracer) toOtelOptions(opts []SpanStartOption) []trace.SpanStartOpti
 
 func (t *otelTracer) startSpanAsync(ctx context.Context, name string) context.Context {
 	tracer := otel.GetTracerProvider().Tracer(t.serviceName)
+	//nolint:spancheck // Why: the span is ended by end(), using the span stored in ctx
 	ctx, _ = tracer.Start(ctx, name)
 
 	return ctx

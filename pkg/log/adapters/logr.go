@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file integrates the logger with go-logr/logr
+
 package adapters
 
 import (
@@ -12,7 +13,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// NewLogr returns a gobox/pkg/log logger that implements the
+// NewLogrLogger returns a gobox/pkg/log logger that implements the
 // logr.Logger interface.
 //
 // ! This should ONLY be used if the consumer doesn't support calling
@@ -24,7 +25,7 @@ func NewLogrLogger(ctx context.Context) logr.Logger {
 
 // logrLogger implements logr.Logger.
 type logrLogger struct {
-	ctx context.Context
+	ctx context.Context //nolint:containedctx // Why: the logr.LogSink interface does not accept a context
 
 	// existingMarshalers are marshalers that should
 	// be always set when calling any function. This is used

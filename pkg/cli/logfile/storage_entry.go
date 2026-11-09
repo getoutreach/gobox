@@ -28,7 +28,7 @@ const (
 )
 
 // Entry is an entry in the log file.
-type Entry struct {
+type Entry struct { //nolint:recvcheck // Why: changing receivers of an exported type breaks public API
 	f *Frame
 	m *Metadata
 	t *Trace
@@ -66,7 +66,7 @@ func NewFrameEntry(delay time.Duration, b []byte) Entry {
 	})
 }
 
-// NewMetadata creates a new metadata entry.
+// NewMetadataEntry creates a new metadata entry.
 func NewMetadataEntry(startedAt time.Time, width, height int, command string, args []string) Entry {
 	return NewEntryFromMetadata(&Metadata{
 		EntryMetadata: EntryMetadata{
@@ -106,7 +106,7 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 		return jsoniter.Marshal(e.AsTrace())
 	}
 
-	return nil, fmt.Errorf("unknown entry type: %v", e)
+	return nil, fmt.Errorf("%w: %v", errUnknownEntryType, e)
 }
 
 // UnmarshalJSON implements json.Unmarshaler picking the correct
@@ -134,7 +134,7 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 			return errors.Wrap(err, "unmarshaling trace")
 		}
 	default:
-		return fmt.Errorf("unknown entry type %v: '%s'", em.Type, string(data))
+		return fmt.Errorf("%w %v: '%s'", errUnknownEntryType, em.Type, string(data))
 	}
 
 	return nil
@@ -166,7 +166,7 @@ func (e Entry) AsFrame() *Frame {
 	return e.f
 }
 
-// AsFrame returns the current frame or nil if it's not a frame.
+// AsTrace returns the current trace or nil if it's not a trace.
 func (e Entry) AsTrace() *Trace {
 	return e.t
 }
@@ -177,3 +177,5 @@ type EntryMetadata struct {
 	// Type is the type of entry in the log file
 	Type EntryType `json:"t"`
 }
+
+var errUnknownEntryType = errors.New("unknown entry type")

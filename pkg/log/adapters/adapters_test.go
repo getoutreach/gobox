@@ -38,7 +38,7 @@ func ExampleNewLogrLogger() {
 
 	childLogger := logger.WithValues("c", 1, "b", "hello, world!")
 	childLogger.Info("info!!")
-	childLogger.Error(errors.New("bad thing"), "end of the world!")
+	childLogger.Error(errors.New("bad thing"), "end of the world!") //nolint:err113 // Why: test-only error
 
 	printEntries(logs.Entries())
 

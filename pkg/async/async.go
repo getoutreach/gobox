@@ -60,8 +60,9 @@ type Closer interface {
 
 // Tasks runs tasks.
 type Tasks struct {
-	Name string
 	sync.WaitGroup
+
+	Name string
 }
 
 // NewTasks creates new instance of Tasks.
@@ -105,6 +106,8 @@ func (t *Tasks) Loop(ctx context.Context, r Runner) {
 }
 
 // Default is the default runner.
+//
+//nolint:gochecknoglobals // Why: exported default runner, replaceable by importers
 var Default = NewTasks("async.run")
 
 // Run executes a single asynchronous task.
@@ -120,7 +123,7 @@ func Run(ctx context.Context, r Runner) {
 //
 // Deprecated: Please only use Run - you should always be aware of and control your context.
 func RunBackground(_ context.Context, r Runner) {
-	Run(context.Background(), r)
+	Run(context.Background(), r) //nolint:contextcheck // Why: deprecated function deliberately ignores the caller context
 }
 
 // RunClose closes any references a runner might be using.

@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Implements secrets handling mechanisms for configurations
+
 package cfg
 
 import (

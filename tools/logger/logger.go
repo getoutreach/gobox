@@ -120,7 +120,7 @@ func filterStructs(pkg *packages.Package) ([]string, []*types.Struct) {
 			continue
 		}
 
-		for kk := 0; kk < s.NumFields(); kk++ {
+		for kk := range s.NumFields() {
 			if _, ok := reflect.StructTag(s.Tag(kk)).Lookup("log"); ok {
 				structs[typeName.Name()] = s
 				names = append(names, typeName.Name())
@@ -139,7 +139,7 @@ func filterStructs(pkg *packages.Package) ([]string, []*types.Struct) {
 
 func processStruct(w io.Writer, s *types.Struct, name string) {
 	write(w, functionHeaderFormat, map[string]string{"name": name})
-	for kk := 0; kk < s.NumFields(); kk++ {
+	for kk := range s.NumFields() {
 		field, ok := reflect.StructTag(s.Tag(kk)).Lookup("log")
 		if !ok {
 			continue

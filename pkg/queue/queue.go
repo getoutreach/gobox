@@ -89,6 +89,15 @@ func WithMaxHeap() PriorityQueueOption {
 	}
 }
 
+// PriorityQueue implements a priority queue with a heap. By default, min heap is used with a
+// default queue capacity. Items are sorted by priority, smaller value means higher priority.
+// Queue capacity and heap type can be changed via options.
+type PriorityQueue struct {
+	lock     sync.RWMutex
+	capacity uint
+	queue    *priorityQueueInternal
+}
+
 // NewPriorityQueue creates a new priority queue.
 func NewPriorityQueue(opts ...PriorityQueueOption) *PriorityQueue {
 	q := &PriorityQueue{
@@ -99,15 +108,6 @@ func NewPriorityQueue(opts ...PriorityQueueOption) *PriorityQueue {
 		opt(q)
 	}
 	return q
-}
-
-// PriorityQueue implements a priority queue with a heap. By default, min heap is used with a
-// default queue capacity. Items are sorted by priority, smaller value means higher priority.
-// Queue capacity and heap type can be changed via options.
-type PriorityQueue struct {
-	lock     sync.RWMutex
-	capacity uint
-	queue    *priorityQueueInternal
 }
 
 // Push an item into the queue. Items in the queue will be sorted by priority. Push returns
@@ -182,18 +182,6 @@ func (q *PriorityQueue) Contains(item *PriorityQueueItem) bool {
 	return q.contains(item)
 }
 
-func (q *PriorityQueue) contains(item *PriorityQueueItem) bool {
-	if item == nil {
-		return false
-	}
-	index := item.getIndex()
-	if index <= -1 || index >= q.queue.Len() {
-		return false
-	}
-	// Compare the memory address to ensure they are the same item.
-	return item == q.queue.Get(index)
-}
-
 // Clear removes all items in the queue.
 func (q *PriorityQueue) Clear() {
 	q.lock.Lock()
@@ -213,6 +201,18 @@ func (q *PriorityQueue) Len() int {
 	q.lock.RLock()
 	defer q.lock.RUnlock()
 	return q.queue.Len()
+}
+
+func (q *PriorityQueue) contains(item *PriorityQueueItem) bool {
+	if item == nil {
+		return false
+	}
+	index := item.getIndex()
+	if index <= -1 || index >= q.queue.Len() {
+		return false
+	}
+	// Compare the memory address to ensure they are the same item.
+	return item == q.queue.Get(index)
 }
 
 // PriorityQueueItem represents an item in queue.
@@ -305,7 +305,7 @@ func (q *priorityQueueInternal) Pop() any {
 }
 
 // Peek returns the first item in the queue.
-func (q priorityQueueInternal) Peek() *PriorityQueueItem {
+func (q *priorityQueueInternal) Peek() *PriorityQueueItem {
 	return q.items[0]
 }
 
@@ -344,12 +344,12 @@ func (q *priorityQueueInternal) List() []*PriorityQueueItem {
 }
 
 // Len returns the queue size.
-func (q priorityQueueInternal) Len() int {
+func (q *priorityQueueInternal) Len() int {
 	return len(q.items)
 }
 
 // Less compares items at index i and j.
-func (q priorityQueueInternal) Less(i, j int) bool {
+func (q *priorityQueueInternal) Less(i, j int) bool {
 	if q.isMinHeap {
 		return q.items[i].GetPriority() < q.items[j].GetPriority()
 	}
@@ -357,7 +357,7 @@ func (q priorityQueueInternal) Less(i, j int) bool {
 }
 
 // Swap items at index i and j.
-func (q priorityQueueInternal) Swap(i, j int) {
+func (q *priorityQueueInternal) Swap(i, j int) {
 	q.items[i], q.items[j] = q.items[j], q.items[i]
 	tmp := q.items[i].getIndex()
 	q.items[i].setIndex(q.items[j].getIndex())

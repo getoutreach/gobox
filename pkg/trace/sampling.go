@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+//nolint:gochecknoglobals // Why: read-only attribute key
 var sampleRateAttribute = attribute.Key("SampleRate")
 
 const (

@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This code contains cloud interface specific code
+
 package region
 
 import "context"
@@ -15,6 +16,8 @@ type Cloud interface {
 
 // supportedClouds is a CloudName -> Cloud mapping
 // of all known/supported clouds.
+//
+//nolint:gochecknoglobals // Why: read-only registry of clouds
 var supportedClouds = map[CloudName]Cloud{
 	CloudGCP:    &GCP{},
 	CloudCustom: &CustomCloud{},

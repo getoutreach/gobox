@@ -3,6 +3,7 @@
 package trace_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -12,7 +13,6 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
-	"github.com/pkg/errors"
 )
 
 func TestAll(t *testing.T) {
@@ -149,7 +149,7 @@ func TestNestedSpan(t *testing.T) {
 	opts := []trace.SpanStartOption{trace.WithLink(linkHeaders)}
 	inner2 := trace.StartSpanWithOptions(inner, "inner2", opts)
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
-	trace.Error(inner2, errors.New("error"))
+	trace.Error(inner2, errors.New("error")) //nolint:err113 // Why: test-only error
 
 	trace.End(inner2)
 	trace.End(inner)

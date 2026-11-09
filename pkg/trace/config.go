@@ -12,8 +12,9 @@ import (
 // Config is the tracing config that gets read from trace.yaml.
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
-	LogFile    LogFile `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
+
+	LogFile LogFile `yaml:"LogFile"`
 
 	// LogCallByDefault determines info logs for non-error instances of
 	// `trace.StartCall`.  The behavior can be overridden by providing

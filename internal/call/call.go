@@ -36,6 +36,9 @@ const (
 
 // Info tracks information about an ongoing synchronous call.
 type Info struct {
+	events.Times
+	events.Durations
+
 	// Name is the name of the call, this is used for the message of the log
 	// and the name of the trace.
 	Name string
@@ -61,9 +64,6 @@ type Info struct {
 	// ErrInfo is the information for an error that occurred during the call.
 	// This is set by SetStatus and used for reporting that an error occurred.
 	ErrInfo *events.ErrorInfo
-
-	events.Times
-	events.Durations
 
 	mu sync.Mutex
 }

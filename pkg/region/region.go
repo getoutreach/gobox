@@ -3,7 +3,9 @@
 // Description: This file contains region specific type definitions
 // and region logic.
 
-// Package region Implements region specific helpers
+// Package region implements cloud region specific functionality
+// Namely it implements a way to determine the "nearest" region
+// to the current client.
 package region
 
 import (
@@ -32,7 +34,7 @@ type region struct {
 
 // Duration hits the attached region's endpoint and returns how long it took
 // to do a HEAD request.
-func (r *region) Duration(_ context.Context, averageOf int) (time.Duration, error) {
+func (r *region) Duration(ctx context.Context, averageOf int) (time.Duration, error) {
 	if dur, ok := cache.Get(r.Cloud, r.Name); ok {
 		return dur, nil
 	}
@@ -41,7 +43,12 @@ func (r *region) Duration(_ context.Context, averageOf int) (time.Duration, erro
 	for range averageOf {
 		startTime := time.Now()
 
-		resp, err := http.Head(r.Endpoint)
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, r.Endpoint, http.NoBody)
+		if err != nil {
+			return 0, err
+		}
+
+		resp, err := http.DefaultClient.Do(req)
 		// we don't care about HTTP status here, we're just determining network latency
 		if err != nil {
 			return 0, err
@@ -102,8 +109,10 @@ func (regions Regions) Nearest(ctx context.Context, logger logrus.FieldLogger) (
 	}
 
 	if bestRegion == "" {
-		return "", errors.New("failed to find the nearest region")
+		return "", errNoNearestRegion
 	}
 
 	return bestRegion, nil
 }
+
+var errNoNearestRegion = errors.New("failed to find the nearest region")

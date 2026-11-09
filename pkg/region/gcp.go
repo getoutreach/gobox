@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains the GCP cloud code.
+
 package region
 
 import "context"
@@ -12,10 +13,10 @@ const (
 	// RegionGCPUS is a multi-region region for all of the US.
 	RegionGCPUS Name = "us"
 
-	// RegionGCPUS is a multi-region region for all of Europe.
+	// RegionGCPEurope is a multi-region region for all of Europe.
 	RegionGCPEurope Name = "europe"
 
-	// RegionGCPUS is a multi-region region for all of Asia.
+	// RegionGCPAsia is a multi-region region for all of Asia.
 	RegionGCPAsia Name = "asia"
 )
 

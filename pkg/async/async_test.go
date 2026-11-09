@@ -42,7 +42,7 @@ func (r *runWithCloser) Close(c context.Context) error {
 func (suite) TestRunGroupErrorPropagation(t *testing.T) {
 	ctx := t.Context()
 	r1 := async.Func(func(c context.Context) error {
-		return errors.New("oh no")
+		return errors.New("oh no") //nolint:err113 // Why: test-only error
 	})
 	r2 := runWithCloser{}
 	aggr := async.RunGroup([]async.Runner{&r1, &r2})

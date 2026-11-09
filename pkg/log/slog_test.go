@@ -464,7 +464,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("standard error", func(t *testing.T) {
 		buf.Reset()
-		standardErr := errors.New("standard error message")
+		standardErr := errors.New("standard error message") //nolint:err113 // Why: test-only error
 		log.Error(ctx, "standard error test", log.F{"error": standardErr})
 
 		output := buf.String()
@@ -477,7 +477,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("events.Err wrapped error", func(t *testing.T) {
 		buf.Reset()
-		baseErr := errors.New("base error")
+		baseErr := errors.New("base error") //nolint:err113 // Why: test-only error
 		wrappedErr := events.Err(baseErr)
 		log.Error(ctx, "events error test", wrappedErr)
 
@@ -492,7 +492,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("pkg/errors wrapped error with stack", func(t *testing.T) {
 		buf.Reset()
-		baseErr := errors.New("root cause")
+		baseErr := errors.New("root cause") //nolint:err113 // Why: test-only error
 		wrappedErr := pkgerrors.Wrap(baseErr, "wrapped message")
 		eventsErr := events.Err(wrappedErr)
 		log.Error(ctx, "wrapped error test", eventsErr)
@@ -509,7 +509,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("nested error with multiple causes", func(t *testing.T) {
 		buf.Reset()
-		rootErr := errors.New("database connection failed")
+		rootErr := errors.New("database connection failed") //nolint:err113 // Why: test-only error
 		middleErr := fmt.Errorf("query execution failed: %w", rootErr)
 		topErr := fmt.Errorf("service operation failed: %w", middleErr)
 		eventsErr := events.Err(topErr)

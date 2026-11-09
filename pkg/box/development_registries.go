@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains development registry configuration
+
 package box
 
 import "github.com/getoutreach/gobox/pkg/region"
@@ -20,7 +21,7 @@ type DevelopmentRegistriesSlice []DevelopmentRegistry
 
 // Regions returns all of the regions of the development registries.
 func (dr DevelopmentRegistriesSlice) Regions() []region.Name {
-	regions := make([]region.Name, 0)
+	regions := make([]region.Name, 0, len(dr))
 	for _, e := range dr {
 		regions = append(regions, e.Region)
 	}

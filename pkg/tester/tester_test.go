@@ -187,6 +187,7 @@ func testTempDir(t tester.T) {
 }
 
 func logWriter(t *testing.T) tester.Option {
+	t.Helper()
 	return tester.WithLogWriter(func(name, message string) {
 		t.Log(name, message)
 	})

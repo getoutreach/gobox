@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains box configuration for loft
+
 package box
 
 import "github.com/getoutreach/gobox/pkg/region"
@@ -39,7 +40,7 @@ type LoftClusters []LoftCluster
 
 // Regions returns all of the regions of the regions for the loft clusters in a []LoftCluster.
 func (lc LoftClusters) Regions() []region.Name {
-	regions := make([]region.Name, 0)
+	regions := make([]region.Name, 0, len(lc))
 	for _, e := range lc {
 		regions = append(regions, e.Region)
 	}

@@ -26,8 +26,10 @@ import (
 
 var (
 	// BoxConfigPath is the $HOME/<BoxConfigPath> location of the box config storage.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	BoxConfigPath = ".outreach/.config/box"
 	// BoxConfigFile is the name of the box config storage file.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	BoxConfigFile = "box.yaml"
 )
 
@@ -202,6 +204,7 @@ func downloadBox(ctx context.Context, a agent.Agent, gitRepo string) (yaml.Node,
 		return downloadBoxFromGitHub(ctx, gitRepo)
 	}
 
+	//nolint:contextcheck // Why: sshhelper.LoadDefaultKey is public API without a context parameter
 	_, err := sshhelper.LoadDefaultKey("github.com", a, &logrus.Logger{Out: io.Discard})
 	if err != nil {
 		return yaml.Node{}, errors.Wrap(err, "failed to load GitHub SSH key into in-memory keyring")
@@ -237,7 +240,7 @@ func unmarshalBoxYAML(r io.Reader) (yaml.Node, error) {
 
 // downloadBoxFromGitHub downloads and parses a box config from a given GitHub repository, via the GitHub API.
 func downloadBoxFromGitHub(ctx context.Context, gitURL string) (yaml.Node, error) {
-	gh, err := github.NewClient()
+	gh, err := github.NewClient() //nolint:contextcheck // Why: github.NewClient is public API without a context parameter
 	if err != nil {
 		return yaml.Node{}, errors.Wrap(err, "failed to create GitHub client")
 	}

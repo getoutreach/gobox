@@ -36,5 +36,5 @@ const LogExtension = "json"
 // used to communicate traces between the child app and the logging wrapper.
 const TracePortEnvironmentVariable = "OUTREACH_LOGGING_PORT"
 
-// SocketType is the type of socket for the log file.
+// TraceSocketType is the type of socket for the log file.
 const TraceSocketType = "tcp"

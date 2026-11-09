@@ -41,7 +41,7 @@ func TestExtract(t *testing.T) {
 	}
 
 	type args struct {
-		ctx         context.Context
+		ctx         context.Context //nolint:containedctx // Why: test case carries its own context
 		archiveName string
 		r           io.Reader
 		optFns      []ExtractOptionFunc

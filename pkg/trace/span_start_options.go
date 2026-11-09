@@ -39,7 +39,7 @@ func WithLink(traceHeaders map[string][]string) Link {
 // Link implements SpanStartOption.
 type Link struct {
 	// linkContext is a dummy context to store linked trace/span ID headers
-	linkContext context.Context
+	linkContext context.Context //nolint:containedctx // Why: a context is the only carrier for the linked span headers
 }
 
 // TraceID returns the trace ID from the linked context or empty if such is unavailable.

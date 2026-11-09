@@ -2,6 +2,7 @@
 
 // Description: This file contains the read through cache implementation for
 // this package.
+
 package region
 
 import (
@@ -16,13 +17,17 @@ import (
 
 var (
 	// RegionCachePath is the $HOME/<RegionCachePath> location of the regionpicker cache.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	RegionCachePath = filepath.Join(".outreach", ".cache", "box")
 	// RegionCacheFile is the name of the regionpicker cache file.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	RegionCacheFile = "regions.json"
 )
 
 // cache is the package specific cache instance used. This is a global variable to
 // ensure that this is go-routine safe.
+//
+//nolint:gochecknoglobals // Why: process-wide region cache
 var cache = &cacheStore{}
 
 // cacheEntry is information on a cloud's cache entry.
@@ -42,6 +47,35 @@ type cacheStore struct {
 	mu sync.RWMutex
 
 	once sync.Once
+}
+
+// Get returns the duration of a cloud/region pairing, if it exists.
+// Otherwise ok is returned as false and time.Duration is it's zero-value.
+func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
+	c.once.Do(c.load) // read the cache from disk at most once
+
+	v, ok := c.get(cloud, r)
+	if !ok {
+		// not ok, so just return it's not there
+		return time.Duration(0), false
+	}
+
+	// expire the key if required to do so
+	if c.expireKeyIfRequired(cloud, r, v) {
+		return time.Duration(0), false
+	}
+
+	return v.Duration, ok
+}
+
+// Set sets the duration of a cloud/region pairing.
+func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
+	c.once.Do(c.load) // read the cache from disk at most once
+
+	c.set(cloud, r, dur) // set the key into our datastore
+
+	// save the result to disk
+	return c.save()
 }
 
 // expireKeyIfRequired expires a key if it's ready to be expired.
@@ -72,25 +106,6 @@ func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
 	return &v, ok
 }
 
-// Get returns the duration of a cloud/region pairing, if it exists.
-// Otherwise ok is returned as false and time.Duration is it's zero-value.
-func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
-	c.once.Do(c.load) // read the cache from disk at most once
-
-	v, ok := c.get(cloud, r)
-	if !ok {
-		// not ok, so just return it's not there
-		return time.Duration(0), false
-	}
-
-	// expire the key if required to do so
-	if c.expireKeyIfRequired(cloud, r, v) {
-		return time.Duration(0), false
-	}
-
-	return v.Duration, ok
-}
-
 func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -104,16 +119,6 @@ func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
 		// Expire in 8 hours
 		ExpiresAt: time.Now().UTC().Add(time.Hour * 8),
 	}
-}
-
-// Set sets the duration of a cloud/region pairing.
-func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
-	c.once.Do(c.load) // read the cache from disk at most once
-
-	c.set(cloud, r, dur) // set the key into our datastore
-
-	// save the result to disk
-	return c.save()
 }
 
 func (c *cacheStore) getCacheFilePath() (string, error) {

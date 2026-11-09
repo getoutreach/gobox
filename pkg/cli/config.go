@@ -90,7 +90,7 @@ func useEmbeddedHoneycombAPIKey(honeycombAPIKey cfg.SecretData) {
 		// the path before falling back to the devlookup so this
 		// is safe to assume all attempts have failed
 		if fallbackSecretLookup == nil {
-			return nil, fmt.Errorf("failed to find secret at path '%s', or compiled into binary", path)
+			return nil, fmt.Errorf("%w at path '%s', or compiled into binary", errSecretNotFound, path)
 		}
 
 		return fallbackSecretLookup(ctx, path)
@@ -117,7 +117,7 @@ func overrideConfigLoaders(conf *Config) {
 			case conf.Telemetry.useDelibird():
 				portStr := os.Getenv(logfile.TracePortEnvironmentVariable)
 				if portStr == "" {
-					return nil, fmt.Errorf("delibird enabled, but %s not set", logfile.TracePortEnvironmentVariable)
+					return nil, fmt.Errorf("%w, but %s not set", errDelibirdEnabled, logfile.TracePortEnvironmentVariable)
 				}
 
 				port, err := strconv.Atoi(portStr)
@@ -158,3 +158,8 @@ func overrideConfigLoaders(conf *Config) {
 		return fallbackConfigReader(fileName)
 	})
 }
+
+var (
+	errSecretNotFound  = errors.New("failed to find secret")
+	errDelibirdEnabled = errors.New("delibird enabled")
+)

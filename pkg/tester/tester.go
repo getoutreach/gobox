@@ -86,6 +86,7 @@ func Run(t T, name string, f any) bool {
 // wrapTestFunc invokes f with t *testing.T.
 func wrapTestFunc(f any) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		values := []reflect.Value{reflect.ValueOf(t)}
 		reflect.ValueOf(f).Call(values)
 	}

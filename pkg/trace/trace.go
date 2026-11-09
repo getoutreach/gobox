@@ -123,11 +123,12 @@ func StartTracing(serviceName string) error {
 // This needs to be called before sending any traces
 // otherwise they will not be published.
 func InitTracer(_ context.Context, serviceName string) error {
+	//nolint:contextcheck // Why: InitTracer deliberately does not pass its context on to the tracer
 	if err := setDefaultTracer(serviceName); err != nil {
 		return err
 	}
 	if defaultTracer == nil {
-		return errors.New("no tracer configured, please check your 'trace.yaml' config")
+		return errNoTracer
 	}
 
 	return nil
@@ -146,7 +147,7 @@ func setDefaultTracer(serviceName string) error {
 
 	// Ensure only one tracer is enabled
 	if config.Otel.Enabled && config.LogFile.Enabled {
-		return errors.New("more than one tracer enabled, please check your 'trace.yaml' config")
+		return errMultipleTracers
 	}
 
 	if config.Otel.Enabled {
@@ -405,3 +406,8 @@ func FromHeaders(ctx context.Context, hdrs map[string][]string, name string) con
 	}
 	return defaultTracer.fromHeaders(ctx, hdrs, name)
 }
+
+var (
+	errNoTracer        = errors.New("no tracer configured, please check your 'trace.yaml' config")
+	errMultipleTracers = errors.New("more than one tracer enabled, please check your 'trace.yaml' config")
+)

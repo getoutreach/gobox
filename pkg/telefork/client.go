@@ -1,10 +1,12 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Implements a telefork client
+
 package telefork
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"maps"
 	"net/http"
@@ -81,7 +83,7 @@ func (c *client) Close() {
 		return
 	}
 
-	r, err := http.NewRequest(http.MethodPost, strings.TrimSuffix(c.baseURL, "/")+"/", bytes.NewReader(b))
+	r, err := http.NewRequestWithContext(context.Background(), http.MethodPost, strings.TrimSuffix(c.baseURL, "/")+"/", bytes.NewReader(b))
 	if err != nil {
 		return
 	}

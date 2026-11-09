@@ -4,8 +4,6 @@
 // by the updater for determining what the latest version is
 // within a set of criteria.
 
-// Package resolver contains a git tag aware version resolver that
-// supports channels to determine the latest version.
 package resolver
 
 import (

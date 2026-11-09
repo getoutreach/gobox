@@ -15,15 +15,20 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
+//nolint:gochecknoglobals // Why: process-wide call tracking
 var callTracker = &call.Tracker{}
 
 // logCallsByDefault is a package-global flag that controls whether or not
 // non-error `trace.StartCall` calls get an info log or not.  Its value is set
 // in `setDefaultTracer` and it comes from a value in the config file.
+//
+//nolint:gochecknoglobals // Why: process-wide tracing setting
 var logCallsByDefault = false
 
 // logTracedCalls controls whether calls in an exported trace get an info log
 // regardless of logCallsByDefault.  Set in `setDefaultTracer` from the config.
+//
+//nolint:gochecknoglobals // Why: process-wide tracing setting
 var logTracedCalls = false
 
 // StartCall is used to start an internal call. For external calls please
@@ -214,7 +219,7 @@ func IDs(ctx context.Context) log.Marshaler {
 }
 
 type traceInfo struct {
-	context.Context
+	context.Context //nolint:containedctx // Why: the call info implements context.Context by wrapping its parent
 }
 
 func (c traceInfo) MarshalLog(addField func(field string, value any)) {

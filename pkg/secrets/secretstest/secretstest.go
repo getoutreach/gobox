@@ -2,6 +2,7 @@ package secretstest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -20,7 +21,7 @@ func setTestOverride(filePath, value string) (func(), error) {
 	}
 	key := secrets.TryMapWindowsKeys(filePath)
 	if _, ok := testOverrides[key]; ok {
-		return nil, fmt.Errorf("repeated test override of '%s'", filePath)
+		return nil, fmt.Errorf("%w '%s'", errRepeatedOverride, filePath)
 	}
 	testOverrides[key] = value
 	cleanup := func() { delete(testOverrides, key) }
@@ -40,7 +41,7 @@ func testLookup(_ context.Context, filePath string) ([]byte, error) {
 	return nil, os.ErrNotExist
 }
 
-// Mock updates secrets so that any fetch of key would return
+// Fake updates secrets so that any fetch of key would return
 // the provided value.  It returns the cleanup function.
 //
 // Usage:
@@ -68,3 +69,5 @@ func Fake(key, value string) func() {
 	oldDevLookup := secrets.SetDevLookup(testLookup)
 	return func() { cleanup(); secrets.SetDevLookup(oldDevLookup) }
 }
+
+var errRepeatedOverride = errors.New("repeated test override of")

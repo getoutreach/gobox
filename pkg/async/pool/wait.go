@@ -15,8 +15,9 @@ import (
 // processed or have failed to enqueue. It can be used when you need to wait
 // for all items from one batch to be processed.
 type Wait struct {
-	Scheduler Scheduler
 	sync.WaitGroup
+
+	Scheduler Scheduler
 }
 
 func (w *Wait) Schedule(ctx context.Context, r async.Runner) error {

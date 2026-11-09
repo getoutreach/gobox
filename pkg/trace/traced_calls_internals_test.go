@@ -165,7 +165,7 @@ func TestTraceInfoExportedField(t *testing.T) {
 
 	tests := []struct {
 		name string
-		ctx  context.Context
+		ctx  context.Context //nolint:containedctx // Why: test case carries its own context
 		want bool
 	}{
 		{"no span", context.Background(), false},

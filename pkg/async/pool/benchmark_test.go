@@ -13,6 +13,7 @@ import (
 
 //nolint:unparam
 func benchmarkWorkerN(b *testing.B, size, items int) {
+	b.Helper()
 	ctx, cancel := context.WithCancel(b.Context())
 	defer cancel()
 
@@ -20,7 +21,7 @@ func benchmarkWorkerN(b *testing.B, size, items int) {
 
 	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for range b.N {
 		wg := new(sync.WaitGroup)
 		results := make(stringChan, items)
 		for i := range items {
@@ -44,7 +45,8 @@ func benchmarkWorkerN(b *testing.B, size, items int) {
 }
 
 func benchmarkGoN(b *testing.B, items int) {
-	for n := 0; n < b.N; n++ {
+	b.Helper()
+	for range b.N {
 		wg := new(sync.WaitGroup)
 		results := make(stringChan, items)
 		for i := range items {

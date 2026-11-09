@@ -7,6 +7,7 @@
 package env
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -28,7 +29,7 @@ func (to *testOverrides) addWithError(k string, v any) error {
 	defer to.mu.Unlock()
 
 	if _, exists := to.data[k]; exists {
-		return fmt.Errorf("repeated test override of '%s'", k)
+		return fmt.Errorf("%w '%s'", errRepeatedOverride, k)
 	}
 
 	to.data[k] = v
@@ -59,7 +60,7 @@ var overrides = testOverrides{
 }
 
 // devReader creates a config reader specific to the dev environment.
-func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
+func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
 		if err != nil {
@@ -73,21 +74,21 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 		}
 
 		var b []byte
-		errors := make([]error, 0)
+		errs := make([]error, 0)
 		for _, p := range lookupPaths {
 			var err error
 			b, err = os.ReadFile(p)
 			if err != nil {
-				errors = append(errors, err)
+				errs = append(errs, err)
 				continue
 			}
 
 			// we found a config, so exit
 			// and remove all errors
-			errors = nil
+			errs = nil
 			break
 		}
-		if len(errors) != 0 {
+		if len(errs) != 0 {
 			return fallback(fileName)
 		}
 
@@ -136,3 +137,5 @@ func FakeTestConfigWithError(fName string, ptr any) (func(), error) {
 		overrides.delete(fName)
 	}, nil
 }
+
+var errRepeatedOverride = errors.New("repeated test override of")

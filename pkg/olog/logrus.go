@@ -150,6 +150,7 @@ const (
 	lowerhex = "0123456789abcdef"
 )
 
+//nolint:gochecknoglobals // Why: sync.Pool must be shared
 var bufPool = sync.Pool{
 	New: func() any {
 		return new(strings.Builder)
@@ -234,6 +235,7 @@ func needsQuoting(s string) bool {
 	return false
 }
 
+//nolint:gochecknoglobals // Why: read-only lookup table computed once
 var needsQuotingSet = (func() [utf8.RuneSelf]bool {
 	set := [utf8.RuneSelf]bool{
 		'"': true,

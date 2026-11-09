@@ -298,6 +298,7 @@ func TestPriorityQueue_Remove_Invalid_Item(t *testing.T) {
 
 // push N numbers into queue in random push order.
 func pushRandNumbersToPriorityQueue(t *testing.T, queue *PriorityQueue, n int) []*PriorityQueueItem {
+	t.Helper()
 	nums := make([]int64, n)
 	for i := range n {
 		nums[i] = int64(i)
@@ -306,7 +307,7 @@ func pushRandNumbersToPriorityQueue(t *testing.T, queue *PriorityQueue, n int) [
 		nums[i], nums[j] = nums[j], nums[i]
 	})
 
-	items := []*PriorityQueueItem{}
+	items := make([]*PriorityQueueItem, 0, len(nums))
 	for _, v := range nums {
 		item, err := queue.Push(v, v)
 		items = append(items, item)

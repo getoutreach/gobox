@@ -46,6 +46,8 @@ import (
 )
 
 // packageSourceInfoSkips lists the packages that we will skip when calculating caller info.
+//
+//nolint:gochecknoglobals // Why: read-only lookup table used on the logging hot path
 var packageSourceInfoSkips = map[string]any{
 	"github.com/getoutreach/gobox/pkg/log":   nil,
 	"github.com/getoutreach/gobox/pkg/trace": nil,

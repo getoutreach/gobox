@@ -53,7 +53,7 @@ func ToSliceValue[T any](ptrs []*T) []T {
 	return res
 }
 
-// ToSliceValue returns a map of values of type T pointed by each pointers in {ptrs}
+// ToMapValue returns a map of values of type T pointed by each pointers in {ptrs}
 // if a pointer in {ptrs} is nil the value at the corresponding key will be the 0 of T.
 func ToMapValue[K comparable, T any](ptrs map[K]*T) map[K]T {
 	res := make(map[K]T, len(ptrs))
