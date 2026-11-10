@@ -442,6 +442,25 @@ log:
     address: github.com/getoutreach/goql
 ```
 
+### Excluding records by message or attribute
+
+An optional `exclude` list drops matching records at **any level** (including
+ERROR). Rules are OR'd; within a rule every field set must match (AND).
+
+```yaml
+exclude:
+  - address: github.com/getoutreach/foo/pkg/bar # optional: package or module path
+    message: "^health ?check"                   # optional: RE2 regex on the message
+    attrs:                                      # optional: RE2 regex per attribute value
+      http.route: "^/healthz$"                  # group members use dotted keys
+```
+
+- A rule must set `message` or `attrs`; to silence a logger entirely use `level: OFF`.
+- Attributes bound with `With`/`WithGroup` (including olog's `module`/`modulever`) are matched.
+- Invalid rules are skipped and reported as `ErrInvalidExclude`; valid rules still apply.
+- Rules are replaced on every reload. Like `log.SetHandler`, custom handlers bypass this.
+- Regexes run per record; keep them anchored and simple.
+
 ## `func PollConfigurationFile`
 
 ```go
