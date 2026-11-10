@@ -29,12 +29,12 @@ const InProgressSuffix = "_inprog"
 // relative to the user's home directory.
 const LogDirectoryBase = ".outreach" + string(filepath.Separator) + "logs"
 
-// LogExtension is the extension for log files
+// LogExtension is the extension for log files.
 const LogExtension = "json"
 
 // TracePortEnvironmentVariable is the environment variable for the socket port
 // used to communicate traces between the child app and the logging wrapper.
 const TracePortEnvironmentVariable = "OUTREACH_LOGGING_PORT"
 
-// SocketType is the type of socket for the log file.
+// TraceSocketType is the type of socket for the log file.
 const TraceSocketType = "tcp"

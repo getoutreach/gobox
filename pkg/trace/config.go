@@ -9,11 +9,12 @@ import (
 	"github.com/getoutreach/gobox/pkg/cfg"
 )
 
-// Config is the tracing config that gets read from trace.yaml
+// Config is the tracing config that gets read from trace.yaml.
 type Config struct {
 	Otel       `yaml:"OpenTelemetry"`
-	LogFile    LogFile `yaml:"LogFile"`
 	GlobalTags `yaml:"GlobalTags,omitempty"`
+
+	LogFile LogFile `yaml:"LogFile"`
 
 	// LogCallByDefault determines info logs for non-error instances of
 	// `trace.StartCall`.  The behavior can be overridden by providing
@@ -28,19 +29,19 @@ type Config struct {
 	LogTracedCalls bool `yaml:"LogTracedCalls"`
 }
 
-// GlobalTags are tags that get included with every span
+// GlobalTags are tags that get included with every span.
 type GlobalTags struct {
 	DevEmail string `yaml:"DevEmail,omitempty"`
 }
 
-// MarshalLog ensures that GlobalTags have a valid value included
-func (g *GlobalTags) MarshalLog(addField func(key string, v interface{})) {
+// MarshalLog ensures that GlobalTags have a valid value included.
+func (g *GlobalTags) MarshalLog(addField func(key string, v any)) {
 	if g.DevEmail != "" {
 		addField("dev.email", g.DevEmail)
 	}
 }
 
-// Otel is the configuration for OpenTelemetry based tracing
+// Otel is the configuration for OpenTelemetry based tracing.
 type Otel struct {
 	// Enabled determines whether to turn on tracing
 	Enabled bool `yaml:"Enabled"`
@@ -60,7 +61,7 @@ type Otel struct {
 	APIKey cfg.Secret `yaml:"APIKey"`
 }
 
-// LogFile is the configuration for log file based tracing
+// LogFile is the configuration for log file based tracing.
 type LogFile struct {
 	// Enabled determines whether to turn on tracing to a log file
 	Enabled bool `yaml:"Enabled"`
@@ -69,7 +70,7 @@ type LogFile struct {
 	Port int `yaml:"Port"`
 }
 
-// Load loads the configuration from trace.yaml
+// Load loads the configuration from trace.yaml.
 func (c *Config) Load() error {
 	return cfg.Load("trace.yaml", c)
 }

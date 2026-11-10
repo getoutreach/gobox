@@ -71,7 +71,7 @@ func TestTextLogger(t *testing.T) {
 			name:     "error field",
 			expected: "ERRO info key1=\"error value\"\n",
 			msg:      "info",
-			fields:   logrus.Fields{"key1": errors.New("error value")},
+			fields:   logrus.Fields{"key1": errors.New("error value")}, //nolint:err113 // Why: test-only error
 			level:    logrus.ErrorLevel,
 		},
 		{
@@ -106,7 +106,7 @@ func TestTextLogger(t *testing.T) {
 			name:     "slice of errors",
 			expected: "ERRO info key1=\"[error value1 error value2]\"\n",
 			msg:      "info",
-			fields:   logrus.Fields{"key1": []error{errors.New("error value1"), errors.New("error value2")}},
+			fields:   logrus.Fields{"key1": []error{errors.New("error value1"), errors.New("error value2")}}, //nolint:err113 // Why: test-only error
 			level:    logrus.ErrorLevel,
 		},
 		{
@@ -125,7 +125,7 @@ func TestTextLogger(t *testing.T) {
 			if c.fields != nil {
 				l = l.WithFields(c.fields)
 			}
-			switch c.level { // nolint: exhaustive // Why: only testing certain levels
+			switch c.level { //nolint: exhaustive // Why: only testing certain levels
 			case logrus.DebugLevel:
 				l.Debug(c.msg)
 			case logrus.InfoLevel:

@@ -14,17 +14,18 @@ import (
 // returning a slice of slog.Attr which will appended to the record. The
 // caller may also return an error, which will be handled by the underlying
 // log handler (slog.TextHandler or slog.JSONHandler).
-// nolint:gocritic // Why: this is the signature require by the slog handler interface
 type LogHookFunc func(context.Context, slog.Record) ([]slog.Attr, error)
 
 type hookHandler struct {
-	hooks []LogHookFunc
 	slog.Handler
+
+	hooks []LogHookFunc
 }
 
 // Handle performs the required Handle operation of the log handler interface,
 // calling any provided hooks before calling the underlying embedded handler.
-// nolint:gocritic // Why: this is the signature require by the slog handler interface
+//
+//nolint:gocritic // Why: this is the signature require by the slog handler interface
 func (h *hookHandler) Handle(ctx context.Context, r slog.Record) error {
 	for _, hook := range h.hooks {
 		attrs, err := hook(ctx, r)

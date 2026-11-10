@@ -19,13 +19,13 @@ import (
 // [status]: https://opentelemetry.io/docs/concepts/signals/traces/#span-status
 type SpanStatus int
 
-// possible SpanStatus values
+// possible SpanStatus values.
 const (
 	// SpanStatusUnset is the default status value.
 	SpanStatusUnset SpanStatus = iota
-	// SpanStatusOK means the span was explicitly marked error-free
+	// SpanStatusOK means the span was explicitly marked error-free.
 	SpanStatusOK
-	// SpanStatusError means the span has an error, e.g. a 500
+	// SpanStatusError means the span has an error, e.g. a 500.
 	SpanStatusError
 )
 
@@ -39,7 +39,7 @@ func (s SpanStatus) String() string {
 	return s.toOtel().String()
 }
 
-// toOtel converts gobox status to otel status
+// toOtel converts gobox status to otel status.
 func (s SpanStatus) toOtel() codes.Code {
 	switch s {
 	case SpanStatusError:
@@ -53,26 +53,27 @@ func (s SpanStatus) toOtel() codes.Code {
 	}
 }
 
-// type assertions for SpanStatus
+// type assertions for SpanStatus.
 var (
-	// it must implement log.Mashaler
+	// it must implement log.Mashaler.
 	_ log.Marshaler = SpanStatus(0)
-	// it must implement Stringer
+	// it must implement Stringer.
 	_ fmt.Stringer = SpanStatus(0)
 )
 
-// recordErrorConfig is the config RecordErrorOptions accrue into
+// recordErrorConfig is the config RecordErrorOptions accrue into.
 type recordErrorConfig struct {
 	log.Many
+
 	includeStacktrace bool
 }
 
-// RecordErrorOption describes a configuration option for recording an error
+// RecordErrorOption describes a configuration option for recording an error.
 type RecordErrorOption interface {
 	addErrOpt(*recordErrorConfig)
 }
 
-// recordErrOptFunc is a functional RecordErrorOption
+// recordErrOptFunc is a functional RecordErrorOption.
 type errOptFunc func(*recordErrorConfig)
 
 // addErrOpt implements RecordErrorOption.
@@ -87,7 +88,7 @@ func WithMarshalers(attrs ...log.Marshaler) RecordErrorOption {
 	})
 }
 
-// WithStackTrace defines whether a stack trace should be sent with the error event
+// WithStackTrace defines whether a stack trace should be sent with the error event.
 func WithStackTrace(enabled bool) RecordErrorOption {
 	return errOptFunc(func(rec *recordErrorConfig) {
 		rec.includeStacktrace = enabled

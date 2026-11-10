@@ -12,11 +12,11 @@ import (
 func TestJSONDecoder(t *testing.T) {
 	// Attempt to decode an invalid json.
 	json := &codec.JSON{MaxSnippetSize: 3}
-	var v interface{}
+	var v any
 	err := json.NewDecoder(strings.NewReader("          foo")).Decode(&v)
 
 	// Confirm that the error has a error.json payload.
-	m, ok := err.(log.Marshaler) //nolint:errorlint // Why: test
+	m, ok := err.(log.Marshaler)
 	assert.Assert(t, ok && m != nil)
 	fields := log.F{}
 	m.MarshalLog(fields.Set)

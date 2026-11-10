@@ -104,7 +104,7 @@ func (b *Bytes) Close() error {
 	b.closed = true
 
 	b.draw(true)
-	fmt.Fprintln(b.out) //nolint:errcheck // Why: Best effort
+	fmt.Fprintln(b.out)
 	return nil
 }
 
@@ -151,9 +151,9 @@ func (b *Bytes) draw(force bool) {
 	}
 
 	if b.isTerm {
-		fmt.Fprint(b.out, term.ClearLine, line) //nolint:errcheck // Why: Best effort
+		fmt.Fprint(b.out, term.ClearLine, line)
 	} else {
-		fmt.Fprintln(b.out, line) //nolint:errcheck // Why: Best effort
+		fmt.Fprintln(b.out, line)
 	}
 }
 

@@ -151,7 +151,7 @@ func Test_updater_defaultOptions(t *testing.T) {
 
 // flagNames returns the names of the given flags.
 func flagNames[F interface{ Names() []string }](flags []F) []string {
-	var names []string
+	names := make([]string, 0, len(flags))
 	for _, f := range flags {
 		names = append(names, f.Names()...)
 	}
@@ -188,8 +188,6 @@ func Test_updater_defaultOptions_registersEachFlagOnce(t *testing.T) {
 			repoURL:        "https://github.com/getoutreach/gobox",
 			version:        "v0.0.0",
 			executablePath: "/usr/local/bin/gobox",
-			skipInstall:    true,
-			noProgressBar:  true,
 		}
 	}
 

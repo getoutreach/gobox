@@ -4,7 +4,7 @@ package trace_test
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/trace"
@@ -140,7 +140,7 @@ func TestHoneycombDeterministicSampler(t *testing.T) {
 				Attributes: []attribute.KeyValue{
 					sampleRateAttribute.Int(int(tt.sampleRate)),
 				},
-				Tracestate: traceStateLiteral("sample_rate=" + fmt.Sprintf("%d", tt.sampleRate)),
+				Tracestate: traceStateLiteral("sample_rate=" + strconv.FormatUint(uint64(tt.sampleRate), 10)),
 			}
 			expectNotSampled := sdktrace.SamplingResult{Decision: sdktrace.Drop}
 

@@ -12,6 +12,7 @@ import "io"
 // minus the Close() method which is implemented by the sequencedCloser.
 type sequencedReadCloser struct {
 	io.ReadCloser
+
 	rcs []io.Closer
 }
 
@@ -28,7 +29,7 @@ func (n *sequencedReadCloser) Close() error {
 	return nil
 }
 
-// newSequencedReadCloser returns a new sequencedReadCloser
+// newSequencedReadCloser returns a new sequencedReadCloser.
 func newSequencedReadCloser(rc io.ReadCloser, closers ...io.Closer) *sequencedReadCloser {
 	return &sequencedReadCloser{rc, closers}
 }

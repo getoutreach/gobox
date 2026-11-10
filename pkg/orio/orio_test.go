@@ -12,7 +12,7 @@ import (
 var _ io.ReadWriteCloser = orio.Error{}
 
 func TestError(t *testing.T) {
-	e := orio.Error{Err: errors.New("foo")}
+	e := orio.Error{Err: errors.New("foo")} //nolint:err113 // Why: test-only error
 
 	n, err := e.Read(make([]byte, 10))
 	assert.Equal(t, n, 0)

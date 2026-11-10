@@ -17,6 +17,8 @@ import (
 )
 
 // stringLevel is a map of string to slog.Level.
+//
+//nolint:gochecknoglobals // Why: read-only lookup table
 var stringLevel = map[string]slog.Level{
 	slog.LevelDebug.String(): slog.LevelDebug,
 	slog.LevelInfo.String():  slog.LevelInfo,
@@ -91,7 +93,6 @@ func PollConfigurationFile(ctx context.Context, logCfgFilePath string, pollInter
 	lastModTime := time.Time{}
 	for ctx.Err() == nil {
 		stat, err := os.Stat(logCfgFilePath)
-
 		if err != nil {
 			ok := fn(fmt.Errorf("failed to stat %s: %w", logCfgFilePath, err))
 			if !ok {

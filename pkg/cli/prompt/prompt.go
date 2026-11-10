@@ -38,23 +38,31 @@ const (
 // input.
 func Required(s string) error {
 	if strings.TrimSpace(s) == "" {
-		return errors.New("value is required")
+		return errValueRequired
 	}
 	return nil
 }
 
-var (
-	messageStyle  = lipgloss.NewStyle().Bold(true)
-	helpStyle     = lipgloss.NewStyle().Faint(true)
-	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	selectedStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212"))
+func messageStyle() lipgloss.Style { return lipgloss.NewStyle().Bold(true) }
 
-	// confirmFocusedStyle and confirmBlurredStyle render the highlighted
-	// and non-highlighted Yes/No buttons for Confirm.
-	confirmFocusedStyle = lipgloss.NewStyle().Bold(true).Padding(0, 2).
-				Background(lipgloss.Color("57")).Foreground(lipgloss.Color("230"))
-	confirmBlurredStyle = lipgloss.NewStyle().Padding(0, 2).Foreground(lipgloss.Color("240"))
-)
+func helpStyle() lipgloss.Style { return lipgloss.NewStyle().Faint(true) }
+
+func errorStyle() lipgloss.Style { return lipgloss.NewStyle().Foreground(lipgloss.Color("9")) }
+
+func selectedStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212"))
+}
+
+// confirmFocusedStyle and confirmBlurredStyle render the highlighted
+// and non-highlighted Yes/No buttons for Confirm.
+func confirmFocusedStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Bold(true).Padding(0, 2).
+		Background(lipgloss.Color("57")).Foreground(lipgloss.Color("230"))
+}
+
+func confirmBlurredStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Padding(0, 2).Foreground(lipgloss.Color("240"))
+}
 
 // Config describes a single-field text prompt.
 type Config struct {
@@ -139,13 +147,13 @@ func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *inputModel) View() tea.View {
 	var b strings.Builder
 
-	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
+	fmt.Fprintln(&b, messageStyle().Render(m.cfg.Message))
 	if m.cfg.Help != "" {
-		fmt.Fprintln(&b, helpStyle.Render(m.cfg.Help))
+		fmt.Fprintln(&b, helpStyle().Render(m.cfg.Help))
 	}
 	b.WriteString(m.input.View())
 	if m.input.Err != nil {
-		fmt.Fprintf(&b, "\n%s", errorStyle.Render(m.input.Err.Error()))
+		fmt.Fprintf(&b, "\n%s", errorStyle().Render(m.input.Err.Error()))
 	}
 
 	return tea.NewView(b.String())
@@ -289,7 +297,7 @@ func (m *multiSelectModel) View() tea.View {
 	if n := m.countSelected(); n > 0 {
 		hints = append(hints, fmt.Sprintf("%d selected", n))
 	}
-	fmt.Fprintln(&b, helpStyle.Render(m.footer(hints...)))
+	fmt.Fprintln(&b, helpStyle().Render(m.footer(hints...)))
 
 	return m.view(&b)
 }
@@ -415,15 +423,15 @@ func (m *confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *confirmModel) View() tea.View {
-	yesStyle, noStyle := confirmBlurredStyle, confirmFocusedStyle
+	yesStyle, noStyle := confirmBlurredStyle(), confirmFocusedStyle()
 	if m.cursor == 0 {
-		yesStyle, noStyle = confirmFocusedStyle, confirmBlurredStyle
+		yesStyle, noStyle = confirmFocusedStyle(), confirmBlurredStyle()
 	}
 
 	var b strings.Builder
-	fmt.Fprintln(&b, messageStyle.Render(m.cfg.Message))
+	fmt.Fprintln(&b, messageStyle().Render(m.cfg.Message))
 	if m.cfg.Help != "" {
-		fmt.Fprintln(&b, helpStyle.Render(m.cfg.Help))
+		fmt.Fprintln(&b, helpStyle().Render(m.cfg.Help))
 	}
 	fmt.Fprintf(&b, "%s %s\n", yesStyle.Render("Yes"), noStyle.Render("No"))
 
@@ -670,9 +678,9 @@ func (l *optionList[T]) windowEnd() int {
 // writeHeader renders the message, the help line, and the filter field
 // once there is anything in it.
 func (l *optionList[T]) writeHeader(b *strings.Builder) {
-	fmt.Fprintln(b, messageStyle.Render(l.message))
+	fmt.Fprintln(b, messageStyle().Render(l.message))
 	if l.help != "" {
-		fmt.Fprintln(b, helpStyle.Render(l.help))
+		fmt.Fprintln(b, helpStyle().Render(l.help))
 	}
 	if l.filter.Value() != "" {
 		fmt.Fprintln(b, l.filter.View())
@@ -749,9 +757,9 @@ func (l *optionList[T]) optionRow(option Option[T], highlighted bool, prefix int
 
 	switch {
 	case highlighted:
-		return "> ", selectedStyle.Render(label)
+		return "> ", selectedStyle().Render(label)
 	case option.Disabled:
-		return "  ", helpStyle.Render(label)
+		return "  ", helpStyle().Render(label)
 	default:
 		return "  ", label
 	}
@@ -857,9 +865,9 @@ func (m *listModel[T]) View() tea.View {
 
 	m.writeHeader(&b)
 	m.writeOptions(&b, m.writeOption)
-	fmt.Fprintln(&b, helpStyle.Render(m.footer("enter to select")))
+	fmt.Fprintln(&b, helpStyle().Render(m.footer("enter to select")))
 	if m.status != "" {
-		fmt.Fprintln(&b, errorStyle.Render(m.status))
+		fmt.Fprintln(&b, errorStyle().Render(m.status))
 	}
 
 	return m.view(&b)
@@ -875,7 +883,7 @@ func (m *listModel[T]) writeOption(b *strings.Builder, index int, highlighted bo
 	fmt.Fprintf(b, "%s%s\n", marker, label)
 
 	if option.Description != "" && !option.Disabled {
-		fmt.Fprintf(b, "    %s\n", helpStyle.Render(m.truncate(option.Description, descriptionIndent)))
+		fmt.Fprintf(b, "    %s\n", helpStyle().Render(m.truncate(option.Description, descriptionIndent)))
 	}
 }
 
@@ -921,3 +929,5 @@ func pickOne[T any](ctx context.Context, message, help string, options []Option[
 
 	return m.chosen.Value, nil
 }
+
+var errValueRequired = errors.New("value is required")

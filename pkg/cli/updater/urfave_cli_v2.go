@@ -14,14 +14,16 @@ import (
 	cliV2 "github.com/urfave/cli/v2"
 )
 
-// The urfave (V2) flags the updater registers. Keep in sync with defaultOptions
-// and hookIntoCLIV2, which register them one at a time.
+// UpdaterFlags are the urfave (V2) flags the updater registers. Keep in sync
+// with defaultOptions and hookIntoCLIV2, which register them one at a time.
+//
+//nolint:gochecknoglobals // Why: exported flag list
 var UpdaterFlags = []cliV2.Flag{
 	SkipFlag.ToUrfaveV2(),
 	ForceFlag.ToUrfaveV2(),
 }
 
-// hookIntoCLIV2 hooks into a urfave/cli/v2.App to add updater support
+// hookIntoCLIV2 hooks into a urfave/cli/v2.App to add updater support.
 func (u *updater) hookIntoCLIV2() {
 	oldBefore := u.app.Before
 
@@ -74,7 +76,6 @@ func (u *updater) hookIntoCLIV2() {
 
 		u.log.Infof("%s has been updated, re-running automatically", u.app.Name)
 
-		//nolint:gosec // Why: We're passing in os.Args
 		if err := syscall.Exec(binPath, os.Args, os.Environ()); err != nil {
 			return cliV2.Exit("failed to re-run binary, please re-run your command manually", 1)
 		}

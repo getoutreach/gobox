@@ -2,6 +2,7 @@
 
 // Description: This file contains the read through cache implementation for
 // this package.
+
 package region
 
 import (
@@ -15,17 +16,21 @@ import (
 )
 
 var (
-	// RegionCachePath is the $HOME/<RegionCachePath> location of the regionpicker cache
+	// RegionCachePath is the $HOME/<RegionCachePath> location of the regionpicker cache.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	RegionCachePath = filepath.Join(".outreach", ".cache", "box")
-	// RegionCacheFile is the name of the regionpicker cache file
+	// RegionCacheFile is the name of the regionpicker cache file.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	RegionCacheFile = "regions.json"
 )
 
 // cache is the package specific cache instance used. This is a global variable to
 // ensure that this is go-routine safe.
+//
+//nolint:gochecknoglobals // Why: process-wide region cache
 var cache = &cacheStore{}
 
-// cacheEntry is information on a cloud's cache entry
+// cacheEntry is information on a cloud's cache entry.
 type cacheEntry struct {
 	// Duration is how long it took to talk to this region at LastUpdatedAt
 	Duration time.Duration `json:"duration"`
@@ -42,34 +47,6 @@ type cacheStore struct {
 	mu sync.RWMutex
 
 	once sync.Once
-}
-
-// expireKeyIfRequired expires a key if it's ready to be expired
-func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) bool {
-	if time.Now().UTC().After(v.ExpiresAt) {
-		c.mu.Lock()
-		delete(c.Clouds[cloud], r)
-		c.mu.Unlock()
-
-		// save the expiration to disk
-		c.save() //nolint:errcheck // Why: best effort
-		return true
-	}
-
-	return false
-}
-
-// get returns a cache entry for a given cloud/region pairing
-func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	v, ok := c.Clouds[cloud][r]
-	if !ok {
-		return nil, ok
-	}
-
-	return &v, ok
 }
 
 // Get returns the duration of a cloud/region pairing, if it exists.
@@ -91,6 +68,44 @@ func (c *cacheStore) Get(cloud CloudName, r Name) (time.Duration, bool) {
 	return v.Duration, ok
 }
 
+// Set sets the duration of a cloud/region pairing.
+func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
+	c.once.Do(c.load) // read the cache from disk at most once
+
+	c.set(cloud, r, dur) // set the key into our datastore
+
+	// save the result to disk
+	return c.save()
+}
+
+// expireKeyIfRequired expires a key if it's ready to be expired.
+func (c *cacheStore) expireKeyIfRequired(cloud CloudName, r Name, v *cacheEntry) bool {
+	if time.Now().UTC().After(v.ExpiresAt) {
+		c.mu.Lock()
+		delete(c.Clouds[cloud], r)
+		c.mu.Unlock()
+
+		// save the expiration to disk
+		c.save() //nolint:errcheck // Why: best effort
+		return true
+	}
+
+	return false
+}
+
+// get returns a cache entry for a given cloud/region pairing.
+func (c *cacheStore) get(cloud CloudName, r Name) (*cacheEntry, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	v, ok := c.Clouds[cloud][r]
+	if !ok {
+		return nil, ok
+	}
+
+	return &v, ok
+}
+
 func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -104,16 +119,6 @@ func (c *cacheStore) set(cloud CloudName, r Name, dur time.Duration) {
 		// Expire in 8 hours
 		ExpiresAt: time.Now().UTC().Add(time.Hour * 8),
 	}
-}
-
-// Set sets the duration of a cloud/region pairing
-func (c *cacheStore) Set(cloud CloudName, r Name, dur time.Duration) error {
-	c.once.Do(c.load) // read the cache from disk at most once
-
-	c.set(cloud, r, dur) // set the key into our datastore
-
-	// save the result to disk
-	return c.save()
 }
 
 func (c *cacheStore) getCacheFilePath() (string, error) {
@@ -135,7 +140,7 @@ func (c *cacheStore) getCacheFilePath() (string, error) {
 }
 
 // load retrieves the cache from disk, if it exists, otherwise
-// it is returned uninitialized
+// it is returned uninitialized.
 func (c *cacheStore) load() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -157,7 +162,7 @@ func (c *cacheStore) load() {
 	_ = json.NewDecoder(f).Decode(&c) //nolint:errcheck // Why: function signature/acceptable
 }
 
-// save saves the cache to disk
+// save saves the cache to disk.
 func (c *cacheStore) save() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

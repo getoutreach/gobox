@@ -36,7 +36,7 @@ func ExamplePool() {
 	output := make(chan string, items)
 	now := time.Now()
 
-	for i := 0; i < items; i++ {
+	for i := range items {
 		func(i int) {
 			// All input and output is captured by closure
 			scheduler.Schedule(ctx, async.Func(func(ctx context.Context) error {

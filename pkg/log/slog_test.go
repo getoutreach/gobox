@@ -19,7 +19,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// SlogTestEvent demonstrates how custom events can be marshaled in slog tests
+// SlogTestEvent demonstrates how custom events can be marshaled in slog tests.
 type SlogTestEvent struct {
 	SomeField string
 }
@@ -28,7 +28,7 @@ func (m SlogTestEvent) MarshalLog(addField func(field string, value any)) {
 	addField("myevent_field", m.SomeField)
 }
 
-// setupSlogTest sets up the slog facade for testing and returns a cleanup function
+// setupSlogTest sets up the slog facade for testing and returns a cleanup function.
 func setupSlogTest(t *testing.T) func() {
 	t.Helper()
 
@@ -366,7 +366,7 @@ func TestSlogAttributeOrdering(t *testing.T) {
 	assert.Assert(t, posMiddle < posLast, "m_middle should appear before z_last")
 }
 
-// Test that Fatal exits when using slog (this test would normally cause os.Exit, so we skip it)
+// Test that Fatal exits when using slog (this test would normally cause os.Exit, so we skip it).
 func TestSlogFatalBehavior(t *testing.T) {
 	t.Skip("Skipping Fatal test as it calls os.Exit(1)")
 
@@ -383,7 +383,7 @@ func TestSlogFatalBehavior(t *testing.T) {
 	// }
 }
 
-// TestSlogComplexValues tests slog's handling of complex values that cause JSON encoding issues
+// TestSlogComplexValues tests slog's handling of complex values that cause JSON encoding issues.
 func TestSlogComplexValues(t *testing.T) {
 	cleanup := setupSlogTest(t)
 	defer cleanup()
@@ -452,7 +452,7 @@ func TestSlogStructuredValues(t *testing.T) {
 	}
 }
 
-// TestSlogErrorHandling tests slog's handling of various error types
+// TestSlogErrorHandling tests slog's handling of various error types.
 func TestSlogErrorHandling(t *testing.T) {
 	cleanup := setupSlogTest(t)
 	defer cleanup()
@@ -464,7 +464,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("standard error", func(t *testing.T) {
 		buf.Reset()
-		standardErr := errors.New("standard error message")
+		standardErr := errors.New("standard error message") //nolint:err113 // Why: test-only error
 		log.Error(ctx, "standard error test", log.F{"error": standardErr})
 
 		output := buf.String()
@@ -477,7 +477,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("events.Err wrapped error", func(t *testing.T) {
 		buf.Reset()
-		baseErr := errors.New("base error")
+		baseErr := errors.New("base error") //nolint:err113 // Why: test-only error
 		wrappedErr := events.Err(baseErr)
 		log.Error(ctx, "events error test", wrappedErr)
 
@@ -492,7 +492,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("pkg/errors wrapped error with stack", func(t *testing.T) {
 		buf.Reset()
-		baseErr := errors.New("root cause")
+		baseErr := errors.New("root cause") //nolint:err113 // Why: test-only error
 		wrappedErr := pkgerrors.Wrap(baseErr, "wrapped message")
 		eventsErr := events.Err(wrappedErr)
 		log.Error(ctx, "wrapped error test", eventsErr)
@@ -509,7 +509,7 @@ func TestSlogErrorHandling(t *testing.T) {
 
 	t.Run("nested error with multiple causes", func(t *testing.T) {
 		buf.Reset()
-		rootErr := errors.New("database connection failed")
+		rootErr := errors.New("database connection failed") //nolint:err113 // Why: test-only error
 		middleErr := fmt.Errorf("query execution failed: %w", rootErr)
 		topErr := fmt.Errorf("service operation failed: %w", middleErr)
 		eventsErr := events.Err(topErr)
@@ -543,7 +543,7 @@ func TestSlogErrorHandling(t *testing.T) {
 	})
 }
 
-// CustomError implements both error and Marshaler interfaces
+// CustomError implements both error and Marshaler interfaces.
 type CustomError struct {
 	Code    int
 	Message string

@@ -26,7 +26,8 @@ const maxBaggageValueLen = 256
 
 // BaggageAllowList maps allowed baggage keys (as set upstream, e.g. gazelle's
 // client_operation_name) to the semconv span attribute they are written to. Never add PII or PHI keys: baggage crosses trust boundaries.
-// nolint:gochecknoglobals // Why: constant-like lookup table
+//
+//nolint:gochecknoglobals // Why: constant-like lookup table
 var BaggageAllowList = map[string]string{
 	"client_operation_name": "graphql.operation.name",
 	"ScenarioName":          "scenario.name",

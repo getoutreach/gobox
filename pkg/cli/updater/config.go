@@ -18,9 +18,11 @@ import (
 // files.
 var (
 	// ConfigVersion is the current version of the configuration schema.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	ConfigVersion = 1
 
-	// ConfigFile is the non-HOME containing path to the config file for the updater
+	// ConfigFile is the non-HOME containing path to the config file for the updater.
+	//nolint:gochecknoglobals // Why: exported and overridable by importers
 	ConfigFile = filepath.Join(".outreach", ".config", "updater", "config.yaml")
 )
 
@@ -122,7 +124,7 @@ func (c *Config) Get(repoURL string) (UpdateConfiguration, bool) {
 	return *v, true
 }
 
-// / GetGlobal returns a copy of the global configuration.
+// GetGlobal returns a copy of the global configuration.
 func (c *Config) GetGlobal() UpdateConfiguration {
 	if c.GlobalConfig == nil {
 		return UpdateConfiguration{}

@@ -3,7 +3,6 @@
 // Description: implementation for Unix like system
 
 //go:build !windows
-// +build !windows
 
 package logfile
 
@@ -61,11 +60,11 @@ func Hook() error {
 
 	// create the command with an env var to prevent an infinite loop
 	//nolint:gosec // Why: We're using the same command that was run to start the process
-	cmd := exec.Command(os.Args[0], os.Args[1:]...)
+	cmd := exec.Command(os.Args[0], os.Args[1:]...) //nolint:noctx // Why: Hook is public API without a context parameter
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=1", EnvironmentVariable))
+	cmd.Env = append(cmd.Env, EnvironmentVariable+"=1")
 
-	l, err := net.Listen(TraceSocketType, "localhost:0")
+	l, err := net.Listen(TraceSocketType, "localhost:0") //nolint:noctx // Why: Hook is public API without a context parameter
 	if err != nil {
 		return errors.Wrap(err, "failed to start trace server")
 	}
@@ -95,7 +94,7 @@ func Hook() error {
 		cmdErr = cmd.Wait()
 
 		// Close the PTY and wait for the output hook to flush
-		//nolint:errcheck // Why: Best effort
+
 		ptmx.Close()
 		<-exited
 	} else {
@@ -165,7 +164,7 @@ func forwardSignals(exited <-chan struct{}, ptmx *os.File, cmd *exec.Cmd) {
 }
 
 // attachStdinToPty attaches the current os.Stdin to the
-// provided PTY if running in a terminal
+// provided PTY if running in a terminal.
 func attachStdinToPty() (func(), error) {
 	if !cliterm.IsTerminal(os.Stdin) {
 		return func() {}, nil
@@ -186,7 +185,8 @@ func attachStdinToPty() (func(), error) {
 // ptyOutputHook reads the data from the PTY and writes it to the log file
 // and stdout while also handling forwarding os.Stdin to the PTY.
 func ptyOutputHook(l net.Listener, cmd *exec.Cmd, ptmx,
-	logFile *os.File) (<-chan struct{}, error) {
+	logFile *os.File,
+) (<-chan struct{}, error) {
 	detachStdin, err := attachStdinToPty()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to attach stdin to pty")

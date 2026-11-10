@@ -42,7 +42,7 @@ func WithMinVersion(version float32) LoadBoxOption {
 // WithDefaults sets the default URLs to provided to a user when
 // a box configuration doesn't exist locally.
 //
-// Deprecated: Do not use. See field on LoadBoxOptions
+// Deprecated: Do not use. See field on LoadBoxOptions.
 func WithDefaults(defaults []string) LoadBoxOption {
 	return func(opts *LoadBoxOptions) {
 		opts.DefaultBoxSources = defaults

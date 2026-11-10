@@ -9,10 +9,9 @@
 package async_test
 
 import (
-	// nolint: revive // Why: to minimize the manual edits which we have to make when copying from sync.Once
-	. "github.com/getoutreach/gobox/pkg/async"
-
 	"testing"
+	//nolint: revive // Why: to minimize the manual edits which we have to make when copying from sync.Once
+	. "github.com/getoutreach/gobox/pkg/async"
 )
 
 type one int
@@ -22,6 +21,7 @@ func (o *one) Increment() {
 }
 
 func run(t *testing.T, once *RetryableOnce, o *one, c chan bool) {
+	t.Helper()
 	once.Do(func() bool {
 		o.Increment()
 		return true
@@ -37,10 +37,10 @@ func TestOnce(t *testing.T) {
 	once := new(RetryableOnce)
 	c := make(chan bool)
 	const N = 10
-	for i := 0; i < N; i++ {
+	for range N {
 		go run(t, once, o, c)
 	}
-	for i := 0; i < N; i++ {
+	for range N {
 		<-c
 	}
 	if *o != 1 {

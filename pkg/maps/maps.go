@@ -9,7 +9,7 @@ package maps
 import "maps"
 
 // Merge takes two maps a and b and return the merged result.
-// If overwrite is true then b will overwrite values in a on conflicting keys
+// If overwrite is true then b will overwrite values in a on conflicting keys.
 func Merge[K comparable, T any](a, b map[K]T, overwrite bool) map[K]T {
 	result := make(map[K]T)
 	maps.Copy(result, a)

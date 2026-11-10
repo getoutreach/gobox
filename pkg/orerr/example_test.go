@@ -7,7 +7,7 @@ import (
 
 func ExampleRetryable() {
 	process := func(attempt int) error {
-		err := errors.New("something went wrong")
+		err := errors.New("something went wrong") //nolint:err113 // Why: test-only error
 		if attempt < 2 {
 			return Retryable(err)
 		}

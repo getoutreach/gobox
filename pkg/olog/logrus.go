@@ -77,7 +77,7 @@ func logrusToCharmLevel(logrusLevel logrus.Level) charm.Level {
 // Format implements logrus.Formatter using a charm-style text format.
 func (l *logrusCharmTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
 	level := logrusToCharmLevel(entry.Level)
-	entries := []interface{}{
+	entries := []any{
 		charm.TimestampKey, entry.Time,
 		charm.LevelKey, level,
 	}
@@ -112,26 +112,26 @@ func (l *logrusCharmTextFormat) writeIndent(w io.Writer, str, indent string, new
 		nl := strings.IndexByte(str, '\n')
 		if nl == -1 {
 			if str != "" {
-				w.Write([]byte(indent)) // nolint:errcheck // Why: consistent with source code
+				w.Write([]byte(indent)) //nolint:errcheck // Why: consistent with source code
 				val := escapeStringForOutput(str, false)
 				if valueStyle, ok := st.Values[key]; ok {
 					val = valueStyle.Renderer(l.re).Render(val)
 				} else {
 					val = st.Value.Renderer(l.re).Render(val)
 				}
-				w.Write([]byte(val)) // nolint:errcheck // Why: consistent with source code
+				w.Write([]byte(val)) //nolint:errcheck // Why: consistent with source code
 				if newline {
-					w.Write([]byte{'\n'}) // nolint:errcheck // Why: consistent with source code
+					w.Write([]byte{'\n'}) //nolint:errcheck // Why: consistent with source code
 				}
 			}
 			return
 		}
 
-		w.Write([]byte(indent)) // nolint:errcheck // Why: consistent with source code
+		w.Write([]byte(indent)) //nolint:errcheck // Why: consistent with source code
 		val := escapeStringForOutput(str[:nl], false)
 		val = st.Value.Renderer(l.re).Render(val)
-		w.Write([]byte(val))  // nolint:errcheck // Why: consistent with source code
-		w.Write([]byte{'\n'}) // nolint:errcheck // Why: consistent with source code
+		w.Write([]byte(val))  //nolint:errcheck // Why: consistent with source code
+		w.Write([]byte{'\n'}) //nolint:errcheck // Why: consistent with source code
 		str = str[nl+1:]
 	}
 }
@@ -150,8 +150,9 @@ const (
 	lowerhex = "0123456789abcdef"
 )
 
+//nolint:gochecknoglobals // Why: sync.Pool must be shared
 var bufPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(strings.Builder)
 	},
 }
@@ -234,12 +235,13 @@ func needsQuoting(s string) bool {
 	return false
 }
 
+//nolint:gochecknoglobals // Why: read-only lookup table computed once
 var needsQuotingSet = (func() [utf8.RuneSelf]bool {
 	set := [utf8.RuneSelf]bool{
 		'"': true,
 		'=': true,
 	}
-	for i := 0; i < utf8.RuneSelf; i++ {
+	for i := range utf8.RuneSelf {
 		r := rune(i)
 		if unicode.IsSpace(r) || !unicode.IsPrint(r) {
 			set[i] = true
@@ -250,12 +252,12 @@ var needsQuotingSet = (func() [utf8.RuneSelf]bool {
 
 func writeSpace(w io.Writer, first bool) {
 	if !first {
-		w.Write([]byte{' '}) // nolint:errcheck // Why: consistent with source code
+		w.Write([]byte{' '}) //nolint:errcheck // Why: consistent with source code
 	}
 }
 
-// nolint:funlen // Why: consistent with source code
-func (l *logrusCharmTextFormat) textFormatter(loggerLevel charm.Level, b *bytes.Buffer, keyvals ...interface{}) {
+//nolint:funlen // Why: consistent with source code
+func (l *logrusCharmTextFormat) textFormatter(loggerLevel charm.Level, b *bytes.Buffer, keyvals ...any) {
 	st := l.styles
 	lenKeyvals := len(keyvals)
 

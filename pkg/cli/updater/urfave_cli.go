@@ -22,19 +22,24 @@ import (
 )
 
 // SkipFlag is a CLI flag used to skip the updater check.
+//
+//nolint:gochecknoglobals // Why: exported flag definition
 var SkipFlag = BoolFlag{
 	Name:  "skip-update",
 	Usage: "Skips the updater check",
 }
 
 // ForceFlag is a CLI flag used to force the updater check.
+//
+//nolint:gochecknoglobals // Why: exported flag definition
 var ForceFlag = BoolFlag{
 	Name:  "force-update-check",
 	Usage: "Force checking for an update",
 }
 
 // hookSkipUpdateIntoCLI appends the skip-update flag to the app. The
-// hookIntoCLI functions append the remaining updater flags.
+// hookIntoCLI functions append the remaining updater flags, because nothing
+// acts on them unless the updater is set up.
 func (u *updater) hookSkipUpdateIntoCLI() {
 	switch {
 	case u.app != nil:
@@ -44,7 +49,7 @@ func (u *updater) hookSkipUpdateIntoCLI() {
 	}
 }
 
-// newUpdaterCommand creates a new Command that interacts with the updater
+// newUpdaterCommand creates a new Command that interacts with the updater.
 func newUpdaterCommand(u *updater) *Command {
 	return &Command{
 		Name:  "updater",
@@ -59,7 +64,7 @@ func newUpdaterCommand(u *updater) *Command {
 	}
 }
 
-// cliInstallVersion is shared code to install/rollback and application version
+// cliInstallVersion is shared code to install/rollback and application version.
 func cliInstallVersion(ctx context.Context, u *updater, version string, rollback bool) error {
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
@@ -85,7 +90,7 @@ func cliInstallVersion(ctx context.Context, u *updater, version string, rollback
 }
 
 // newRollbackCommand creates a new Command that rolls back to the previous version
-// or to the specified version
+// or to the specified version.
 func newRollbackCommand(u *updater) *Command {
 	conf, _ := ReadConfig() //nolint:errcheck // Why: Handled below
 	repoCache := conf.UpdaterCache[u.repoURL]
@@ -103,7 +108,7 @@ func newRollbackCommand(u *updater) *Command {
 		Action: func(ctx context.Context, c *CLICmd) error {
 			ver := c.String("version")
 			if ver == "" {
-				return fmt.Errorf("no previous version to rollback to, must be set with --version")
+				return errors.New("no previous version to rollback to, must be set with --version")
 			}
 
 			return cliInstallVersion(ctx, u, ver, true)
@@ -140,7 +145,7 @@ func newUseCommand(u *updater) *Command {
 
 			ver := c.Args().First()
 			if ver == "" {
-				return fmt.Errorf("no version specified")
+				return errors.New("no version specified")
 			}
 
 			return cliInstallVersion(ctx, u, ver, false)
@@ -148,7 +153,7 @@ func newUseCommand(u *updater) *Command {
 	}
 }
 
-// newSetChannel creates a new Command that sets the channel
+// newSetChannel creates a new Command that sets the channel.
 func newSetChannel(u *updater) *Command {
 	return &Command{
 		Name:  "set-channel",
@@ -177,7 +182,7 @@ func newSetChannel(u *updater) *Command {
 
 			channel := strings.ToLower(c.Args().First())
 			if channel == "" {
-				return fmt.Errorf("channel must be provided")
+				return errors.New("channel must be provided")
 			}
 
 			versions, err := resolver.GetVersions(ctx, u.ghToken, u.repoURL, false)
@@ -186,7 +191,7 @@ func newSetChannel(u *updater) *Command {
 			}
 
 			if _, ok := versions[channel]; !ok {
-				return fmt.Errorf("channel %q is not valid, run 'get-channels' to return a list of valid channels", channel)
+				return fmt.Errorf("%w: %q, run 'get-channels' to return a list of valid channels", errInvalidChannel, channel)
 			}
 
 			repoConf, _ := conf.Get(u.repoURL)
@@ -214,7 +219,7 @@ func newSetChannel(u *updater) *Command {
 }
 
 // newGetChannels creates a new Command that returns the channels for the
-// current application
+// current application.
 func newGetChannels(u *updater) *Command {
 	return &Command{
 		Name:  "get-channels",
@@ -234,7 +239,7 @@ func newGetChannels(u *updater) *Command {
 }
 
 // newStatusCommand creates a new Command that returns the current
-// status of the updater
+// status of the updater.
 func newStatusCommand(u *updater) *Command {
 	return &Command{
 		Name:  "status",
@@ -300,7 +305,7 @@ func newStatusCommand(u *updater) *Command {
 	}
 }
 
-// printDebug prints debug information about the updater
+// printDebug prints debug information about the updater.
 func printDebug(u *updater) error {
 	fmt.Println("")
 	fmt.Println("Updater Struct")
@@ -337,3 +342,5 @@ func printDebug(u *updater) error {
 
 	return nil
 }
+
+var errInvalidChannel = errors.New("channel is not valid")

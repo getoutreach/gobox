@@ -51,7 +51,7 @@ func New(description string) *Spinner {
 // no-op if the spinner is already running.
 func (s *Spinner) Start() {
 	if !s.isTerm {
-		fmt.Fprintln(s.out, s.description) //nolint:errcheck // Why: Best effort
+		fmt.Fprintln(s.out, s.description)
 		return
 	}
 
@@ -87,11 +87,11 @@ func (s *Spinner) run() {
 	for {
 		select {
 		case <-s.stop:
-			fmt.Fprint(s.out, term.ClearLine) //nolint:errcheck // Why: Best effort
+			fmt.Fprint(s.out, term.ClearLine)
 			return
 		case <-ticker.C:
 			s.model, _ = s.model.Update(s.model.Tick())
-			fmt.Fprint(s.out, term.ClearLine, s.model.View(), " ", s.description) //nolint:errcheck // Why: Best effort
+			fmt.Fprint(s.out, term.ClearLine, s.model.View(), " ", s.description)
 		}
 	}
 }

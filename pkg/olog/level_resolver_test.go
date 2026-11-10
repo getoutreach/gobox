@@ -52,10 +52,14 @@ func TestLevelResolverOverrides(t *testing.T) {
 	logger.InfoContext(offCtx, "resolved info suppressed")
 
 	expected := []TestLogLine{
-		{Message: "fallback info appears", Level: slog.LevelInfo,
-			Attrs: map[string]any{"module": "resolverModule", "modulever": ""}},
-		{Message: "resolved debug appears", Level: slog.LevelDebug,
-			Attrs: map[string]any{"module": "resolverModule", "modulever": ""}},
+		{
+			Message: "fallback info appears", Level: slog.LevelInfo,
+			Attrs: map[string]any{"module": "resolverModule", "modulever": ""},
+		},
+		{
+			Message: "resolved debug appears", Level: slog.LevelDebug,
+			Attrs: map[string]any{"module": "resolverModule", "modulever": ""},
+		},
 	}
 
 	if diff := cmp.Diff(expected, logCapture.GetLogs()); diff != "" {
@@ -93,7 +97,7 @@ func TestLevelResolverConcurrentTextHandler(t *testing.T) {
 
 	const n = 200
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
+	for range n {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
