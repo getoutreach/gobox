@@ -120,19 +120,19 @@ func WithDetails(details ...ErrDetail) ErrOption {
 
 // Info adds extra logging info to an error.
 func Info(err error, info ...log.Marshaler) error {
-	return withInfo{err, log.Many(info)}
+	return withInfoError{err, log.Many(info)}
 }
 
-// withInfo just embeds error and log.Marshaler, so both interface are
+// withInfoError just embeds error and log.Marshaler, so both interface are
 // satisfied.
-type withInfo struct {
+type withInfoError struct {
 	error
 	log.Marshaler
 }
 
 // Unwrap returns the underlying error.
 // This method is required by errors.Unwrap.
-func (e withInfo) Unwrap() error {
+func (e withInfoError) Unwrap() error {
 	return e.error
 }
 
@@ -141,7 +141,7 @@ type retryable struct {
 }
 
 // Retryable wraps err in a type which denotes that the originating process is retryable.
-func Retryable(err error) *retryable { //nolint: revive // Why: retryable is meant to be hidden
+func Retryable(err error) *retryable {
 	return &retryable{err}
 }
 
@@ -157,7 +157,7 @@ func (r *retryable) Error() string {
 }
 
 // MarshalLog proxies the MarshalLog call to the underlying error if it is a log.Marshaler.
-func (r *retryable) MarshalLog(addField func(field string, value interface{})) {
+func (r *retryable) MarshalLog(addField func(field string, value any)) {
 	var m log.Marshaler
 	if errors.As(r.err, &m) {
 		m.MarshalLog(addField)
@@ -171,7 +171,7 @@ func (r *retryable) Unwrap() error {
 }
 
 // IsOneOf returns true if the supplied error is identical to an error supplied
-// in the remaining function error arguments
+// in the remaining function error arguments.
 func IsOneOf(err error, errs ...error) bool {
 	for _, e := range errs {
 		if errors.Is(err, e) {
@@ -184,23 +184,24 @@ func IsOneOf(err error, errs ...error) bool {
 
 // Meta adds grpc metadata to an error.
 func Meta(err error, meta map[string]string) error {
-	return &withMeta{error: err, meta: meta}
+	return &withMetaError{error: err, meta: meta}
 }
 
-type withMeta struct {
+type withMetaError struct {
 	error
+
 	meta map[string]string
 }
 
 // Unwrap returns the underlying error.
 // This method is required by errors.Unwrap.
-func (e *withMeta) Unwrap() error {
+func (e *withMetaError) Unwrap() error {
 	return e.error
 }
 
-// ExtractErrorMetadata returns any embedded grpc metadata in
+// ExtractErrorMetadata returns any embedded grpc metadata in.
 func ExtractErrorMetadata(err error) map[string]string {
-	var m *withMeta
+	var m *withMetaError
 	if errors.As(err, &m) {
 		return m.meta
 	}

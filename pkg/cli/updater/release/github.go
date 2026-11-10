@@ -22,7 +22,7 @@ import (
 // _ ensures that the fetcher interface is implemented.
 var _ fetcher = &github{}
 
-// github is a fetcher for github releases
+// github is a fetcher for github releases.
 type github struct{}
 
 // getOrgRepoFromURL returns the org and repo from a URL:
@@ -36,21 +36,12 @@ func getOrgRepoFromURL(URL string) (string, string, error) { //nolint:gocritic /
 	// /getoutreach/stencil -> ["", "getoutreach", "stencil"]
 	spl := strings.Split(u.Path, "/")
 	if len(spl) != 3 {
-		return "", "", fmt.Errorf("invalid Github URL: %s", URL)
+		return "", "", fmt.Errorf("%w: %s", errInvalidGithubURL, URL)
 	}
 	return spl[1], spl[2], nil
 }
 
-// createClient creates a Github client
-func (g *github) createClient(ctx context.Context, token cfg.SecretData) *gogithub.Client {
-	httpClient := http.DefaultClient
-	if token != "" {
-		httpClient = oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: string(token)}))
-	}
-	return gogithub.NewClient(httpClient)
-}
-
-// GetReleaseNotes returns the release notes for a given tag
+// GetReleaseNotes returns the release notes for a given tag.
 func (g *github) GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts *GetReleaseNoteOptions) (string, error) {
 	gh := g.createClient(ctx, token)
 
@@ -109,7 +100,7 @@ func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOpt
 		}
 	}
 	if a == nil {
-		return nil, "", 0, fmt.Errorf("failed to find asset %v in release %s/%s:%s", validAssets, org, repo, opts.Tag)
+		return nil, "", 0, fmt.Errorf("%w %v in release %s/%s:%s", errAssetNotFound, validAssets, org, repo, opts.Tag)
 	}
 
 	// The second return value is a redirectURL, but by passing http.DefaultClient we shouldn't have
@@ -121,3 +112,17 @@ func (g *github) Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOpt
 	}
 	return rc, a.GetName(), int64(a.GetSize()), nil
 }
+
+// createClient creates a Github client.
+func (g *github) createClient(ctx context.Context, token cfg.SecretData) *gogithub.Client {
+	httpClient := http.DefaultClient
+	if token != "" {
+		httpClient = oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: string(token)}))
+	}
+	return gogithub.NewClient(httpClient)
+}
+
+var (
+	errInvalidGithubURL = errors.New("invalid Github URL")
+	errAssetNotFound    = errors.New("failed to find asset")
+)

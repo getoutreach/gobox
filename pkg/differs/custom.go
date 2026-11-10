@@ -1,23 +1,24 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Implements a custom Comperer that turns an a function into a Comparer
+
 package differs
 
 import "github.com/google/go-cmp/cmp"
 
-// CustomComparer is the type returned by custom comparisons
+// CustomComparer is the type returned by custom comparisons.
 type CustomComparer interface {
-	CompareCustom(o interface{}) bool
+	CompareCustom(o any) bool
 }
 
 func Custom() cmp.Option {
 	return cmp.FilterValues(
-		func(l, r interface{}) bool {
+		func(l, r any) bool {
 			_, lok := l.(CustomComparer)
 			_, rok := r.(CustomComparer)
 			return lok || rok
 		},
-		cmp.Comparer(func(l, r interface{}) bool {
+		cmp.Comparer(func(l, r any) bool {
 			if lcmp, lok := l.(CustomComparer); lok {
 				return lcmp.CompareCustom(r)
 			}
@@ -26,9 +27,9 @@ func Custom() cmp.Option {
 	)
 }
 
-// Customf converts a function into a custom comparer
-type Customf func(o interface{}) bool
+// Customf converts a function into a custom comparer.
+type Customf func(o any) bool
 
-func (c Customf) CompareCustom(o interface{}) bool {
+func (c Customf) CompareCustom(o any) bool {
 	return c(o)
 }

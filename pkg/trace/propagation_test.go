@@ -29,7 +29,7 @@ func TestForceTracingByHeader(t *testing.T) {
 	ctx := trace.StartSpan(t.Context(), "trace-test")
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
-	req, err := http.NewRequestWithContext(ctx, "GET", state.Server.URL+"/myendpoint", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, state.Server.URL+"/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}
@@ -47,7 +47,7 @@ func TestForceTracingByHeader(t *testing.T) {
 	traceID := trace.ID(ctx)
 	rootID := differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                                 "GET",
 			"spanContext.traceID":                  traceID,
@@ -125,7 +125,7 @@ func TestHeadersForceTracingByHeader(t *testing.T) {
 	trace.End(inner)
 	trace.End(ctx)
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"SampleRate":              int64(1),
 			"name":                    "inner",
@@ -183,7 +183,7 @@ func TestForceTracing(t *testing.T) {
 	ctx = trace.StartSpan(ctx, "trace-test")
 
 	client := http.Client{Transport: trace.NewTransport(nil)}
-	req, err := http.NewRequestWithContext(ctx, "GET", state.Server.URL+"/myendpoint", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, state.Server.URL+"/myendpoint", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected error", err)
 	}
@@ -198,7 +198,7 @@ func TestForceTracing(t *testing.T) {
 
 	traceID := trace.ID(ctx)
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                                 "GET",
 			"spanContext.traceID":                  traceID,

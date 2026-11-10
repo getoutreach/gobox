@@ -22,13 +22,13 @@ type JSON struct {
 // Unfortunately, the default encoder does not do any writes at all
 // until the full encoding has succeeded, so we cannot buffer the
 // write and add it to the error like is done for the json.Decoder.
-func (j *JSON) NewEncoder(w io.Writer) *jsonEncoder { //nolint:revive // Why: we want to expose json.Encoder but override some methods
+func (j *JSON) NewEncoder(w io.Writer) *jsonEncoder {
 	return &jsonEncoder{json.NewEncoder(w)}
 }
 
 // NewDecoder returns a new encoding/json style decoder augmenting it
 // with snippets of the payload in case of errors.
-func (j *JSON) NewDecoder(r io.Reader) *jsonDecoder { //nolint:revive // Why: we want to expose json.Decoder but override some methods
+func (j *JSON) NewDecoder(r io.Reader) *jsonDecoder {
 	w := &orio.BufferedWriter{N: j.snippetSize()}
 	d := json.NewDecoder(io.TeeReader(r, w))
 	return &jsonDecoder{d, w}
@@ -51,7 +51,7 @@ type jsonDecoder struct {
 
 // Decode wraps the standard encoding/json.Decoder but includes a
 // snippet of the payload on errors.
-func (j *jsonDecoder) Decode(v interface{}) error {
+func (j *jsonDecoder) Decode(v any) error {
 	if err := j.Decoder.Decode(v); err != nil {
 		return orerr.Info(err, log.F{"error.json": string(j.buf.Bytes())})
 	}

@@ -30,7 +30,7 @@ const (
 
 type InfoLoggingResolver = func(ctx context.Context, operation string) InfoLoggingResolved
 
-// ResolvedLogging returns signals trace.EndCall whether to enable/disable info logging
+// ResolvedLogging returns signals trace.EndCall whether to enable/disable info logging.
 func ResolvedLogging(logging InfoLoggingResolved) log.Marshaler {
 	switch logging {
 	case InfoLoggingDefault:

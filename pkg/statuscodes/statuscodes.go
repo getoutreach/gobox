@@ -14,9 +14,12 @@
 // BadRequest status code with more detailed information about the specific fields in question.
 package statuscodes
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-type StatusCode int
+type StatusCode int //nolint:recvcheck // Why: changing receivers of an exported type breaks public API
 
 // Notes:
 //  1. DO NOT EXTEND THIS LIST WITHOUT VERY CAREFUL CONSIDERATION.  Please read the package description at the top
@@ -24,10 +27,11 @@ type StatusCode int
 //  2. Don't overlap with HTTP error codes so people know that these are not HTTP error codes when they see them in
 //     server/service logs.
 const (
-	// Keep OK not as zero so you know someone affirmatively picked it
+	// OK is not zero so you know someone affirmatively picked it.
 	OK StatusCode = 600
 
-	// The 700-swath is for Client-caused error responses
+	// The 700-swath is for Client-caused error responses.
+
 	// BadRequest is for when the caller has provided input data that does not pass validation.  This is expected to
 	// fail in all retry scenarios -- the caller needs to change the input data to succeed.
 	BadRequest StatusCode = 700
@@ -53,7 +57,8 @@ const (
 	// Cancelled should be used when the caller has cancelled the request.
 	Cancelled StatusCode = 707
 
-	// The 800-swath is for Server-caused error responses
+	// The 800-swath is for Server-caused error responses.
+
 	// InternalServerError is for when something otherwise uncategorizable has blown up inside the service logic.
 	// This usually represents either a bug or an issue with a downstream system that the service is unable to
 	// gracefully handle.  InternalServerErrors may or may not be retriable, it is unknown without more context.
@@ -74,7 +79,7 @@ const (
 
 //go:generate ../../scripts/shell-wrapper.sh mise.sh exec go:golang.org/x/tools/cmd/stringer@v0.42.0 -- stringer -type=StatusCode
 
-// StatusCodes map directly into StatusCategories by the numeric range of the status code.  See StatusCode comments
+// StatusCategory maps directly into StatusCategories by the numeric range of the status code.  See StatusCode comments
 // for more details.
 type StatusCategory int
 
@@ -105,7 +110,7 @@ func (re StatusCode) Category() StatusCategory {
 func (re *StatusCode) UnmarshalText(text []byte) error {
 	code, ok := FromString(string(text))
 	if !ok {
-		return fmt.Errorf("invalid StatusCode '%s'", string(text))
+		return fmt.Errorf("%w '%s'", errInvalidStatusCode, string(text))
 	}
 
 	*re = code
@@ -146,3 +151,5 @@ func FromString(s string) (StatusCode, bool) {
 		return UnknownError, false
 	}
 }
+
+var errInvalidStatusCode = errors.New("invalid StatusCode")

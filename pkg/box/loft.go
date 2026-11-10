@@ -1,11 +1,12 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains box configuration for loft
+
 package box
 
 import "github.com/getoutreach/gobox/pkg/region"
 
-// LoftRuntimeConfig is configuration for loft runtimes
+// LoftRuntimeConfig is configuration for loft runtimes.
 type LoftRuntimeConfig struct {
 	// Clusters is a list of clusters provided by this loft instance
 	Clusters LoftClusters `yaml:"clusters"`
@@ -22,7 +23,7 @@ type LoftRuntimeConfig struct {
 	URL string `yaml:"URL"`
 }
 
-// LoftCluster is a loft cluster
+// LoftCluster is a loft cluster.
 type LoftCluster struct {
 	// Name is the name of the cluster in loft
 	Name string `yaml:"name"`
@@ -34,12 +35,12 @@ type LoftCluster struct {
 	Cloud region.CloudName `yaml:"cloud"`
 }
 
-// LoftClusters is a container for a slice of LoftClusters
+// LoftClusters is a container for a slice of LoftClusters.
 type LoftClusters []LoftCluster
 
-// Regions returns all of the regions of the regions for the loft clusters in a []LoftCluster
+// Regions returns all of the regions of the regions for the loft clusters in a []LoftCluster.
 func (lc LoftClusters) Regions() []region.Name {
-	regions := make([]region.Name, 0)
+	regions := make([]region.Name, 0, len(lc))
 	for _, e := range lc {
 		regions = append(regions, e.Region)
 	}

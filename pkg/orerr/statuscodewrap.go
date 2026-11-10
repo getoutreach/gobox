@@ -10,7 +10,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
-type StatusCodeWrapper struct {
+type StatusCodeWrapper struct { //nolint:errname // Why: renaming an exported type breaks public API
 	wrappedErr error
 	code       statuscodes.StatusCode
 }

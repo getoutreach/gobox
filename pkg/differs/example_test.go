@@ -11,7 +11,7 @@ import (
 
 func Example() {
 	// RFC3339Time
-	actual := map[string]interface{}{
+	actual := map[string]any{
 		"rfc3339":       time.Now().Format(time.RFC3339),
 		"any string":    "some string",
 		"capture":       "captured value",
@@ -20,7 +20,7 @@ func Example() {
 		"float":         4.5,
 	}
 	capture := differs.CaptureString()
-	expected := map[string]interface{}{
+	expected := map[string]any{
 		"rfc3339":       differs.RFC3339Time(),
 		"any string":    differs.AnyString(),
 		"capture":       capture,
@@ -32,7 +32,7 @@ func Example() {
 	fmt.Println(diff)
 
 	// RFC3339NanoTime
-	actual = map[string]interface{}{
+	actual = map[string]any{
 		"rfc3339nano":   time.Now().Format(time.RFC3339Nano),
 		"any string":    "some string",
 		"capture":       "captured value",
@@ -41,7 +41,7 @@ func Example() {
 		"float":         4.5,
 	}
 	capture = differs.CaptureString()
-	expected = map[string]interface{}{
+	expected = map[string]any{
 		"rfc3339nano":   differs.RFC3339NanoTime(),
 		"any string":    differs.AnyString(),
 		"capture":       capture,

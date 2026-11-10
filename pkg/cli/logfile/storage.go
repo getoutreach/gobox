@@ -19,7 +19,7 @@ import (
 // package supports.
 const MetadataVersion = 1
 
-// FrameVersion is the version of frames this package supports
+// FrameVersion is the version of frames this package supports.
 const FrameVersion = 1
 
 // Metadata is the first entry in a log file that contains
@@ -72,7 +72,7 @@ type Trace struct {
 	Spans []*Span `json:"spans"`
 }
 
-// ReadFromReader reads entires from a io.reader
+// ReadFromReader reads entires from a io.reader.
 func ReadFromReader(r io.Reader) ([]Entry, error) {
 	return read(r)
 }
@@ -88,7 +88,7 @@ func ReadFile(path string) ([]Entry, error) {
 	return read(f)
 }
 
-// read reads entries from a io.reader
+// read reads entries from a io.reader.
 func read(r io.Reader) ([]Entry, error) {
 	var entries []Entry
 	dec := json.NewDecoder(r)
@@ -108,7 +108,7 @@ func read(r io.Reader) ([]Entry, error) {
 
 // Snapshots returns a slice of ReadOnlySpans exportable by otle.
 func (t Trace) Snapshots() []tracesdk.ReadOnlySpan {
-	var spans []tracesdk.ReadOnlySpan
+	spans := make([]tracesdk.ReadOnlySpan, 0, len(t.Spans))
 	for _, span := range t.Spans {
 		spans = append(spans, span.Snapshot())
 	}

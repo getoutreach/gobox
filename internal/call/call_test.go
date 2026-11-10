@@ -106,7 +106,7 @@ func TestTracker_reportLatency(t *testing.T) {
 			outerInfo := tracker.Info(outer)
 			outerInfo.Type = callType
 			if status != "ok" {
-				outerInfo.SetStatus(outer, errors.New(status))
+				outerInfo.SetStatus(outer, errors.New(status)) //nolint:err113 // Why: test-only error
 				assert.Assert(t, outerInfo.ErrInfo.RawError != nil)
 			}
 			tracker.EndCall(outer)
@@ -145,7 +145,7 @@ func TestTracker_reportLatency(t *testing.T) {
 				if metricFamily.GetName() != family {
 					continue
 				}
-				for _, metric := range metricFamily.Metric {
+				for _, metric := range metricFamily.GetMetric() {
 					got = map[string]string{}
 					for _, labelPair := range metric.GetLabel() {
 						key, value := labelPair.GetName(), labelPair.GetValue()

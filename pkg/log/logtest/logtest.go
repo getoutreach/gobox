@@ -1,4 +1,4 @@
-// logtest provides the ability to test logs
+// Package logtest provides the ability to test logs
 //
 // Usage:
 //
@@ -21,21 +21,22 @@ import (
 	"github.com/getoutreach/gobox/pkg/log"
 )
 
+// LogRecorder holds the state.
+type LogRecorder struct { //nolint:gocritic // Why: Will refactor in the future
+	*testing.T
+	sync.Mutex
+
+	oldOutput io.Writer
+	entries   []log.F
+}
+
 // NewLogRecorder starts a new log recorder.
 //
-// Logs must be stopped by calling Close() on the recorder
-func NewLogRecorder(t *testing.T) *LogRecorder {
+// Logs must be stopped by calling Close() on the recorder.
+func NewLogRecorder(t *testing.T) *LogRecorder { //nolint:thelper // Why: callers pass a nil *testing.T from examples
 	r := &LogRecorder{T: t, oldOutput: log.Output()}
 	log.SetOutput(r)
 	return r
-}
-
-// LogRecorder holds the state
-type LogRecorder struct { //nolint:gocritic // Why: Will refactor in the future
-	*testing.T
-	oldOutput io.Writer
-	entries   []log.F
-	sync.Mutex
 }
 
 func (l *LogRecorder) Write(b []byte) (n int, err error) {
@@ -50,7 +51,7 @@ func (l *LogRecorder) Write(b []byte) (n int, err error) {
 	return
 }
 
-// Close closes the recorder
+// Close closes the recorder.
 func (l *LogRecorder) Close() {
 	log.SetOutput(l.oldOutput)
 }
@@ -62,12 +63,12 @@ func (l *LogRecorder) Entries() []log.F {
 	return l.entries[:len(l.entries):len(l.entries)]
 }
 
-// MarshalToMap uses the given arguments `MarshalLog` function to serialize it
+// Map uses the given arguments `MarshalLog` function to serialize it
 // into a map, which it returns.
 //
 // The serialization is similar to the one performed by logs.  Any nesting is
 // flattened by representing it as dot-separated key prefixes in a flat map.
-func Map(m log.Marshaler) map[string]interface{} {
+func Map(m log.Marshaler) map[string]any {
 	ret := log.F{}
 	m.MarshalLog(ret.Set)
 	return ret

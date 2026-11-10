@@ -1,5 +1,3 @@
-// Package sshconfig implements a small ssh config parser
-// based on the output of `ssh -G`.
 package sshconfig
 
 import (
@@ -10,7 +8,7 @@ import (
 
 func TestGet(t *testing.T) {
 	type args struct {
-		ctx   context.Context
+		ctx   context.Context //nolint:containedctx // Why: test case carries its own context
 		host  string
 		field string
 	}

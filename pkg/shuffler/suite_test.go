@@ -77,7 +77,7 @@ func TestThatTestsAreShuffled(t *testing.T) {
 		t.Fail()
 	}
 
-	two = shuffleTests(two, t)
+	two = shuffleTests(t, two)
 
 	if len(two) != length {
 		t.Fail()
@@ -106,7 +106,7 @@ func TestThatTestsAreShuffledDeterministically(t *testing.T) {
 	seed := int64(3)
 	shuffleSeed = &seed
 
-	two = shuffleTests(two, t)
+	two = shuffleTests(t, two)
 
 	if len(two) != length {
 		t.Fail()

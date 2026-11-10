@@ -9,7 +9,7 @@ import "context"
 // With creates a logger that captures the marshaler arguments.
 //
 // All methods exposed by the logger automatically add the provided marshalers.
-func With(m ...Marshaler) logger { //nolint: revive // Why: logger is intentionally hidden.
+func With(m ...Marshaler) logger {
 	return logger{m}
 }
 
@@ -21,7 +21,7 @@ type logger struct {
 }
 
 // Debug emits a log at DEBUG level but only if an error or fatal happens
-// within 2min of this event
+// within 2min of this event.
 func (l logger) Debug(ctx context.Context, message string, m ...Marshaler) {
 	Debug(ctx, message, append(m, l.m...)...)
 }
@@ -36,7 +36,7 @@ func (l logger) Warn(ctx context.Context, message string, m ...Marshaler) {
 	Warn(ctx, message, append(m, l.m...)...)
 }
 
-// Error emits a log at ERROR level.  Error logs must be investigated
+// Error emits a log at ERROR level.  Error logs must be investigated.
 func (l logger) Error(ctx context.Context, message string, m ...Marshaler) {
 	Error(ctx, message, append(m, l.m...)...)
 }

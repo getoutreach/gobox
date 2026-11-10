@@ -148,7 +148,7 @@ func TestMapPtrString(t *testing.T) {
 }
 
 func TestPtrInterface(t *testing.T) {
-	var value interface{} = "some interface"
+	var value any = "some interface"
 	oPtr := ToPtr(value)
 	if oPtr == nil {
 		t.Error("expected a non-nil pointer")
@@ -163,7 +163,7 @@ func TestPtrInterface(t *testing.T) {
 }
 
 func TestSlicePtrInterface(t *testing.T) {
-	value := []interface{}{"a", 2, true}
+	value := []any{"a", 2, true}
 	oSlice := ToSlicePtr(value)
 	if len(oSlice) != len(value) {
 		t.Errorf("expected slice of size %d, but got %d", len(value), len(oSlice))
@@ -188,7 +188,7 @@ func TestSlicePtrInterface(t *testing.T) {
 }
 
 func TestMapPtrInterface(t *testing.T) {
-	value := map[int]interface{}{
+	value := map[int]any{
 		1:  "a",
 		2:  50,
 		10: true,

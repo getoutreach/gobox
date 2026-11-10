@@ -30,12 +30,13 @@ func CancelWithError(ctx context.Context) (c context.Context, cancel func(err er
 }
 
 type contextWithError struct {
-	context.Context
+	context.Context //nolint:containedctx // Why: the type implements context.Context by wrapping its parent
+
 	err error
 	mu  sync.Mutex
 }
 
-// Err returns any error captured in CancelWithError
+// Err returns any error captured in CancelWithError.
 func (c *contextWithError) Err() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

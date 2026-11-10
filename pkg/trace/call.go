@@ -6,7 +6,6 @@ package trace
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/getoutreach/gobox/internal/call"
 
@@ -16,15 +15,20 @@ import (
 	"github.com/getoutreach/gobox/pkg/statuscodes"
 )
 
+//nolint:gochecknoglobals // Why: process-wide call tracking
 var callTracker = &call.Tracker{}
 
 // logCallsByDefault is a package-global flag that controls whether or not
 // non-error `trace.StartCall` calls get an info log or not.  Its value is set
 // in `setDefaultTracer` and it comes from a value in the config file.
+//
+//nolint:gochecknoglobals // Why: process-wide tracing setting
 var logCallsByDefault = false
 
 // logTracedCalls controls whether calls in an exported trace get an info log
 // regardless of logCallsByDefault.  Set in `setDefaultTracer` from the config.
+//
+//nolint:gochecknoglobals // Why: process-wide tracing setting
 var logTracedCalls = false
 
 // StartCall is used to start an internal call. For external calls please
@@ -56,7 +60,7 @@ var logTracedCalls = false
 //
 // StartCalls can be nested.
 func StartCall(ctx context.Context, cType string, args ...log.Marshaler) context.Context {
-	log.Debug(ctx, fmt.Sprintf("calling: %s", cType), append(args, IDs(ctx))...)
+	log.Debug(ctx, "calling: "+cType, append(args, IDs(ctx))...)
 
 	// Specify the default behavior first in line.  It might be overridden
 	// by later args and that's OK.
@@ -115,7 +119,7 @@ func SetCallTypeOutbound(ctx context.Context) context.Context {
 
 // SetCallStatus can be optionally called to set status of the call.
 // When the error occurs on the current call, the error will be traced.
-// When the error is nil, no-op from this function
+// When the error is nil, no-op from this function.
 func SetCallStatus(ctx context.Context, err error) error {
 	if err != nil {
 		info := callTracker.Info(ctx)
@@ -126,7 +130,7 @@ func SetCallStatus(ctx context.Context, err error) error {
 	return err
 }
 
-// SetCallError is deprecated and will directly call into SetCallStatus for backward compatibility
+// SetCallError is deprecated and will directly call into SetCallStatus for backward compatibility.
 func SetCallError(ctx context.Context, err error) error {
 	return SetCallStatus(ctx, err)
 }
@@ -141,7 +145,7 @@ func SetCustomCallKind(ctx context.Context, ck metrics.CallKind) {
 	}
 }
 
-// GetCallName returns name of the current call
+// GetCallName returns name of the current call.
 func GetCallName(ctx context.Context) string {
 	info := callTracker.Info(ctx)
 	if info != nil {
@@ -150,7 +154,7 @@ func GetCallName(ctx context.Context) string {
 	return ""
 }
 
-// IsInfoLoggingEnabled returns state of info logging
+// IsInfoLoggingEnabled returns state of info logging.
 func IsInfoLoggingEnabled(ctx context.Context) bool {
 	info := callTracker.Info(ctx)
 	if info != nil {
@@ -167,7 +171,7 @@ func IsInfoLoggingEnabled(ctx context.Context) bool {
 //
 // EndCall, when called within a defer, catches any panics and
 // rethrows them.  Any panics are converted to errors and cause error
-// logging to happen (as do any SetCallStatus calls)
+// logging to happen (as do any SetCallStatus calls).
 func EndCall(ctx context.Context) {
 	callInfo := callTracker.Info(ctx)
 	defer End(ctx)
@@ -200,7 +204,7 @@ func EndCall(ctx context.Context) {
 }
 
 // addArgsToCallInfo appends the log marshalers passed in as arguments
-// to the callInfo struct
+// to the callInfo struct.
 func addArgsToCallInfo(ctx context.Context, args ...log.Marshaler) bool {
 	if callInfo := callTracker.Info(ctx); callInfo != nil {
 		callInfo.AddArgs(ctx, args...)
@@ -215,10 +219,10 @@ func IDs(ctx context.Context) log.Marshaler {
 }
 
 type traceInfo struct {
-	context.Context
+	context.Context //nolint:containedctx // Why: the call info implements context.Context by wrapping its parent
 }
 
-func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
+func (c traceInfo) MarshalLog(addField func(field string, value any)) {
 	addField("honeycomb.trace_id", ID(c))
 	addField("honeycomb.parent_id", parentID(c))
 	addField("honeycomb.span_id", SpanID(c))
@@ -229,6 +233,6 @@ func (c traceInfo) MarshalLog(addField func(field string, value interface{})) {
 
 type traceEventMarker struct{}
 
-func (traceEventMarker) MarshalLog(addField func(k string, v interface{})) {
+func (traceEventMarker) MarshalLog(addField func(k string, v any)) {
 	addField("event_name", "trace")
 }

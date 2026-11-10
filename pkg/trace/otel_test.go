@@ -1,8 +1,8 @@
 package trace_test
 
 import (
-	"fmt"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -12,13 +12,14 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 	"github.com/getoutreach/gobox/pkg/trace/tracetest"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/codes"
 	"gotest.tools/v3/assert"
 )
 
-type MarshalFunc func(addField func(key string, v interface{}))
+type MarshalFunc func(addField func(key string, v any))
 
-func (mf MarshalFunc) MarshalLog(addField func(key string, v interface{})) {
+func (mf MarshalFunc) MarshalLog(addField func(key string, v any)) {
 	mf(addField)
 }
 
@@ -26,7 +27,7 @@ type marshalableError struct {
 	Err error
 }
 
-func (m *marshalableError) MarshalLog(addField func(key string, v interface{})) {
+func (m *marshalableError) MarshalLog(addField func(key string, v any)) {
 	if m == nil {
 		return
 	}
@@ -68,9 +69,9 @@ func TestEvent(t *testing.T) {
 }
 
 func TestTraceError(t *testing.T) {
-	err := fmt.Errorf("test error")
-	var customError = &marshalableError{
-		Err: fmt.Errorf("party"),
+	err := errors.New("test error")
+	customError := &marshalableError{
+		Err: errors.New("party"),
 	}
 
 	type testArgs struct {
@@ -78,7 +79,7 @@ func TestTraceError(t *testing.T) {
 		expected any
 	}
 
-	orErr := orerr.New(fmt.Errorf("oh no"), orerr.WithInfo(log.F{"details": "juice"}))
+	orErr := orerr.New(errors.New("oh no"), orerr.WithInfo(log.F{"details": "juice"}))
 	cases := map[string]testArgs{
 		"custom":     {customError, customError},
 		"fmt.Errorf": {err, err},
@@ -127,7 +128,7 @@ func TestOtelAddInfo(t *testing.T) {
 	//
 	// There's also a handful of special cases where we provide special
 	// handling, as in the case of `time.Time`.
-	cases := map[string]struct{ value, expected interface{} }{
+	cases := map[string]struct{ value, expected any }{
 		// Exhaustive test of the bools.
 		"false": {false, false},
 		"true":  {true, true},
@@ -146,7 +147,7 @@ func TestOtelAddInfo(t *testing.T) {
 
 		// Sadly, these might not fit in an int64.  Cast to string.
 		"uint":   {uint(42), "42"},
-		"uint64": {uint64(math.MaxUint64), fmt.Sprintf("%d", uint64(math.MaxUint64))},
+		"uint64": {uint64(math.MaxUint64), strconv.FormatUint(uint64(math.MaxUint64), 10)},
 
 		// Floats: cast to float64.
 		"float32": {float32(3.14), differs.FloatRange(3.10, 3.20)},
@@ -185,13 +186,13 @@ func TestOtelAddInfo(t *testing.T) {
 		"time.Time": {time.Unix(1668554262, 0), differs.RFC3339NanoTime()},
 	}
 
-	fn := func(addField func(key string, v interface{})) {
+	fn := func(addField func(key string, v any)) {
 		for k, v := range cases {
 			addField(k, v.value)
 		}
 	}
 
-	expected := map[string]interface{}{
+	expected := map[string]any{
 		"SampleRate":             int64(1),
 		"startTime":              differs.AnyString(),
 		"endTime":                differs.AnyString(),
@@ -207,7 +208,7 @@ func TestOtelAddInfo(t *testing.T) {
 		"spanKind":               "internal",
 	}
 	for k, v := range cases {
-		expected[fmt.Sprintf("attributes.%s", k)] = v.expected
+		expected["attributes."+k] = v.expected
 	}
 
 	ctx = trace.StartSpan(ctx, "testspan", MarshalFunc(fn))

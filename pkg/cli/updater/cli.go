@@ -86,6 +86,7 @@ func CmdForV2(ctx *cliV2.Context) *CLICmd {
 		V2: ctx,
 	}
 }
+
 func CmdForV3(cmd *cliV3.Command) *CLICmd {
 	return &CLICmd{
 		V3: cmd,

@@ -3,7 +3,7 @@
 package trace_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/getoutreach/gobox/pkg/app"
@@ -29,7 +29,7 @@ func TestNestedSpan(t *testing.T) {
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 	linkTraceID, linkID := differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                     "inner2",
 			"spanContext.traceID":      traceID,
@@ -50,7 +50,7 @@ func TestNestedSpan(t *testing.T) {
 			"attributes.error.message": "error",
 			"attributes.trace":         "inner2",
 			"SampleRate":               int64(1),
-			"links": []map[string]interface{}{
+			"links": []map[string]any{
 				{
 					"spanContext.traceID": linkTraceID,
 					"spanContext.spanID":  linkID,
@@ -149,7 +149,7 @@ func TestNestedSpan(t *testing.T) {
 	opts := []trace.SpanStartOption{trace.WithLink(linkHeaders)}
 	inner2 := trace.StartSpanWithOptions(inner, "inner2", opts)
 	trace.AddSpanInfo(inner2, log.F{"trace": "inner2"})
-	trace.Error(inner2, fmt.Errorf("error"))
+	trace.Error(inner2, errors.New("error")) //nolint:err113 // Why: test-only error
 
 	trace.End(inner2)
 	trace.End(inner)
@@ -171,7 +171,7 @@ func TestStartsWithNewRootSpan(t *testing.T) {
 
 	newRootTraceID, spanID := differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                   "new-root-span",
 			"spanContext.traceID":    newRootTraceID,
@@ -211,7 +211,7 @@ func TestIncludesDevEmail(t *testing.T) {
 	traceID, rootID, middleID := differs.CaptureString(), differs.CaptureString(), differs.CaptureString()
 	linkTraceID, linkID := differs.CaptureString(), differs.CaptureString()
 
-	expected := []map[string]interface{}{
+	expected := []map[string]any{
 		{
 			"name":                    "inner2",
 			"spanContext.traceID":     traceID,
@@ -230,7 +230,7 @@ func TestIncludesDevEmail(t *testing.T) {
 			"attributes.dev.email":    "test@test.com",
 			"attributes.trace":        "inner2",
 			"SampleRate":              int64(1),
-			"links": []map[string]interface{}{
+			"links": []map[string]any{
 				{
 					"spanContext.traceID": linkTraceID,
 					"spanContext.spanID":  linkID,

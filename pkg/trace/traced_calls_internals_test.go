@@ -165,7 +165,7 @@ func TestTraceInfoExportedField(t *testing.T) {
 
 	tests := []struct {
 		name string
-		ctx  context.Context
+		ctx  context.Context //nolint:containedctx // Why: test case carries its own context
 		want bool
 	}{
 		{"no span", context.Background(), false},
@@ -175,8 +175,8 @@ func TestTraceInfoExportedField(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fields := map[string]interface{}{}
-			IDs(tt.ctx).MarshalLog(func(field string, value interface{}) {
+			fields := map[string]any{}
+			IDs(tt.ctx).MarshalLog(func(field string, value any) {
 				fields[field] = value
 			})
 

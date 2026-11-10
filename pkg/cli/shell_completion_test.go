@@ -42,7 +42,8 @@ func TestGenerateShellCompletion(t *testing.T) {
 		app.Writer = &sb
 		ctx := t.Context()
 
-		fullArgs := []string{"test-app"}
+		fullArgs := make([]string, 0, 1+len(fixture.args))
+		fullArgs = append(fullArgs, "test-app")
 		fullArgs = append(fullArgs, fixture.args...)
 		lastArg := fixture.args[len(fixture.args)-1]
 		os.Args = fullArgs

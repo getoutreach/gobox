@@ -1,4 +1,3 @@
-// Package exec implements os/exec stdlib helpers
 package exec
 
 import (

@@ -82,6 +82,7 @@ func NewLogFileTracer(ctx context.Context, serviceName string, config *Config) (
 // NewLogFileExporter Creates a new exporter that sends all spans to the passed in port
 // on localhost.
 func NewLogFileExporter(port int) (sdktrace.SpanExporter, error) {
+	//nolint:noctx // Why: NewLogFileExporter is public API without a context parameter
 	conn, err := net.Dial(logfile.TraceSocketType, fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return nil, err
@@ -111,12 +112,13 @@ func (se *LogFileSpanExporter) Shutdown(_ context.Context) error {
 	return se.conn.Close()
 }
 
-// CommonProps sets up common properties for traces in cli apps
+// CommonProps sets up common properties for traces in cli apps.
 func CommonProps() log.Marshaler {
 	commonProps := log.F{
 		"os.name": runtime.GOOS,
 		"os.arch": runtime.GOARCH,
 	}
+	//nolint:noctx // Why: CommonProps is public API without a context parameter
 	if b, err := osexec.Command("git", "config", "user.email").Output(); err == nil {
 		email := strings.TrimSuffix(string(b), "\n")
 
