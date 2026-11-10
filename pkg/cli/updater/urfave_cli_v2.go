@@ -14,7 +14,8 @@ import (
 	cliV2 "github.com/urfave/cli/v2"
 )
 
-// UpdaterFlags are the urfave (V2) flags the updater will inject.
+// UpdaterFlags are the urfave (V2) flags the updater registers. Keep in sync
+// with defaultOptions and hookIntoCLIV2, which register them one at a time.
 //
 //nolint:gochecknoglobals // Why: exported flag list
 var UpdaterFlags = []cliV2.Flag{
@@ -26,8 +27,8 @@ var UpdaterFlags = []cliV2.Flag{
 func (u *updater) hookIntoCLIV2() {
 	oldBefore := u.app.Before
 
-	// append the standard flags
-	u.app.Flags = append(u.app.Flags, UpdaterFlags...)
+	// append the force flag, defaultOptions already added the skip flag
+	u.app.Flags = append(u.app.Flags, ForceFlag.ToUrfaveV2())
 
 	u.app.Before = func(c *cliV2.Context) error {
 		// Handle deprecations and parse the flags onto our updater struct

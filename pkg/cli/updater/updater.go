@@ -133,10 +133,12 @@ type updater struct {
 //
 //nolint:funlen // Why: a lot of options to set
 func (u *updater) defaultOptions() error {
+	// Register the skip flag before any return, so it always parses.
+	u.hookSkipUpdateIntoCLI()
+
 	if Disabled == "true" {
 		u.disabled = true
 		u.disabledReason = "disabled via go linker"
-		u.hookSkipUpdateIntoCLI()
 		return nil
 	}
 
@@ -161,7 +163,6 @@ func (u *updater) defaultOptions() error {
 		var err error
 		u.executablePath, err = exec.ResolveExecutable(os.Args[0])
 		if err != nil {
-			u.hookSkipUpdateIntoCLI()
 			return err
 		}
 	}
@@ -171,7 +172,6 @@ func (u *updater) defaultOptions() error {
 	if u.repoURL == "" {
 		r, err := getRepoFromBuild()
 		if err != nil {
-			u.hookSkipUpdateIntoCLI()
 			return errors.New("failed to determine which repository built this binary")
 		}
 		u.repoURL = "https://" + r

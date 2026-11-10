@@ -1,6 +1,7 @@
 package updater
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	cliV3 "github.com/urfave/cli/v3"
 	"gotest.tools/v3/assert"
 )
 
@@ -145,6 +147,65 @@ func Test_updater_defaultOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// flagNames returns the names of the given flags.
+func flagNames[F interface{ Names() []string }](flags []F) []string {
+	names := make([]string, 0, len(flags))
+	for _, f := range flags {
+		names = append(names, f.Names()...)
+	}
+	return names
+}
+
+// defaultOptions registers --skip-update before it can return, even when disabled.
+func Test_updater_defaultOptions_skipFlagParsesWhenDisabled(t *testing.T) {
+	oldDisabled := Disabled
+	Disabled = "true"
+	t.Cleanup(func() { Disabled = oldDisabled })
+
+	t.Run("urfave/cli v2", func(t *testing.T) {
+		app := &cli.App{Action: func(*cli.Context) error { return nil }}
+		u := &updater{app: app}
+		assert.NilError(t, u.defaultOptions())
+		assert.NilError(t, app.Run([]string{"test", "--" + SkipFlag.Name}))
+	})
+
+	t.Run("urfave/cli v3", func(t *testing.T) {
+		cmd := &cliV3.Command{Action: func(context.Context, *cliV3.Command) error { return nil }}
+		u := &updater{appV3: cmd}
+		assert.NilError(t, u.defaultOptions())
+		assert.NilError(t, cmd.Run(t.Context(), []string{"test", "--" + SkipFlag.Name}))
+	})
+}
+
+// The registered flags must match the exported flag lists, each exactly once.
+func Test_updater_defaultOptions_registersEachFlagOnce(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	newUpdater := func() *updater {
+		return &updater{
+			ghToken:        "1234",
+			repoURL:        "https://github.com/getoutreach/gobox",
+			version:        "v0.0.0",
+			executablePath: "/usr/local/bin/gobox",
+		}
+	}
+
+	t.Run("urfave/cli v2", func(t *testing.T) {
+		app := &cli.App{}
+		u := newUpdater()
+		u.app = app
+		assert.NilError(t, u.defaultOptions())
+		assert.DeepEqual(t, flagNames(app.Flags), flagNames(UpdaterFlags))
+	})
+
+	t.Run("urfave/cli v3", func(t *testing.T) {
+		cmd := &cliV3.Command{}
+		u := newUpdater()
+		u.appV3 = cmd
+		assert.NilError(t, u.defaultOptions())
+		assert.DeepEqual(t, flagNames(cmd.Flags), flagNames(UpdaterFlagsV3))
+	})
 }
 
 func Test_updater_installVersion(t *testing.T) {
