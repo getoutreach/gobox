@@ -150,6 +150,8 @@ func (s *Stubs) RegisterAnyTimes(m Matcher, r Result) {
 // If no stub answers, it fails the test with Errorf, and returns a command
 // whose Wait returns an error.
 func (s *Stubs) CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	s.tb.Helper()
+
 	st := s.take(name, args)
 	switch {
 	case st == nil:
@@ -174,6 +176,8 @@ func (s *Stubs) add(st *stub) {
 // does. It marks a stub from Register as used, and checks the order for
 // InOrder.
 func (s *Stubs) take(name string, args []string) *stub {
+	s.tb.Helper()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -203,6 +207,10 @@ func (s *Stubs) take(name string, args []string) *stub {
 // checkUsed fails the test for each stub from Register that answered no
 // command.
 func (s *Stubs) checkUsed() {
+	// As a helper in a cleanup function, the failure points to the line
+	// that called NewStubs.
+	s.tb.Helper()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

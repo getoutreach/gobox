@@ -209,6 +209,11 @@ func NewSpyExec(ex exec.Exec) *SpyExec {
 // CommandContext records name and args, then returns the command from the
 // wrapped Exec.
 func (s *SpyExec) CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	// A test failure from wrapped Stubs then skips this frame too.
+	if st, ok := s.exec.(*Stubs); ok {
+		st.tb.Helper()
+	}
+
 	cmd := s.exec.CommandContext(ctx, name, args...)
 
 	s.mu.Lock()
