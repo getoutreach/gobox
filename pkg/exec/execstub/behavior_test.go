@@ -19,8 +19,8 @@ import (
 )
 
 // behavior is a command that each implementation runs in the same way. The
-// real Exec runs script with sh. The fakes give the canned result, or run fn
-// if it is set.
+// real Exec and a Real stub run script with sh. The fakes give the canned
+// result, or run fn if it is set.
 type behavior struct {
 	script string
 	stdout string
@@ -63,11 +63,16 @@ func (b behavior) commands(t *testing.T) map[string]func(context.Context) *exec.
 		return s
 	}
 
-	impls := map[string]exec.Exec{"real": exec.NewRealExec()}
+	impls := map[string]exec.Exec{"real": exec.NewRealExec(), "Stubs.Real": stubs(Result{Real: true})}
 	if b.fn != nil {
 		impls["Stubs.Func"] = stubs(Result{Func: b.fn})
 	} else {
 		impls["Stubs"] = stubs(Result{Stdout: b.stdout, Stderr: b.stderr, ExitCode: b.code})
+		// A Func that succeeds and writes nothing gives the canned result.
+		impls["Stubs.Func+Result"] = stubs(Result{
+			Func:   func(context.Context, *exec.Cmd, io.Reader, io.Writer, io.Writer) error { return nil },
+			Stdout: b.stdout, Stderr: b.stderr, ExitCode: b.code,
+		})
 		impls["StubbedCmdWithCode"] = NewStubbedCmdWithCode(b.stdout, b.stderr, b.code)
 		impls["FuncExec"] = NewFuncExec(func(*exec.Cmd, string, []string) ([]byte, error) {
 			if b.code == 0 {

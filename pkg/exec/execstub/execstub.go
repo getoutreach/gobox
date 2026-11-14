@@ -14,8 +14,14 @@
 //   - [NewFuncExec] calls a function to get the result of each command.
 //   - [NewStubs] matches each command against registered stubs, and fails
 //     the test on a command that no stub matches and on a stub that no
-//     command used.
+//     command used. [InOrder] also checks the order of the commands.
 //   - [NewSpyExec] wraps another Exec and records every command.
+//
+// A stub of Stubs gives canned output and an exit code, or calls a [RunFunc]
+// first, for example to write a file in the folder of the command, and then
+// gives the canned result. A stub with [Result.Real] runs the real command,
+// so a test can let some commands run while it stubs the others. [Exact]
+// matches any one argument at the position of [AnyArg].
 //
 // A fake command does not start a process. Start runs the fake in a new
 // goroutine and Wait returns its result, with the same rules as os/exec for
