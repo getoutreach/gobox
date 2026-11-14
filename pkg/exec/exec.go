@@ -45,7 +45,7 @@
 //
 // # Fakes
 //
-// [NewCmd] makes a Cmd that runs a [Runner] in a goroutine instead of a
+// [NewFakeCmd] makes a Cmd that runs a [Runner] in a goroutine instead of a
 // process. Package execstub uses it. Start, Wait, the pipe methods, Output,
 // CombinedOutput, the context and Cancel work as they do for a real command.
 // A fake command ignores ExtraFiles, SysProcAttr and WaitDelay, and its

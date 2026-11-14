@@ -300,7 +300,7 @@ func (r *runner) recordedSignals() []os.Signal {
 // newCmd returns a fake command that runs fn, and records it for Signals.
 func newCmd(ctx context.Context, fn RunFunc, name string, args []string) *exec.Cmd {
 	r := &runner{fn: fn}
-	cmd := exec.NewCmd(ctx, r, name, args...)
+	cmd := exec.NewFakeCmd(ctx, r, name, args...)
 
 	key := weak.Make(cmd)
 	runners.Store(key, r)

@@ -24,7 +24,7 @@ var (
 	errNilContext = errors.New("exec: nil Context")
 )
 
-// Runner runs a fake command instead of a process. [NewCmd] makes a Cmd
+// Runner runs a fake command instead of a process. [NewFakeCmd] makes a Cmd
 // from it. Package execstub implements Runner; most code does not use it.
 type Runner interface {
 	// Run runs the command and returns when the command exits. Start calls

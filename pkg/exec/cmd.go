@@ -89,7 +89,7 @@ func CommandContext(ctx context.Context, name string, args ...string) *Cmd {
 // no effect.
 //
 // Use an [Exec] to create a Cmd. A Cmd that is not made by an Exec or by
-// [NewCmd] cannot run.
+// [NewFakeCmd] cannot run.
 type Cmd struct {
 	// Path is the path of the command to run. For a real command,
 	// CommandContext sets it to the result of LookPath when it finds one.
@@ -162,16 +162,16 @@ type Cmd struct {
 	parentIOPipes []io.Closer
 }
 
-// NewCmd returns a Cmd that runs r instead of a process. It sets Path to
+// NewFakeCmd returns a Cmd that runs r instead of a process. It sets Path to
 // name, Args to name and args, and Cancel to call Process.Kill, as
 // CommandContext does. ctx must not be nil.
 //
-// NewCmd is for packages that implement fakes, such as execstub. Start runs
-// r in a new goroutine and sets Process to a [Process] with a fixed Pid that
-// no real process can have. Wait returns the error from r. The ProcessState
+// Packages such as execstub use it to build fakes. Start runs r in a new
+// goroutine and sets Process to a [Process] with a fixed Pid that no real
+// process can have. Wait returns the error from r. The ProcessState
 // shows the exit status of an [*ExitError] from r, or exit status 0 for nil
 // or for an error of another type.
-func NewCmd(ctx context.Context, r Runner, name string, args ...string) *Cmd {
+func NewFakeCmd(ctx context.Context, r Runner, name string, args ...string) *Cmd {
 	return newCmd(ctx, &Cmd{Path: name, Args: append([]string{name}, args...), runner: r})
 }
 
