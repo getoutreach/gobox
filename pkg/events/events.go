@@ -100,6 +100,7 @@ func (h *HTTPRequest) FillFieldsFromRequest(r *http.Request) {
 	h.Times.Scheduled = h.getXRequestStart(r)
 	h.Times.Started = time.Now()
 	h.Route = RequestRoute(r.Context())
+	h.BytesRead = int(r.ContentLength)
 }
 
 // FillResponseInfo fills in the response data as well as ends
