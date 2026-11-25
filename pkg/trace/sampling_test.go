@@ -49,7 +49,7 @@ func TestForceTraceHeaderSampler(t *testing.T) {
 				Attributes: []attribute.KeyValue{
 					sampleRateAttribute.Int(1),
 				},
-				Tracestate: traceStateLiteral("sample_rate=1"),
+				Tracestate: traceStateLiteral("sample_rate=1,ot=th:0"),
 			},
 		},
 		{
@@ -112,6 +112,12 @@ func TestHoneycombDeterministicSampler(t *testing.T) {
 			name:          "Not sampled at 1/1000000",
 			traceID:       "4bf92f3577b34da6a3ce929d0e0efffd",
 			sampleRate:    1000000,
+			expectSampled: false,
+		},
+		{
+			name:          "Never sampled at rate 0",
+			traceID:       "4bf92f3577b34da6a3ce929d0e0effff",
+			sampleRate:    0,
 			expectSampled: false,
 		},
 	}
@@ -179,6 +185,54 @@ func TestSampleRateTaggingSampler(t *testing.T) {
 			},
 		},
 		{
+			name:          "parent sampled with threshold only",
+			parentSampled: true,
+			tracestate:    traceStateLiteral("ot=th:c"),
+			expected: sdktrace.SamplingResult{
+				Decision: sdktrace.RecordAndSample,
+				Attributes: []attribute.KeyValue{
+					sampleRateAttribute.Int(4),
+				},
+				Tracestate: traceStateLiteral("sample_rate=4,ot=th:c"),
+			},
+		},
+		{
+			name:          "threshold wins over a disagreeing sample_rate",
+			parentSampled: true,
+			tracestate:    traceStateLiteral("sample_rate=123,ot=th:c"),
+			expected: sdktrace.SamplingResult{
+				Decision: sdktrace.RecordAndSample,
+				Attributes: []attribute.KeyValue{
+					sampleRateAttribute.Int(4),
+				},
+				Tracestate: traceStateLiteral("sample_rate=4,ot=th:c"),
+			},
+		},
+		{
+			name:          "matching sample_rate and threshold are left alone",
+			parentSampled: true,
+			tracestate:    traceStateLiteral("foo=bar,sample_rate=4,ot=th:c"),
+			expected: sdktrace.SamplingResult{
+				Decision: sdktrace.RecordAndSample,
+				Attributes: []attribute.KeyValue{
+					sampleRateAttribute.Int(4),
+				},
+				Tracestate: traceStateLiteral("foo=bar,sample_rate=4,ot=th:c"),
+			},
+		},
+		{
+			name:          "invalid threshold falls back to sample_rate",
+			parentSampled: true,
+			tracestate:    traceStateLiteral("sample_rate=123,ot=th:zz"),
+			expected: sdktrace.SamplingResult{
+				Decision: sdktrace.RecordAndSample,
+				Attributes: []attribute.KeyValue{
+					sampleRateAttribute.Int(123),
+				},
+				Tracestate: traceStateLiteral("sample_rate=123,ot=th:zz"),
+			},
+		},
+		{
 			name:          "parent sampled and has no trace state",
 			parentSampled: true,
 			expected: sdktrace.SamplingResult{
@@ -240,4 +294,137 @@ func TestSetTraceStateSampleRate(t *testing.T) {
 	sr, ok = trace.GetTraceStateSampleRate(ts3)
 	assert.Equal(t, ok, true)
 	assert.Equal(t, sr, uint(1))
+}
+
+func TestForceTraceHeaderSamplerReplacesInheritedThreshold(t *testing.T) {
+	sampler := trace.NewForceTraceHeaderSampler(sdktrace.NeverSample())
+
+	traceID, err := oteltrace.TraceIDFromHex("4bf92f3577b34da6a3ce929d0e0e4736")
+	assert.NilError(t, err)
+	spanID, err := oteltrace.SpanIDFromHex("00f067aa0ba902b7")
+	assert.NilError(t, err)
+	parentCtx := oteltrace.ContextWithSpanContext(
+		trace.ForceTracing(t.Context()),
+		oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceState: traceStateLiteral("sample_rate=100,ot=th:fd70a;rv:abcdef01234567"),
+		}),
+	)
+
+	actual := sampler.ShouldSample(sdktrace.SamplingParameters{ParentContext: parentCtx})
+	expected := sdktrace.SamplingResult{
+		Decision: sdktrace.RecordAndSample,
+		Attributes: []attribute.KeyValue{
+			sampleRateAttribute.Int(1),
+		},
+		// The threshold becomes 0 (probability 1) and the randomness is kept.
+		Tracestate: traceStateLiteral("sample_rate=1,ot=th:0;rv:abcdef01234567"),
+	}
+	assert.DeepEqual(t, expected, actual,
+		cmp.Comparer(traceStateEqual),
+		cmp.Comparer(keyValuesEqual),
+	)
+}
+
+func TestProbabilitySampler(t *testing.T) {
+	// The OpenTelemetry algorithm takes its randomness from the last 56 bits of
+	// the trace ID, so these two IDs sit at the top and bottom of that range.
+	const (
+		alwaysKeptTraceID    = "4bf92f3577b34da6a3ffffffffffffff"
+		alwaysDroppedTraceID = "4bf92f3577b34da6a300000000000000"
+	)
+
+	tests := []struct {
+		name       string
+		traceID    string
+		sampleRate uint
+		// expectedTh is empty when the trace should be dropped.
+		expectedTh string
+	}{
+		{name: "rate 1 keeps everything", traceID: alwaysDroppedTraceID, sampleRate: 1, expectedTh: "0"},
+		{name: "rate 2 kept", traceID: alwaysKeptTraceID, sampleRate: 2, expectedTh: "8"},
+		{name: "rate 4 kept", traceID: alwaysKeptTraceID, sampleRate: 4, expectedTh: "c"},
+		{name: "rate 4 dropped", traceID: alwaysDroppedTraceID, sampleRate: 4},
+		{name: "rate 100 kept", traceID: alwaysKeptTraceID, sampleRate: 100, expectedTh: "fd70a"},
+		{name: "rate 400 kept", traceID: alwaysKeptTraceID, sampleRate: 400, expectedTh: "ff5c29"},
+		{name: "rate 0 never samples", traceID: alwaysKeptTraceID, sampleRate: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sampler := trace.NewProbabilitySampler(tt.sampleRate)
+
+			traceID, err := oteltrace.TraceIDFromHex(tt.traceID)
+			assert.NilError(t, err)
+			params := sdktrace.SamplingParameters{ParentContext: t.Context(), TraceID: traceID}
+
+			actual := sampler.ShouldSample(params)
+
+			if tt.expectedTh == "" {
+				assert.Equal(t, actual.Decision, sdktrace.Drop)
+				assert.Equal(t, len(actual.Attributes), 0)
+				return
+			}
+
+			rate := strconv.FormatUint(uint64(tt.sampleRate), 10)
+			expected := sdktrace.SamplingResult{
+				Decision: sdktrace.RecordAndSample,
+				Attributes: []attribute.KeyValue{
+					sampleRateAttribute.Int(int(tt.sampleRate)),
+				},
+				Tracestate: traceStateLiteral("sample_rate=" + rate + ",ot=th:" + tt.expectedTh),
+			}
+			assert.DeepEqual(t, expected, actual,
+				cmp.Comparer(traceStateEqual),
+				cmp.Comparer(keyValuesEqual),
+			)
+
+			// A downstream service reading only the threshold must arrive at
+			// the same sample rate.
+			child := trace.NewSampleRateTaggingSampler(999)
+			spanID, err := oteltrace.SpanIDFromHex("00f067aa0ba902b7")
+			assert.NilError(t, err)
+			var flags oteltrace.TraceFlags
+			childCtx := oteltrace.ContextWithRemoteSpanContext(
+				t.Context(),
+				oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+					TraceID:    traceID,
+					SpanID:     spanID,
+					TraceFlags: flags.WithSampled(true),
+					TraceState: traceStateLiteral("ot=th:" + tt.expectedTh),
+				}),
+			)
+			childResult := child.ShouldSample(sdktrace.SamplingParameters{ParentContext: childCtx})
+			assert.DeepEqual(t, childResult.Attributes, expected.Attributes, cmp.Comparer(keyValuesEqual))
+		})
+	}
+}
+
+func TestDefaultSamplerRespectsParentDecision(t *testing.T) {
+	// The root sampler at rate 1000000 would almost always drop this trace,
+	// but a sampled remote parent must still be followed.
+	sampler := trace.NewForceTraceHeaderSampler(sdktrace.ParentBased(
+		trace.NewProbabilitySampler(1000000),
+		sdktrace.WithRemoteParentSampled(trace.NewSampleRateTaggingSampler(1000000)),
+	))
+
+	traceID, err := oteltrace.TraceIDFromHex("4bf92f3577b34da6a300000000000000")
+	assert.NilError(t, err)
+	spanID, err := oteltrace.SpanIDFromHex("00f067aa0ba902b7")
+	assert.NilError(t, err)
+	var flags oteltrace.TraceFlags
+	parentCtx := oteltrace.ContextWithRemoteSpanContext(
+		t.Context(),
+		oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceFlags: flags.WithSampled(true),
+			TraceState: traceStateLiteral("ot=th:fd70a"),
+		}),
+	)
+
+	actual := sampler.ShouldSample(sdktrace.SamplingParameters{ParentContext: parentCtx, TraceID: traceID})
+	assert.Equal(t, actual.Decision, sdktrace.RecordAndSample)
+	assert.DeepEqual(t, actual.Attributes, []attribute.KeyValue{sampleRateAttribute.Int(100)}, cmp.Comparer(keyValuesEqual))
 }
