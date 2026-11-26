@@ -15,6 +15,8 @@
 // [CommandContext] function is a shortcut for NewRealExec().CommandContext,
 // and a test cannot replace it.
 //
+// To look up an executable through an Exec, call [LookPathWith].
+//
 // # Name clash with os/exec
 //
 // This package has the same name as os/exec on purpose. [Cmd] has the fields

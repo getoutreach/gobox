@@ -110,6 +110,15 @@ type Stubs struct {
 
 	// stubs are the registered stubs, in order.
 	stubs []*stub
+
+	// lookups are the registered results of LookPath, by file.
+	lookups map[string]lookup
+}
+
+// lookup is the registered result of LookPath for one file.
+type lookup struct {
+	path string
+	err  error
 }
 
 // stub is a registered Matcher and its Result.
@@ -125,7 +134,7 @@ type stub struct {
 func NewStubs(tb testing.TB, opts ...Option) *Stubs {
 	tb.Helper()
 
-	s := &Stubs{tb: tb}
+	s := &Stubs{tb: tb, lookups: make(map[string]lookup)}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -162,6 +171,46 @@ func (s *Stubs) CommandContext(ctx context.Context, name string, args ...string)
 	default:
 		return newCmd(ctx, st.result.runFunc(), name, args)
 	}
+}
+
+// RegisterLookPath makes LookPath return path for file. A registered result
+// answers any number of lookups, also none, in any order. A second
+// registration for the same file replaces the first.
+func (s *Stubs) RegisterLookPath(file, path string) {
+	s.addLookup(file, lookup{path: path})
+}
+
+// RegisterLookPathError makes LookPath return err for file, for example an
+// [exec.Error] that wraps [exec.ErrNotFound]. The rules of
+// [Stubs.RegisterLookPath] apply.
+func (s *Stubs) RegisterLookPathError(file string, err error) {
+	s.addLookup(file, lookup{err: err})
+}
+
+// LookPath returns the result registered for file. It makes Stubs an
+// [exec.LookPather]. If no result is registered, it fails the test with
+// Errorf, and returns an [exec.Error] that wraps [exec.ErrNotFound].
+func (s *Stubs) LookPath(file string) (string, error) {
+	s.tb.Helper()
+
+	s.mu.Lock()
+	l, ok := s.lookups[file]
+	s.mu.Unlock()
+
+	if !ok {
+		s.tb.Errorf("execstub: unexpected LookPath: %s", file)
+		return "", &exec.Error{Name: file, Err: exec.ErrNotFound}
+	}
+
+	return l.path, l.err
+}
+
+// addLookup stores l as the result of LookPath for file.
+func (s *Stubs) addLookup(file string, l lookup) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.lookups[file] = l
 }
 
 // add appends st to the stubs.

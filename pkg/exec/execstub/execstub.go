@@ -17,6 +17,10 @@
 //     command used. [InOrder] also checks the order of the commands.
 //   - [NewSpyExec] wraps another Exec and records every command.
 //
+// Every fake here is an [exec.LookPather]. [Stubs] answers from its
+// registered results, [SpyExec] asks the Exec that it wraps, and the others
+// report that every executable exists.
+//
 // A stub of Stubs gives canned output and an exit code, or calls a [RunFunc]
 // first, for example to write a file in the folder of the command, and then
 // gives the canned result. A stub with [Result.Real] runs the real command,
@@ -223,8 +227,31 @@ func (s *SpyExec) CommandContext(ctx context.Context, name string, args ...strin
 	return cmd
 }
 
+// LookPath asks the wrapped Exec with [exec.LookPathWith]. Calls holds
+// commands only, so it does not record the lookup.
+func (s *SpyExec) LookPath(file string) (string, error) {
+	// A test failure from wrapped Stubs then skips this frame too.
+	if st, ok := s.exec.(*Stubs); ok {
+		st.tb.Helper()
+	}
+
+	return exec.LookPathWith(s.exec, file)
+}
+
 // funcExec is an exec.Exec that gets a RunFunc for each command.
 type funcExec func(name string, args []string) RunFunc
+
+var (
+	_ exec.LookPather = funcExec(nil)
+	_ exec.LookPather = (*SpyExec)(nil)
+	_ exec.LookPather = (*Stubs)(nil)
+)
+
+// LookPath reports that every executable exists, with file as its path, so
+// that a test with this fake does not depend on the PATH of the machine.
+func (funcExec) LookPath(file string) (string, error) {
+	return file, nil
+}
 
 // CommandContext returns a fake command that runs the RunFunc for name and
 // args.

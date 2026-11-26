@@ -375,3 +375,78 @@ func TestStubsRegisterAnyTimes(t *testing.T) {
 	// the test.
 	assert.Equal(t, len(tb.runCleanups()), 0)
 }
+
+func TestStubsLookPath(t *testing.T) {
+	t.Parallel()
+
+	tb := &fakeTB{TB: t}
+	s := NewStubs(tb)
+	notFound := &exec.Error{Name: "docker", Err: exec.ErrNotFound}
+	s.RegisterLookPath("gh", "/fake/bin/gh")
+	s.RegisterLookPathError("docker", notFound)
+
+	path, err := s.LookPath("gh")
+	assert.NilError(t, err)
+	assert.Equal(t, path, "/fake/bin/gh")
+
+	_, err = s.LookPath("docker")
+	assert.Equal(t, err, error(notFound))
+
+	// A registration answers any number of lookups, and a second one for
+	// the same file replaces the first.
+	s.RegisterLookPath("gh", "/other/bin/gh")
+	for range 2 {
+		path, err = s.LookPath("gh")
+		assert.NilError(t, err)
+		assert.Equal(t, path, "/other/bin/gh")
+	}
+
+	assert.Equal(t, len(tb.runCleanups()), 0)
+}
+
+func TestStubsUnexpectedLookPathFailsTest(t *testing.T) {
+	t.Parallel()
+
+	tb := &fakeTB{TB: t}
+	s := NewStubs(tb)
+	s.RegisterLookPath("gh", "/fake/bin/gh")
+
+	path, err := s.LookPath("git")
+	assert.ErrorIs(t, err, exec.ErrNotFound)
+	assert.Equal(t, path, "")
+
+	assert.DeepEqual(t, tb.runCleanups(), []string{"execstub: unexpected LookPath: git"})
+}
+
+func TestSpyExecLookPath(t *testing.T) {
+	t.Parallel()
+
+	tb := &fakeTB{TB: t}
+	s := NewStubs(tb)
+	s.RegisterLookPath("gh", "/fake/bin/gh")
+
+	// A SpyExec asks the Exec that it wraps, and a lookup is not a call.
+	spy := NewSpyExec(s)
+	path, err := spy.LookPath("gh")
+	assert.NilError(t, err)
+	assert.Equal(t, path, "/fake/bin/gh")
+	assert.Equal(t, len(spy.Calls), 0)
+
+	assert.Equal(t, len(tb.runCleanups()), 0)
+}
+
+// TestFuncExecLookPath checks that the fakes without lookups report that
+// every executable exists, whatever PATH has.
+func TestFuncExecLookPath(t *testing.T) {
+	t.Parallel()
+
+	for _, ex := range []exec.Exec{
+		NewStubbedCmd("", ""),
+		NewStubbedCmdWithCode("", "", 1),
+		NewFuncExec(func(*exec.Cmd, string, []string) ([]byte, error) { return nil, nil }),
+	} {
+		path, err := exec.LookPathWith(ex, "gobox-no-such-command")
+		assert.NilError(t, err)
+		assert.Equal(t, path, "gobox-no-such-command")
+	}
+}
