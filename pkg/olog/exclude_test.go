@@ -2,7 +2,6 @@ package olog
 
 import (
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -73,8 +72,9 @@ func TestExclude_Attrs(t *testing.T) {
 	l.With("probe", "true").WithGroup("http").Info("e", "route", "/healthz")
 	l.WithGroup("http").With("route", "/healthz").With(slog.String("probe", "true")).Info("f")
 
-	var msgs []string
-	for _, e := range tc.GetLogs() {
+	logs := tc.GetLogs()
+	msgs := make([]string, 0, len(logs))
+	for _, e := range logs {
 		msgs = append(msgs, e.Message)
 	}
 	// "e": probe bound before the group => "probe", route in group => "http.route": dropped.
@@ -181,7 +181,7 @@ func BenchmarkExclude(b *testing.B) {
 		"AttrRule":    {{Attrs: map[string]string{"http.route": "^/healthz$"}}},
 	} {
 		b.Run(name, func(b *testing.B) {
-			var cr []compiledRule
+			cr := make([]compiledRule, 0, len(rules))
 			for i := range rules {
 				r, err := compileExclude(&rules[i])
 				assert.NilError(b, err)
@@ -189,7 +189,7 @@ func BenchmarkExclude(b *testing.B) {
 			}
 			excludeRules.Store(&cr)
 			defer excludeRules.Store(nil)
-			h := newExcludeHandler(slog.NewJSONHandler(io.Discard, nil), []string{"pkg"})
+			h := newExcludeHandler(slog.DiscardHandler, []string{"pkg"})
 			l := slog.New(h)
 			b.ReportAllocs()
 			for b.Loop() {
