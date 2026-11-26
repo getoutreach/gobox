@@ -61,7 +61,12 @@ func ConfigureFromFile(path string) error {
 		return fmt.Errorf("%w reading %s", err, path)
 	}
 
-	c := Config{}
+	// Exclude is decoded per rule so a malformed rule doesn't block the
+	// rest of the file.
+	var c struct {
+		Levels  []LevelConfig `yaml:"log"`
+		Exclude yaml.Node     `yaml:"exclude"`
+	}
 	err = yaml.Unmarshal(data, &c)
 	if err != nil {
 		return fmt.Errorf("%w unmarshalling %s: \n%s", err, path, string(data))
@@ -80,7 +85,7 @@ func ConfigureFromFile(path string) error {
 
 	// Exclusion rules are replaced wholesale so rules removed from the
 	// file stop applying.
-	rules, err := compileExcludes(c.Exclude, path)
+	rules, err := compileExcludes(&c.Exclude, path)
 	excludeRules.Store(&rules)
 	errs = append(errs, err)
 

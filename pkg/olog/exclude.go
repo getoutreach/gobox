@@ -11,8 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"regexp"
 	"sync/atomic"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // ErrInvalidExclude is returned by [ConfigureFromFile] (and surfaced
@@ -51,15 +54,27 @@ type compiledRule struct {
 // wholesale on each configuration load.
 var excludeRules atomic.Pointer[[]compiledRule]
 
-// compileExcludes compiles cfgs, returning the valid rules and an error
-// joining one ErrInvalidExclude per rejected rule.
-func compileExcludes(cfgs []ExcludeConfig, path string) ([]compiledRule, error) {
+// compileExcludes decodes and compiles the exclude list in node,
+// returning the valid rules and an error joining one ErrInvalidExclude
+// per rejected rule.
+func compileExcludes(node *yaml.Node, path string) ([]compiledRule, error) {
+	if node.Kind == 0 || node.Tag == "!!null" {
+		return nil, nil
+	}
+	if node.Kind != yaml.SequenceNode {
+		return nil, fmt.Errorf("%w in %s: exclude must be a list", ErrInvalidExclude, path)
+	}
 	var (
 		rules []compiledRule
 		errs  []error
 	)
-	for i := range cfgs {
-		r, err := compileExclude(&cfgs[i])
+	for i, n := range node.Content {
+		var c ExcludeConfig
+		err := n.Decode(&c)
+		var r compiledRule
+		if err == nil {
+			r, err = compileExclude(&c)
+		}
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%w: rule %d in %s: %w", ErrInvalidExclude, i, path, err))
 			continue
@@ -100,12 +115,12 @@ type excludeHandler struct {
 	inner slog.Handler
 	addrs []string
 
-	// bound are attributes added via WithAttrs, with keys already
-	// prefixed by the group path active when they were added.
-	bound []slog.Attr
+	// bound holds attributes added via WithAttrs, flattened to dotted
+	// keys and resolved once, as the sink does.
+	bound map[string]string
 
 	// prefix is the dotted group path (with trailing dot) applied to
-	// record attributes.
+	// attributes.
 	prefix string
 }
 
@@ -175,13 +190,11 @@ func attrsMatch(want map[string]*regexp.Regexp, got map[string]string) bool {
 	return true
 }
 
-// collectAttrs flattens bound and record attributes into dotted keys
+// collectAttrs merges bound and record attributes into dotted keys
 // with resolved string values. Record attributes win over bound ones.
 func (h *excludeHandler) collectAttrs(r *slog.Record) map[string]string {
 	out := make(map[string]string, len(h.bound)+r.NumAttrs())
-	for _, a := range h.bound {
-		flattenAttr("", a, out)
-	}
+	maps.Copy(out, h.bound)
 	r.Attrs(func(a slog.Attr) bool {
 		flattenAttr(h.prefix, a, out)
 		return true
@@ -214,7 +227,11 @@ func (h *excludeHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 	n := *h
 	n.inner = h.inner.WithAttrs(attrs)
-	n.bound = append(append([]slog.Attr(nil), h.bound...), prefixAttrs(h.prefix, attrs)...)
+	n.bound = make(map[string]string, len(h.bound)+len(attrs))
+	maps.Copy(n.bound, h.bound)
+	for _, a := range attrs {
+		flattenAttr(h.prefix, a, n.bound)
+	}
 	return &n
 }
 
@@ -227,28 +244,6 @@ func (h *excludeHandler) WithGroup(name string) slog.Handler {
 	n.inner = h.inner.WithGroup(name)
 	n.prefix = h.prefix + name + "."
 	return &n
-}
-
-// prefixAttrs returns attrs with prefix prepended to each key.
-func prefixAttrs(prefix string, attrs []slog.Attr) []slog.Attr {
-	out := make([]slog.Attr, len(attrs))
-	for i, a := range attrs {
-		if a.Key != "" {
-			a.Key = prefix + a.Key
-		} else if prefix != "" && a.Value.Kind() == slog.KindGroup {
-			// Inline group: members need the prefix.
-			a = slog.Attr{Key: trimDot(prefix), Value: a.Value}
-		}
-		out[i] = a
-	}
-	return out
-}
-
-func trimDot(s string) string {
-	if s != "" && s[len(s)-1] == '.' {
-		return s[:len(s)-1]
-	}
-	return s
 }
 
 // _ ensures excludeHandler implements slog.Handler.

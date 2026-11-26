@@ -15,6 +15,17 @@ type lazyValue struct{ v string }
 
 func (l lazyValue) LogValue() slog.Value { return slog.StringValue(l.v) }
 
+type lazyGroup struct{ route string }
+
+func (l lazyGroup) LogValue() slog.Value { return slog.GroupValue(slog.String("route", l.route)) }
+
+type countingValue struct{ n *int }
+
+func (c countingValue) LogValue() slog.Value {
+	*c.n++
+	return slog.StringValue("true")
+}
+
 func loadExcludes(t *testing.T, yaml string) error {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), "olog.yaml")
@@ -71,6 +82,56 @@ func TestExclude_Attrs(t *testing.T) {
 	assert.DeepEqual(t, msgs, []string{"c", "d", "f"})
 }
 
+func TestExclude_BoundInlineGroupLogValuer(t *testing.T) {
+	assert.NilError(t, loadExcludes(t, "exclude:\n  - attrs:\n      http.route: '^/healthz$'\n"))
+	l, tc := newExcludeTestLogger(t, "pkg")
+
+	l.WithGroup("http").With(slog.Any("", lazyGroup{"/healthz"})).Info("dropped")
+	l.WithGroup("http").With(slog.Any("", lazyGroup{"/other"})).Info("kept")
+
+	logs := tc.GetLogs()
+	assert.Equal(t, len(logs), 1)
+	assert.Equal(t, logs[0].Message, "kept")
+}
+
+func TestExclude_BoundLogValuerResolvedOnce(t *testing.T) {
+	assert.NilError(t, loadExcludes(t, "exclude:\n  - attrs:\n      probe: 'true'\n"))
+	l, tc := newExcludeTestLogger(t, "pkg")
+
+	var n int
+	bl := l.With(slog.Any("probe", countingValue{&n}))
+	for range 3 {
+		bl.Info("x")
+	}
+	assert.Equal(t, len(tc.GetLogs()), 0)
+	assert.Equal(t, n, 2) // once by the sink, once by the exclude handler
+}
+
+func TestExclude_MalformedRuleSkipped(t *testing.T) {
+	err := loadExcludes(t, `log:
+  - address: malformedExcludeModule
+    level: ERROR
+exclude:
+  - attrs: [route]
+  - message: spam
+`)
+	assert.Assert(t, errors.Is(err, ErrInvalidExclude))
+
+	got := globalLevelRegistry.Get("malformedExcludeModule")
+	assert.Assert(t, got != nil, "levels should still be applied")
+	assert.Equal(t, *got, slog.LevelError)
+
+	l, tc := newExcludeTestLogger(t, "pkg")
+	l.Info("spam")
+	l.Info("ok")
+	assert.Equal(t, len(tc.GetLogs()), 1)
+}
+
+func TestExclude_NotAList(t *testing.T) {
+	err := loadExcludes(t, "exclude:\n  message: spam\n")
+	assert.Assert(t, errors.Is(err, ErrInvalidExclude))
+}
+
 func TestExclude_AddressScope(t *testing.T) {
 	assert.NilError(t, loadExcludes(t, "exclude:\n  - address: noisy/pkg\n    message: spam\n"))
 
@@ -120,7 +181,12 @@ func BenchmarkExclude(b *testing.B) {
 		"AttrRule":    {{Attrs: map[string]string{"http.route": "^/healthz$"}}},
 	} {
 		b.Run(name, func(b *testing.B) {
-			cr, _ := compileExcludes(rules, "")
+			var cr []compiledRule
+			for i := range rules {
+				r, err := compileExclude(&rules[i])
+				assert.NilError(b, err)
+				cr = append(cr, r)
+			}
 			excludeRules.Store(&cr)
 			defer excludeRules.Store(nil)
 			h := newExcludeHandler(slog.NewJSONHandler(io.Discard, nil), []string{"pkg"})
