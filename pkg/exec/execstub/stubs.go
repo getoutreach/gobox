@@ -187,9 +187,9 @@ func (s *Stubs) RegisterLookPathError(file string, err error) {
 	s.addLookup(file, lookup{err: err})
 }
 
-// LookPath returns the result registered for file. It makes Stubs an
-// [exec.LookPather]. If no result is registered, it fails the test with
-// Errorf, and returns an [exec.Error] that wraps [exec.ErrNotFound].
+// LookPath returns the result registered for file. If no result is
+// registered, it fails the test with Errorf, and returns an [exec.Error] that
+// wraps [exec.ErrNotFound].
 func (s *Stubs) LookPath(file string) (string, error) {
 	s.tb.Helper()
 

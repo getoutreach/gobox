@@ -445,7 +445,7 @@ func TestFuncExecLookPath(t *testing.T) {
 		NewStubbedCmdWithCode("", "", 1),
 		NewFuncExec(func(*exec.Cmd, string, []string) ([]byte, error) { return nil, nil }),
 	} {
-		path, err := exec.LookPathWith(ex, "gobox-no-such-command")
+		path, err := ex.LookPath("gobox-no-such-command")
 		assert.NilError(t, err)
 		assert.Equal(t, path, "gobox-no-such-command")
 	}

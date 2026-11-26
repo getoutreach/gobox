@@ -109,16 +109,23 @@ func TestNotFound(t *testing.T) {
 	assert.Equal(t, cmd.String(), "gobox-no-such-command")
 }
 
-// TestLookPath checks the LookPath alias.
+// TestLookPath checks the LookPath alias and the LookPath method of the real
+// Exec.
 func TestLookPath(t *testing.T) {
 	t.Parallel()
 
 	want, wantErr := osexec.LookPath("sh")
 	got, err := exec.LookPath("sh")
+	gotReal, errReal := exec.NewRealExec().LookPath("sh")
 
 	assert.NilError(t, wantErr)
 	assert.NilError(t, err)
 	assert.Equal(t, got, want)
+	assert.NilError(t, errReal)
+	assert.Equal(t, gotReal, want)
+
+	_, err = exec.NewRealExec().LookPath("gobox-no-such-command")
+	assert.ErrorIs(t, err, exec.ErrNotFound)
 }
 
 // TestStringAndEnviron checks String and Environ.

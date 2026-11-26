@@ -9,13 +9,12 @@
 // # Injection point
 //
 // A package-level function cannot be faked. Code that runs a command it
-// wants to test takes an [Exec] value and calls its CommandContext method.
+// wants to test takes an [Exec] value and calls its CommandContext method, or
+// its LookPath method to check that an executable exists.
 // Production code passes [NewRealExec]. Tests pass a fake from package
 // github.com/getoutreach/gobox/pkg/exec/execstub. The package-level
 // [CommandContext] function is a shortcut for NewRealExec().CommandContext,
 // and a test cannot replace it.
-//
-// To look up an executable through an Exec, call [LookPathWith].
 //
 // # Name clash with os/exec
 //

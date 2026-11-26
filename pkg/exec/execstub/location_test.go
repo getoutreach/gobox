@@ -55,6 +55,14 @@ func TestFailureLocationChild(t *testing.T) {
 		printWant()
 		s := NewStubs(t)
 		s.Register(Exact("gh"), Result{})
+	case "lookpath":
+		s := NewStubs(t)
+		printWant()
+		_, _ = s.LookPath("gh")
+	case "spy-lookpath":
+		spy := NewSpyExec(NewStubs(t))
+		printWant()
+		_, _ = spy.LookPath("gh")
 	}
 }
 
@@ -64,7 +72,7 @@ func TestFailureLocation(t *testing.T) {
 	t.Parallel()
 
 	want := regexp.MustCompile(`(?m)^want: (\S+)$`)
-	for _, tc := range []string{"unexpected", "spy", "order", "unused"} {
+	for _, tc := range []string{"unexpected", "spy", "order", "unused", "lookpath", "spy-lookpath"} {
 		t.Run(tc, func(t *testing.T) {
 			t.Parallel()
 

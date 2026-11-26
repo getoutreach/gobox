@@ -17,9 +17,11 @@
 //     command used. [InOrder] also checks the order of the commands.
 //   - [NewSpyExec] wraps another Exec and records every command.
 //
-// Every fake here is an [exec.LookPather]. [Stubs] answers from its
-// registered results, [SpyExec] asks the Exec that it wraps, and the others
-// report that every executable exists.
+// The LookPath of [Stubs] answers from the results that a test registers,
+// and fails the test on a lookup that has no result. The LookPath of
+// [SpyExec] asks the Exec that it wraps, and that of the other fakes
+// returns its argument, so that a test does not depend on the PATH of the
+// machine.
 //
 // A stub of Stubs gives canned output and an exit code, or calls a [RunFunc]
 // first, for example to write a file in the folder of the command, and then
@@ -128,7 +130,9 @@ func NewExitError(code int, stderr string) error {
 // NewStubbedCmd returns a fake whose commands all write stdout. A non-empty
 // stderr makes every command fail with exit status 1 and an *exec.ExitError
 // for that text. An empty stderr makes every command succeed. To fail with
-// another exit status, or with no stderr text, use NewStubbedCmdWithCode.
+// another exit status, or with no stderr text, use NewStubbedCmdWithCode. The
+// LookPath of the fake returns its argument, so use [Stubs] to test a missing
+// executable.
 func NewStubbedCmd(stdout, stderr string) exec.Exec {
 	code := 0
 	if stderr != "" {
@@ -143,7 +147,7 @@ func NewStubbedCmd(stdout, stderr string) exec.Exec {
 // *exec.ExitError for that status and stderr, as NewExitError does. Code 0
 // makes every command succeed and ignores stderr. Any other code makes every
 // command return the error from NewExitError. The error comes from Wait, not
-// from this function.
+// from this function. The LookPath of the fake returns its argument.
 func NewStubbedCmdWithCode(stdout, stderr string, code int) exec.Exec {
 	if code == 0 {
 		stderr = ""
@@ -158,7 +162,8 @@ func NewStubbedCmdWithCode(stdout, stderr string, code int) exec.Exec {
 // and args from CommandContext. fn returns the standard output of the
 // command and, on failure, an error such as an *exec.ExitError from
 // NewExitError, whose Stderr holds the standard error. A wrapped
-// *exec.ExitError is returned as it is, and its Stderr is not written.
+// *exec.ExitError is returned as it is, and its Stderr is not written. The
+// LookPath of the fake returns its argument.
 func NewFuncExec(fn func(cmd *exec.Cmd, name string, args []string) ([]byte, error)) exec.Exec {
 	return funcExec(func(name string, args []string) RunFunc {
 		return func(_ context.Context, cmd *exec.Cmd, _ io.Reader, stdout, _ io.Writer) error {
@@ -227,24 +232,23 @@ func (s *SpyExec) CommandContext(ctx context.Context, name string, args ...strin
 	return cmd
 }
 
-// LookPath asks the wrapped Exec with [exec.LookPathWith]. Calls holds
-// commands only, so it does not record the lookup.
+// LookPath asks the wrapped Exec. Calls holds commands only, so it does not
+// record the lookup.
 func (s *SpyExec) LookPath(file string) (string, error) {
 	// A test failure from wrapped Stubs then skips this frame too.
 	if st, ok := s.exec.(*Stubs); ok {
 		st.tb.Helper()
 	}
 
-	return exec.LookPathWith(s.exec, file)
+	return s.exec.LookPath(file)
 }
 
 // funcExec is an exec.Exec that gets a RunFunc for each command.
 type funcExec func(name string, args []string) RunFunc
 
 var (
-	_ exec.LookPather = funcExec(nil)
-	_ exec.LookPather = (*SpyExec)(nil)
-	_ exec.LookPather = (*Stubs)(nil)
+	_ exec.Exec = (*SpyExec)(nil)
+	_ exec.Exec = (*Stubs)(nil)
 )
 
 // LookPath reports that every executable exists, with file as its path, so

@@ -53,36 +53,20 @@ func LookPath(file string) (string, error) {
 	return exec.LookPath(file)
 }
 
-// LookPather is an optional interface of an [Exec] that looks up
-// executables, so that a test can decide which executables exist. See
-// [LookPathWith].
-type LookPather interface {
-	// LookPath searches for the executable file, like [LookPath].
-	LookPath(file string) (string, error)
-}
-
-// LookPathWith calls the LookPath method of ex when ex is a [LookPather],
-// and [LookPath] otherwise.
-func LookPathWith(ex Exec, file string) (string, error) {
-	if lp, ok := ex.(LookPather); ok {
-		return lp.LookPath(file)
-	}
-
-	return LookPath(file)
-}
-
-// Exec creates commands. [NewRealExec] creates real commands. Package
-// execstub has fakes for tests.
+// Exec creates commands and looks up executables. [NewRealExec] returns the
+// real one. Package execstub has fakes for tests, and tells how each one
+// answers LookPath.
 type Exec interface {
 	// CommandContext returns a command that runs name with args, like
 	// [os/exec.CommandContext]. ctx must not be nil.
 	CommandContext(ctx context.Context, name string, args ...string) *Cmd
+
+	// LookPath searches for the executable file, like [LookPath].
+	LookPath(file string) (string, error)
 }
 
 // realExec is the Exec that NewRealExec returns.
 type realExec struct{}
-
-var _ LookPather = realExec{}
 
 // NewRealExec returns an Exec whose commands run real processes with
 // os/exec.
