@@ -37,18 +37,18 @@ type Header struct {
 	Type HeaderType
 }
 
-// HeaderType is the type of entry a Header is for in an archive
+// HeaderType is the type of entry a Header is for in an archive.
 type HeaderType string
 
 const (
-	// HeaderTypeFile is a file entry
+	// HeaderTypeFile is a file entry.
 	HeaderTypeFile HeaderType = "file"
 
-	// HeaderTypeDirectory is a directory entry
+	// HeaderTypeDirectory is a directory entry.
 	HeaderTypeDirectory HeaderType = "directory"
 )
 
-// Archive is an interface for interacting with files inside of an archive
+// Archive is an interface for interacting with files inside of an archive.
 type Archive interface {
 	// Next returns the next file in the archive, or returns
 	// io.EOF if there are no more files.

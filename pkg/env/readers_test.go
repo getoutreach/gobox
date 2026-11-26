@@ -1,7 +1,6 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 //go:build or_dev || or_test || or_e2e || or_int
-// +build or_dev or_test or_e2e or_int
 
 // Description: Unit tests for configuration readers
 
@@ -22,7 +21,7 @@ type TestConfig struct {
 	GRPCPort   int    `yaml:"GRPCPort"`
 }
 
-// LoadTestConfig returns a new Config type that has been loaded in accordance to the environment
+// LoadTestConfig returns a new Config type that has been loaded in accordance to the environment.
 func LoadTestConfig(_ context.Context, input TestConfig) (*TestConfig, error) {
 	c := TestConfig{
 		ListenHost: input.ListenHost,
@@ -34,7 +33,7 @@ func LoadTestConfig(_ context.Context, input TestConfig) (*TestConfig, error) {
 }
 
 // TestFakeTestConfigWithErrorMultipleConfigs tests multiple config files that
-// are created with different names
+// are created with different names.
 func TestFakeTestConfigWithErrorMultipleConfigs(t *testing.T) {
 	type args struct {
 		fName  string
@@ -100,7 +99,7 @@ func TestFakeTestConfigWithErrorMultipleConfigs(t *testing.T) {
 }
 
 // TestFakeTestConfigWithErrorRepeatedTestOverride tests when multiple config files
-// with the same name are created
+// with the same name are created.
 func TestFakeTestConfigWithErrorRepeatedTestOverride(t *testing.T) {
 	type args struct {
 		fName  string

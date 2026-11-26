@@ -17,7 +17,7 @@ import (
 type eventsSuite struct{}
 
 func (eventsSuite) TestHTTPRequest(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://localhost/myendpoint/1", http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, "http://localhost/myendpoint/1", http.NoBody)
 	if err != nil {
 		t.Fatal("Unexpected err", err)
 	}
@@ -34,7 +34,7 @@ func (eventsSuite) TestHTTPRequest(t *testing.T) {
 	info.FillFieldsFromRequest(req)
 	info.FillResponseInfo(100, 202)
 
-	fields := map[string]interface{}{}
+	fields := map[string]any{}
 	info.MarshalLog(addFields(fields, ""))
 
 	expected := events.HTTPRequest{
@@ -71,8 +71,8 @@ func approxFloat(x, y float64) bool {
 // addFields returns a addField function that can be used with MarshalLog
 //
 // The provided map is where the results of marshal log would be stored.
-func addFields(m map[string]interface{}, prefix string) func(key string, v interface{}) {
-	return func(key string, v interface{}) {
+func addFields(m map[string]any, prefix string) func(key string, v any) {
+	return func(key string, v any) {
 		if prefix != "" {
 			key = prefix + "." + key
 		}

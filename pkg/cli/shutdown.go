@@ -16,7 +16,7 @@ import (
 )
 
 // urfaveRegisterShutdownHandler registers a signal notifier that translates various term
-// signals into context cancel
+// signals into context cancel.
 func urfaveRegisterShutdownHandler(cancel context.CancelFunc) {
 	// handle ^C gracefully
 	c := make(chan os.Signal, 1)

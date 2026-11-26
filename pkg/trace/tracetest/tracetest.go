@@ -41,8 +41,8 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 
 	restoreSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
 
-	fakeConfig := map[string]interface{}{
-		"OpenTelemetry": map[string]interface{}{
+	fakeConfig := map[string]any{
+		"OpenTelemetry": map[string]any{
 			"SamplePercent": options.SamplePercent,
 			"Endpoint":      "blackhole.test",
 			"Enabled":       true,
@@ -53,7 +53,7 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 	}
 
 	if options.DevEmail != "" {
-		fakeConfig["GlobalTags"] = map[string]interface{}{
+		fakeConfig["GlobalTags"] = map[string]any{
 			"DevEmail": "test@test.com",
 		}
 	}
@@ -63,7 +63,7 @@ func NewSpanRecorderWithOptions(options Options) *SpanRecorder {
 
 	ctx := context.Background()
 	name := "log-testing"
-	_ = trace.InitTracer(ctx, name) // nolint: errcheck
+	_ = trace.InitTracer(ctx, name) //nolint: errcheck
 
 	sr.Recorder = tracetest.NewSpanRecorder()
 	trace.RegisterSpanProcessor(sr.Recorder)
@@ -88,19 +88,19 @@ func (sr *SpanRecorder) Close() {
 	sr.cleanup()
 }
 
-func (sr *SpanRecorder) Ended() []map[string]interface{} {
+func (sr *SpanRecorder) Ended() []map[string]any {
 	var ended []oteltrace.ReadOnlySpan
 
 	if sr.Recorder != nil {
 		ended = sr.Recorder.Ended()
 	}
 
-	result := make([]map[string]interface{}, 0, len(ended))
+	result := make([]map[string]any, 0, len(ended))
 	for _, s := range ended {
 		spanContext := s.SpanContext()
 		parent := s.Parent()
 
-		spanInfo := map[string]interface{}{
+		spanInfo := map[string]any{
 			"name":                   s.Name(),
 			"spanContext.traceID":    spanContext.TraceID().String(),
 			"spanContext.spanID":     spanContext.SpanID().String(),
@@ -152,9 +152,9 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 
 		links := s.Links()
 		if len(links) > 0 {
-			var linksInfo []map[string]interface{}
+			var linksInfo []map[string]any
 			for _, link := range links {
-				linkInfo := map[string]interface{}{
+				linkInfo := map[string]any{
 					"spanContext.traceID": link.SpanContext.TraceID().String(),
 					"spanContext.spanID":  link.SpanContext.SpanID().String(),
 				}
@@ -172,8 +172,8 @@ func (sr *SpanRecorder) Ended() []map[string]interface{} {
 // The cleanup function resets the tracing secrets and configuration.
 func Disabled() (cleanup func()) {
 	cleanupSecrets := secretstest.Fake("/etc/.honeycomb_api_key", "some fake value")
-	cleanupCfg, err := env.FakeTestConfigWithError("trace.yaml", map[string]interface{}{
-		"Otel": map[string]interface{}{
+	cleanupCfg, err := env.FakeTestConfigWithError("trace.yaml", map[string]any{
+		"Otel": map[string]any{
 			"Enabled": false,
 		},
 	})

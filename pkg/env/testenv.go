@@ -1,6 +1,4 @@
 //go:build (or_test || or_int) && !or_e2e
-// +build or_test or_int
-// +build !or_e2e
 
 package env
 

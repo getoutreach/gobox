@@ -73,7 +73,7 @@ func Test_needsRefresh(t *testing.T) {
 		},
 		{
 			name: "should refresh when file has expired credentials",
-			//nolint:lll // Why: Test case
+
 			credentialsContents: `[default]
 aws_access_key_id        = ACCESSKEY
 aws_secret_access_key    = SECRETKEY

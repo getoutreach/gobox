@@ -19,7 +19,7 @@ func (suite) TestAppendNoBlock(t *testing.T) {
 	items := entries.New()
 
 	// fill the debug entry cache
-	for i := 0; i < entries.MaxItems; i++ {
+	for range entries.MaxItems {
 		items.Append("test")
 	}
 
@@ -40,7 +40,7 @@ func (suite) TestAppendNoBlock(t *testing.T) {
 	<-ready
 
 	// appends should continue to work without blocking
-	for i := 0; i < entries.MaxItems; i++ {
+	for range entries.MaxItems {
 		items.Append("test")
 	}
 	close(unblock)

@@ -28,7 +28,8 @@ import (
 // Extract extracts a file, based on the provided option functions, from
 // the provided archive.
 func Extract(ctx context.Context, archiveName string, r io.Reader,
-	optFns ...ExtractOptionFunc) (io.ReadCloser, *Header, error) {
+	optFns ...ExtractOptionFunc,
+) (io.ReadCloser, *Header, error) {
 	opts := &ExtractOptions{}
 	for _, fn := range optFns {
 		if err := fn(opts); err != nil {
@@ -36,18 +37,18 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 		}
 	}
 	if opts.FilePath == "" && opts.FilePathSelectorFunc == nil {
-		return nil, nil, fmt.Errorf("WithFilePath or WithFilePathSelectorFunc must be provided via the options")
+		return nil, nil, errMissingFilePath
 	}
 
 	var extractor Extractor
-	//nolint:gocritic // Why: we are checking if file extension contains a substring
+
 	if strings.Contains(archiveName, ".tar") || filepath.Ext(archiveName) == ".tgz" {
 		extractor = &tarExtractor{}
 	} else if filepath.Ext(archiveName) == ".zip" {
 		extractor = &zipExtractor{}
 	}
 	if extractor == nil {
-		return nil, nil, fmt.Errorf("unsupported archive type: %v", archiveName)
+		return nil, nil, fmt.Errorf("%w: %v", errUnsupportedArchive, archiveName)
 	}
 
 	// create an Archive interface from the archive
@@ -80,7 +81,7 @@ func Extract(ctx context.Context, archiveName string, r io.Reader,
 		return nil, nil, ctx.Err()
 	}
 
-	return nil, nil, fmt.Errorf("no matching file in archive")
+	return nil, nil, errNoMatchingFile
 }
 
 // selectFile selects a file from the archive based on the provided options.
@@ -99,3 +100,9 @@ func selectFile(h *Header, opts *ExtractOptions) bool {
 
 	return false
 }
+
+var (
+	errMissingFilePath    = errors.New("WithFilePath or WithFilePathSelectorFunc must be provided via the options")
+	errUnsupportedArchive = errors.New("unsupported archive type")
+	errNoMatchingFile     = errors.New("no matching file in archive")
+)

@@ -74,7 +74,7 @@ import (
 // This is convenience function so that test code written with this
 // will work with both `go test` and production scenarios (which use
 // tester.T).
-func Run(t T, name string, f interface{}) bool {
+func Run(t T, name string, f any) bool {
 	if _, ok := t.(*testing.T); ok {
 		f = wrapTestFunc(f)
 	}
@@ -83,9 +83,10 @@ func Run(t T, name string, f interface{}) bool {
 	return results[0].Bool()
 }
 
-// wrapTestFunc invokes f with t *testing.T
-func wrapTestFunc(f interface{}) func(t *testing.T) {
+// wrapTestFunc invokes f with t *testing.T.
+func wrapTestFunc(f any) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		values := []reflect.Value{reflect.ValueOf(t)}
 		reflect.ValueOf(f).Call(values)
 	}
@@ -153,7 +154,7 @@ func WithLogWriter(logfunc func(name, message string)) Option {
 	}
 }
 
-// WithName configures the test name.  The default name is "test."
+// WithName configures the test name.  The default name is "test.".
 func WithName(name string) Option {
 	return func(t *tester) {
 		t.name = name
@@ -207,7 +208,7 @@ type tester struct {
 }
 
 // Run is roughly the same as testing.T.Run.
-func (t *tester) Run(name string, f interface{}) (result bool) {
+func (t *tester) Run(name string, f any) (result bool) {
 	name = t.name + "/" + name
 	inner := &tester{completed: make(chan struct{}), name: name, log: t.log, parent: t}
 	go func() {
@@ -227,23 +228,23 @@ func (t *tester) Cleanup(cleanup func()) {
 }
 
 // Log implements testing.TB.Log.
-func (t *tester) Log(args ...interface{}) {
+func (t *tester) Log(args ...any) {
 	t.log(t.name, fmt.Sprint(args...))
 }
 
 // Logf implements testing.TB.Logf.
-func (t *tester) Logf(format string, args ...interface{}) {
+func (t *tester) Logf(format string, args ...any) {
 	t.log(t.name, fmt.Sprintf(format, args...))
 }
 
 // Error implements testing.TB.Error.
-func (t *tester) Error(args ...interface{}) {
+func (t *tester) Error(args ...any) {
 	t.Log(args...)
 	t.Fail()
 }
 
 // Errorf implements testing.TB.Errorf.
-func (t *tester) Errorf(format string, args ...interface{}) {
+func (t *tester) Errorf(format string, args ...any) {
 	t.Logf(format, args...)
 	t.Fail()
 }
@@ -265,25 +266,25 @@ func (t *tester) FailNow() {
 }
 
 // Fatal implements testing.TB.Fatal.
-func (t *tester) Fatal(args ...interface{}) {
+func (t *tester) Fatal(args ...any) {
 	t.Log(args...)
 	t.FailNow()
 }
 
 // Fatalf implements testing.TB.Fatalf.
-func (t *tester) Fatalf(format string, args ...interface{}) {
+func (t *tester) Fatalf(format string, args ...any) {
 	t.Logf(format, args...)
 	t.FailNow()
 }
 
 // Skip implements testing.TB.Skip.
-func (t *tester) Skip(args ...interface{}) {
+func (t *tester) Skip(args ...any) {
 	t.Log(args...)
 	t.SkipNow()
 }
 
 // Skipf implementse testing.TB.Skipf.
-func (t *tester) Skipf(format string, args ...interface{}) {
+func (t *tester) Skipf(format string, args ...any) {
 	t.Logf(format, args...)
 	t.SkipNow()
 }

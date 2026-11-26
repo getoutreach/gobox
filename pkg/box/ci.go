@@ -5,7 +5,7 @@
 
 package box
 
-// CI contains the ci configuration settings that can be set in box
+// CI contains the ci configuration settings that can be set in box.
 type CI struct {
 	// CircleCI contains the CircleCI configuration settings
 	CircleCI struct {

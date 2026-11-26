@@ -81,7 +81,8 @@ import (
 
 // the default read is a prod reader which looks for
 // config files in /run/config/outreach.io/<filename>
-// nolint:gochecknoglobals // Why: global default
+//
+//nolint:gochecknoglobals // Why: global default
 var defaultReader = Reader(func(fileName string) ([]byte, error) {
 	name := "/run/config/outreach.io/" + fileName
 	if runtime.GOOS == "windows" {
@@ -91,7 +92,7 @@ var defaultReader = Reader(func(fileName string) ([]byte, error) {
 	return os.ReadFile(name)
 })
 
-// Reader reads the config from the provided file
+// Reader reads the config from the provided file.
 type Reader func(fileName string) ([]byte, error)
 
 // Load reads the config.
@@ -103,8 +104,8 @@ type Reader func(fileName string) ([]byte, error)
 //
 // This parses the config using JSON.  If a config has special needs,
 // it can implement its own UnmarshalJSON (such as implementing
-// environment overrides)
-func (r Reader) Load(fileName string, ptr interface{}) error {
+// environment overrides).
+func (r Reader) Load(fileName string, ptr any) error {
 	data, err := r(fileName)
 	if err != nil {
 		return err
@@ -113,19 +114,19 @@ func (r Reader) Load(fileName string, ptr interface{}) error {
 	return yaml.Unmarshal(data, ptr)
 }
 
-// Load uses the default config reader to load config
-func Load(fileName string, ptr interface{}) error {
+// Load uses the default config reader to load config.
+func Load(fileName string, ptr any) error {
 	return defaultReader.Load(fileName, ptr)
 }
 
 // SetDefaultReader sets the default reader.  Only meant for tests and
-// dev environment overrides
+// dev environment overrides.
 func SetDefaultReader(f Reader) {
 	defaultReader = f
 }
 
 // DefaultReader returns the current default reader. Only meant for
-// tests and dev environment overrides
+// tests and dev environment overrides.
 func DefaultReader() Reader {
 	return defaultReader
 }

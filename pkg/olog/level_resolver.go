@@ -24,6 +24,8 @@ import (
 type LevelResolver func(ctx context.Context, addresses []string, registryLevel slog.Level) (slog.Level, bool)
 
 // globalLevelResolver holds the process-wide LevelResolver, if any.
+//
+//nolint:gochecknoglobals // Why: process-wide logger state
 var globalLevelResolver atomic.Pointer[LevelResolver]
 
 // SetLevelResolver installs a process-wide LevelResolver consulted by

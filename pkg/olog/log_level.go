@@ -15,6 +15,8 @@ import (
 // configuration.
 //
 // Defaults to "0" which is the info level.
+//
+//nolint:gochecknoglobals // Why: process-wide logger state
 var level atomic.Int64
 
 // _ ensures that leveler implements slog.Leveler.

@@ -127,7 +127,7 @@ func TestMultiSelectModelToggleAfterScrolling(t *testing.T) {
 	options := numberedLabels("template", 40)
 
 	m := newMultiSelectModel(MultiSelectConfig{Options: options})
-	for range len(options) {
+	for range options {
 		m.Update(codeKeypress(tea.KeyDown))
 	}
 	m.Update(codeKeypress(tea.KeySpace))

@@ -5,7 +5,7 @@
 
 package box
 
-// CD contains the cd configuration settings that can be set in box
+// CD contains the cd configuration settings that can be set in box.
 type CD struct {
 	// Concourse contains the concourse configuration settings
 	Concourse struct {

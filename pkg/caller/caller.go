@@ -12,7 +12,6 @@ import (
 	"strings"
 )
 
-// nolint:gochecknoglobals // Why: re-usable regex
 var trimPathsRe = regexp.MustCompile(`(github\.com(/getoutreach?)|golang\.org|go/src)/?`)
 
 // FileLine returns the caller file:line, skipping the specified number of frames.
@@ -30,7 +29,7 @@ func FileLine(skip int) string {
 	return "unknown:0"
 }
 
-// FileLineNameforPC returns the file, line and name for PC.
+// FileLineNameForPC returns the file, line and name for PC.
 func FileLineNameForPC(pc uintptr) (file string, line int, name string) {
 	fn := runtime.FuncForPC(pc)
 	file, line = fn.FileLine(pc)
@@ -78,7 +77,7 @@ func nthLastIndex(s string, sep rune, skip int) int {
 	})
 }
 
-// trimPaths removes known import paths from a string
+// trimPaths removes known import paths from a string.
 func trimPaths(s string) string {
 	return trimPathsRe.ReplaceAllString(s, "")
 }

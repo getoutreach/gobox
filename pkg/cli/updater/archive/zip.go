@@ -14,13 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// _ ensures that the zipExtractor type implements the Extractor interface
+// _ ensures that the zipExtractor type implements the Extractor interface.
 var _ Extractor = &zipExtractor{}
 
-// _ ensures that the zipArchive type implements the Archive interface
+// _ ensures that the zipArchive type implements the Archive interface.
 var _ Archive = &zipArchive{}
 
-// zipExtractor is an extractor for zip files
+// zipExtractor is an extractor for zip files.
 type zipExtractor struct{}
 
 // Open returns a reader for the archive file.

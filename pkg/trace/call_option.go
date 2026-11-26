@@ -51,7 +51,7 @@ func AsOutboundCall() call.Option {
 	}
 }
 
-// SetCallOptions sets the provided call options on the current call in the
+// WithCallOptions sets the provided call options on the current call in the
 // provided context. The provided options replace any existing options.
 // Call options are not preserved across application boundaries.
 //

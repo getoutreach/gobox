@@ -48,7 +48,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/trace"
 )
 
-// Runner is the default interface for a runner function
+// Runner is the default interface for a runner function.
 type Runner interface {
 	Run(ctx context.Context) error
 }
@@ -58,13 +58,14 @@ type Closer interface {
 	Close(ctx context.Context) error
 }
 
-// Tasks runs tasks
+// Tasks runs tasks.
 type Tasks struct {
-	Name string
 	sync.WaitGroup
+
+	Name string
 }
 
-// NewTasks creates new instance of Tasks
+// NewTasks creates new instance of Tasks.
 func NewTasks(name string) *Tasks {
 	return &Tasks{Name: name}
 }
@@ -73,15 +74,13 @@ func NewTasks(name string) *Tasks {
 //
 // It creates a new trace for the task and passes through deadlines.
 func (t *Tasks) Run(ctx context.Context, r Runner) {
-	t.WaitGroup.Add(1)
-	go func() {
-		defer t.WaitGroup.Done()
+	t.WaitGroup.Go(func() {
 		ctx2 := trace.StartSpan(ctx, t.Name)
 		defer trace.End(ctx2)
 		if err := r.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error(ctx2, t.Name, events.NewErrorInfo(err))
 		}
-	}()
+	})
 }
 
 // Loop repeatedly executes the provided task until it returns false
@@ -97,18 +96,18 @@ func (t *Tasks) Loop(ctx context.Context, r Runner) {
 		return false
 	}
 
-	t.WaitGroup.Add(1)
-	go func() {
-		defer t.WaitGroup.Done()
+	t.WaitGroup.Go(func() {
 		for ctx.Err() == nil {
 			if ok := run(ctx); ok {
 				break
 			}
 		}
-	}()
+	})
 }
 
-// Default is the default runner
+// Default is the default runner.
+//
+//nolint:gochecknoglobals // Why: exported default runner, replaceable by importers
 var Default = NewTasks("async.run")
 
 // Run executes a single asynchronous task.
@@ -124,10 +123,10 @@ func Run(ctx context.Context, r Runner) {
 //
 // Deprecated: Please only use Run - you should always be aware of and control your context.
 func RunBackground(_ context.Context, r Runner) {
-	Run(context.Background(), r)
+	Run(context.Background(), r) //nolint:contextcheck // Why: deprecated function deliberately ignores the caller context
 }
 
-// RunClose closes any references a runner might be using
+// RunClose closes any references a runner might be using.
 func RunClose(ctx context.Context, r Runner) error {
 	switch r := r.(type) {
 	case Closer:
@@ -138,7 +137,7 @@ func RunClose(ctx context.Context, r Runner) error {
 	return nil
 }
 
-// RunGroup runs a group of runner tasks and exits when the first run group errors out
+// RunGroup runs a group of runner tasks and exits when the first run group errors out.
 func RunGroup(rg []Runner) Runner {
 	ru := Func(func(ctx context.Context) error {
 		g, ctx := errgroup.WithContext(ctx)
@@ -165,10 +164,10 @@ func Loop(ctx context.Context, r Runner) {
 	Default.Loop(ctx, r)
 }
 
-// Func is a helper that implements the Runner interface
+// Func is a helper that implements the Runner interface.
 type Func func(ctx context.Context) error
 
-// Run implements the Runner interface
+// Run implements the Runner interface.
 func (f Func) Run(ctx context.Context) error {
 	return f(ctx)
 }

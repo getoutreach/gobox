@@ -14,21 +14,21 @@ import (
 )
 
 // SnapshotLockChannel is used to determine the quality of
-// a given snapshot
+// a given snapshot.
 type SnapshotLockChannel string
 
 const (
-	// SnapshotLockChannelStable is a stable channel
+	// SnapshotLockChannelStable is a stable channel.
 	SnapshotLockChannelStable SnapshotLockChannel = "stable"
 
-	// SnapshotLockChannelRC is a release candidate (less stable) channel
+	// SnapshotLockChannelRC is a release candidate (less stable) channel.
 	SnapshotLockChannelRC SnapshotLockChannel = "rc"
 
 	// Version is the current version of the box spec.
 	Version float32 = 3
 )
 
-// AWSConfig configures AWS access for tools that support it
+// AWSConfig configures AWS access for tools that support it.
 type AWSConfig struct {
 	// DefaultAccountID is the default Account ID to use when communicating
 	// with AWS.
@@ -107,7 +107,7 @@ type DeveloperEnvironmentRuntimeConfig struct {
 	Loft LoftRuntimeConfig `yaml:"loft"`
 }
 
-// VaultConfig is the configuration for accessing Vault
+// VaultConfig is the configuration for accessing Vault.
 type VaultConfig struct {
 	// Enabled determines if we should setup vault or not
 	Enabled bool `yaml:"enabled"`
@@ -123,7 +123,7 @@ type VaultConfig struct {
 	AddressCI string `yaml:"addressCI"`
 }
 
-// DevenvVersionResolvers is the configurations used to get the latest version
+// DevenvVersionResolvers is the configurations used to get the latest version.
 type DevenvVersionResolvers struct {
 	// Enabled is a list of image resolvers to use. If none are specified Maestro will be used
 	// ordered based on priority. External customers should default to git
@@ -133,13 +133,13 @@ type DevenvVersionResolvers struct {
 	Config VersionResolverConfig `yaml:"config"`
 }
 
-// VersionResolverConfig contains configuration for version resolvers
+// VersionResolverConfig contains configuration for version resolvers.
 type VersionResolverConfig struct {
 	// Maestro configuration used by maestro image resolver
 	Maestro MaestroConfig `yaml:"maestro"`
 }
 
-// MaestroConfig contains configuration used by the maestro version resolver
+// MaestroConfig contains configuration used by the maestro version resolver.
 type MaestroConfig struct {
 	// VaultSecretPath vault path that contains the auth secret to access maestro API
 	VaultSecretPath string `yaml:"vaultSecretPath"`
@@ -152,7 +152,7 @@ type MaestroConfig struct {
 }
 
 // SnapshotConfig stores configuration for generated and accessing
-// snapshots
+// snapshots.
 type SnapshotConfig struct {
 	// Endpoint is the S3 compatible endpoint to fetch a snapshot from
 	Endpoint string `yaml:"endpoint"`
@@ -185,7 +185,7 @@ type Engdocs struct {
 	URL string `yaml:"URL"`
 }
 
-// Config is the basis of a box configuration
+// Config is the basis of a box configuration.
 type Config struct {
 	// RefreshInterval is the interval to use when refreshing a box configuration
 	RefreshInterval time.Duration `yaml:"refreshInterval"`
@@ -215,7 +215,7 @@ type Config struct {
 	Engdocs Engdocs `yaml:"engdocs"`
 }
 
-// Storage is a wrapper type used for storing the box configuration
+// Storage is a wrapper type used for storing the box configuration.
 type Storage struct {
 	// Config is the box configuration, see Config.
 	// This is an yaml.Node because we can't guarantee that the
@@ -232,12 +232,12 @@ type Storage struct {
 	StorageURL string `yaml:"storageURL"`
 }
 
-// NewConfig makes a full initialized Config
+// NewConfig makes a full initialized Config.
 func NewConfig() *Config {
 	return &Config{}
 }
 
-// SnapshotTarget is the defn for a generated snapshot
+// SnapshotTarget is the defn for a generated snapshot.
 type SnapshotTarget struct {
 	// Command is the command to be run to generate this snapshot,
 	// note that a devenv is already provisioned and accessible at this
@@ -284,7 +284,7 @@ type SnapshotTarget struct {
 //
 // - a "databases" step specifies "IncludedNamespaces" of all database namespaces
 //
-// - a "all the rest" step only specifies "ExcludedNamespaces" used in previous steps
+// - a "all the rest" step only specifies "ExcludedNamespaces" used in previous steps.
 type RestoreStep struct {
 	// Description describes what resources are restored in this step
 	Description string
@@ -296,7 +296,7 @@ type RestoreStep struct {
 	ExcludedNamespaces []string `yaml:"excluded_namespaces"`
 }
 
-// SnapshotGenerateConfig stores configuration for snapshots that should be generated
+// SnapshotGenerateConfig stores configuration for snapshots that should be generated.
 type SnapshotGenerateConfig struct {
 	// Targets are all of the snapshots that can be generated. The key equates
 	// the name of the generated snapshot
@@ -322,7 +322,7 @@ type SnapshotLockTarget struct {
 }
 
 // SnapshotLockListItem is a replacement for SnapshotLockTarget which is
-// used by SnapshotLockList to provide details about a snapshot
+// used by SnapshotLockList to provide details about a snapshot.
 type SnapshotLockListItem struct {
 	// Digest is a MD5 base64 encoded digest of the archive
 	Digest string `yaml:"digest"`
@@ -340,13 +340,13 @@ type SnapshotLockListItem struct {
 }
 
 // SnapshotLockList contains a channel (different releases of snapshots)
-// separated list of snapshots
+// separated list of snapshots.
 type SnapshotLockList struct {
 	// Snapshots is a channel separated list of snapshots for a given target
 	Snapshots map[SnapshotLockChannel][]*SnapshotLockListItem `yaml:"snapshots"`
 }
 
-// SnapshotLock is an manifest of all the available snapshots
+// SnapshotLock is an manifest of all the available snapshots.
 type SnapshotLock struct {
 	// Version is the version of this configuration, used for breaking changes
 	Version int `yaml:"version"`

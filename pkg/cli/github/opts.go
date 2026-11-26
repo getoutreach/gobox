@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains the options for the github client.
+
 package github
 
 import (
@@ -9,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Options contains the options for a Github client
+// Options contains the options for a Github client.
 type Options struct {
 	// AllowUnauthenticated allows the client to be created without
 	// a token.
@@ -19,7 +20,7 @@ type Options struct {
 	Logger logrus.FieldLogger
 }
 
-// apply applies functional options to the options struct
+// apply applies functional options to the options struct.
 func (o *Options) apply(opts ...Option) {
 	for _, opt := range opts {
 		opt(o)
@@ -34,7 +35,7 @@ func (o *Options) apply(opts ...Option) {
 	}
 }
 
-// Option is a functional option for configuring a client
+// Option is a functional option for configuring a client.
 type Option func(*Options)
 
 // WithAllowUnauthenticated allows the client to be created without
@@ -45,7 +46,7 @@ func WithAllowUnauthenticated() Option {
 	}
 }
 
-// WithLogger provides a logger for the client
+// WithLogger provides a logger for the client.
 func WithLogger(log logrus.FieldLogger) Option {
 	return func(o *Options) {
 		o.Logger = log

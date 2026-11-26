@@ -20,7 +20,7 @@ import (
 
 //go:generate go run github.com/getoutreach/gobox/tools/logger
 
-// Durations holds the various times in seconds
+// Durations holds the various times in seconds.
 type Durations struct {
 	ServiceSeconds float64 `log:"timing.service_time"`
 	WaitSeconds    float64 `log:"timing.wait_time"`
@@ -28,14 +28,14 @@ type Durations struct {
 }
 
 // Times holds the actual times and also provides a convenient way to
-// calculate the associated durations
+// calculate the associated durations.
 type Times struct {
 	Scheduled time.Time `log:"timing.scheduled_at"`
 	Started   time.Time `log:"timing.dequeued_at"`
 	Finished  time.Time `log:"timing.finished_at"`
 }
 
-// Durations returns the durations associated with the times
+// Durations returns the durations associated with the times.
 func (t *Times) Durations() *Durations {
 	scheduled := t.Scheduled
 	if t.Scheduled.IsZero() || t.Scheduled.After(t.Started) {
@@ -53,7 +53,7 @@ func (t *Times) Durations() *Durations {
 	}
 }
 
-// NetworkRequest tracks network request related information
+// NetworkRequest tracks network request related information.
 type NetworkRequest struct {
 	BytesRead    int    `log:"network.bytes_read"`
 	BytesWritten int    `log:"network.bytes_written"`
@@ -61,7 +61,7 @@ type NetworkRequest struct {
 	DestAddr     string `log:"network.destination.ip"`
 }
 
-// HTTPRequest tracks HTTP request related information
+// HTTPRequest tracks HTTP request related information.
 type HTTPRequest struct {
 	// embed the network requests
 	NetworkRequest `log:"."`
@@ -106,7 +106,7 @@ func (h *HTTPRequest) FillFieldsFromRequest(r *http.Request) {
 // the timing information.
 //
 // Only the first call of this function has any effect.  After the
-// Finished time has been updated, further calls will be ignored
+// Finished time has been updated, further calls will be ignored.
 func (h *HTTPRequest) FillResponseInfo(bytesWritten, statusCode int) {
 	if h.Finished.IsZero() {
 		h.Finished = time.Now()

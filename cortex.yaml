@@ -36,7 +36,7 @@ info:
     ## description(optional): Description to this link
     - name: API Docs
       type: api_documentation
-      url: https://engdocs.outreach.cloud/github.com/getoutreach/gobox#section-readme
+      url: "https://pkg.go.dev/github.com/getoutreach/gobox#section-readme"
     ## <<Stencil::Block(customLinks)>>
     ## <</Stencil::Block>>
   x-cortex-custom-metadata:
@@ -45,13 +45,14 @@ info:
     repo: https://github.com/getoutreach/gobox
     framework: stencil
     language: Golang
-    stencil_version: v1.43.1
+    stencil_version: v1.47.1-rc.2
     golang_version: 1.25.7
     cli: false
     service: false
     product: Outreach
     lifecycle: in_development
     ## <<Stencil::Block(extraAliases)>>
+
     ## <</Stencil::Block>>
     reporting_team: fnd-dt
     lintroller: silver

@@ -1,25 +1,26 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: This file contains the GCP cloud code.
+
 package region
 
 import "context"
 
 const (
-	// CloudGCP is the Google Cloud
+	// CloudGCP is the Google Cloud.
 	CloudGCP CloudName = "gcp"
 
-	// RegionGCPUS is a multi-region region for all of the US
+	// RegionGCPUS is a multi-region region for all of the US.
 	RegionGCPUS Name = "us"
 
-	// RegionGCPUS is a multi-region region for all of Europe
+	// RegionGCPEurope is a multi-region region for all of Europe.
 	RegionGCPEurope Name = "europe"
 
-	// RegionGCPUS is a multi-region region for all of Asia
+	// RegionGCPAsia is a multi-region region for all of Asia.
 	RegionGCPAsia Name = "asia"
 )
 
-// GCP is a Google Cloud implementation of the interface Cloud
+// GCP is a Google Cloud implementation of the interface Cloud.
 type GCP struct{}
 
 // Regions returns a list of all known-gcp regions. This should not be used

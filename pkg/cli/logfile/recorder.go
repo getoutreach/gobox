@@ -19,12 +19,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// _ is a type assertion to ensure that recorder implements io.Writer
+// _ is a type assertion to ensure that recorder implements io.Writer.
 var _ io.Writer = (*recorder)(nil)
 
 // recorder is a io.Writer that records all writes to it in the order
 // they were written plus the time elapsed since the creation of the recorder
-// and writes it to a json.Encoder
+// and writes it to a json.Encoder.
 type recorder struct {
 	mu sync.Mutex
 
@@ -51,9 +51,10 @@ type recorder struct {
 }
 
 // newRecorder creates a new recorder using a os.File as
-// the underlying writer
+// the underlying writer.
 func newRecorder(logFile *os.File, width, height int, cmd string, args []string,
-	l net.Listener) *recorder {
+	l net.Listener,
+) *recorder {
 	enc := jsoniter.NewEncoder(logFile)
 	startedAt := time.Now()
 
@@ -77,7 +78,7 @@ func newRecorder(logFile *os.File, width, height int, cmd string, args []string,
 }
 
 // Write implements io.Writer by writing the data to the recorder
-// in the form of frames
+// in the form of frames.
 func (r *recorder) Write(b []byte) (n int, err error) {
 	// Ensure that we only write one frame at a time
 	r.mu.Lock()
@@ -98,7 +99,7 @@ func (r *recorder) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-// WriteTrace writes a trace to the recorder in the form of a frame
+// WriteTrace writes a trace to the recorder in the form of a frame.
 func (r *recorder) WriteTrace(reader io.Reader) error {
 	// Decode the provided bytes into spans
 	var spans []*Span

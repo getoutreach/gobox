@@ -39,7 +39,7 @@ type testState struct {
 	StartedAt   time.Time
 	Results     stringChan
 	Pool        *pool.Pool
-	Context     context.Context
+	Context     context.Context //nolint:containedctx // Why: test fixture carries its own context
 	Cancel      context.CancelFunc
 }
 
@@ -88,9 +88,9 @@ func TestGracefullyStops(t *testing.T) {
 	assert.Assert(t, waitForWorkers(t, 0), "workers detected")
 }
 
-// TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel
+// TestPoolGrows checks number of running goroutines can't be execute using shuffler that run tests in parallel.
 func TestPoolGrows(t *testing.T) {
-	var size = make(chan int, 1)
+	size := make(chan int, 1)
 
 	resize := func(s int) {
 		fmt.Println("resizing to:", s)
@@ -137,8 +137,9 @@ func numWorkers() int {
 }
 
 func waitForWorkers(t *testing.T, num int) bool {
+	t.Helper()
 	current := 0
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		current = numWorkers()
 		if current == num {
 			return true
@@ -164,7 +165,7 @@ func TestPoolWithZeroBuffer(t *testing.T) {
 
 	wg.Add(jobs)
 	// schedule 10 jobs, only 5 should pass
-	for i := 0; i < jobs; i++ {
+	for range jobs {
 		p.Schedule(ctx, async.Func(func(ctx context.Context) error {
 			defer wg.Done()
 			if err := ctx.Err(); err != nil { // return immediately if ctx is closed
@@ -216,7 +217,7 @@ func runPool(ctx context.Context, s *testState) *testState {
 	s.Cancel = cancel
 	s.Context = ctx
 
-	for i := 0; i < items; i++ {
+	for i := range items {
 		wg.Add(1)
 		// Don't move this line into closure, we want to test that data will be correct
 		s.Expected = append(s.Expected, fmt.Sprintf("task_%d", i))

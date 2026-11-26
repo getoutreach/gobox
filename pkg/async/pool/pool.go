@@ -17,20 +17,20 @@ import (
 	"github.com/getoutreach/gobox/pkg/orerr"
 )
 
-// Option allows to functional options pattern to configure pool
+// Option allows to functional options pattern to configure pool.
 type Option interface {
 	Apply(*Options)
 }
 
-// OptionFunc help to implement Option interface
+// OptionFunc help to implement Option interface.
 type OptionFunc func(*Options)
 
-// Apply implementation of Option interface
+// Apply implementation of Option interface.
 func (of OptionFunc) Apply(opts *Options) {
 	of(opts)
 }
 
-// SizeFunc tells the pool whether it should increase or decrease number of workers
+// SizeFunc tells the pool whether it should increase or decrease number of workers.
 type SizeFunc func() int
 
 // ConstantSize provides constant size for the pool.
@@ -49,37 +49,39 @@ func ConstantSize(size int) OptionFunc {
 	}
 }
 
-// Size helps to set Size option
+// Size helps to set Size option.
 func Size(sizeFunc SizeFunc) OptionFunc {
 	return func(opts *Options) {
 		opts.Size = sizeFunc
 	}
 }
 
-// BufferLength helps to set BufferLength option
+// BufferLength helps to set BufferLength option.
 func BufferLength(size int) OptionFunc {
 	return func(opts *Options) {
 		opts.BufferLength = size
 	}
 }
 
-// ResizeEvery helps to set ResizeEvery option
+// ResizeEvery helps to set ResizeEvery option.
 func ResizeEvery(d time.Duration) OptionFunc {
 	return func(opts *Options) {
 		opts.ResizeEvery = d
 	}
 }
 
-// ScheduleBehavior defines the behavior of pool Schedule method
+// ScheduleBehavior defines the behavior of pool Schedule method.
 type ScheduleBehavior func(context.Context, chan unit, async.Runner) error
 
-// Apply implementation of Option interface
+// Apply implementation of Option interface.
 func (sb ScheduleBehavior) Apply(opts *Options) {
 	opts.ScheduleBehavior = sb
 }
 
 // RejectWhenFull tries to schedule async.Runner for period when context is alive
-// When underlying buffered channel is full then it cancels the context with orerr.LimitExceededError
+// When underlying buffered channel is full then it cancels the context with orerr.LimitExceededError.
+//
+//nolint:gochecknoglobals // Why: exported schedule behavior used as an option value
 var RejectWhenFull = ScheduleBehavior(func(ctx context.Context, queue chan unit, r async.Runner) error {
 	ctx, cancel := orerr.CancelWithError(ctx)
 	select {
@@ -96,7 +98,9 @@ var RejectWhenFull = ScheduleBehavior(func(ctx context.Context, queue chan unit,
 })
 
 // WaitWhenFull tries to schedule async.Runner for period when context is alive
-// It blocks When underlying buffered channel is full
+// It blocks When underlying buffered channel is full.
+//
+//nolint:gochecknoglobals // Why: exported schedule behavior used as an option value
 var WaitWhenFull = ScheduleBehavior(func(ctx context.Context, queue chan unit, r async.Runner) error {
 	select {
 	case <-ctx.Done():
@@ -106,7 +110,7 @@ var WaitWhenFull = ScheduleBehavior(func(ctx context.Context, queue chan unit, r
 	}
 })
 
-// A Options provides pool configuration
+// A Options provides pool configuration.
 type Options struct {
 	// Size allows to dynamically resolve number of workers that should spawned
 	Size SizeFunc
@@ -125,11 +129,11 @@ type Options struct {
 	Name string
 }
 
-// Pool structure
+// Pool structure.
 type Pool struct {
 	// Protects the context during cancelation
 	cancel  func(error)
-	context context.Context
+	context context.Context //nolint:containedctx // Why: the pool holds its lifecycle context for as long as it runs
 	closed  chan struct{}
 	opts    *Options
 	queue   chan unit
@@ -146,7 +150,7 @@ type Pool struct {
 // https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
 func New(ctx context.Context, options ...Option) *Pool {
 	// default values
-	var opts = &Options{
+	opts := &Options{
 		ScheduleBehavior: WaitWhenFull,
 		ResizeEvery:      1 * time.Minute,
 		Name:             "default",
@@ -174,9 +178,38 @@ func New(ctx context.Context, options ...Option) *Pool {
 	return p
 }
 
+// Close blocks until all workers finshes current items and terminates.
+func (p *Pool) Close() {
+	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
+	close(p.closed)
+	p.wg.Wait()
+}
+
+// Schedule tries to schedule runner for processing in the pool
+// It is required to check provided context for an error.
+// The async.Runner interface will be called in all cases:
+// - When item gets successfully scheduled and withdrawn by worker
+// - When the given context is Done and item is not scheduled (Timeout, buffered queue full)
+// - When pool is in shutdown phase.
+//
+// Deprecated: This library is being deprecated in favor of using
+// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. Replace
+// calls to Schedule with (*Pool).Go(). For more information, see the
+// README:
+// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
+func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
+	// Check whether pool is alive
+	if p.context.Err() != nil {
+		ctxErr, cancel := orerr.CancelWithError(ctx)
+		cancel(p.context.Err())
+		return r.Run(ctxErr)
+	}
+	return p.opts.ScheduleBehavior(ctx, p.queue, r)
+}
+
 func (p *Pool) spawnWorkers(ctx context.Context, n int) cancellations {
 	cancels := make(cancellations, 0, n)
-	for i := 0; i < n; i++ {
+	for range n {
 		workerCtx, cancel := context.WithCancel(ctx)
 		cancels = append(cancels, cancel)
 		p.wg.Add(1)
@@ -188,9 +221,7 @@ func (p *Pool) spawnWorkers(ctx context.Context, n int) cancellations {
 
 func (p *Pool) run(ctx context.Context, cancellations cancellations) {
 	defer p.wg.Done()
-	var (
-		prevSize, delta int
-	)
+	var prevSize, delta int
 	for ctx.Err() == nil {
 		prevSize = len(cancellations)
 		delta = p.opts.Size() - prevSize
@@ -229,7 +260,7 @@ func (p *Pool) worker(ctx context.Context) {
 		select {
 		case u = <-p.queue:
 			//nolint:errcheck // Why: best effort
-			_ = u.Runner.Run(u.Context)
+			_ = u.Runner.Run(u.Context) //nolint:contextcheck // Why: the queued unit carries the context to run with
 		case <-p.closed:
 			return
 		case <-ctx.Done():
@@ -238,38 +269,9 @@ func (p *Pool) worker(ctx context.Context) {
 	}
 }
 
-// Close blocks until all workers finshes current items and terminates
-func (p *Pool) Close() {
-	p.cancel(&orerr.ShutdownError{Err: context.Canceled})
-	close(p.closed)
-	p.wg.Wait()
-}
-
-// Schedule tries to schedule runner for processing in the pool
-// It is required to check provided context for an error.
-// The async.Runner interface will be called in all cases:
-// - When item gets successfully scheduled and withdrawn by worker
-// - When the given context is Done and item is not scheduled (Timeout, buffered queue full)
-// - When pool is in shutdown phase.
-//
-// Deprecated: This library is being deprecated in favor of using
-// https://pkg.go.dev/github.com/sourcegraph/conc/pool instead. Replace
-// calls to Schedule with (*Pool).Go(). For more information, see the
-// README:
-// https://github.com/getoutreach/gobox/tree/main/pkg/async/pool/README.md
-func (p *Pool) Schedule(ctx context.Context, r async.Runner) error {
-	// Check whether pool is alive
-	if p.context.Err() != nil {
-		ctxErr, cancel := orerr.CancelWithError(ctx)
-		cancel(p.context.Err())
-		return r.Run(ctxErr)
-	}
-	return p.opts.ScheduleBehavior(ctx, p.queue, r)
-}
-
 type cancellations []context.CancelFunc
 
-// Shrink reduces size of slice and calls context.CancelFunc on those that will be removed
+// Shrink reduces size of slice and calls context.CancelFunc on those that will be removed.
 func (c cancellations) Shrink(by int) cancellations {
 	if by == 0 {
 		return c
@@ -286,7 +288,7 @@ func (c cancellations) Shrink(by int) cancellations {
 }
 
 type unit struct {
-	Context context.Context
+	Context context.Context //nolint:containedctx // Why: each queued unit carries the context of its Schedule call
 	Runner  async.Runner
 }
 

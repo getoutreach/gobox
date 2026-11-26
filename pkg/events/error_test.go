@@ -19,8 +19,8 @@ type errorSuite struct{}
 func (errorSuite) TestErrorInfo(t *testing.T) {
 	err := errors.New("test error")
 	info := events.NewErrorInfo(err)
-	got := map[string]interface{}{}
-	info.MarshalLog(func(key string, v interface{}) {
+	got := map[string]any{}
+	info.MarshalLog(func(key string, v any) {
 		got[key] = v
 	})
 	if got["error.message"] != "test error" {
@@ -40,13 +40,13 @@ func (errorSuite) TestErrorInfo(t *testing.T) {
 func (errorSuite) TestErrorInfoCollapse(t *testing.T) {
 	err := errors.Wrap(errors.New("test error"), "context")
 	info := events.NewErrorInfo(err)
-	got := map[string]interface{}{}
-	info.Cause.MarshalLog(func(key string, v interface{}) {
+	got := map[string]any{}
+	info.Cause.MarshalLog(func(key string, v any) {
 		got[key] = v
 	})
 
 	// with collapse behavior, both message and stack should be set.
-	want := map[string]interface{}{
+	want := map[string]any{
 		"kind":    "cause",
 		"stack":   differs.StackLike("gobox/pkg/events/error_test.go:41 `events_test.errorSuite.TestErrorInfoCollapse`"),
 		"message": "test error",
@@ -60,8 +60,8 @@ func (errorSuite) TestErrorRecoveryPanicNonError(t *testing.T) {
 	func() {
 		defer func() {
 			info := events.NewErrorInfoFromPanic(recover())
-			got := map[string]interface{}{}
-			info.MarshalLog(func(key string, v interface{}) {
+			got := map[string]any{}
+			info.MarshalLog(func(key string, v any) {
 				got[key] = v
 			})
 			if got["error.message"] != "42" {
@@ -95,7 +95,8 @@ type customError struct{}
 func (c customError) Error() string {
 	return "custom error!"
 }
-func (c customError) MarshalLog(addField func(k string, v interface{})) {
+
+func (c customError) MarshalLog(addField func(k string, v any)) {
 	addField("error.kind", "custom kind")
 	addField("error.stack", "custom stack")
 	addField("error.message", "custom message")
@@ -108,11 +109,11 @@ func (errorSuite) TestCustomErrorLoginfo(t *testing.T) {
 		t.Fatal("no custom marshaler")
 	}
 
-	got := map[string]interface{}{}
-	info.MarshalLog(func(key string, v interface{}) {
+	got := map[string]any{}
+	info.MarshalLog(func(key string, v any) {
 		got[key] = v
 	})
-	want := map[string]interface{}{
+	want := map[string]any{
 		"error.kind":    "custom kind",
 		"error.stack":   "custom stack",
 		"error.error":   "custom error!",
@@ -130,9 +131,9 @@ func (errorSuite) TestNestedErrorLogInfo(t *testing.T) {
 
 	info := events.NewErrorInfo(outer)
 
-	got := map[string]interface{}{}
-	var addField func(key string, v interface{})
-	addField = func(key string, v interface{}) {
+	got := map[string]any{}
+	var addField func(key string, v any)
+	addField = func(key string, v any) {
 		if v == nil {
 			return
 		}
@@ -142,13 +143,13 @@ func (errorSuite) TestNestedErrorLogInfo(t *testing.T) {
 			got[key] = v
 			return
 		}
-		m.MarshalLog(func(inner string, v interface{}) {
+		m.MarshalLog(func(inner string, v any) {
 			addField(key+"."+inner, v)
 		})
 	}
 	info.MarshalLog(addField)
 
-	want := map[string]interface{}{
+	want := map[string]any{
 		"error.kind":          "error",
 		"error.error":         "outer error: inner error",
 		"error.message":       "outer error",

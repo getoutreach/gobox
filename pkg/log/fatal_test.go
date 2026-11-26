@@ -53,7 +53,7 @@ func (fatalSuite) TestFatalWithError(t *testing.T) {
 	// Instead, we call regular log.Error but override "level" to
 	// "FATAL".  This goes through all the motions of log.Fatal
 	// except for os.Exit(1)
-	err := errors.New("my error")
+	err := errors.New("my error") //nolint:err113 // Why: test-only error
 	log.Error(t.Context(), "example", log.F{"level": "FATAL"}, events.NewErrorInfo(err))
 
 	got := logs.Entries()

@@ -9,7 +9,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/async"
 )
 
-// TestOnceRetry verifies the retries behavior
+// TestOnceRetry verifies the retries behavior.
 func TestOnceRetry(t *testing.T) {
 	o := new(one)
 	var once async.RetryableOnce

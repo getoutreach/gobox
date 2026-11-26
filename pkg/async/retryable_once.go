@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 )
 
-// RetryableOnce is modified from sync.Once with a tweak to allow retry
+// RetryableOnce is modified from sync.Once with a tweak to allow retry.
 type RetryableOnce struct {
 	// done indicates whether the action has been performed.
 	// It is first in the struct because it is used in the hot path.
@@ -26,7 +26,7 @@ type RetryableOnce struct {
 //
 // If f panics, Do considers it as "done"; future calls of Do return
 // without calling f.
-// This function return true when future calls of Do will no longer call f
+// This function return true when future calls of Do will no longer call f.
 func (o *RetryableOnce) Do(f func() bool) bool {
 	// Note: Here is an incorrect implementation of Do:
 	//

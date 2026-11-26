@@ -54,6 +54,7 @@ func TestConfigFromFile(t *testing.T) {
 
 	loggers := map[slog.Level]struct {
 		*slog.Logger
+
 		count int
 	}{
 		slog.LevelWarn: {

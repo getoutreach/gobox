@@ -11,13 +11,13 @@ import (
 	"io"
 )
 
-// _ ensures that the bz2CompressedReader type implements the CompressedReader interface
+// _ ensures that the bz2CompressedReader type implements the CompressedReader interface.
 var _ CompressedReader = &bz2CompressedReader{}
 
-// bz2CompressedReader is a CompressedReader for bz2 compressed file(s)
+// bz2CompressedReader is a CompressedReader for bz2 compressed file(s).
 type bz2CompressedReader struct{}
 
-// Open returns a reader for a bz2 file
+// Open returns a reader for a bz2 file.
 func (g *bz2CompressedReader) Open(_ context.Context, r io.Reader) (io.ReadCloser, error) {
 	return io.NopCloser(bzip2.NewReader(r)), nil
 }

@@ -9,6 +9,7 @@ package release
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -16,7 +17,7 @@ import (
 	"github.com/getoutreach/gobox/pkg/cfg"
 )
 
-// fetcher implements the Fetch method for a VCS provider
+// fetcher implements the Fetch method for a VCS provider.
 type fetcher interface {
 	// Fetch returns an asset as a io.ReadCloser
 	Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, int64, error)
@@ -25,7 +26,7 @@ type fetcher interface {
 	GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts *GetReleaseNoteOptions) (string, error)
 }
 
-// FetchOptions is a set of options for Fetch
+// FetchOptions is a set of options for Fetch.
 type FetchOptions struct {
 	// RepoURL is the repository URL, it should be a valid
 	// URL.
@@ -43,7 +44,7 @@ type FetchOptions struct {
 	AssetNames []string
 }
 
-// GetReleaseNoteOptions is a set of options for GetReleaseNotes
+// GetReleaseNoteOptions is a set of options for GetReleaseNotes.
 type GetReleaseNoteOptions struct {
 	// RepoURL is the repository URL, it should be a valid
 	// URL.
@@ -60,41 +61,49 @@ type GetReleaseNoteOptions struct {
 //nolint:gocritic // Why: rc, name, size, error
 func Fetch(ctx context.Context, token cfg.SecretData, opts *FetchOptions) (io.ReadCloser, string, int64, error) {
 	if opts == nil {
-		return nil, "", 0, fmt.Errorf("opts is nil")
+		return nil, "", 0, errOptsNil
 	}
 
 	if opts.RepoURL == "" {
-		return nil, "", 0, fmt.Errorf("repo url is required")
+		return nil, "", 0, errRepoURLRequired
 	}
 
 	if opts.Tag == "" {
-		return nil, "", 0, fmt.Errorf("tag is required")
+		return nil, "", 0, errTagRequired
 	}
 
 	if strings.Contains(opts.RepoURL, "github.com") {
 		return (&github{}).Fetch(ctx, token, opts)
 	}
 
-	return nil, "", 0, fmt.Errorf("unsupported fetch repo url: %s", opts.RepoURL)
+	return nil, "", 0, fmt.Errorf("%w: %s", errUnsupportedFetchURL, opts.RepoURL)
 }
 
 // GetReleaseNotes fetches the release notes of a release from a VCS provider.
 func GetReleaseNotes(ctx context.Context, token cfg.SecretData, opts *GetReleaseNoteOptions) (string, error) {
 	if opts == nil {
-		return "", fmt.Errorf("opts is nil")
+		return "", errOptsNil
 	}
 
 	if opts.RepoURL == "" {
-		return "", fmt.Errorf("repo url is required")
+		return "", errRepoURLRequired
 	}
 
 	if opts.Tag == "" {
-		return "", fmt.Errorf("tag is required")
+		return "", errTagRequired
 	}
 
 	if strings.Contains(opts.RepoURL, "github.com") {
 		return (&github{}).GetReleaseNotes(ctx, token, opts)
 	}
 
-	return "", fmt.Errorf("unsupported get release notes repo url: %s", opts.RepoURL)
+	return "", fmt.Errorf("%w: %s", errUnsupportedNotesURL, opts.RepoURL)
 }
+
+var (
+	errOptsNil             = errors.New("opts is nil")
+	errRepoURLRequired     = errors.New("repo url is required")
+	errTagRequired         = errors.New("tag is required")
+	errUnsupportedFetchURL = errors.New("unsupported fetch repo url")
+	errUnsupportedNotesURL = errors.New("unsupported get release notes repo url")
+)

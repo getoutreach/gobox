@@ -1,13 +1,13 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 //go:build or_dev || or_test || or_e2e || or_int
-// +build or_dev or_test or_e2e or_int
 
 // Description: Provides configuration readers for various environments
 
 package env
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -20,23 +20,23 @@ import (
 )
 
 type testOverrides struct {
-	data map[string]interface{}
+	data map[string]any
 	mu   sync.Mutex
 }
 
-func (to *testOverrides) addWithError(k string, v interface{}) error {
+func (to *testOverrides) addWithError(k string, v any) error {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
 	if _, exists := to.data[k]; exists {
-		return fmt.Errorf("repeated test override of '%s'", k)
+		return fmt.Errorf("%w '%s'", errRepeatedOverride, k)
 	}
 
 	to.data[k] = v
 	return nil
 }
 
-func (to *testOverrides) load(k string) (interface{}, bool) {
+func (to *testOverrides) load(k string) (any, bool) {
 	to.mu.Lock()
 	defer to.mu.Unlock()
 
@@ -54,13 +54,13 @@ func (to *testOverrides) delete(k string) {
 	delete(to.data, k)
 }
 
-// nolint:gochecknoglobals // Why: needs to be overridable
+//nolint:gochecknoglobals // Why: needs to be overridable
 var overrides = testOverrides{
-	data: make(map[string]interface{}),
+	data: make(map[string]any),
 }
 
 // devReader creates a config reader specific to the dev environment.
-func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why: only used with certain build tags
+func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode // Why: only used with certain build tags
 	return cfg.Reader(func(fileName string) ([]byte, error) {
 		u, err := user.Current()
 		if err != nil {
@@ -74,21 +74,21 @@ func devReader(fallback cfg.Reader) cfg.Reader { //nolint:deadcode,unused // Why
 		}
 
 		var b []byte
-		errors := make([]error, 0)
+		errs := make([]error, 0)
 		for _, p := range lookupPaths {
 			var err error
 			b, err = os.ReadFile(p)
 			if err != nil {
-				errors = append(errors, err)
+				errs = append(errs, err)
 				continue
 			}
 
 			// we found a config, so exit
 			// and remove all errors
-			errors = nil
+			errs = nil
 			break
 		}
-		if len(errors) != 0 {
+		if len(errs) != 0 {
 			return fallback(fileName)
 		}
 
@@ -113,8 +113,8 @@ func testReader(fallback cfg.Reader, overrider *testOverrides) cfg.Reader {
 // use the fName across two tests running in parallel. This will cause the
 // function to potentially panic.
 //
-// Please use `FakeTestConfigWithError` if you want an error returned rather than panicking
-func FakeTestConfig(fName string, ptr interface{}) func() {
+// Please use `FakeTestConfigWithError` if you want an error returned rather than panicking.
+func FakeTestConfig(fName string, ptr any) func() {
 	// add ensures that it doesn't already exist to prevent two tests running
 	// concurrently colliding on fName.
 	f, err := FakeTestConfigWithError(fName, ptr)
@@ -127,7 +127,7 @@ func FakeTestConfig(fName string, ptr interface{}) func() {
 // FakeTestConfigWithError allows you to fake the test config with a specific value
 // and returns an error if a config with the same name exists already. If callers get an error,
 // they should switch to running tests in serial.
-func FakeTestConfigWithError(fName string, ptr interface{}) (func(), error) {
+func FakeTestConfigWithError(fName string, ptr any) (func(), error) {
 	err := overrides.addWithError(fName, ptr)
 	if err != nil {
 		return nil, err
@@ -137,3 +137,5 @@ func FakeTestConfigWithError(fName string, ptr interface{}) (func(), error) {
 		overrides.delete(fName)
 	}, nil
 }
+
+var errRepeatedOverride = errors.New("repeated test override of")

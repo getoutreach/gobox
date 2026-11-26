@@ -157,7 +157,7 @@ func TestStringSortedDeterministic(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	s := Of(1, 2, 3)
-	var got []int
+	got := make([]int, 0, len(s))
 	for v := range s.All() {
 		got = append(got, v)
 	}

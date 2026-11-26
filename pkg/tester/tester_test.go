@@ -1,11 +1,11 @@
 package tester_test
 
 import (
-	"github.com/getoutreach/gobox/pkg/tester"
-
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/getoutreach/gobox/pkg/tester"
 
 	"gotest.tools/v3/assert"
 )
@@ -187,6 +187,7 @@ func testTempDir(t tester.T) {
 }
 
 func logWriter(t *testing.T) tester.Option {
+	t.Helper()
 	return tester.WithLogWriter(func(name, message string) {
 		t.Log(name, message)
 	})

@@ -1,6 +1,7 @@
 // Copyright 2022 Outreach Corporation. All Rights Reserved.
 
 // Description: Provides Comparers related to stack traces
+
 package differs
 
 import (
@@ -15,9 +16,9 @@ var stripNumbersRe = regexp.MustCompile(`:(\d*)`)
 // StackLike allows a stacktrace to be matched against it
 // when differs.Custom is passed to cmp
 //
-// The StackTrace() function is used for the actual matching
+// The StackTrace() function is used for the actual matching.
 func StackLike(want string) CustomComparer {
-	return Customf(func(o interface{}) bool {
+	return Customf(func(o any) bool {
 		if got, ok := o.(string); ok {
 			return StackTrace(want, got) == ""
 		}

@@ -23,7 +23,7 @@ func TestWithWait(t *testing.T) {
 
 	scheduler, wait := pool.WithWait(p)
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		func() {
 			scheduler.Schedule(ctx, async.Func(func(ctx context.Context) error {
 				if ctx.Err() != nil {

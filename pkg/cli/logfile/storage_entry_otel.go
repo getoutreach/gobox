@@ -60,53 +60,53 @@ type Span struct {
 	InstrumentationScope instrumentation.Scope
 }
 
-// spanData is data that we need to unmarshal in custom ways
+// spanData is data that we need to unmarshal in custom ways.
 type spanData struct {
-	Name        string
-	SpanContext spanContext
-	Parent      spanContext
-	SpanKind    trace.SpanKind
-	StartTime   time.Time
-	EndTime     time.Time
-	Attributes  []keyValue
+	Name        string         `json:"Name"`
+	SpanContext spanContext    `json:"SpanContext"`
+	Parent      spanContext    `json:"Parent"`
+	SpanKind    trace.SpanKind `json:"SpanKind"`
+	StartTime   time.Time      `json:"StartTime"`
+	EndTime     time.Time      `json:"EndTime"`
+	Attributes  []keyValue     `json:"Attributes"`
 	// Events will currently get dropped
-	Events []tracesdk.Event
+	Events []tracesdk.Event `json:"Events"`
 	// Links will currently get dropped
-	Links             []tracesdk.Link
-	Status            tracesdk.Status
-	DroppedAttributes int
-	DroppedEvents     int
-	DroppedLinks      int
-	ChildSpanCount    int
+	Links             []tracesdk.Link `json:"Links"`
+	Status            tracesdk.Status `json:"Status"`
+	DroppedAttributes int             `json:"DroppedAttributes"`
+	DroppedEvents     int             `json:"DroppedEvents"`
+	DroppedLinks      int             `json:"DroppedLinks"`
+	ChildSpanCount    int             `json:"ChildSpanCount"`
 	// We have to change this type from the otel type in order to make this struct marshallable
-	Resource             []keyValue
-	InstrumentationScope instrumentation.Scope
+	Resource             []keyValue            `json:"Resource"`
+	InstrumentationScope instrumentation.Scope `json:"InstrumentationScope"`
 }
 
-// spanContext is a custom type used to unmarshal otel SpanContext correctly
+// spanContext is a custom type used to unmarshal otel SpanContext correctly.
 type spanContext struct {
-	TraceID    string
-	SpanID     string
-	TraceFlags string
+	TraceID    string `json:"TraceID"`
+	SpanID     string `json:"SpanID"`
+	TraceFlags string `json:"TraceFlags"`
 	// TraceState will currenctly get dropped
-	TraceState string
-	Remote     bool
+	TraceState string `json:"TraceState"`
+	Remote     bool   `json:"Remote"`
 }
 
-// keyValue is a custom type used to unmarshal otel KeyValue correctly
+// keyValue is a custom type used to unmarshal otel KeyValue correctly.
 type keyValue struct {
-	Key   string
-	Value value
+	Key   string `json:"Key"`
+	Value value  `json:"Value"`
 }
 
-// value is a custom type used to unmarshal otel Value correctly
+// value is a custom type used to unmarshal otel Value correctly.
 type value struct {
-	Type  string
-	Value interface{}
+	Type  string `json:"Type"`
+	Value any    `json:"Value"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Span which allows
-// correctly retrieving attribute.KeyValue values
+// correctly retrieving attribute.KeyValue values.
 func (s *Span) UnmarshalJSON(data []byte) error {
 	var sd spanData
 	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&sd); err != nil {
@@ -161,7 +161,7 @@ func (s *Span) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// asTraceSpanContext converst the internal spanContext representation to an otel one
+// asTraceSpanContext converst the internal spanContext representation to an otel one.
 func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 	traceID, err := traceIDFromHex(sc.TraceID)
 	if err != nil {
@@ -188,7 +188,7 @@ func (sc *spanContext) asTraceSpanContext() (trace.SpanContext, error) {
 	return trace.NewSpanContext(config), nil
 }
 
-// asAttributeKeyValue converts the internal keyValue representation to an otel one
+// asAttributeKeyValue converts the internal keyValue representation to an otel one.
 func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 	// Value types get encoded as string
 	switch kv.Value.Type {
@@ -236,7 +236,7 @@ func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 		switch sli := kv.Value.Value.(type) {
 		case []string:
 			strSli = sli
-		case []interface{}:
+		case []any:
 			for i := range sli {
 				var v string
 
@@ -253,19 +253,19 @@ func (kv *keyValue) asAttributeKeyValue() (attribute.KeyValue, error) {
 			}
 		default:
 			return attribute.KeyValue{},
-				fmt.Errorf("got unsupported type %q for %s", reflect.ValueOf(kv.Value.Value).Kind(), attribute.STRINGSLICE.String())
+				fmt.Errorf("%w %q for %s", errUnsupportedType, reflect.ValueOf(kv.Value.Value).Kind(), attribute.STRINGSLICE.String())
 		}
 
 		return attribute.StringSlice(kv.Key, strSli), nil
 	default:
-		return attribute.KeyValue{}, fmt.Errorf("unknown value type %s", kv.Value.Type)
+		return attribute.KeyValue{}, fmt.Errorf("%w %s", errUnknownValueType, kv.Value.Type)
 	}
 }
 
 // traceIDFromHex returns a TraceID from a hex string if it is compliant with
 // the W3C trace-context specification.  See more at
 // https://www.w3.org/TR/trace-context/#trace-id
-// our copy removes the validity check
+// our copy removes the validity check.
 func traceIDFromHex(h string) (trace.TraceID, error) {
 	t := trace.TraceID{}
 	if len(h) != 32 {
@@ -282,7 +282,7 @@ func traceIDFromHex(h string) (trace.TraceID, error) {
 // spanIDFromHex returns a SpanID from a hex string if it is compliant
 // with the w3c trace-context specification.
 // See more at https://www.w3.org/TR/trace-context/#parent-id
-// our version remove the validity check
+// our version remove the validity check.
 func spanIDFromHex(h string) (trace.SpanID, error) {
 	s := trace.SpanID{}
 	if len(h) != 16 {
@@ -296,7 +296,7 @@ func spanIDFromHex(h string) (trace.SpanID, error) {
 	return s, nil
 }
 
-// decodeHex decodes hex in a manner compliant with OpenTelemetry
+// decodeHex decodes hex in a manner compliant with OpenTelemetry.
 func decodeHex(h string, b []byte) error {
 	for _, r := range h {
 		switch {
@@ -452,3 +452,8 @@ func (s spanSnapshot) InstrumentationScope() instrumentation.Scope {
 func (s spanSnapshot) InstrumentationLibrary() instrumentation.Scope {
 	return s.instrumentationScope
 }
+
+var (
+	errUnsupportedType  = errors.New("got unsupported type")
+	errUnknownValueType = errors.New("unknown value type")
+)
