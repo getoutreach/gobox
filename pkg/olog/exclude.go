@@ -14,19 +14,25 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"sync"
 	"sync/atomic"
 
 	"go.yaml.in/yaml/v3"
 )
 
 // ErrInvalidExclude is returned by [ConfigureFromFile] (and surfaced
-// through [PollConfigurationFile]'s callback) for each exclude rule that
-// has an invalid regular expression or specifies neither a message nor
-// attributes. Valid rules are still applied.
+// through [PollConfigurationFile]'s callback) when exclude is not a
+// list, and for each rule that fails to decode, has an unknown key or
+// an invalid regular expression, or sets neither message nor attrs.
+// Valid rules are still applied.
 var ErrInvalidExclude = errors.New("invalid exclude rule")
 
 // errEmptyExclude is returned for a rule with neither message nor attrs.
 var errEmptyExclude = errors.New("must set message or attrs")
+
+// errUnknownExcludeKey is returned for a rule with a key other than
+// address, message or attrs.
+var errUnknownExcludeKey = errors.New("unknown key")
 
 // ExcludeConfig is a single exclusion rule. A record is dropped, at any
 // level, when it matches every field that is set on the rule. A rule
@@ -75,9 +81,14 @@ func compileExcludes(node *yaml.Node, path string) ([]compiledRule, error) {
 		errs  []error
 	)
 	for i, n := range node.Content {
-		var c ExcludeConfig
-		err := n.Decode(&c)
-		var r compiledRule
+		var (
+			c ExcludeConfig
+			r compiledRule
+		)
+		err := checkExcludeKeys(n)
+		if err == nil {
+			err = n.Decode(&c)
+		}
 		if err == nil {
 			r, err = compileExclude(&c)
 		}
@@ -88,6 +99,22 @@ func compileExcludes(node *yaml.Node, path string) ([]compiledRule, error) {
 		rules = append(rules, r)
 	}
 	return rules, errors.Join(errs...)
+}
+
+// checkExcludeKeys rejects unknown keys, so a typo such as "adress"
+// doesn't widen a rule to every logger.
+func checkExcludeKeys(n *yaml.Node) error {
+	if n.Kind != yaml.MappingNode {
+		return nil // Decode reports the shape error
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		switch k := n.Content[i].Value; k {
+		case "address", "message", "attrs":
+		default:
+			return fmt.Errorf("%w %q", errUnknownExcludeKey, k)
+		}
+	}
+	return nil
 }
 
 func compileExclude(c *ExcludeConfig) (compiledRule, error) {
@@ -121,13 +148,40 @@ type excludeHandler struct {
 	inner slog.Handler
 	addrs []string
 
-	// bound holds attributes added via WithAttrs, flattened to dotted
-	// keys and resolved once, as the sink does.
-	bound map[string]string
+	// bound holds attributes added via WithAttrs.
+	bound *boundAttrs
 
 	// prefix is the dotted group path (with trailing dot) applied to
 	// attributes.
 	prefix string
+}
+
+// boundAttrs is one WithAttrs call. It is flattened to dotted keys
+// and resolved on first use, then cached, so With stays cheap when no
+// attrs rule applies.
+type boundAttrs struct {
+	parent *boundAttrs
+	prefix string
+	attrs  []slog.Attr
+
+	once sync.Once
+	flat map[string]string
+}
+
+// get returns the flattened attributes of b and its ancestors.
+func (b *boundAttrs) get() map[string]string {
+	if b == nil {
+		return nil
+	}
+	b.once.Do(func() {
+		p := b.parent.get()
+		b.flat = make(map[string]string, len(p)+len(b.attrs))
+		maps.Copy(b.flat, p)
+		for _, a := range b.attrs {
+			flattenAttr(b.prefix, a, b.flat)
+		}
+	})
+	return b.flat
 }
 
 // newExcludeHandler wraps inner with exclusion support for loggers
@@ -186,11 +240,7 @@ func (h *excludeHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 	n := *h
 	n.inner = h.inner.WithAttrs(attrs)
-	n.bound = make(map[string]string, len(h.bound)+len(attrs))
-	maps.Copy(n.bound, h.bound)
-	for _, a := range attrs {
-		flattenAttr(h.prefix, a, n.bound)
-	}
+	n.bound = &boundAttrs{parent: h.bound, prefix: h.prefix, attrs: attrs}
 	return &n
 }
 
@@ -238,8 +288,9 @@ func (h *excludeHandler) inScope(address string) bool {
 // collectAttrs merges bound and record attributes into dotted keys
 // with resolved string values. Record attributes win over bound ones.
 func (h *excludeHandler) collectAttrs(r *slog.Record) map[string]string {
-	out := make(map[string]string, len(h.bound)+r.NumAttrs())
-	maps.Copy(out, h.bound)
+	bound := h.bound.get()
+	out := make(map[string]string, len(bound)+r.NumAttrs())
+	maps.Copy(out, bound)
 	r.Attrs(func(a slog.Attr) bool {
 		flattenAttr(h.prefix, a, out)
 		return true

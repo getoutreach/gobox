@@ -1,6 +1,7 @@
 package olog
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"os"
@@ -24,6 +25,15 @@ func (c countingValue) LogValue() slog.Value {
 	*c.n++
 	return slog.StringValue("true")
 }
+
+// nopHandler is an always-enabled handler that discards records, so
+// benchmarks reach Handle (slog.DiscardHandler is never enabled).
+type nopHandler struct{}
+
+func (nopHandler) Enabled(context.Context, slog.Level) bool  { return true }
+func (nopHandler) Handle(context.Context, slog.Record) error { return nil }
+func (h nopHandler) WithAttrs([]slog.Attr) slog.Handler      { return h }
+func (h nopHandler) WithGroup(string) slog.Handler           { return h }
 
 func loadExcludes(t *testing.T, yaml string) error {
 	t.Helper()
@@ -189,7 +199,7 @@ func BenchmarkExclude(b *testing.B) {
 			}
 			excludeRules.Store(&cr)
 			defer excludeRules.Store(nil)
-			h := newExcludeHandler(slog.DiscardHandler, []string{"pkg"})
+			h := newExcludeHandler(nopHandler{}, []string{"pkg"})
 			l := slog.New(h)
 			b.ReportAllocs()
 			for b.Loop() {
@@ -197,4 +207,40 @@ func BenchmarkExclude(b *testing.B) {
 			}
 		})
 	}
+}
+
+func BenchmarkExcludeWith(b *testing.B) {
+	h := newExcludeHandler(nopHandler{}, []string{"pkg"})
+	l := slog.New(h).WithGroup("req")
+	b.ReportAllocs()
+	for b.Loop() {
+		l.With("org", "o1", "user", 42).Info("work")
+	}
+}
+
+func TestExclude_UnknownKeyRejected(t *testing.T) {
+	err := loadExcludes(t, `exclude:
+  - adress: other/pkg
+    message: spam
+  - message: noise
+`)
+	assert.Assert(t, errors.Is(err, ErrInvalidExclude))
+	assert.ErrorContains(t, err, `unknown key "adress"`)
+
+	l, tc := newExcludeTestLogger(t, "pkg")
+	l.Info("spam") // the typo'd rule must not apply to every logger
+	l.Info("noise")
+	assert.Equal(t, len(tc.GetLogs()), 1)
+}
+
+func TestExclude_BoundAttrsLazy(t *testing.T) {
+	n := 0
+	l, tc := newExcludeTestLogger(t, "pkg")
+	assert.NilError(t, loadExcludes(t, "exclude:\n  - message: spam\n"))
+
+	l = l.With("probe", countingValue{&n})
+	l.Info("spam")
+	l.Info("ok")
+	assert.Equal(t, len(tc.GetLogs()), 1)
+	assert.Equal(t, n, 1) // only the sink; no attrs rule, so never flattened
 }

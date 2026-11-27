@@ -53,10 +53,12 @@ type Config struct {
 // Entries with a valid level are still applied.
 var ErrUnknownLevel = errors.New("unknown level")
 
-// ConfigureFromFile loads the level configuration from the provided
-// path. Entries with a valid level are always applied; entries with an
-// unrecognized level are skipped and reported in the returned error,
-// which wraps [ErrUnknownLevel] for each such entry.
+// ConfigureFromFile loads the level configuration and exclude rules
+// from the provided path. Entries with a valid level are always
+// applied; entries with an unrecognized level are skipped and reported
+// as [ErrUnknownLevel]. Exclude rules replace the previous ones on
+// every call; invalid rules are skipped and reported as
+// [ErrInvalidExclude]. The returned error joins all of these.
 func ConfigureFromFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
