@@ -41,6 +41,10 @@ type LevelConfig struct {
 // or a package, and the level is one of DEBUG, INFO, WARN, ERROR, or OFF.
 type Config struct {
 	Levels []LevelConfig `yaml:"log"`
+
+	// Exclude lists rules that drop matching log records at any level.
+	// See [ExcludeConfig].
+	Exclude []ExcludeConfig `yaml:"exclude"`
 }
 
 // ErrUnknownLevel is returned by [ConfigureFromFile] (and surfaced
@@ -49,17 +53,24 @@ type Config struct {
 // Entries with a valid level are still applied.
 var ErrUnknownLevel = errors.New("unknown level")
 
-// ConfigureFromFile loads the level configuration from the provided
-// path. Entries with a valid level are always applied; entries with an
-// unrecognized level are skipped and reported in the returned error,
-// which wraps [ErrUnknownLevel] for each such entry.
+// ConfigureFromFile loads the level configuration and exclude rules
+// from the provided path. Entries with a valid level are always
+// applied; entries with an unrecognized level are skipped and reported
+// as [ErrUnknownLevel]. Exclude rules replace the previous ones on
+// every call; invalid rules are skipped and reported as
+// [ErrInvalidExclude]. The returned error joins all of these.
 func ConfigureFromFile(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("%w reading %s", err, path)
 	}
 
-	c := Config{}
+	// Exclude is decoded per rule so a malformed rule doesn't block the
+	// rest of the file.
+	var c struct {
+		Levels  []LevelConfig `yaml:"log"`
+		Exclude yaml.Node     `yaml:"exclude"`
+	}
 	err = yaml.Unmarshal(data, &c)
 	if err != nil {
 		return fmt.Errorf("%w unmarshalling %s: \n%s", err, path, string(data))
@@ -75,6 +86,12 @@ func ConfigureFromFile(path string) error {
 		}
 		globalLevelRegistry.Set(l, configuredLevel.Address)
 	}
+
+	// Exclusion rules are replaced wholesale so rules removed from the
+	// file stop applying.
+	rules, err := compileExcludes(&c.Exclude, path)
+	excludeRules.Store(&rules)
+	errs = append(errs, err)
 
 	return errors.Join(errs...)
 }

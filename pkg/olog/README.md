@@ -430,7 +430,7 @@ func SetLevel(l slog.Level, address ...string)
 func ConfigureFromFile(path string) error
 ```
 
-`ConfigureFromFile` loads the level configuration from the provided path. Entries with a valid level are always applied; entries whose level is not one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `OFF` are skipped and reported in the returned error, which wraps `ErrUnknownLevel` for each such entry (also surfaced through `PollConfigurationFile`'s callback).
+`ConfigureFromFile` loads the level configuration from the provided path. Entries with a valid level are always applied; entries whose level is not one of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `OFF` are skipped and reported as `ErrUnknownLevel`. It also replaces the exclude rules (see below) on every call; invalid rules are skipped and reported as `ErrInvalidExclude`. The returned error joins all of these and is also surfaced through `PollConfigurationFile`'s callback.
 
 Configuration looks like:
 
@@ -441,6 +441,25 @@ log:
   - level: ERROR
     address: github.com/getoutreach/goql
 ```
+
+### Excluding records by message or attribute
+
+An optional `exclude` list drops matching records at **any level** (including
+ERROR). Rules are OR'd; within a rule every field set must match (AND).
+
+```yaml
+exclude:
+  - address: github.com/getoutreach/foo/pkg/bar # optional: package or module path
+    message: "^health ?check"                   # optional: RE2 regex on the message
+    attrs:                                      # optional: RE2 regex per attribute value
+      http.route: "^/healthz$"                  # group members use dotted keys
+```
+
+- A rule must set `message` or `attrs`; to silence a logger entirely use `level: OFF`.
+- Attributes bound with `With`/`WithGroup` (including olog's `module`/`modulever`) are matched.
+- Invalid rules are skipped and reported as `ErrInvalidExclude`; valid rules still apply. This covers `exclude` not being a list, a rule that fails to decode, an unknown key (e.g. a typo'd `adress`), an invalid regex, and a rule with neither `message` nor `attrs`.
+- Rules are replaced on every reload. They also apply to sinks set with `SetSinkHandler`; only a handler set with `log.SetHandler` bypasses them.
+- Regexes run per record; keep them anchored and simple.
 
 ## `func PollConfigurationFile`
 
